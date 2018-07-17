@@ -30,7 +30,7 @@ from pyworkflow.em.data import Volume
 from pyworkflow.em.protocol import ProtAnalysis3D, ImageHandler
 import pyworkflow.utils as pwutils
 
-import relion
+from relion.binaries import isVersion2Active
 
 
 class ProtRelionLocalRes(ProtAnalysis3D):
@@ -47,7 +47,7 @@ class ProtRelionLocalRes(ProtAnalysis3D):
 
     @classmethod
     def isDisabled(cls):
-        return not relion.binaries.isVersion2Active()
+        return not isVersion2Active()
     
     def _createFilenameTemplates(self):
         """ Centralize how files are called for iterations and references. """

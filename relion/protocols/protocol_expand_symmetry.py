@@ -31,6 +31,7 @@ from pyworkflow.em.protocol import ProtProcessParticles
 
 import relion
 from relion.constants import V1_3, V1_4
+from relion.binaries import getActiveVersion
 
  
 class ProtRelionExpandSymmetry(ProtProcessParticles):
@@ -45,7 +46,7 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
 
     @classmethod
     def isDisabled(cls):
-        return relion.binaries.getActiveVersion() in [V1_3, V1_4]
+        return getActiveVersion() in [V1_3, V1_4]
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineProcessParams(self, form):

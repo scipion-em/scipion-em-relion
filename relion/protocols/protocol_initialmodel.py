@@ -36,6 +36,7 @@ from pyworkflow.em.protocol import ProtInitialVolume
 
 import relion
 from relion.constants import V1_3, V1_4, V2_0, ANGULAR_SAMPLING_LIST
+from relion.binaries import getActiveVersion
 from .protocol_base import ProtRelionBase
 
 
@@ -53,7 +54,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
 
     @classmethod
     def isDisabled(cls):
-        return relion.binaries.getVersion() in [V1_3, V1_4, V2_0]
+        return getActiveVersion() in [V1_3, V1_4, V2_0]
 
     def __init__(self, **args):
         ProtRelionBase.__init__(self, **args)

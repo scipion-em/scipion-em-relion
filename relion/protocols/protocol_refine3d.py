@@ -31,6 +31,7 @@ from pyworkflow.em.protocol import ProtRefine3D
 from pyworkflow.em import ALIGN_PROJ
 
 import relion
+from relion.binaries import isVersion2Active
 from .protocol_base import ProtRelionBase
 
 
@@ -163,7 +164,7 @@ leads to objective and high-quality results.
         # self._validateDim(self._getInputParticles(), self.referenceVolume.get(),
         #                   errors, 'Input particles', 'Reference volume')
 
-        if relion.binaries.isVersion2Active() and self.IS_3D:
+        if isVersion2Active() and self.IS_3D:
             if self.solventFscMask and not self.referenceMask.get():
                 errors.append('When using solvent-corrected FSCs, '
                               'please provide a reference mask.')

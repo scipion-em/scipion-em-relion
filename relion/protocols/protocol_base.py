@@ -40,6 +40,7 @@ from pyworkflow.em.data import SetOfClasses3D
 from pyworkflow.em.protocol import EMProtocol
 
 import relion
+from relion.binaries import getActiveVersion, isVersion2Active
 from relion.constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO, V2_0
 
 
@@ -360,7 +361,7 @@ class ProtRelionBase(EMProtocol):
                                'Too small values yield too-low resolution '
                                'structures; too high values result in '
                                'over-estimated resolutions and overfitting.')
-            if relion.binaries.getVersion() != V2_0:  # version 2.1+ only
+            if getActiveVersion() != V2_0:  # version 2.1+ only
                 form.addParam('doSubsets', BooleanParam, default=False,
                               condition='not doContinue',
                               label='Use subsets for initial updates?',
@@ -795,7 +796,7 @@ class ProtRelionBase(EMProtocol):
             self._setContinueArgs(args)
         else:
             self._setNormalArgs(args)
-        if relion.binaries.isVersion2Active():
+        if isVersion2Active():
             self._setComputeArgs(args)
         
         params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.iteritems()])
@@ -884,7 +885,7 @@ class ProtRelionBase(EMProtocol):
                         md.RLN_IMAGE_ID, md.INNER_JOIN)
             mdAux.fillConstant(md.RLN_PARTICLE_NR_FRAMES,
                                self._getNumberOfFrames())
-            if relion.binaries.isVersion2Active():
+            if isVersion2Active():
                 # FIXME: set to 1 till frame averaging is implemented in xmipp
                 mdAux.fillConstant(md.RLN_PARTICLE_NR_FRAMES_AVG, 1)
 
@@ -1012,7 +1013,7 @@ class ProtRelionBase(EMProtocol):
                 args['--ini_high'] = self.initialLowPassFilterA.get()
                 args['--sym'] = self.symmetryGroup.get()
         
-        if not relion.binaries.isVersion2Active():
+        if not isVersion2Active():
             args['--memory_per_thread'] = self.memoryPreThreads.get()
 
         refArg = self._getRefArg()
@@ -1074,7 +1075,7 @@ class ProtRelionBase(EMProtocol):
             args['--tau2_fudge'] = self.regularisationParamT.get()
             args['--iter'] = self._getnumberOfIters()
 
-            if not self.doContinue and relion.binaries.isVersion2Active() and relion.binaries.getVersion() != V2_0:
+            if not self.doContinue and isVersion2Active() and getActiveVersion() != V2_0:
                 self._setSubsetArgs(args)
     
         self._setSamplingArgs(args)
@@ -1106,7 +1107,7 @@ class ProtRelionBase(EMProtocol):
                                                      self._getTmpPath())
             args['--solvent_mask2'] = solventMask
 
-        if (relion.binaries.isVersion2Active() and self.IS_3D
+        if (isVersion2Active() and self.IS_3D
             and self.referenceMask.hasValue() and self.solventFscMask):
             args['--solvent_correct_fsc'] = ''
 

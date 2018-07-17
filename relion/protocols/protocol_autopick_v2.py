@@ -37,6 +37,7 @@ import pyworkflow.em.metadata as md
 from pyworkflow.em import getSubsetByDefocus
 
 import relion
+from relion.binaries import isVersion2Active
 from .protocol_base import ProtRelionBase
 
 
@@ -74,7 +75,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
 
     @classmethod
     def isDisabled(cls):
-        return not relion.binaries.isVersion2Active()
+        return not isVersion2Active()
 
     # -------------------------- DEFINE param functions ------------------------
     def _defineParams(self, form):

@@ -33,6 +33,7 @@ import pyworkflow.em as em
 import pyworkflow.em.metadata as md
 
 import relion
+from relion.binaries import isVersion2Active
 from .protocol_base import ProtRelionBase
 
 
@@ -47,7 +48,7 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
     
     @classmethod
     def isDisabled(cls):
-        return not relion.binaries.isVersion2Active()
+        return not isVersion2Active()
 
     def __init__(self, **kwargs):
         em.ProtExtractParticles.__init__(self, **kwargs)

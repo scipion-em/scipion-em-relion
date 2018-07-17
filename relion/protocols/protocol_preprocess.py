@@ -35,6 +35,7 @@ from pyworkflow.protocol.params import (PointerParam, BooleanParam,
                                         FloatParam, IntParam, Positive)
 
 import relion
+from relion.binaries import getActiveVersion
 from .protocol_base import ProtRelionBase
 
 
@@ -289,7 +290,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
         return scaleFactor
     
     def _getOutParam(self):
-        if relion.binaries.getVersion() == "1.3" or relion.binaries.getVersion() == "1.4":
+        if getActiveVersion() == "1.3" or getActiveVersion() == "1.4":
             outParam = '--o '
         else:
             outParam = '--operate_out '
