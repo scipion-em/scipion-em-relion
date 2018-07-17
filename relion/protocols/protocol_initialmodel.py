@@ -24,6 +24,7 @@
 # *
 # **************************************************************************
 
+from pyworkflow.em import ALIGN_PROJ
 import pyworkflow.em.metadata as md
 from pyworkflow.protocol.params import (PointerParam, FloatParam,
                                         LabelParam, IntParam,
@@ -453,7 +454,4 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                          itemDataIterator=md.iterRows(outImgsFn, sortByLabel=md.RLN_IMAGE_ID))
 
     def _createItemMatrix(self, item, row):
-        from pyworkflow.em.packages.relion.convert import relion.convert.createItemMatrix
-        from pyworkflow.em import ALIGN_PROJ
-
         relion.convert.createItemMatrix(item, row, align=ALIGN_PROJ)

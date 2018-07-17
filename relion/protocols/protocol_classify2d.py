@@ -1,8 +1,8 @@
 # **************************************************************************
 # *
-# * Authors:     J.M. De la Rosa Trevin (jmdelarosa@cnb.csic.es)
+# * Authors:     J.M. De la Rosa Trevin (delarosatrevin@scilifelab.se) [1]
 # *
-# * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+# * [1] SciLifeLab, Stockholm University
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -29,8 +29,8 @@ import pyworkflow.em.metadata as md
 from pyworkflow.em.data import SetOfClasses2D
 from pyworkflow.em.protocol import ProtClassify2D
 
-from pyworkflow.em.packages.relion.protocol_base import ProtRelionBase
-from pyworkflow.em.packages.relion.convert import rowToAlignment, relion.convert.relionToLocation
+import relion
+from .protocol_base import ProtRelionBase
 
 
 class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
@@ -156,7 +156,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
     #--------------------------- UTILS functions --------------------------------------------
     def _updateParticle(self, item, row):
         item.setClassId(row.getValue(md.RLN_PARTICLE_CLASS))
-        item.setTransform(rowToAlignment(row, em.ALIGN_2D))
+        item.setTransform(relion.convert.rowToAlignment(row, em.ALIGN_2D))
         
         item._rlnNormCorrection = em.Float(row.getValue('rlnNormCorrection'))
         item._rlnLogLikeliContribution = em.Float(row.getValue('rlnLogLikeliContribution'))

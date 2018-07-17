@@ -1,8 +1,8 @@
 # **************************************************************************
 # *
-# * Authors:     J.M. De la Rosa Trevin (jmdelarosa@cnb.csic.es)
+# * Authors:     J.M. De la Rosa Trevin (delarosatrevin@scilifelab.se) [1]
 # *
-# * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+# * [1] SciLifeLab, Stockholm University
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -23,17 +23,13 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-"""
-This module contains the protocol for 3d classification with relion.
-"""
 
-import pyworkflow.em.metadata as md
 import pyworkflow.em as em
+import pyworkflow.em.metadata as md
 from pyworkflow.em.protocol import ProtClassify3D
-from pyworkflow.em.data import Volume
 
-from pyworkflow.em.packages.relion.protocol_base import ProtRelionBase
-from pyworkflow.em.packages.relion.convert import relion.convert.relionToLocation, rowToAlignment
+import relion
+from .protocol_base import ProtRelionBase
 
 
 class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
@@ -187,7 +183,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
     
     def _updateParticle(self, item, row):
         item.setClassId(row.getValue(md.RLN_PARTICLE_CLASS))
-        item.setTransform(rowToAlignment(row, em.ALIGN_PROJ))
+        item.setTransform(relion.convert.rowToAlignment(row, em.ALIGN_PROJ))
         
         item._rlnLogLikeliContribution = em.Float(row.getValue('rlnLogLikeliContribution'))
         item._rlnMaxValueProbDistribution = em.Float(row.getValue('rlnMaxValueProbDistribution'))

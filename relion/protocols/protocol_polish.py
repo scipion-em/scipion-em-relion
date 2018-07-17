@@ -38,7 +38,7 @@ import pyworkflow.utils as pwutils
 from pyworkflow.em.protocol import ProtProcessParticles
 
 import relion
-from relion.constants import V1_3, MOVIE
+from relion.constants import V1_3
 from .protocol_base import ProtRelionBase
 
 
