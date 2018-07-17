@@ -30,6 +30,8 @@ from pyworkflow.em.data import Volume
 from pyworkflow.em.protocol import ProtAnalysis3D, ImageHandler
 import pyworkflow.utils as pwutils
 
+import relion
+
 
 class ProtRelionLocalRes(ProtAnalysis3D):
     """

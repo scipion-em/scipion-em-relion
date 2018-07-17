@@ -31,6 +31,7 @@ from pyworkflow.em.protocol import ProtReconstruct3D
 from pyworkflow.em.constants import ALIGN_PROJ
 
 import relion
+import relion.convert
 
 
 class ProtRelionReconstruct(ProtReconstruct3D):

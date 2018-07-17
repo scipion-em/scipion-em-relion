@@ -29,6 +29,7 @@ import pyworkflow.em.metadata as md
 from pyworkflow.em.protocol import ProtClassify3D
 
 import relion
+import relion.convert
 from .protocol_base import ProtRelionBase
 
 

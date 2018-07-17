@@ -33,6 +33,7 @@ from pyworkflow.em.protocol.protocol_particles import ProtProcessParticles
 import pyworkflow.protocol.params as params
 
 import relion
+import relion.convert
 from .protocol_base import ProtRelionBase
 
 STACK_NONE = 0

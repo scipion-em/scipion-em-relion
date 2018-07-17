@@ -36,6 +36,7 @@ from pyworkflow.em.convert import ImageHandler
 import pyworkflow.utils as pwutils
 
 import relion
+import relion.convert
 from .protocol_base import ProtRelionBase
 
 

@@ -33,6 +33,7 @@ import pyworkflow.em as em
 import pyworkflow.em.metadata as md
 
 import relion
+import relion.convert
 from .protocol_base import ProtRelionBase
 
 

@@ -35,6 +35,7 @@ from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pyworkflow.em.protocol import ProtOperateParticles
 
 import relion
+import relion.convert
 
 
 class ProtRelionSubtract(ProtOperateParticles):

@@ -39,6 +39,7 @@ from pyworkflow.em.protocol import ProtProcessParticles
 
 import relion
 from relion.constants import V1_3
+import relion.convert
 from .protocol_base import ProtRelionBase
 
 

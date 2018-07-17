@@ -28,6 +28,7 @@ from pyworkflow.em import ProtCreateMask3D, VolumeMask
 import pyworkflow.protocol.params as params
 
 import relion
+import relion.convert
 
 
 AND = 0

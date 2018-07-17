@@ -37,6 +37,7 @@ import pyworkflow.em.metadata as md
 from pyworkflow.em import getSubsetByDefocus
 
 import relion
+import relion.convert
 from .protocol_base import ProtRelionBase
 
 

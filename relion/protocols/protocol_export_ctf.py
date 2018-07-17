@@ -33,6 +33,8 @@ from pyworkflow import VERSION_1_1
 from pyworkflow.em.protocol import EMProtocol
 from pyworkflow.em.data import SetOfMicrographs
 
+import relion.convert
+
 
 class ProtRelionExportCtf(EMProtocol):
     """

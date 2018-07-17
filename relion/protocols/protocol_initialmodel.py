@@ -35,6 +35,7 @@ from pyworkflow.em.data import Volume
 from pyworkflow.em.protocol import ProtInitialVolume
 
 import relion
+import relion.convert
 from relion.constants import V1_3, V1_4, V2_0, ANGULAR_SAMPLING_LIST
 from .protocol_base import ProtRelionBase
 

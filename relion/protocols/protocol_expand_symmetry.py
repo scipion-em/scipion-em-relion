@@ -30,6 +30,7 @@ import pyworkflow.em.metadata as md
 from pyworkflow.em.protocol import ProtProcessParticles
 
 import relion
+import relion.convert
 from relion.constants import V1_3, V1_4
 
  

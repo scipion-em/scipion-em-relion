@@ -40,6 +40,7 @@ from pyworkflow.em.data import SetOfClasses3D
 from pyworkflow.em.protocol import EMProtocol
 
 import relion
+import relion.convert
 from relion.constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO, V2_0
 
 

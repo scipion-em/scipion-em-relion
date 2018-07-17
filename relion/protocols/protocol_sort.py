@@ -35,6 +35,7 @@ from pyworkflow.em.data import SetOfClasses3D, SetOfParticles, SetOfClasses
 import pyworkflow.em.metadata as md
 
 import relion
+import relion.convert
 
 
 class ProtRelionSortParticles(ProtParticles):

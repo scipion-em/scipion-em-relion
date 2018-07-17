@@ -30,6 +30,7 @@ from pyworkflow.em.data import SetOfClasses2D
 from pyworkflow.em.protocol import ProtClassify2D
 
 import relion
+import relion.convert
 from .protocol_base import ProtRelionBase
 
 

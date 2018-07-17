@@ -38,6 +38,7 @@ from pyworkflow.viewer import (
     Viewer, ProtocolViewer, DESKTOP_TKINTER, WEB_DJANGO)
 
 import relion
+import relion.convert
 from relion.protocols import (
     ProtRelionClassify2D, ProtRelionClassify3D, ProtRelionRefine3D,
     ProtRelionPolish, ProtRelionPostprocess, ProtRelionAutopick,
