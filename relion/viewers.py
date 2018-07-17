@@ -879,8 +879,8 @@ class PostprocessViewer(ProtocolViewer):
         ProtocolViewer.setProtocol(self, protocol)
         self.__defineParams(self._form)
         self._createVarsFromDefinition()
-        from pyworkflow.em.packages.xmipp3 import getEnviron
-        self._env = dict(getEnviron())
+        import xmipp3
+        self._env = dict(xmipp3.getEnviron())
 #        self._load()
         
     def _defineParams(self, form):
@@ -1109,7 +1109,7 @@ class RelionAutopickViewer(Viewer):
     
     def visualize(self, obj, **args):
         micPath, coordPath = obj.writeXmippOutputCoords()
-        import pyworkflow.em.packages.xmipp3 as xmipp3
+        import xmipp3
         xmipp3.viewer.launchSupervisedPickerGUI(micPath, coordPath, self.protocol)
 
 

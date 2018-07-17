@@ -34,7 +34,7 @@ from pyworkflow.protocol.params import PointerParam, BooleanParam, LabelParam
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pyworkflow.em.protocol import ProtOperateParticles
 
-from convert import writeSetOfParticles, convertBinaryVol, relionToLocation
+import relion
 
 
 class ProtRelionSubtract(ProtOperateParticles):
@@ -59,7 +59,7 @@ class ProtRelionSubtract(ProtOperateParticles):
                   }
         self._updateFilenamesDict(myDict)
     
-    #--------------------------- DEFINE param functions ------------------------
+    # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')
         form.addParam('inputParticles', PointerParam,
@@ -119,7 +119,7 @@ class ProtRelionSubtract(ProtOperateParticles):
         
         form.addParallelSection(threads=0, mpi=0)
     
-    #--------------------------- INSERT steps functions ------------------------
+    # -------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self):
         self._initialize()
         
@@ -132,19 +132,20 @@ class ProtRelionSubtract(ProtOperateParticles):
         self._insertFunctionStep('removeStep')
         self._insertFunctionStep('createOutputStep')
     
-    #--------------------------- STEPS functions -------------------------------
+    # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self, particlesId):
         """ Write the input images as a Xmipp metadata file. 
         particlesId: is only need to detect changes in
         input particles and cause restart from here.
         """
         imgSet = self.inputParticles.get()
-        writeSetOfParticles(imgSet, self._getFileName('input_star'),
-                            self._getExtraPath())
+        relion.convert.writeSetOfParticles(
+            imgSet, self._getFileName('input_star'), self._getExtraPath())
     
     def applyMaskStep(self):
-        import pyworkflow.em.packages.xmipp3 as xmipp3
-        from pyworkflow.em.packages.xmipp3.convert import getImageLocation
+        # TODO: Move apply mask to ImageHandler (if not there already)
+        import xmipp3
+        import xmipp3.convert.getImageLocation as getImageLocation
         
         params = ' -i %s --mult %s -o %s' % (getImageLocation(self.inputVolume.get()),
                                              getImageLocation(self.refMask.get()),
@@ -156,7 +157,8 @@ class ProtRelionSubtract(ProtOperateParticles):
         if self.refMask.get() is not None:
             volFn = self._getFileName('volume_masked')
         else:
-            volFn = convertBinaryVol(volume, self._getExtraPath())
+            volFn = relion.convert.convertBinaryVol(volume,
+                                                    self._getExtraPath())
         
         params = ' --i %s --subtract_exp --angpix %0.3f' % (volFn,
                                                             volume.getSamplingRate())
@@ -174,7 +176,7 @@ class ProtRelionSubtract(ProtOperateParticles):
 
         try:
             self.runJob('relion_project', params)
-        except Exception, ex:
+        except Exception as ex:
             fn = self._getFileName('output_star')
             if not os.path.exists(fn):
                 sys.stderr.write('The file %s was not produced\n' % fn)
@@ -195,7 +197,7 @@ class ProtRelionSubtract(ProtOperateParticles):
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(imgSet, outImgSet)
     
-    #--------------------------- INFO functions --------------------------------
+    # -------------------------- INFO functions -------------------------------
     def _validate(self):
         """ Should be overwritten in subclasses to
         return summary message for NORMAL EXECUTION. 
@@ -226,10 +228,10 @@ class ProtRelionSubtract(ProtOperateParticles):
 
         return summary
     
-    #--------------------------- UTILS functions -------------------------------
+    # -------------------------- UTILS functions ------------------------------
     def _updateItem(self, item, row):
         newFn = row.getValue(md.RLN_IMAGE_NAME)
-        newLoc = relionToLocation(newFn)
+        newLoc = relion.convert.relionToLocation(newFn)
         item.setLocation(newLoc)
 
     def _getInputParticles(self):

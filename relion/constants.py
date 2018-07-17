@@ -31,6 +31,13 @@ This modules contains constants related to Relion protocols
 
 import pyworkflow.em.metadata as md
 
+RELION_HOME = 'RELION_HOME'
+
+# Supported versions:
+V1_3 = '1.3'
+V1_4 = '1.4'
+V2_0 = '2.0'
+V2_1 = '2.1'
 
 MASK_FILL_ZERO = 0
 MASK_FILL_NOISE = 1
@@ -56,7 +63,7 @@ XMIPP_RELION_LABELS = {
                        ,md.MDL_CTF_DEFOCUS_ANGLE: 'rlnDefocusAngle'
                        ,md.MDL_CTF_ENERGY_LOSS:   'rlnEnergyLoss'
                        ,md.MDL_CTF_LENS_STABILITY:'rlnLensStability'
-                       ,md.MDL_CTF_LONGITUDINAL_DISPLACEMENT:'rlnLongitudinalDisplacement'
+                       ,md.MDL_CTF_LONGITUDINAL_DISPLACEMENT: 'rlnLongitudinalDisplacement'
                        ,md.MDL_CTF_TRANSVERSAL_DISPLACEMENT: 'rlnTransversalDisplacement'                       
                        ,md.MDL_CTF_Q0:            'rlnAmplitudeContrast'
                        ,md.MDL_CTF_SAMPLING_RATE: 'rlnDetectorPixelSize'
@@ -155,9 +162,4 @@ XMIPP_RELION_LABELS_EXTRA = {
                        #,md.MDL_CLASSIFICATION_INTRACLASS_DISTANCE: ''
                        }
 
-# Supported versions:
-V1_3 = '1.3'
-V1_4 = '1.4'
-V2_0 = '2.0'
-V2_1 = '2.1'
 

@@ -32,15 +32,11 @@ from pyworkflow.object import Float
 from pyworkflow.em.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_NONE
 from pyworkflow.em.data import Micrograph
 import pyworkflow.em.metadata as md
-from pyworkflow.em.packages.relion.convert import relionToLocation, readCoordinates
 from pyworkflow.utils.path import findRootFrom
-from pyworkflow.em.packages.relion.convert import rowToCoordinate
-
-# import xmipp
+from .convert import relionToLocation, rowToCoordinate
 
 
-
-class RelionImport():
+class RelionImport:
     """    
     Protocol to import existing Relion runs.
     """
@@ -84,7 +80,6 @@ class RelionImport():
         if self._classesFunc is not None:
             self._createClasses(partSet)
 
-
     def _updateClass(self, item):
         classId = item.getObjId()
         if classId in self._classesDict:
@@ -126,7 +121,7 @@ class RelionImport():
         self.protocol._defineOutputs(outputClasses=clsSet)
         self.protocol._defineSourceRelation(partSet, clsSet)
 
-    #--------------------------- INFO functions -------------------------------------------- 
+    # -------------------------- INFO functions -------------------------------
     def validateParticles(self):
         """ Should be overwritten in subclasses to
         return summary message for NORMAL EXECUTION. 
@@ -134,7 +129,7 @@ class RelionImport():
         errors = []
         try:
             self._findImagesPath(label="rlnImageName", warnings=False)
-        except Exception, ex:
+        except Exception as ex:
             errors.append(str(ex))
 
         return errors
@@ -285,8 +280,8 @@ class RelionImport():
                 modelRow.containsLabel('rlnPixelSize')):
                 acquisitionDict['samplingRate'] = modelRow.getValue('rlnPixelSize')
 
-        except Exception, ex:
-            print "Error loading acquisition: ", str(ex)
+        except Exception as ex:
+            print("Error loading acquisition: ", str(ex))
 
         return acquisitionDict
 

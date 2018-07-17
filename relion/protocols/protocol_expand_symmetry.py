@@ -25,11 +25,12 @@
 # **************************************************************************
 
 from pyworkflow.protocol.params import StringParam
-from pyworkflow.em.protocol import ProtProcessParticles
 from pyworkflow.em import ALIGN_PROJ
+import pyworkflow.em.metadata as md
+from pyworkflow.em.protocol import ProtProcessParticles
+
 from convert import (writeSetOfParticles, getVersion, V1_3,
                      V1_4, readSetOfParticles, setRelionAttributes)
-import pyworkflow.em.metadata as md
 
  
 class ProtRelionExpandSymmetry(ProtProcessParticles):

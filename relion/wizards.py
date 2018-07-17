@@ -29,11 +29,10 @@ from pyworkflow.em.packages.xmipp3.constants import *
 from constants import *
 from pyworkflow.em import *
 from pyworkflow.em.wizard import *
-from protocol_classify3d import ProtRelionClassify3D
-from protocol_refine3d import ProtRelionRefine3D
-from protocol_classify2d import ProtRelionClassify2D
-from protocol_preprocess import ProtRelionPreprocessParticles
-from protocol_autopick import ProtRelionAutopickFom, ProtRelionAutopick
+from relion.protocols import (ProtRelionClassify3D, ProtRelionRefine3D,
+                              ProtRelionClassify2D, ProtRelionPreprocessParticles,
+                              ProtRelionAutopickFom, ProtRelionAutopick,
+
 from protocol_autopick_v2 import ProtRelion2Autopick, RUN_COMPUTE
 from protocol_create_mask3d import ProtRelionCreateMask3D
 from protocol_sort import ProtRelionSortParticles

@@ -1,8 +1,8 @@
 # **************************************************************************
 # *
-# * Authors:     J.M. De la Rosa Trevin (jmdelarosa@cnb.csic.es)
+# * Authors:     J.M. De la Rosa Trevin (delarosatrevin@scilifelab.se) [1]
 # *
-# * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+# * [1] SciLifeLab, Stockholm University
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -23,52 +23,16 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-"""
-This sub-package contains Relion protocols and tools.
-"""
 
-from bibtex import _bibtex # Load bibtex dict with references
+import pyworkflow.em
+
 _logo = "relion_logo.png"
-_references = ['Scheres2012a', 'Scheres2012b', 'Chen2012']
 
-from convert import *
-from protocol_create_mask3d import ProtRelionCreateMask3D
-from protocol_classify2d import ProtRelionClassify2D
-from protocol_classify3d import ProtRelionClassify3D
-from protocol_refine3d import ProtRelionRefine3D
-from protocol_reconstruct import ProtRelionReconstruct
-from protocol_postprocess import ProtRelionPostprocess
-from protocol_preprocess import ProtRelionPreprocessParticles
-from protocol_polish import ProtRelionPolish
-from protocol_sort import ProtRelionSortParticles
-from protocol_subtract import ProtRelionSubtract
-from protocol_expand_symmetry import ProtRelionExpandSymmetry
-from protocol_initialmodel import ProtRelionInitialModel
-from protocol_localres import ProtRelionLocalRes
-
-from protocol_autopick import ProtRelionAutopickFom, ProtRelionAutopick
-from protocol_autopick_v2 import ProtRelion2Autopick
-from protocol_extract_particles import ProtRelionExtractParticles
-
-from protocol_export_ctf import ProtRelionExportCtf
-from protocol_center_averages import ProtRelionCenterAverages
-from protocol_export_particles import ProtRelionExportParticles
-
-# Wizards
-from wizard import *
-
-from viewer import *
-
-_environ = getEnviron()
+# The following class is required for Scipion to detect this Python module
+# as a Scipion Plugin. It needs to specify the PluginMeta __metaclass__
+class Plugin:
+    __metaclass__ = pyworkflow.em.PluginMeta
 
 
-def validateInstallation():
-    """ This function will be used to check if RELION is properly installed. """
-    missingPaths = ["%s: %s" % (var, _environ[var])
-                    for var in [RELION_HOME]
-                    if not os.path.exists(_environ[var])]
 
-    if missingPaths:
-        return ["Missing variables:"] + missingPaths
-    else:
-        return [] # No errors
+
