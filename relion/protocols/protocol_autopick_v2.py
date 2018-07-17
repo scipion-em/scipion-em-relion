@@ -40,16 +40,6 @@ import relion
 from .protocol_base import ProtRelionBase
 
 
-REF_AVERAGES = 0
-REF_BLOBS = 1
-
-RUN_OPTIMIZE = 0 # Run only on several micrographs to optimize parameters
-RUN_COMPUTE = 1 # Run the picking for all micrographs after optimize
-
-MICS_AUTO = 0
-MICS_SUBSET = 1
-
-
 class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
     """
     This Relion protocol uses the 'relion_autopick' program to pick particles
@@ -73,6 +63,15 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
     """
     _label = 'auto-picking'
 
+    REF_AVERAGES = 0
+    REF_BLOBS = 1
+
+    RUN_OPTIMIZE = 0  # Run only on several micrographs to optimize parameters
+    RUN_COMPUTE = 1  # Run the picking for all micrographs after optimize
+
+    MICS_AUTO = 0
+    MICS_SUBSET = 1
+
     @classmethod
     def isDisabled(cls):
         return not relion.binaries.isVersion2Active()
@@ -95,7 +94,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                       help='Choose some CTF estimation related to the '
                            'input micrographs.')
 
-        form.addParam('runType', params.EnumParam, default=RUN_OPTIMIZE,
+        form.addParam('runType', params.EnumParam, default=self.RUN_OPTIMIZE,
                       choices=['Optimize params', 'Pick all micrographs'],
                       display=params.EnumParam.DISPLAY_LIST,
                       label='Run type: ',
@@ -106,7 +105,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                            ' mode and auto-pick all the micrographs. ')
 
         group = form.addGroup('Micrographs for optimization',
-                              condition='runType==%d' % RUN_OPTIMIZE)
+                              condition='runType==%d' % self.RUN_OPTIMIZE)
 
         group.addParam('micrographsSelection', params.EnumParam,
                        default=MICS_AUTO,
@@ -118,12 +117,12 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                             'and that number will be selected to cover the '
                             'defocus range. ')
         group.addParam('micrographsNumber', params.IntParam, default='10',
-                      condition='micrographsSelection==%d' % MICS_AUTO,
+                      condition='micrographsSelection==%d' % self.MICS_AUTO,
                       label='Micrographs for optimization:',
                       help='Select the number of micrographs that you want'
                            'to be used for the parameters optimization. ')
         group.addParam('micrographsSubset', params.PointerParam,
-                       condition='micrographsSelection==%d' % MICS_SUBSET,
+                       condition='micrographsSelection==%d' % self.MICS_SUBSET,
                        pointerClass='SetOfMicrographs',
                        label='Subset of micrographs',
                        help='Choose as input a subset of micrographs that '
@@ -132,12 +131,12 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
 
         # From Relion 2.+, it can be picked with gaussian blobs, so we
         # need to add these parameters
-        refCondition = 'referencesType==%s' % REF_AVERAGES
+        refCondition = 'referencesType==%s' % self.REF_AVERAGES
 
         group = form.addGroup('References')
         group.addParam('referencesType', params.EnumParam,
                       choices=['References', 'Gaussian blobs'],
-                      default=REF_AVERAGES,
+                      default=self.REF_AVERAGES,
                       display=params.EnumParam.DISPLAY_HLIST,
                       label='References type',
                       help='You may select "Gaussian blobs" to be used as '
@@ -148,7 +147,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                            'kickstart a new data set.')
 
         group.addParam('gaussianPeak', params.FloatParam, default=0.1,
-                      condition='referencesType==%s' % REF_BLOBS,
+                      condition='referencesType==%s' % self.REF_BLOBS,
                       label='Gaussian peak value',
                       help='The peak value of the Gaussian blob. '
                            'Weaker data will need lower values.')

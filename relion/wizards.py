@@ -24,20 +24,18 @@
 # *
 # **************************************************************************
 
-from pyworkflow.em.packages.xmipp3.constants import *
+import pyworkflow.utils as pwutils
 
-from constants import *
 from pyworkflow.em import *
 from pyworkflow.em.wizard import *
-from relion.protocols import (ProtRelionClassify3D, ProtRelionRefine3D,
-                              ProtRelionClassify2D, ProtRelionPreprocessParticles,
-                              ProtRelionAutopickFom, ProtRelionAutopick,
 
-from protocol_autopick_v2 import ProtRelion2Autopick, RUN_COMPUTE
-from protocol_create_mask3d import ProtRelionCreateMask3D
-from protocol_sort import ProtRelionSortParticles
-from protocol_initialmodel import ProtRelionInitialModel
-import pyworkflow.utils as pwutils
+from relion.constants import *
+from relion.protocols import (
+    ProtRelionClassify3D, ProtRelionRefine3D, ProtRelionClassify2D,
+    ProtRelionPreprocessParticles, ProtRelionAutopickFom, ProtRelionAutopick,
+    ProtRelion2Autopick, ProtRelionCreateMask3D,
+    ProtRelionSortParticles, ProtRelionInitialModel)
+
 
 #===============================================================================
 # MASKS
@@ -343,7 +341,7 @@ class Relion2AutopickParams(EmWizard):
             form.setVar('maxStddevNoise', myprops['maxStddevNoise.value'])
             # Change the run type now to 'Compute' after using the wizard
             # and (supposedly) optimized parameters
-            form.setVar('runType', RUN_COMPUTE)
+            form.setVar('runType', ProtRelion2Autopick.RUN_COMPUTE)
             # Mark the wizard was used
             setattr(autopickProt, 'wizardExecuted', True)
         else:
