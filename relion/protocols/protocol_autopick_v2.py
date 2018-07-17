@@ -37,7 +37,6 @@ import pyworkflow.em.metadata as md
 from pyworkflow.em import getSubsetByDefocus
 
 import relion
-from relion.binaries import isVersion2Active
 from .protocol_base import ProtRelionBase
 
 
@@ -75,7 +74,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
 
     @classmethod
     def isDisabled(cls):
-        return not isVersion2Active()
+        return not relion.Plugin.isVersion2Active()
 
     # -------------------------- DEFINE param functions ------------------------
     def _defineParams(self, form):
@@ -109,7 +108,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                               condition='runType==%d' % self.RUN_OPTIMIZE)
 
         group.addParam('micrographsSelection', params.EnumParam,
-                       default=MICS_AUTO,
+                       default=self.MICS_AUTO,
                        choices=['automatic selection', 'input subset'],
                        display=params.EnumParam.DISPLAY_HLIST,
                        label='Choose micrographs by',
@@ -554,7 +553,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         inputCTFs = self.ctfRelations.get()
 
         if self.isRunOptimize():
-            if self.micrographsSelection == MICS_AUTO:
+            if self.micrographsSelection == self.MICS_AUTO:
                 n = self.micrographsNumber.get()
                 if n < 3 or n > min(30, inputMics.getSize()):
                     return ['Number of micrographs should be between 3 and '
@@ -652,7 +651,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         if not self.isRunOptimize():
             return inputMics
 
-        if self.micrographsSelection == MICS_AUTO:
+        if self.micrographsSelection == self.MICS_AUTO:
             mics = getSubsetByDefocus(self.ctfRelations.get(), inputMics,
                                       self.micrographsNumber.get())
         else:  # Subset selection

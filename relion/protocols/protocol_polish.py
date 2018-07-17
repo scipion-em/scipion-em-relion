@@ -39,7 +39,6 @@ from pyworkflow.em.protocol import ProtProcessParticles
 
 import relion
 from relion.constants import V1_3
-from relion.binaries import getActiveVersion, isVersion2Active
 from .protocol_base import ProtRelionBase
 
 
@@ -99,7 +98,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
                            'also be included in the fitting of each particle. '
                            'Again, in particular for smaller particles this '
                            'may improve the robustness of the fits.')
-        if not isVersion2Active():
+        if not relion.Plugin.isVersion2Active():
             form.addParam('movieAvgWindow', FloatParam, default=5,
                           label='Running average window',
                           help='The individual movie frames will be '
@@ -174,7 +173,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
                            'described in the Rosenthal and Henderson (2003) '
                            'paper in JMB can be used. Probably a value around '
                            '20A is still OK.')
-        if isVersion2Active():
+        if relion.Plugin.isVersion2Active():
             form.addParam('avgFramesBfac', IntParam, default=1,
                           condition='performBfactorWeighting',
                           label='Average frames B-factor estimation',
@@ -220,7 +219,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         imgStar = self._getFileName('movie_particles')
         
         params = ' --i %s' % imgStar
-        if isVersion2Active():
+        if relion.Plugin.isVersion2Active():
             params += ' --o %s/shiny' % self._getExtraPath()
         else:
             params += ' --o shiny'
@@ -230,7 +229,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         params += ' --perframe_highres %0.3f' % self.highresLimitPerFrameMaps.get()
         params += ' --autob_lowres %0.3f' % self.lowresLimitBfactorEstimation.get()
 
-        if not isVersion2Active():
+        if not relion.Plugin.isVersion2Active():
             params += ' --movie_frames_running_avg %d' % self.movieAvgWindow.get()
             params += ' --dont_read_old_files'
         else:
@@ -272,7 +271,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         mdImg = md.MetaData(imgStarTmp)
 
         # replace mdColumn from *.stk to *.mrcs as Relion2 requires
-        if getActiveVersion() == V1_3:
+        if relion.Plugin.getActiveVersion() == V1_3:
             mdColumn = md.RLN_PARTICLE_NAME
         else:
             mdColumn = md.RLN_PARTICLE_ORI_NAME
@@ -292,7 +291,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         self.runJob(self._getProgram('relion_particle_polish'), params)
     
     def organizeDataStep(self):
-        if getActiveVersion() == V1_3:
+        if relion.Plugin.getActiveVersion() == V1_3:
             mdColumn = md.RLN_PARTICLE_NAME
         else:
             mdColumn = md.RLN_PARTICLE_ORI_NAME
@@ -301,7 +300,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         newDir = self._getExtraPath('polished_particles')
         pwutils.makePath(newDir)
 
-        if not isVersion2Active():
+        if not relion.Plugin.isVersion2Active():
             pwutils.makePath(self._getExtraPath('shiny'))
             shinyOld = "shiny.star"
             inputFit = "movie_particles_shiny.star"

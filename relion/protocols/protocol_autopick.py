@@ -36,7 +36,6 @@ from pyworkflow.em.convert import ImageHandler
 import pyworkflow.utils as pwutils
 
 import relion
-from relion.binaries import isVersion2Active
 from .protocol_base import ProtRelionBase
 
 
@@ -44,7 +43,7 @@ class ProtRelionAutopickBase(ProtParticlePicking, ProtRelionBase):
 
     @classmethod
     def isDisabled(cls):
-        return isVersion2Active()
+        return relion.Plugin.isVersion2Active()
 
     # -------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self): 

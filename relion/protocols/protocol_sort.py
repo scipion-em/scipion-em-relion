@@ -35,7 +35,6 @@ from pyworkflow.em.data import SetOfClasses3D, SetOfParticles, SetOfClasses
 import pyworkflow.em.metadata as md
 
 import relion
-from relion.binaries import isVersion2Active
 
 
 class ProtRelionSortParticles(ProtParticles):
@@ -309,7 +308,7 @@ class ProtRelionSortParticles(ProtParticles):
                      '--min_z': self.minZ.get()
                      })
         
-        if isVersion2Active():
+        if relion.Plugin.isVersion2Active():
             args['--o'] = self._getFileName('output_star')
         else:
             args['--o'] = 'sorted'
@@ -324,7 +323,7 @@ class ProtRelionSortParticles(ProtParticles):
             if self.referenceAverages.hasValue():
                 angpixRef = self.referenceAverages.get().getSamplingRate()
 
-        if isVersion2Active() and angpixRef is not None:
+        if relion.Plugin.isVersion2Active() and angpixRef is not None:
             args['--angpix_ref'] = '%0.3f' % angpixRef
 
         if self.doInvert:
