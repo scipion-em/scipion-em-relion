@@ -1,18 +1,21 @@
 
 import os
-import pywokflow.utils as pwutils
+
+import pyworkflow.utils as pwutils
 from .constants import RELION_HOME, V2_0, V2_1
+
+
+def getHome(*paths):
+    """ Return the binary home path and possible some subfolders. """
+    return os.path.join(os.environ[RELION_HOME], *paths)
 
 
 def getEnviron():
     """ Setup the environment variables needed to launch Relion. """
 
     environ = pwutils.Environ(os.environ)
-
-    relionHome = os.environ[RELION_HOME]
-
-    binPath = os.path.join(relionHome, 'bin')
-    libPath = os.path.join(relionHome, 'lib') + ":" + os.path.join(relionHome, 'lib64')
+    binPath = getHome('bin')
+    libPath = getHome('lib') + ":" + getHome('lib64')
 
     if not binPath in environ['PATH']:
         environ.update({'PATH': binPath,
@@ -31,9 +34,9 @@ def getActiveVersion():
     """ Return the version of the Relion binaries that is currently active.
     In the current implementation it will be inferred from the RELION_HOME
     variable, so it should contain the version number in it. """
-    path = os.environ[RELION_HOME]
+    home = getHome()
     for v in getSupportedVersions():
-        if v in path:
+        if v in home:
             return v
     return ''
 
