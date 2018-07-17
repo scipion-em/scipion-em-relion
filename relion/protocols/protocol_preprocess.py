@@ -33,9 +33,9 @@ from pyworkflow.utils.path import moveFile
 from pyworkflow.em.protocol.protocol_particles import ProtProcessParticles
 from pyworkflow.protocol.params import (PointerParam, BooleanParam,
                                         FloatParam, IntParam, Positive)
-from pyworkflow.em.packages.relion.convert import (writeSetOfParticles,
-                                                   getVersion, relionToLocation)
-from pyworkflow.em.packages.relion.protocol_base import ProtRelionBase
+
+import relion
+from .protocol_base import ProtRelionBase
 
 
 class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
@@ -131,7 +131,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
         """
         imgSet = self.inputParticles.get()
         # Create links to binary files and write the relion .star file
-        writeSetOfParticles(imgSet, self._getFileName('input_star'),
+        relion.convert.writeSetOfParticles(imgSet, self._getFileName('input_star'),
                             outputDir=self._getExtraPath(),
                             writeAlignment=False,
                             postprocessImageRow=self._postprocessImageRow)
@@ -280,8 +280,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
         we need to modify the default image path (from project dir)
         and make them relative to run working dir.
         """
-        from convert import relativeFromFileName
-        relativeFromFileName(imgRow, self._getPath())
+        relion.convert.relativeFromFileName(imgRow, self._getPath())
     
     def _getScaleFactor(self, inputSet):
         xdim = self.inputParticles.get().getDim()[0]
@@ -290,7 +289,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
         return scaleFactor
     
     def _getOutParam(self):
-        if getVersion() == "1.3" or getVersion() == "1.4":
+        if relion.binaries.getVersion() == "1.3" or relion.binaries.getVersion() == "1.4":
             outParam = '--o '
         else:
             outParam = '--operate_out '
@@ -300,7 +299,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
     
     def _setFileName(self, item, row):
         relionFn = row.getValue(md.RLN_IMAGE_NAME)
-        indx, fn = relionToLocation(relionFn)
+        indx, fn = relion.convert.relionToLocation(relionFn)
         item.setLocation(indx, self._getPath(fn))
         
         invFactor = 1 / self._getScaleFactor(item)

@@ -26,27 +26,24 @@
 
 import os
 from os.path import exists
+from math import radians
 
 import pyworkflow.em as em
 import pyworkflow.em.showj as showj
 import pyworkflow.em.metadata as md
-from pyworkflow.em.data import SetOfParticles, SetOfImages
 from pyworkflow.em.plotter import EmPlotter
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 import pyworkflow.protocol.params as params
-from pyworkflow.viewer import (Viewer, ProtocolViewer, DESKTOP_TKINTER,
-                               WEB_DJANGO)
+from pyworkflow.viewer import (
+    Viewer, ProtocolViewer, DESKTOP_TKINTER, WEB_DJANGO)
 
-from protocol_classify2d import ProtRelionClassify2D
-from protocol_classify3d import ProtRelionClassify3D
-from protocol_refine3d import ProtRelionRefine3D
-from protocol_polish import ProtRelionPolish
-from protocol_postprocess import ProtRelionPostprocess
-from protocol_autopick import ProtRelionAutopick, ProtRelionAutopickFom
-from protocol_sort import ProtRelionSortParticles
-from protocol_initialmodel import ProtRelionInitialModel
-from protocol_localres import ProtRelionLocalRes
-from convert import relionToLocation
+import relion
+from relion.protocols import (
+    ProtRelionClassify2D, ProtRelionClassify3D, ProtRelionRefine3D,
+    ProtRelionPolish, ProtRelionPostprocess, ProtRelionAutopick,
+    ProtRelionAutopickFom, ProtRelionSortParticles, ProtRelionInitialModel,
+    ProtRelionLocalRes)
+
 
 ITER_LAST = 0
 ITER_SELECTION = 1
@@ -79,8 +76,6 @@ class RelionPlotter(EmPlotter):
         """Create an special type of subplot, representing the angular
         distribution of weight projections. A metadata should be provided containing
         labels: RLN_ORIENT_ROT, RLN_ORIENT_TILT, MDL_WEIGHT """
-        from math import radians
-        
         rot = [radians(angularMd.getValue(md.RLN_ORIENT_ROT, objId)) for objId in angularMd]
         tilt = [angularMd.getValue(md.RLN_ORIENT_TILT, objId) for objId in angularMd]
         weight = [angularMd.getValue(md.MDL_WEIGHT, objId) for objId in angularMd]
@@ -398,7 +393,7 @@ Examples:
             modelStar = self.protocol._getFileName('model', iter=it)
 
             for row in md.iterRows('%s@%s' % ('model_classes', modelStar)):
-                i, fn = relionToLocation(row.getValue('rlnReferenceImage'))
+                i, fn = relion.convert.relionToLocation(row.getValue('rlnReferenceImage'))
                 if i == em.NO_INDEX: # the case for 3D classes
                     # NOTE: Since there is not an proper ID value in
                     #  the clases metadata, we are assuming that class X

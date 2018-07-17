@@ -33,8 +33,6 @@ from pyworkflow import VERSION_1_1
 from pyworkflow.em.protocol import EMProtocol
 from pyworkflow.em.data import SetOfMicrographs
 
-from convert import writeSetOfMicrographs
-
 
 class ProtRelionExportCtf(EMProtocol):
     """
@@ -44,7 +42,7 @@ class ProtRelionExportCtf(EMProtocol):
     _lastUpdateVersion = VERSION_1_1
     CTF_STAR_FILE = 'micrographs_ctf_%06d.star'
     
-    #--------------------------- DEFINE param functions ------------------------
+    # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
         
         form.addSection(label='Input')
@@ -72,7 +70,7 @@ class ProtRelionExportCtf(EMProtocol):
 
         form.addParallelSection(threads=0, mpi=0)
             
-    #--------------------------- INSERT steps functions ------------------------
+    # -------------------------- INSERT steps functions -----------------------
 
     def _insertAllSteps(self):
         self._insertFunctionStep('writeCtfStarStep')
@@ -130,15 +128,15 @@ class ProtRelionExportCtf(EMProtocol):
         mag = acq.getMagnification()
         self.detectorPixelSize = 1e-4 * self.samplingRate * mag
 
-        writeSetOfMicrographs(micSet, starFile,
-                              preprocessImageRow=self.preprocessMicrograph)
+        relion.convert.writeSetOfMicrographs(
+            micSet, starFile,
+            preprocessImageRow=self.preprocessMicrograph)
 
         # Let's create a link from the project roots to facilitate the import
         # of the star file into a Relion project
         pwutils.createLink(starFile, os.path.basename(starFile))
 
-
-    #--------------------------- INFO functions --------------------------------
+    # -------------------------- INFO functions -------------------------------
 
     def _summary(self):
         summary = []
@@ -151,7 +149,7 @@ class ProtRelionExportCtf(EMProtocol):
 
         return summary
     
-    #--------------------------- UTILS functions -------------------------------
+    # -------------------------- UTILS functions ------------------------------
     def preprocessMicrograph(self, mic, micRow):
         mag = mic.getAcquisition().getMagnification()
 

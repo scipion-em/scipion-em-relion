@@ -37,9 +37,9 @@ import pyworkflow.em.metadata as md
 import pyworkflow.utils as pwutils
 from pyworkflow.em.protocol import ProtProcessParticles
 
-from protocol_base import ProtRelionBase
-from convert import (createItemMatrix, isVersion2, getVersion, V1_3,
-                    readSetOfParticles, writeSetOfParticles, MOVIE_EXTRA_LABELS)
+import relion
+from relion.constants import V1_3, MOVIE
+from .protocol_base import ProtRelionBase
 
 
 class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
@@ -98,7 +98,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
                            'also be included in the fitting of each particle. '
                            'Again, in particular for smaller particles this '
                            'may improve the robustness of the fits.')
-        if not isVersion2():
+        if not relion.binaries.isVersion2Active():
             form.addParam('movieAvgWindow', FloatParam, default=5,
                           label='Running average window',
                           help='The individual movie frames will be '
@@ -173,7 +173,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
                            'described in the Rosenthal and Henderson (2003) '
                            'paper in JMB can be used. Probably a value around '
                            '20A is still OK.')
-        if isVersion2():
+        if relion.binaries.isVersion2Active():
             form.addParam('avgFramesBfac', IntParam, default=1,
                           condition='performBfactorWeighting',
                           label='Average frames B-factor estimation',
@@ -219,7 +219,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         imgStar = self._getFileName('movie_particles')
         
         params = ' --i %s' % imgStar
-        if isVersion2():
+        if relion.binaries.isVersion2Active():
             params += ' --o %s/shiny' % self._getExtraPath()
         else:
             params += ' --o shiny'
@@ -229,7 +229,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         params += ' --perframe_highres %0.3f' % self.highresLimitPerFrameMaps.get()
         params += ' --autob_lowres %0.3f' % self.lowresLimitBfactorEstimation.get()
 
-        if not isVersion2():
+        if not relion.binaries.isVersion2Active():
             params += ' --movie_frames_running_avg %d' % self.movieAvgWindow.get()
             params += ' --dont_read_old_files'
         else:
@@ -263,24 +263,25 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         self.info("Converting set from '%s' into '%s'" %
                   (imgSet.getFileName(), imgStarTmp))
 
-        writeSetOfParticles(imgSet, imgStarTmp, self._getExtraPath(),
-                            alignType=imgSet.getAlignment(),
-                            extraLabels=MOVIE_EXTRA_LABELS)
+        relion.convert.writeSetOfParticles(
+            imgSet, imgStarTmp, self._getExtraPath(),
+            alignType=imgSet.getAlignment(),
+            extraLabels=relion.convert.MOVIE_EXTRA_LABELS)
+
         mdImg = md.MetaData(imgStarTmp)
 
         # replace mdColumn from *.stk to *.mrcs as Relion2 requires
-        if getVersion() == V1_3:
+        if relion.binaries.getVersion() == V1_3:
             mdColumn = md.RLN_PARTICLE_NAME
         else:
             mdColumn = md.RLN_PARTICLE_ORI_NAME
 
-        from convert import relionToLocation, locationToRelion
         for objId in mdImg:
-            index, imgPath = relionToLocation(mdImg.getValue(mdColumn, objId))
+            index, imgPath = relion.convert.relionToLocation(mdImg.getValue(mdColumn, objId))
             if not imgPath.endswith('mrcs'):
                 newName = pwutils.replaceBaseExt(os.path.basename(imgPath), 'mrcs')
                 newPath = self._getTmpPath(newName)
-                newLoc = locationToRelion(index, newPath)
+                newLoc = relion.convert.locationToRelion(index, newPath)
                 if not exists(newPath):
                     pwutils.createLink(imgPath, newPath)
                 mdImg.setValue(mdColumn, newLoc, objId)
@@ -290,8 +291,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         self.runJob(self._getProgram('relion_particle_polish'), params)
     
     def organizeDataStep(self):
-        from convert import relionToLocation, locationToRelion
-        if getVersion() == V1_3:
+        if relion.binaries.getVersion() == V1_3:
             mdColumn = md.RLN_PARTICLE_NAME
         else:
             mdColumn = md.RLN_PARTICLE_ORI_NAME
@@ -300,13 +300,15 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         newDir = self._getExtraPath('polished_particles')
         pwutils.makePath(newDir)
 
-        if not isVersion2():
+        if not relion.binaries.isVersion2Active():
             pwutils.makePath(self._getExtraPath('shiny'))
             shinyOld = "shiny.star"
             inputFit = "movie_particles_shiny.star"
             try:
                 pwutils.moveFile(shinyOld, shinyStar)
-                pwutils.moveFile(self._getPath(inputFit), self._getExtraPath("shiny/all_movies_input_fit.star"))
+                pwutils.moveFile(
+                    self._getPath(inputFit),
+                    self._getExtraPath("shiny/all_movies_input_fit.star"))
                 for half in self.PREFIXES:
                     pwutils.moveFile(self._getPath('movie_particles_shiny_%sclass001_unfil.mrc' % half),
                                      self._getExtraPath('shiny/shiny_%sclass001_unfil.mrc' % half))
@@ -321,18 +323,18 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         oldPath = ""
 
         for objId in mdShiny:
-            index, imgPath = relionToLocation(mdShiny.getValue(md.RLN_IMAGE_NAME, objId))
+            index, imgPath = relion.convert.relionToLocation(mdShiny.getValue(md.RLN_IMAGE_NAME, objId))
             newPath = pwutils.join(newDir, str(imgPath).split('/')[-1])
-            newLoc = locationToRelion(index, newPath)
+            newLoc = relion.convert.locationToRelion(index, newPath)
             mdShiny.setValue(md.RLN_IMAGE_NAME, newLoc, objId)
             if oldPath != imgPath and exists(imgPath):
                 pwutils.moveFile(imgPath, newPath)
                 oldPath = imgPath
 
-            index2, imgPath2 = relionToLocation(mdShiny.getValue(mdColumn, objId))
+            index2, imgPath2 = relion.convert.relionToLocation(mdShiny.getValue(mdColumn, objId))
             absPath = os.path.realpath(imgPath2)
             newPath2 = 'Runs' + str(absPath).split('Runs')[1]
-            newLoc2 = locationToRelion(index2, newPath2)
+            newLoc2 = relion.convert.locationToRelion(index2, newPath2)
             mdShiny.setValue(mdColumn, newLoc2, objId)
 
         mdShiny.write(shinyStar, md.MD_OVERWRITE)
@@ -346,7 +348,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         shinyPartSet = self._createSetOfParticles()
         shinyPartSet.copyInfo(imgSet)
         shinyPartSet.setAlignmentProj()
-        readSetOfParticles(self._getFileName('shiny'), shinyPartSet,
+        relion.convert.readSetOfParticles(self._getFileName('shiny'), shinyPartSet,
                            alignType=ALIGN_PROJ)
 
         self._defineOutputs(outputParticles=shinyPartSet)
@@ -397,7 +399,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
 
     def _createItemMatrix(self, item, row):
         from pyworkflow.em import ALIGN_PROJ
-        createItemMatrix(item, row, align=ALIGN_PROJ)
+        relion.convert.createItemMatrix(item, row, align=ALIGN_PROJ)
 
     def _renameFiles(self, pattern1, pattern2):
         # find files by pattern1, move and rename them by replacing pattern2

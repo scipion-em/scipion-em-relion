@@ -36,9 +36,8 @@ import pyworkflow.utils as pwutils
 import pyworkflow.em.metadata as md
 from pyworkflow.em import getSubsetByDefocus
 
-from protocol_base import ProtRelionBase
-from convert import (writeSetOfMicrographs, writeReferences,
-                     readSetOfCoordinates, isVersion2, micrographToRow)
+import relion
+from .protocol_base import ProtRelionBase
 
 
 REF_AVERAGES = 0
@@ -76,7 +75,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
 
     @classmethod
     def isDisabled(cls):
-        return not isVersion2()
+        return not relion.binaries.isVersion2Active()
 
     # -------------------------- DEFINE param functions ------------------------
     def _defineParams(self, form):
@@ -361,13 +360,15 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                 self.ctfDict[ctf.getMicrograph().getMicName()] = ctf.clone()
 
         micStar = self._getPath('input_micrographs.star')
-        writeSetOfMicrographs(self.getMicrographList(), micStar,
-                              alignType=ALIGN_NONE,
-                              preprocessImageRow=self._preprocessMicrographRow)
+        relion.convert.writeSetOfMicrographs(
+            self.getMicrographList(), micStar,
+            alignType=ALIGN_NONE,
+            preprocessImageRow=self._preprocessMicrographRow)
 
         if self.useInputReferences():
-            writeReferences(self.getInputReferences(),
-                            self._getPath('input_references'), useBasename=True)
+            relion.convert.writeReferences(self.getInputReferences(),
+                                           self._getPath('input_references'),
+                                           useBasename=True)
 
         # FIXME: (JMRT-20180523) The following code does not seems to work
         # here it has been worked around by changing the name of the wizard
@@ -449,7 +450,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         """
         micRow = md.Row()
         self._preprocessMicrographRow(mic, micRow)
-        micrographToRow(mic, micRow)
+        relion.convert.micrographToRow(mic, micRow)
         self._postprocessMicrographRow(mic, micRow)
         self._pickMicrographsFromStar(self._getMicStarFile(mic), params,
                                       threshold, minDistance, fom)
@@ -457,11 +458,13 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
     def _pickMicrographList(self, micList, params, threshold, minDistance, fom):
         micStar = self._getPath('input_micrographs_%s-%s.star' %
                                 (micList[0].strId(), micList[-1].strId()))
-        writeSetOfMicrographs(micList, micStar,
-                              alignType=ALIGN_NONE,
-                              preprocessImageRow=self._preprocessMicrographRow)
-        self._pickMicrographsFromStar(micStar, params, threshold, minDistance,
-                                      fom)
+        relion.convert.writeSetOfMicrographs(
+            micList, micStar,
+            alignType=ALIGN_NONE,
+            preprocessImageRow=self._preprocessMicrographRow)
+
+        self._pickMicrographsFromStar(
+            micStar, params, threshold, minDistance, fom)
 
     def _createSetOfCoordinates(self, micSet, suffix=''):
         """ Override this method to set the box size. """
@@ -477,7 +480,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         template = self._getExtraPath("%s_autopick.star")
         starFiles = [template % pwutils.removeBaseExt(mic.getFileName())
                      for mic in micList]
-        readSetOfCoordinates(coordSet, starFiles, micList)
+        relion.convert.readSetOfCoordinates(coordSet, starFiles, micList)
 
     # -------------------------- STEPS functions -------------------------------
     def autopickStep(self, micStarFile, params, threshold,
@@ -510,7 +513,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         template = self._getExtraPath("%s_autopick.star")
         starFiles = [template % pwutils.removeBaseExt(mic.getFileName())
                      for mic in micSet]
-        readSetOfCoordinates(coordSet, starFiles, micSet)
+        relion.convert.readSetOfCoordinates(coordSet, starFiles, micSet)
 
         self._defineOutputs(**{outputCoordinatesName: coordSet})
         self._defineSourceRelation(self.getInputMicrographsPointer(),
@@ -665,7 +668,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         coordPath = self._getTmpPath('xmipp_coordinates')
         pwutils.cleanPath(coordPath)
         pwutils.makePath(coordPath)
-        import pyworkflow.em.packages.xmipp3 as xmipp3
+        import xmipp3
         micPath = micSet.getFileName()
         xmipp3.writeSetOfCoordinates(coordPath, coordSet, ismanual=False)
         return micPath, coordPath
@@ -682,7 +685,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         coordSet.setBoxSize(self.getBoxSize())
         starFiles = [self._getExtraPath(pwutils.removeBaseExt(mic.getFileName())
                                         + '_autopick.star') for mic in micSet]
-        readSetOfCoordinates(coordSet, starFiles)
+        relion.convert.readSetOfCoordinates(coordSet, starFiles)
         return self._writeXmippCoords(coordSet)
 
     def _preprocessMicrographRow(self, img, imgRow):

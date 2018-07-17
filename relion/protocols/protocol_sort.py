@@ -32,9 +32,9 @@ from pyworkflow.utils import removeExt
 import pyworkflow.em as em
 from pyworkflow.em.protocol import ProtParticles
 from pyworkflow.em.data import SetOfClasses3D, SetOfParticles, SetOfClasses
-from convert import (convertBinaryVol, readSetOfParticles,
-                     writeSetOfParticles, writeReferences)
 import pyworkflow.em.metadata as md
+
+import relion
 
 
 class ProtRelionSortParticles(ProtParticles):
@@ -49,7 +49,7 @@ class ProtRelionSortParticles(ProtParticles):
     _label = 'sort particles'
     _lastUpdateVersion = VERSION_1_1
 
-    #--------------------------- DEFINE param functions ------------------------
+    # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')
         form.addParam('inputSet', PointerParam,
@@ -126,7 +126,7 @@ class ProtRelionSortParticles(ProtParticles):
 
         form.addParallelSection(threads=0, mpi=1)
             
-    #--------------------------- INSERT steps functions ------------------------
+    #--------------------------- INSERT steps functions -----------------------
 
     def isInputAutoPicking(self):
         inputSet = self.inputSet.get()
@@ -165,7 +165,7 @@ class ProtRelionSortParticles(ProtParticles):
 
         self._insertFunctionStep('runRelionStep', params)
 
-    #--------------------------- STEPS functions -------------------------------
+    # -------------------------- STEPS functions ------------------------------
 
     def _createFilenameTemplates(self):
         """ Centralize how files are called. """
@@ -215,13 +215,15 @@ class ProtRelionSortParticles(ProtParticles):
             for i, c in enumerate(classList):
                 self.classDict[c] = i + 1
 
-            writeReferences(refSet, removeExt(refStar),
-                            postprocessImageRow=self._updateClasses)
+            relion.convert.writeReferences(
+                refSet, removeExt(refStar),
+                postprocessImageRow=self._updateClasses)
 
         # Write particles star file
         allParticles = self._allParticles(iterate=False)
-        writeSetOfParticles(allParticles, imgStar, self._getPath(),
-                            postprocessImageRow=self._postProcessImageRow)
+        relion.convert.writeSetOfParticles(
+            allParticles, imgStar, self._getPath(),
+            postprocessImageRow=self._postProcessImageRow)
 
     def runRelionStep(self, params):
         """ Execute relion steps with given params. """
@@ -244,7 +246,7 @@ class ProtRelionSortParticles(ProtParticles):
         self._defineSourceRelation(self.inputSet, sortedImgSet)
 
 
-    #--------------------------- INFO functions --------------------------------
+    # -------------------------- INFO functions -------------------------------
     def _validate(self):
         errors = []
         #imgSet = self.inputParticles.get()
@@ -263,7 +265,7 @@ class ProtRelionSortParticles(ProtParticles):
                             self.getObjectTag('outputParticles')))
         return summary
     
-    #--------------------------- UTILS functions -------------------------------
+    # -------------------------- UTILS functions ------------------------------
     def _allParticles(self, iterate=False):
         # A handler function to iterate over the particles
         inputSet = self.inputSet.get()
@@ -293,7 +295,6 @@ class ProtRelionSortParticles(ProtParticles):
             return self.inputSet.get()
 
     def _setArgs(self, args):
-        from pyworkflow.em.packages.relion.convert import isVersion2
         particles = self._sampleParticles()
 
         if self.maskDiameterA <= 0:
@@ -307,7 +308,7 @@ class ProtRelionSortParticles(ProtParticles):
                      '--min_z': self.minZ.get()
                      })
         
-        if isVersion2():
+        if relion.binaries.isVersion2Active():
             args['--o'] = self._getFileName('output_star')
         else:
             args['--o'] = 'sorted'
@@ -322,7 +323,7 @@ class ProtRelionSortParticles(ProtParticles):
             if self.referenceAverages.hasValue():
                 angpixRef = self.referenceAverages.get().getSamplingRate()
 
-        if isVersion2() and angpixRef is not None:
+        if relion.binaries.isVersion2Active() and angpixRef is not None:
             args['--angpix_ref'] = '%0.3f' % angpixRef
 
         if self.doInvert:

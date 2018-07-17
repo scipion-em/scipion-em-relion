@@ -28,9 +28,9 @@ from pyworkflow.protocol.params import (PointerParam, FloatParam, FileParam,
                                         IntParam, LabelParam, LEVEL_ADVANCED)
 from pyworkflow.em.data import Volume
 from pyworkflow.em.protocol import ProtAnalysis3D, ImageHandler
-from convert import isVersion2
-from pyworkflow.utils import exists
-import pyworkflow.utils.path as putils
+import pyworkflow.utils as pwutils
+
+import relion
 
 
 class ProtRelionLocalRes(ProtAnalysis3D):
@@ -44,9 +44,10 @@ class ProtRelionLocalRes(ProtAnalysis3D):
     """
     _label = 'local resolution'
     _lastUpdateVersion = VERSION_1_2
+
     @classmethod
     def isDisabled(cls):
-        return not isVersion2()
+        return not relion.binaries.isVersion2Active()
     
     def _createFilenameTemplates(self):
         """ Centralize how files are called for iterations and references. """
@@ -59,7 +60,7 @@ class ProtRelionLocalRes(ProtAnalysis3D):
 
         self._updateFilenamesDict(myDict)
 
-    #--------------------------- DEFINE param functions ------------------------
+    # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
         
         form.addSection(label='Input')
@@ -131,8 +132,8 @@ class ProtRelionLocalRes(ProtAnalysis3D):
             half1Map = protRef._getFileName("final_half1_volume", ref3d=1)
             half2Map = protRef._getFileName("final_half2_volume", ref3d=1)
             
-            putils.copyFile(self._getRelionMapFn(half1Map), self._getTmpPath())
-            putils.copyFile(self._getRelionMapFn(half2Map), self._getTmpPath())
+            pwutils.copyFile(self._getRelionMapFn(half1Map), self._getTmpPath())
+            pwutils.copyFile(self._getRelionMapFn(half2Map), self._getTmpPath())
             
         elif protClassName.startswith('ProtFrealign'):
             protRef._createFilenameTemplates()
@@ -141,8 +142,8 @@ class ProtRelionLocalRes(ProtAnalysis3D):
             half1Map = protRef._getFileName('iter_vol1', iter=lastIter)
             half2Map = protRef._getFileName('iter_vol2', iter=lastIter)
             
-            putils.copyFile(half1Map, self._getFileName("half1"))
-            putils.copyFile(half2Map, self._getFileName("half2"))
+            pwutils.copyFile(half1Map, self._getFileName("half1"))
+            pwutils.copyFile(half2Map, self._getFileName("half2"))
 
         elif protClassName.startswith('XmippProtProjMatch'):
             iterN = protRef.getLastIter()
@@ -194,7 +195,7 @@ class ProtRelionLocalRes(ProtAnalysis3D):
         errors = []
         mtfFile = self.mtf.get()
         
-        if mtfFile and not exists(mtfFile):
+        if mtfFile and not pwutils.exists(mtfFile):
             errors.append("Missing MTF-file '%s'" % mtfFile)
 
         protClassName = self.protRefine.get().getClassName()

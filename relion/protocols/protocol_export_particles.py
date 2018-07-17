@@ -31,8 +31,9 @@ import pyworkflow.utils as pwutils
 
 from pyworkflow.em.protocol.protocol_particles import ProtProcessParticles
 import pyworkflow.protocol.params as params
-from convert import writeSetOfParticles, locationToRelion
-from protocol_base import ProtRelionBase
+
+import relion
+from .protocol_base import ProtRelionBase
 
 STACK_NONE = 0
 STACK_MULT = 1
@@ -90,11 +91,12 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
 
         alignType = imgSet.getAlignment() if self.useAlignment else em.ALIGN_NONE
         # Create links to binary files and write the relion .star file
-        writeSetOfParticles(imgSet, self._getPath("particles.star"),
-                            outputDir=self._getExtraPath(),
-                            alignType=alignType,
-                            postprocessImageRow=self._postprocessImageRow,
-                            fillMagnification=True)
+        relion.convert.writeSetOfParticles(
+            imgSet, self._getPath("particles.star"),
+            outputDir=self._getExtraPath(),
+            alignType=alignType,
+            postprocessImageRow=self._postprocessImageRow,
+            fillMagnification=True)
 
         pwutils.prettyDict(self._stackDict)
     
@@ -134,4 +136,5 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
             self._ih.convert(img, (index, stackFn))
             # Store relative path in the star file
             relStackFn = os.path.relpath(stackFn, self._getPath())
-            row.setValue('rlnImageName', locationToRelion(index, relStackFn))
+            row.setValue('rlnImageName',
+                         relion.convert.locationToRelion(index, relStackFn))

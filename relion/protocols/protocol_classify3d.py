@@ -33,7 +33,7 @@ from pyworkflow.em.protocol import ProtClassify3D
 from pyworkflow.em.data import Volume
 
 from pyworkflow.em.packages.relion.protocol_base import ProtRelionBase
-from pyworkflow.em.packages.relion.convert import relionToLocation, rowToAlignment
+from pyworkflow.em.packages.relion.convert import relion.convert.relionToLocation, rowToAlignment
 
 
 class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
@@ -171,7 +171,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
                                 self._getFileName('model', iter=iteration))
         
         for classNumber, row in enumerate(md.iterRows(modelStar)):
-            index, fn = relionToLocation(row.getValue('rlnReferenceImage'))
+            index, fn = relion.convert.relionToLocation(row.getValue('rlnReferenceImage'))
             # Store info indexed by id, we need to store the row.clone() since
             # the same reference is used for iteration            
             self._classesInfo[classNumber+1] = (index, fn, row.clone())

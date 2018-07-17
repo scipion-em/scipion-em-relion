@@ -1,8 +1,8 @@
 # **************************************************************************
 # *
-# * Authors:     J.M. De la Rosa Trevin (jmdelarosa@cnb.csic.es)
+# * Authors:     J.M. De la Rosa Trevin (delarosatrevin@scilifelab.se) [1]
 # *
-# * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+# * [1] SciLifeLab, Stockholm University
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,9 @@ from pyworkflow.protocol.params import (PointerParam, FloatParam,
 from pyworkflow.em.data import Volume 
 from pyworkflow.em.protocol import ProtReconstruct3D
 from pyworkflow.em.constants import ALIGN_PROJ
+
+import relion
+
 
 class ProtRelionReconstruct(ProtReconstruct3D):
     """    
@@ -167,9 +170,9 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         imgSet  = self.inputParticles.get()
         imgStar = self._getFileName('input_particles.star')
 
-        from convert import writeSetOfParticles
         # Pass stack file as None to avoid write the images files
-        writeSetOfParticles(imgSet,imgStar,self._getTmpPath(), alignType=ALIGN_PROJ)
+        relion.convert.writeSetOfParticles(
+            imgSet,imgStar,self._getTmpPath(), alignType=ALIGN_PROJ)
 
     def createOutputStep(self):
         imgSet = self.inputParticles.get()

@@ -39,9 +39,8 @@ import pyworkflow.em.metadata as md
 from pyworkflow.em.data import SetOfClasses3D
 from pyworkflow.em.protocol import EMProtocol
 
-from constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO, V2_0
-from convert import (convertBinaryVol, writeSetOfParticles, isVersion2,
-                     getVersion, getImageLocation, convertMask)
+import relion
+from relion.constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO, V2_0
 
 
 class ProtRelionBase(EMProtocol):
@@ -361,7 +360,7 @@ class ProtRelionBase(EMProtocol):
                                'Too small values yield too-low resolution '
                                'structures; too high values result in '
                                'over-estimated resolutions and overfitting.')
-            if getVersion() != V2_0:  # version 2.1+ only
+            if relion.binaries.getVersion() != V2_0:  # version 2.1+ only
                 form.addParam('doSubsets', BooleanParam, default=False,
                               condition='not doContinue',
                               label='Use subsets for initial updates?',
@@ -796,7 +795,7 @@ class ProtRelionBase(EMProtocol):
             self._setContinueArgs(args)
         else:
             self._setNormalArgs(args)
-        if isVersion2():
+        if relion.binaries.isVersion2Active():
             self._setComputeArgs(args)
         
         params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.iteritems()])
@@ -829,10 +828,11 @@ class ProtRelionBase(EMProtocol):
             alignToPrior = hasAlign and getattr(self, 'alignmentAsPriors', False)
             fillRandomSubset = hasAlign and getattr(self, 'fillRandomSubset', False)
 
-            writeSetOfParticles(imgSet, imgStar, self._getExtraPath(),
-                                alignType=alignType,
-                                postprocessImageRow=self._postprocessParticleRow,
-                                fillRandomSubset=fillRandomSubset)
+            relion.convert.writeSetOfParticles(
+                imgSet, imgStar, self._getExtraPath(),
+                alignType=alignType,
+                postprocessImageRow=self._postprocessParticleRow,
+                fillRandomSubset=fillRandomSubset)
             
             if alignToPrior:
                 mdParts = md.MetaData(imgStar)
@@ -865,9 +865,10 @@ class ProtRelionBase(EMProtocol):
                 if particle is not None:
                     auxMovieParticles.append(movieParticle)
             
-            writeSetOfParticles(auxMovieParticles, movieFn, None,
-                                fillMagnification=True,
-                                postprocessImageRow=self._postprocessImageRow)
+            relion.convert.writeSetOfParticles(
+                auxMovieParticles, movieFn, None,
+                fillMagnification=True,
+                postprocessImageRow=self._postprocessImageRow)
             mdMovies = md.MetaData(movieFn)
             continueRun = self.continueRun.get()
             continueIter = self._getContinueIter()
@@ -883,7 +884,7 @@ class ProtRelionBase(EMProtocol):
                         md.RLN_IMAGE_ID, md.INNER_JOIN)
             mdAux.fillConstant(md.RLN_PARTICLE_NR_FRAMES,
                                self._getNumberOfFrames())
-            if isVersion2():
+            if relion.binaries.isVersion2Active():
                 # FIXME: set to 1 till frame averaging is implemented in xmipp
                 mdAux.fillConstant(md.RLN_PARTICLE_NR_FRAMES_AVG, 1)
 
@@ -1011,7 +1012,7 @@ class ProtRelionBase(EMProtocol):
                 args['--ini_high'] = self.initialLowPassFilterA.get()
                 args['--sym'] = self.symmetryGroup.get()
         
-        if not isVersion2():
+        if not relion.binaries.isVersion2Active():
             args['--memory_per_thread'] = self.memoryPreThreads.get()
 
         refArg = self._getRefArg()
@@ -1073,7 +1074,7 @@ class ProtRelionBase(EMProtocol):
             args['--tau2_fudge'] = self.regularisationParamT.get()
             args['--iter'] = self._getnumberOfIters()
 
-            if not self.doContinue and isVersion2() and getVersion() != V2_0:
+            if not self.doContinue and relion.binaries.isVersion2Active() and relion.binaries.getVersion() != V2_0:
                 self._setSubsetArgs(args)
     
         self._setSamplingArgs(args)
@@ -1096,15 +1097,17 @@ class ProtRelionBase(EMProtocol):
 
     def _setMaskArgs(self, args):
         if self.referenceMask.hasValue():
-            mask = convertMask(self.referenceMask.get(), self._getTmpPath())
+            mask = relion.convert.convertMask(self.referenceMask.get(),
+                                              self._getTmpPath())
             args['--solvent_mask'] = mask
     
         if self.IS_3D and self.solventMask.hasValue():
-            solventMask = convertMask(self.solventMask.get(), self._getTmpPath())
+            solventMask = relion.convert.convertMask(self.solventMask.get(),
+                                                     self._getTmpPath())
             args['--solvent_mask2'] = solventMask
 
-        if (isVersion2() and self.IS_3D and self.referenceMask.hasValue() and
-            self.solventFscMask):
+        if (relion.binaries.isVersion2Active() and self.IS_3D
+            and self.referenceMask.hasValue() and self.solventFscMask):
             args['--solvent_correct_fsc'] = ''
 
     def _setSubsetArgs(self, args):
@@ -1176,10 +1179,8 @@ class ProtRelionBase(EMProtocol):
     def _splitInCTFGroups(self, imgStar):
         """ Add a new column in the image star to separate the particles
         into ctf groups """
-        from convert import splitInCTFGroups
-        splitInCTFGroups(imgStar,
-                         self.defocusRange.get(),
-                         self.numParticles.get())
+        relion.convert.splitInCTFGroups(
+            imgStar, self.defocusRange.get(), self.numParticles.get())
     
     def _getContinueIter(self):
         continueRun = self.continueRun.get()

@@ -29,8 +29,8 @@ from pyworkflow.em import ALIGN_PROJ
 import pyworkflow.em.metadata as md
 from pyworkflow.em.protocol import ProtProcessParticles
 
-from convert import (writeSetOfParticles, getVersion, V1_3,
-                     V1_4, readSetOfParticles, setRelionAttributes)
+import relion
+from relion.constants import V1_3, V1_4
 
  
 class ProtRelionExpandSymmetry(ProtProcessParticles):
@@ -45,9 +45,9 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
 
     @classmethod
     def isDisabled(cls):
-        return getVersion() in [V1_3, V1_4]
+        return relion.binaries.getActiveVersion() in [V1_3, V1_4]
 
-    #--------------------------- DEFINE param functions -------------------------------------
+    # -------------------------- DEFINE param functions -----------------------
     def _defineProcessParams(self, form):
         form.addParam('symmetryGroup', StringParam, default="c1",
                       label='Symmetry group',
@@ -55,18 +55,19 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
                            " for a description of the symmetry groups format in Xmipp.\n")
         form.addParallelSection(threads=0, mpi=0)
 
-    #--------------------------- INSERT steps functions -------------------------------------
+    # -------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self):
         imgsFn = self._getPath('input_particles.star')
         self._insertFunctionStep('convertInputStep', imgsFn)
         self._insertFunctionStep('expandSymmetryStep', imgsFn)
         self._insertFunctionStep('createOutputStep')
 
-    #--------------------------- STEPS functions --------------------------------------------
+    # -------------------------- STEPS functions ------------------------------
 
     def convertInputStep(self, outputFn):
         """ Create a metadata with the images and geometrical information. """
-        writeSetOfParticles(self.inputParticles.get(), outputFn, self._getPath())
+        relion.convert.writeSetOfParticles(
+            self.inputParticles.get(), outputFn, self._getPath())
 
     def expandSymmetryStep(self, imgsFn):
         outImagesMd = self._getExtraPath('expanded_particles.star')
@@ -84,13 +85,15 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
         mdOut.removeLabel(md.RLN_IMAGE_ID)  # remove repeating rlnImageId in mdOut
         mdOut.write(outImagesMd, md.MD_OVERWRITE)
 
-        readSetOfParticles(outImagesMd, partSet, alignType=ALIGN_PROJ,
-                           postprocessImageRow=self._postprocessImageRow)
+        relion.convert.readSetOfParticles(
+            outImagesMd, partSet,
+            alignType=ALIGN_PROJ,
+            postprocessImageRow=self._postprocessImageRow)
 
         self._defineOutputs(outputParticles=partSet)
         self._defineSourceRelation(imgSet, partSet)
 
-    #--------------------------- INFO functions ---------------------------------------------
+    # -------------------------- INFO functions -------------------------------
     def _summary(self):
         summary = []
         if not hasattr(self, 'outputParticles'):
@@ -116,7 +119,8 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
 
         return methods
 
-    #--------------------------- Utils functions --------------------------------------------
+    # -------------------------- Utils functions ------------------------------
     def _postprocessImageRow(self, img, imgRow):
-        setRelionAttributes(img, imgRow, md.RLN_MLMODEL_GROUP_NAME)
+        relion.convert.setRelionAttributes(
+            img, imgRow, md.RLN_MLMODEL_GROUP_NAME)
 

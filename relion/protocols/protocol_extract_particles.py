@@ -32,10 +32,8 @@ import pyworkflow.protocol.params as params
 import pyworkflow.em as em
 import pyworkflow.em.metadata as md
 
-from convert import (writeMicCoordinates, relionToLocation, rowToParticle,
-                     writeSetOfMicrographs, isVersion2)
-
-from protocol_base import ProtRelionBase
+import relion
+from .protocol_base import ProtRelionBase
 
 
 # Micrograph type constants for particle extraction
@@ -49,7 +47,7 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
     
     @classmethod
     def isDisabled(cls):
-        return not isVersion2()
+        return not relion.binaries.isVersion2Active()
 
     def __init__(self, **kwargs):
         em.ProtExtractParticles.__init__(self, **kwargs)
@@ -149,8 +147,8 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
         pass
 
     def _convertCoordinates(self, mic, coordList):
-        writeMicCoordinates(mic, coordList, self._getMicPos(mic),
-                            getPosFunc=self._getPos)
+        relion.convert.writeMicCoordinates(
+            mic, coordList, self._getMicPos(mic), getPosFunc=self._getPos)
 
     def _extractMicrograph(self, mic, params):
         """ Extract particles from one micrograph, ignore if the .star
@@ -159,7 +157,7 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
 
     def _extractMicrographList(self, micList, params):
         micsStar = self._getMicsStar(micList)
-        writeSetOfMicrographs(micList, self._getPath(micsStar),
+        relion.convert.writeSetOfMicrographs(micList, self._getPath(micsStar),
                               alignType=em.ALIGN_NONE,
                               preprocessImageRow=self._preprocessMicrographRow)
 
@@ -340,7 +338,7 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
                     # scale the coordinates according to particles dimension.
                     coord.scale(self.getBoxScale())
                     p.copyObjId(coord)
-                    idx, fn = relionToLocation(row.getValue(md.RLN_IMAGE_NAME))
+                    idx, fn = relion.convert.relionToLocation(row.getValue(md.RLN_IMAGE_NAME))
                     p.setLocation(idx, self._getPath(fn[2:]))
                     p.setCoordinate(coord)
                     p.setMicId(mic.getObjId())
@@ -422,7 +420,7 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
         return self._getPath('images.xmd')
 
     def createParticles(self, item, row):
-        particle = rowToParticle(row, readCtf=self._useCTF())
+        particle = relion.convert.rowToParticle(row, readCtf=self._useCTF())
         coord = particle.getCoordinate()
         item.setY(coord.getY())
         item.setX(coord.getX())

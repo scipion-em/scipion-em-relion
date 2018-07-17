@@ -30,9 +30,8 @@ from pyworkflow.em.data import Volume, FSC
 from pyworkflow.em.protocol import ProtRefine3D
 from pyworkflow.em import ALIGN_PROJ
 
-from pyworkflow.em.packages.relion.protocol_base import ProtRelionBase
-from convert import (isVersion2, readSetOfParticles, createItemMatrix,
-                     MOVIE_EXTRA_LABELS, setRelionAttributes)
+import relion
+from .protocol_base import ProtRelionBase
 
 
 class ProtRelionRefine3D(ProtRefine3D, ProtRelionBase):
@@ -143,9 +142,11 @@ leads to objective and high-quality results.
             # not using copyItems since input movie particle
             # set is missing a lot of metadata (CTF, micName etc.)
             # that was created in convertInputStep
-            readSetOfParticles(fnOut, outMovieSet, alignType=ALIGN_PROJ,
-                               extraLabels=MOVIE_EXTRA_LABELS,
-                               postprocessImageRow=self._updateParticle)
+            relion.convert.readSetOfParticles(
+                fnOut, outMovieSet,
+                alignType=ALIGN_PROJ,
+                extraLabels=relion.convert.MOVIE_EXTRA_LABELS,
+                postprocessImageRow=self._updateParticle)
 
             self._defineOutputs(outputParticles=outMovieSet)
             self._defineTransformRelation(self.inputParticles, outMovieSet)
@@ -162,7 +163,7 @@ leads to objective and high-quality results.
         # self._validateDim(self._getInputParticles(), self.referenceVolume.get(),
         #                   errors, 'Input particles', 'Reference volume')
 
-        if isVersion2() and self.IS_3D:
+        if relion.binaries.isVersion2Active() and self.IS_3D:
             if self.solventFscMask and not self.referenceMask.get():
                 errors.append('When using solvent-corrected FSCs, '
                               'please provide a reference mask.')
@@ -237,8 +238,10 @@ leads to objective and high-quality results.
                                                       sortByLabel=md.RLN_IMAGE_ID))
     
     def _createItemMatrix(self, particle, row):
-        createItemMatrix(particle, row, align=ALIGN_PROJ)
-        setRelionAttributes(particle, row, md.RLN_PARTICLE_RANDOM_SUBSET)
+        relion.convert.createItemMatrix(particle, row,
+                                        align=ALIGN_PROJ)
+        relion.convert.setRelionAttributes(particle, row,
+                                           md.RLN_PARTICLE_RANDOM_SUBSET)
 
     def _updateParticle(self, particle, row):
         particle._coordinate._micName = em.String(row.getValue('rlnMicrographName'))

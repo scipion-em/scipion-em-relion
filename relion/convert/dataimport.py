@@ -33,7 +33,8 @@ from pyworkflow.em.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_NONE
 from pyworkflow.em.data import Micrograph
 import pyworkflow.em.metadata as md
 from pyworkflow.utils.path import findRootFrom
-from .convert import relionToLocation, rowToCoordinate
+
+import relion
 
 
 class RelionImport:
@@ -68,11 +69,12 @@ class RelionImport:
         self.protocol.fillAcquisition(partSet.getAcquisition())
         # Read the micrographs from the 'self._starFile' metadata
         # but fixing the filenames with new ones (linked or copy to extraDir)
-        from convert import readSetOfParticles
-        readSetOfParticles(self._starFile, partSet,
-                           preprocessImageRow=self._preprocessImageRow,
-                           postprocessImageRow=self._postprocessImageRow,
-                           readAcquisition=False, alignType=self.alignType)
+        relion.convert.relion.convert.readSetOfParticles(
+            self._starFile, partSet,
+            preprocessImageRow=self._preprocessImageRow,
+            postprocessImageRow=self._postprocessImageRow,
+            readAcquisition=False, alignType=self.alignType)
+
         if self._micIdOrName:
             self.protocol._defineOutputs(outputMicrographs=self.micSet)
         self.protocol._defineOutputs(outputParticles=partSet)
@@ -100,7 +102,7 @@ class RelionImport:
         for classNumber, objId in enumerate(modelMd):
             row = md.Row()
             row.readFromMd(modelMd, objId)
-            index, fn = relionToLocation(row.getValue('rlnReferenceImage'))
+            index, fn = relion.convert.relionToLocation(row.getValue('rlnReferenceImage'))
 
             if fn in pathDict:
                 newFn = pathDict.get(fn)
@@ -168,7 +170,7 @@ class RelionImport:
             raise Exception("Label *%s* is missing in metadata: %s" % (md.label2Str(label),
                                                                        self._starFile))
 
-        index, fn = relionToLocation(row.getValue(label))
+        index, fn = relion.convert.relionToLocation(row.getValue(label))
         self._imgPath = findRootFrom(self._starFile, fn)
 
         if warnings and self._imgPath is None:
@@ -212,7 +214,7 @@ class RelionImport:
         return row, modelRow
 
     def _preprocessImageRow(self, img, imgRow):
-        from convert import setupCTF, copyOrLinkFileName
+        from .convert import setupCTF, copyOrLinkFileName
         if self._imgPath is not None:
             copyOrLinkFileName(imgRow, self._imgPath, self.protocol._getExtraPath())
         setupCTF(imgRow, self.protocol.samplingRate.get())
@@ -287,5 +289,5 @@ class RelionImport:
 
     def importCoordinates(self, fileName, addCoordinate):
         for row in md.iterRows(fileName):
-            coord = rowToCoordinate(row)
+            coord = relion.convert.rowToCoordinate(row)
             addCoordinate(coord)

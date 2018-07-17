@@ -43,7 +43,7 @@ class ProtRelionAutopickBase(ProtParticlePicking, ProtRelionBase):
 
     @classmethod
     def isDisabled(cls):
-        return isVersion2()
+        return relion.binaries.isVersion2Active()
 
     # -------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self): 

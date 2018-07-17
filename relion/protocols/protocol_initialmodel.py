@@ -32,9 +32,10 @@ from pyworkflow.protocol.params import (PointerParam, FloatParam,
                                         LEVEL_ADVANCED)
 from pyworkflow.em.data import Volume
 from pyworkflow.em.protocol import ProtInitialVolume
-from pyworkflow.em.packages.relion.protocol_base import ProtRelionBase
-from convert import V1_3, V1_4, V2_0, getVersion
-from constants import ANGULAR_SAMPLING_LIST
+
+import relion
+from relion.constants import V1_3, V1_4, V2_0, ANGULAR_SAMPLING_LIST
+from .protocol_base import ProtRelionBase
 
 
 class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
@@ -51,7 +52,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
 
     @classmethod
     def isDisabled(cls):
-        return getVersion() in [V1_3, V1_4, V2_0]
+        return relion.binaries.getVersion() in [V1_3, V1_4, V2_0]
 
     def __init__(self, **args):
         ProtRelionBase.__init__(self, **args)
@@ -452,7 +453,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                          itemDataIterator=md.iterRows(outImgsFn, sortByLabel=md.RLN_IMAGE_ID))
 
     def _createItemMatrix(self, item, row):
-        from pyworkflow.em.packages.relion.convert import createItemMatrix
+        from pyworkflow.em.packages.relion.convert import relion.convert.createItemMatrix
         from pyworkflow.em import ALIGN_PROJ
 
-        createItemMatrix(item, row, align=ALIGN_PROJ)
+        relion.convert.createItemMatrix(item, row, align=ALIGN_PROJ)

@@ -668,7 +668,7 @@ def writeSqliteIterData(imgStar, imgSqlite, **kwargs):
     """
     cleanPath(imgSqlite)
     imgSet = em.SetOfParticles(filename=imgSqlite)
-    readSetOfParticles(imgStar, imgSet, **kwargs)
+    relion.convert.readSetOfParticles(imgStar, imgSet, **kwargs)
     imgSet.write()
     
     

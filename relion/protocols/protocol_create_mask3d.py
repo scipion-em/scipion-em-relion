@@ -25,8 +25,9 @@
 # **************************************************************************
 from pyworkflow import VERSION_1_1
 from pyworkflow.em import ProtCreateMask3D, VolumeMask
-from convert import convertBinaryVol, isVersion2
 import pyworkflow.protocol.params as params
+
+import relion
 
 
 AND = 0
@@ -48,7 +49,7 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
         form.addParam('inputVolume', params.PointerParam, pointerClass="Volume",
                       label="Input volume",
                       help="Select the volume that will be used to create the mask")
-        if isVersion2():
+        if relion.binaries.isVersion2Active():
             form.addParam('initialLowPassFilterA', params.FloatParam, default=-1,
                           label='Lowpass filter map by (A)',
                           help='Lowpass filter that will be applied to the input map, '
@@ -115,12 +116,12 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
     
     # --------------------------- STEPS functions -------------------------------
     def convertInputStep(self, volId):
-        self.inputVolFn = convertBinaryVol(self.inputVolume.get(),
-                                           self._getTmpPath())
+        self.inputVolFn = relion.convert.convertBinaryVol(
+            self.inputVolume.get(), self._getTmpPath())
 
         if self.doCompare:
-            self.inputVol2Fn = convertBinaryVol(self.inputVolume2.get(),
-                                                self._getTmpPath())
+            self.inputVol2Fn = relion.convert.convertBinaryVol(
+                self.inputVolume2.get(), self._getTmpPath())
 
     def createMaskStep(self):
         argsDict = {'--i ': self.inputVolFn,
@@ -128,7 +129,8 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
                     '--extend_inimask ': self.extend.get(),
                     '--width_soft_edge ': self.edge.get()
                     }
-        if isVersion2() and self.initialLowPassFilterA.get() != -1:
+        if (relion.binaries.isVersion2Active()
+            and self.initialLowPassFilterA.get() != -1):
             argsDict['--lowpass '] = self.initialLowPassFilterA.get()
 
         args = ' --o %s ' % self.maskFile
