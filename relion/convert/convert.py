@@ -33,7 +33,6 @@ from collections import OrderedDict
 from itertools import izip
 
 from pyworkflow.object import ObjectWrap, String, Integer
-from pyworkflow.utils import Environ
 from pyworkflow.utils.path import (createLink, cleanPath, copyFile,
                                    replaceBaseExt, getExt, removeExt)
 import pyworkflow.em as em
