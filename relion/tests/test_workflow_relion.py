@@ -27,11 +27,13 @@
 import unittest, sys
 from pyworkflow.em import *
 from pyworkflow.tests import *
-from pyworkflow.em.packages.xmipp3 import *
+
 from pyworkflow.em.packages.xmipp3.constants import SAME_AS_PICKING
 from pyworkflow.em.packages.grigoriefflab import *
-from pyworkflow.em.packages.relion import *
+
+from pyworkflow.em.packages.relion.protocols import *
 from pyworkflow.em.packages.relion.protocol_autopick_v2 import *
+from pyworkflow.em.packages.xmipp3 import *
 from test_workflow import TestWorkflow
 
 
@@ -238,3 +240,11 @@ class TestWorkflowRelionExtract(TestWorkflowRelionPick):
         # The number of particles is different than the imported coordinates
         # due to the subSet done.
         self._checkOutput(protExtract3, size=2884)
+
+
+if __name__ == "__main__":
+    import unittest
+
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestWorkflowRelionExtract)
+    unittest.TextTestRunner(verbosity=2).run(suite)
+    #unittest.main()
