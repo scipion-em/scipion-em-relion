@@ -40,6 +40,10 @@ class Plugin(pyworkflow.em.Plugin):
     _supportedVersions = [V2_0, V2_1]
 
     @classmethod
+    def _defineVariables(cls):
+        cls._defineEmVar(RELION_HOME, 'relion-2.1')
+
+    @classmethod
     def getEnviron(cls):
         """ Setup the environment variables needed to launch Relion. """
 
