@@ -24,13 +24,17 @@
 # *
 # **************************************************************************
 
+import os
+
 from pyworkflow.tests import *
 from pyworkflow.em.protocol import *
 from pyworkflow.em.convert import ImageHandler
+import pyworkflow.utils as pwutils
 
 import relion
 from relion.protocols import *
 from relion.convert import *
+from relion.constants import *
 
 isVersion2 = relion.Plugin.isVersion2Active()
 
@@ -144,7 +148,7 @@ class TestRelionClassify2D(TestRelionBase):
             relionNoGpu = _runRelionClassify2D(False, "Relion classify2D No GPU")
             _checkAsserts(relionNoGpu)
 
-            environ = Environ(os.environ)
+            environ = pwutils.Environ(os.environ)
             cudaPath = environ.getFirst(('RELION_CUDA_LIB', 'CUDA_LIB'))
 
             if cudaPath is not None and os.path.exists(cudaPath):
@@ -202,7 +206,7 @@ class TestRelionClassify3D(TestRelionBase):
             relionNoGpu = _runRelionClassify3D(False, "Relion classify3D No GPU")
             _checkAsserts(relionNoGpu)
 
-            environ = Environ(os.environ)
+            environ = pwutils.Environ(os.environ)
             cudaPath = environ.getFirst(('RELION_CUDA_LIB', 'CUDA_LIB'))
 
             if cudaPath is not None and os.path.exists(cudaPath):
@@ -260,7 +264,7 @@ class TestRelionRefine(TestRelionBase):
                                    "The particles filenames are wrong")
         
         if isVersion2:
-            environ = Environ(os.environ)
+            environ = pwutils.Environ(os.environ)
             cudaPath = environ.getFirst(('RELION_CUDA_LIB', 'CUDA_LIB'))
 
             hasCuda = (cudaPath is not None and
@@ -284,7 +288,7 @@ class TestRelionInitialModel(TestRelionBase):
         cls.protImport = cls.runImportParticlesStar(cls.partFn, 50000, 7.08)
 
     def testProtRelionIniModel(self):
-        if getVersion() in [V1_3, V1_4, V2_0]:
+        if relion.Plugin.getActiveVersion() in [V1_3, V1_4, V2_0]:
             raise Exception('Initial model protocol exists only for Relion v2.1 or higher!')
 
         def _runRelionIniModel(doGpu=True, label=''):
@@ -312,7 +316,7 @@ class TestRelionInitialModel(TestRelionBase):
                                    self.protImport.outputParticles[1].getSamplingRate(),
                                    "The sampling rate is wrong", delta=0.00001)
 
-        environ = Environ(os.environ)
+        environ = pwutils.Environ(os.environ)
         cudaPath = environ.getFirst(('RELION_CUDA_LIB', 'CUDA_LIB'))
 
         if cudaPath is not None and os.path.exists(cudaPath):
@@ -320,8 +324,8 @@ class TestRelionInitialModel(TestRelionBase):
             _checkAsserts(relionGpu)
         else:
             print "Warning: running this test on CPU might take a lot of time!"
-            relion = _runRelionIniModel(doGpu=False, label="Relion initial model CPU")
-            _checkAsserts(relion)
+            relionInitModel = _runRelionIniModel(doGpu=False, label="Relion initial model CPU")
+            _checkAsserts(relionInitModel)
 
         
 class TestRelionPreprocess(TestRelionBase):
@@ -609,7 +613,7 @@ class TestRelionPostprocess(TestRelionBase):
         self._validations(postProt.outputVolume, 60, 3, "Relion auto-refine")
         
     def test_postProcess_from_frealign(self):
-        from pyworkflow.em.packages.grigoriefflab import ProtFrealign
+        from grigoriefflab.protocols import ProtFrealign
         
         pathFns = 'import/refine3d/extra'
         vol = self.ds.getFile(join(pathFns, 'relion_class001.mrc'))
@@ -636,7 +640,7 @@ class TestRelionPostprocess(TestRelionBase):
         self._validations(postProt.outputVolume, 60, 3, "Frealign")
 
     def test_postProcess_from_projMatch(self):
-        from pyworkflow.em.packages.xmipp3 import XmippProtProjMatch
+        from xmipp3.protocols import XmippProtProjMatch
         
         pathFns = 'import/refine3d/extra'
         vol = self.ds.getFile(join(pathFns, 'relion_class001.mrc'))
@@ -672,8 +676,8 @@ class TestRelionPostprocess(TestRelionBase):
         self._validations(postProt.outputVolume, 60, 3, "Projection Matching")
     
     def test_postProcess_from_eman_refineEasy(self):
-        from pyworkflow.em.packages.eman2 import EmanProtRefine
-        from pyworkflow.em.packages.eman2.convert import convertImage
+        from eman2.protocols import EmanProtRefine
+        from eman2.convert import convertImage
         
         pathFns = 'import/refine3d/extra'
         vol = self.ds.getFile(join(pathFns, 'relion_class001.mrc'))
@@ -921,7 +925,7 @@ class TestRelionExtractParticles(TestRelionBase):
     @classmethod
     def runDownsamplingMicrographs(cls, mics, downFactorValue, threads=1):
         # test downsampling a set of micrographs
-        from pyworkflow.em.packages.xmipp3 import XmippProtPreprocessMicrographs
+        from xmipp3.protocols import XmippProtPreprocessMicrographs
         cls.protDown = XmippProtPreprocessMicrographs(doDownsample=True,
                                                       downFactor=downFactorValue,
                                                       numberOfThreads=threads)
@@ -932,7 +936,7 @@ class TestRelionExtractParticles(TestRelionBase):
     @classmethod
     def runFakedPicking(cls, mics, pattern):
         """ Run a faked particle picking. Coordinates already existing. """
-        from pyworkflow.em.packages.xmipp3 import XmippProtParticlePicking
+        from xmipp3.protocols import XmippProtParticlePicking
         cls.protPP = XmippProtParticlePicking(importFolder=pattern, runMode=1)
         cls.protPP.inputMicrographs.set(mics)
         cls.proj.launchProtocol(cls.protPP, wait=True)

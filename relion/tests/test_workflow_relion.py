@@ -28,13 +28,10 @@ import unittest, sys
 from pyworkflow.em import *
 from pyworkflow.tests import *
 
-from pyworkflow.em.packages.xmipp3.constants import SAME_AS_PICKING
-from pyworkflow.em.packages.grigoriefflab import *
-
-from pyworkflow.em.packages.relion.protocols import *
-from pyworkflow.em.packages.relion.protocol_autopick_v2 import *
-from pyworkflow.em.packages.xmipp3 import *
-from test_workflow import TestWorkflow
+from relion.protocols import *
+from relion.protocols.protocol_autopick_v2 import *
+from xmipp3 import *
+from pyworkflow.tests.em.workflows.test_workflow import TestWorkflow
 
 
 class TestWorkflowRelionPick(TestWorkflow):
