@@ -28,10 +28,12 @@ import unittest, sys
 from pyworkflow.em import *
 from pyworkflow.tests import *
 
+from pyworkflow.tests.em.workflows.test_workflow import TestWorkflow
+from xmipp3.protocols import XmippProtPreprocessMicrographs
+from grigoriefflab.protocols import ProtCTFFind
+
 from relion.protocols import *
 from relion.protocols.protocol_autopick_v2 import *
-from xmipp3 import *
-from pyworkflow.tests.em.workflows.test_workflow import TestWorkflow
 
 
 class TestWorkflowRelionPick(TestWorkflow):
@@ -116,20 +118,19 @@ class TestWorkflowRelionPick(TestWorkflow):
                                     objLabel='avgs - 5',
                                     filesPath=inputTmp,
                                     filesPattern=outputName,
-                                    samplingRate=7.08
-                                    )
+                                    samplingRate=7.08)
 
         self.launchProtocol(protAvgs)
         # Select some good averages from the iterations mrcs a
 
-        protPick1 = self.newProtocol(ProtRelion2Autopick,
-                                     objLabel='autopick refs (optimize)',
-                                     runType=RUN_OPTIMIZE,
-                                     micrographsList=5,
-                                     referencesType=REF_AVERAGES,
-                                     refsHaveInvertedContrast=True,
-                                     particleDiameter=380
-                                     )
+        protPick1 = self.newProtocol(
+            ProtRelion2Autopick,
+            objLabel='autopick refs (optimize)',
+            runType=ProtRelion2Autopick.RUN_OPTIMIZE,
+            micrographsList=5,
+            referencesType=ProtRelion2Autopick.REF_AVERAGES,
+            refsHaveInvertedContrast=True,
+            particleDiameter=380)
 
         protPick1.inputMicrographs.set(protCropMics.outputMicrographs)
         protPick1.ctfRelations.set(protCTF.outputCTF)
@@ -145,13 +146,13 @@ class TestWorkflowRelionPick(TestWorkflow):
         # Launch the same picking run but now for all micrographs
         protPick2 = self.proj.copyProtocol(protPick1)
         protPick2.setObjLabel('autopick refs (all)')
-        protPick2.runType.set(RUN_COMPUTE)
+        protPick2.runType.set(ProtRelion2Autopick.RUN_COMPUTE)
         self._launchPick(protPick2)
 
         # Launch now using the Gaussian as references
         protPick3 = self.proj.copyProtocol(protPick1)
         protPick3.setObjLabel('autopick gauss (optimize)')
-        protPick3.referencesType.set(REF_BLOBS)
+        protPick3.referencesType.set(ProtRelion2Autopick.REF_BLOBS)
         protPick3.inputReferences.set(None)
         self._launchPick(protPick3)
 
@@ -192,7 +193,7 @@ class TestWorkflowRelionExtract(TestWorkflowRelionPick):
     def test_ribo(self):
         """ Reimplement this test to run several extract cases. """
         protPick1 = self._runPickWorkflow()
-        protPick1.runType.set(RUN_COMPUTE)
+        protPick1.runType.set(ProtRelion2Autopick.RUN_COMPUTE)
         self._launchPick(protPick1)
         proj = protPick1.getProject()
         size = protPick1.outputCoordinates.getSize()
@@ -238,10 +239,3 @@ class TestWorkflowRelionExtract(TestWorkflowRelionPick):
         # due to the subSet done.
         self._checkOutput(protExtract3, size=2884)
 
-
-if __name__ == "__main__":
-    import unittest
-
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestWorkflowRelionExtract)
-    unittest.TextTestRunner(verbosity=2).run(suite)
-    #unittest.main()

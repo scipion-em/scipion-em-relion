@@ -601,10 +601,10 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
 
     # -------------------------- UTILS functions -------------------------------
     def useInputReferences(self):
-        return self.referencesType == REF_AVERAGES
+        return self.referencesType == self.REF_AVERAGES
 
     def isRunOptimize(self):
-        return self.runType == RUN_OPTIMIZE
+        return self.runType == self.RUN_OPTIMIZE
 
     def getInputDimA(self):
         """ Return the dimension of input references in A. """
