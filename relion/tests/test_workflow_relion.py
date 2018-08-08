@@ -220,7 +220,7 @@ class TestWorkflowRelionExtract(TestWorkflowRelionPick):
         self._checkOutput(protExtract2, size=size, dim=32, sampling=14.16)
         
         # Now test changing micrographs source option
-        splitSetsProt = self.newProtocol(em.ProtSplitSet,
+        splitSetsProt = self.newProtocol(ProtSplitSet,
                                       randomize=False,
                                       numberOfSets=2)
         splitSetsProt.inputSet.set(self.protCropMics.outputMicrographs)
