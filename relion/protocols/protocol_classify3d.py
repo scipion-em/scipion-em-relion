@@ -99,7 +99,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
         return summary message for NORMAL EXECUTION. 
         """
         errors = []
-        # We we scale the input volume to have the same size as the particles...
+        # We scale the input volume to have the same size as the particles...
         # so no need to validate the following
         # self._validateDim(self._getInputParticles(), self.referenceVolume.get(),
         #                   errors, 'Input particles', 'Reference volume')
@@ -120,7 +120,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
             continueIter = int(self.continueIter.get())
         
         if continueIter > lastIter:
-            errors += ["The iteration from you want to continue must be %01d or less" % lastIter]
+            errors += ["You can continue only from the iteration %01d or less" % lastIter]
         
         return errors
     
@@ -153,7 +153,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
     def _methods(self):
         strline = ''
         if hasattr(self, 'outputClasses'):
-            strline += 'We classified %d particles into %d 3D classes using Relion Classify3d. '%\
+            strline += 'We classified %d particles into %d 3D classes using Relion Classify3d. ' %\
                            (self.inputParticles.get().getSize(), self.numberOfClasses.get())
         return [strline]
     
@@ -162,7 +162,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
         """ Read some information about the produced Relion 3D classes
         from the *model.star file.
         """
-        self._classesInfo = {} # store classes info, indexed by class id
+        self._classesInfo = {}  # store classes info, indexed by class id
          
         modelStar = md.MetaData('model_classes@' +
                                 self._getFileName('model', iter=iteration))

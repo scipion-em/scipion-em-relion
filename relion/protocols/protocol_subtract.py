@@ -29,10 +29,10 @@ import os
 import sys
 
 import pyworkflow.em.metadata as md
-from pyworkflow import VERSION_1_1
 from pyworkflow.protocol.params import PointerParam, BooleanParam, LabelParam
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pyworkflow.em.protocol import ProtOperateParticles
+from pyworkflow.em import ImageHandler
 
 import relion
 import relion.convert
@@ -45,8 +45,7 @@ class ProtRelionSubtract(ProtOperateParticles):
     properly generate volume projections.
     """
     _label = 'subtract projection'
-    _lastUpdateVersion = VERSION_1_1
-    
+
     def _initialize(self):
         self._createFilenameTemplates()
     
@@ -145,13 +144,16 @@ class ProtRelionSubtract(ProtOperateParticles):
     
     def applyMaskStep(self):
         # TODO: Move apply mask to ImageHandler (if not there already)
-        import xmipp3
-        import xmipp3.convert.getImageLocation as getImageLocation
-        
-        params = ' -i %s --mult %s -o %s' % (getImageLocation(self.inputVolume.get()),
-                                             getImageLocation(self.refMask.get()),
-                                             self._getFileName('volume_masked'))
-        self.runJob('xmipp_image_operate', params, env=xmipp3.getEnviron())
+        params = ' -i %s --mult %s -o %s' % (
+            ImageHandler.locationToXmipp(self.inputVolume.get()),
+            ImageHandler.locationToXmipp(self.refMask.get()),
+            self._getFileName('volume_masked'))
+
+        try:
+            import xmipp3
+            self.runJob('xmipp_image_operate', params, env=xmipp3.getEnviron())
+        except:
+            print('Xmipp plugin not found, cannot create/apply a mask!')
     
     def removeStep(self):
         volume = self.inputVolume.get()
@@ -204,7 +206,6 @@ class ProtRelionSubtract(ProtOperateParticles):
         return summary message for NORMAL EXECUTION. 
         """
         errors = []
-        self.validatePackageVersion('RELION_HOME', errors)
         self._validateDim(self._getInputParticles(), self.inputVolume.get(),
                           errors, 'Input particles', 'Input volume')
 

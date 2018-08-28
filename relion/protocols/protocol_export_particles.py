@@ -34,18 +34,16 @@ import pyworkflow.protocol.params as params
 
 import relion
 import relion.convert
+from relion.constants import STACK_NONE, STACK_MULT, STACK_ONE
 from .protocol_base import ProtRelionBase
 
-STACK_NONE = 0
-STACK_MULT = 1
-STACK_ONE = 2
 
 
 class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
     """ Export particles from Relion to be used outside Scipion. """
     _label = 'export particles'
     
-    # --------------------------- DEFINE param functions -----------------------
+    # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
 
         form.addSection(label='Input')
@@ -58,7 +56,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
         form.addParam('useAlignment', params.BooleanParam, default=True,
                       label='Write alignment information?',
                       help='If *Yes* the alignment information (2D or 3D) '
-                           'will be written to the resulting .star file if'
+                           'will be written to the resulting .star file if '
                            'the particles contains such information.')
 
         form.addParam('stackType', params.EnumParam,
@@ -67,17 +65,17 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
                                "Write a single stack"], default=STACK_MULT,
                       display=params.EnumParam.DISPLAY_LIST,
                       label="Binary stack files",
-                      help="If *Don't write stacks* is choose, only the star "
+                      help="If *Don't write stacks* is chosen, only the star "
                            "files will be written out. Alternatively, you can "
                            "select to write images into a single stack file or"
                            " several stacks (one per micrograph). ")
 
-    # --------------------------- INSERT steps functions -----------------------
+    # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         objId = self.inputParticles.get().getObjId()
         self._insertFunctionStep("exportParticlesStep", objId)
 
-    # --------------------------- STEPS functions ------------------------------
+    # --------------------------- STEPS functions -----------------------------
     def exportParticlesStep(self, particlesId):
         """ Create the input file in STAR format as expected by Relion.
         If the input particles comes from Relion, just link the file. 
@@ -101,16 +99,20 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
 
         pwutils.prettyDict(self._stackDict)
     
-    # --------------------------- INFO functions -------------------------------
+    # --------------------------- INFO functions ------------------------------
     def _validate(self):
         validateMsgs = []
         return validateMsgs
     
     def _summary(self):
         summary = []
+        if pwutils.exists(self._getPath("particles.star")):
+            summary.append('Particles were exported into: %s' % self._getPath("particles.star"))
+        else:
+            summary.append('Output is not ready.')
         return summary
     
-    # --------------------------- UTILS functions ------------------------------
+    # --------------------------- UTILS functions -----------------------------
     def _postprocessImageRow(self, img, row):
         """ Write the binary image to the final stack
         and update the row imageName. """

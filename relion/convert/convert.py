@@ -1,8 +1,8 @@
 # **************************************************************************
 # *
-# * Authors:     J.M. De la Rosa Trevin (jmdelarosa@cnb.csic.es)
+# * Authors:     J.M. de la Rosa Trevin (delarosatrevin@scilifelab.se)
 # *              Laura del Cano (ldelcano@cnb.csic.es)
-# *              Grigory Sharov (sharov@igbmc.fr)
+# *              Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk)
 # *
 # * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
 # *
@@ -29,7 +29,6 @@
 import os
 from os.path import join, basename
 import numpy
-from collections import OrderedDict
 from itertools import izip
 
 from pyworkflow.object import ObjectWrap, String, Integer
@@ -37,90 +36,10 @@ from pyworkflow.utils.path import (createLink, cleanPath, copyFile,
                                    replaceBaseExt, getExt, removeExt)
 import pyworkflow.em as em
 import pyworkflow.em.metadata as md
+from pyworkflow.em.constants import NO_INDEX
 
-# This dictionary will be used to map
-# between CTFModel properties and Xmipp labels
+from relion.constants import *
 
-ACQUISITION_DICT = OrderedDict([ 
-       ("_amplitudeContrast", md.RLN_CTF_Q0),
-       ("_sphericalAberration", md.RLN_CTF_CS),
-       ("_voltage", md.RLN_CTF_VOLTAGE),
-        ("_magnification", md.RLN_CTF_MAGNIFICATION)
-       ])
-
-COOR_DICT = OrderedDict([
-             ("_x", md.RLN_IMAGE_COORD_X),
-             ("_y", md.RLN_IMAGE_COORD_Y)
-             ])
-
-COOR_EXTRA_LABELS = [
-    # Additional autopicking-related metadata
-    md.RLN_PARTICLE_AUTOPICK_FOM,
-    md.RLN_PARTICLE_CLASS,
-    md.RLN_ORIENT_PSI
-    ]
-
-CTF_DICT = OrderedDict([
-       ("_defocusU", md.RLN_CTF_DEFOCUSU),
-       ("_defocusV", md.RLN_CTF_DEFOCUSV),
-       ("_defocusAngle", md.RLN_CTF_DEFOCUS_ANGLE)
-       ])
-
-CTF_PSD_DICT = OrderedDict([
-       ("_psdFile", md.RLN_CTF_IMAGE)
-       ])
-
-CTF_EXTRA_LABELS = [   
-    md.RLN_CTF_FOM,
-    md.RLN_CTF_PHASESHIFT,
-    # In Relion the ctf also contains acquisition information
-    md.RLN_CTF_Q0,
-    md.RLN_CTF_CS,
-    md.RLN_CTF_VOLTAGE,
-    md.RLN_CTF_MAGNIFICATION,
-    md.RLN_CTF_DETECTOR_PIXEL_SIZE
-    ]
-
-# Some extra labels
-IMAGE_EXTRA_LABELS = [
-    md.RLN_SELECT_PARTICLES_ZSCORE,
-    md.RLN_IMAGE_FRAME_NR
-    ]
-
-# Extra labels for movie refinement & polishing
-MOVIE_EXTRA_LABELS = [
-    md.RLN_PARTICLE_NR_FRAMES,
-    md.RLN_PARTICLE_NR_FRAMES_AVG,
-    md.RLN_PARTICLE_MOVIE_RUNNING_AVG,
-    md.RLN_PARTICLE_ORI_NAME,
-    md.RLN_MLMODEL_GROUP_NAME,
-    # the following is required for polishing to work
-    md.RLN_PARTICLE_DLL,
-    md.RLN_PARTICLE_PMAX,
-    md.RLN_IMAGE_NORM_CORRECTION,
-    md.RLN_PARTICLE_NR_SIGNIFICANT_SAMPLES,
-    md.RLN_PARTICLE_RANDOM_SUBSET,
-    md.RLN_ORIENT_ORIGIN_X_PRIOR,
-    md.RLN_ORIENT_ORIGIN_Y_PRIOR,
-    md.RLN_ORIENT_PSI_PRIOR,
-    md.RLN_ORIENT_ROT_PRIOR,
-    md.RLN_ORIENT_TILT_PRIOR
-]
-
-# ANGLES_DICT = OrderedDict([
-#        ("_angleY", md.RLN_ANGLE_Y),
-#        ("_angleY2", md.RLN_ANGLE_Y2),
-#        ("_angleTilt", md.RLN_ANGLE_TILT)
-#        ])
- 
-ALIGNMENT_DICT = OrderedDict([ 
-       ("_rlnOriginX", md.RLN_ORIENT_ORIGIN_X),
-       ("_rlnOriginY", md.RLN_ORIENT_ORIGIN_Y),
-       ("_rlnOriginZ", md.RLN_ORIENT_ORIGIN_Z),
-       ("_rlnAngleRot", md.RLN_ORIENT_ROT),
-       ("_rlnAngleTilt", md.RLN_ORIENT_TILT),
-       ("_rlnAnglePsi", md.RLN_ORIENT_PSI),
-       ])
 
 
 def locationToRelion(index, filename):
@@ -432,7 +351,7 @@ def imageToRow(img, imgRow, imgLabel=md.RLN_IMAGE_NAME, **kwargs):
     if kwargs.get('writeCtf', True) and img.hasCTF():
         ctfModelToRow(img.getCTF(), imgRow)
         
-    # alignment is mandatory at this point, it shoud be check
+    # alignment is mandatory at this point, it should be check
     # and detected defaults if not passed at readSetOf.. level
     alignType = kwargs.get('alignType') 
     
@@ -470,7 +389,8 @@ def particleToRow(part, partRow, **kwargs):
         partRow.setValue(md.RLN_PARTICLE_ID, long(part._rlnParticleId.get()))
 
     if kwargs.get('fillRandomSubset') and part.hasAttribute('_rlnRandomSubset'):
-        partRow.setValue(md.RLN_PARTICLE_RANDOM_SUBSET, int(part._rlnRandomSubset.get()))
+        partRow.setValue(md.RLN_PARTICLE_RANDOM_SUBSET,
+                         int(part._rlnRandomSubset.get()))
 
     imageToRow(part, partRow, md.RLN_IMAGE_NAME, **kwargs)
 
@@ -655,7 +575,7 @@ def writeSetOfMicrographs(micSet, starFile, **kwargs):
     """
     micMd = md.MetaData()
     setOfImagesToMd(micSet, micMd, micrographToRow, **kwargs)
-    blockName = kwargs.get('blockName', 'Particles')
+    blockName = kwargs.get('blockName', 'Micrographs')
     micMd.write('%s@%s' % (blockName, starFile))
 
 
@@ -681,7 +601,7 @@ def splitInCTFGroups(imgStar, defocusRange=1000, numParticles=10):
     mdAll.sort(md.RLN_CTF_DEFOCUSU)
 
     focusGroup = 1
-    counter=0
+    counter = 0
     oldDefocusU = mdAll.getValue(md.RLN_CTF_DEFOCUSU, mdAll.firstObject())
     groupName = '%s_%06d_%05d'%('ctfgroup',oldDefocusU,focusGroup)
     for objId in mdAll:
@@ -694,12 +614,13 @@ def splitInCTFGroups(imgStar, defocusRange=1000, numParticles=10):
                 focusGroup = focusGroup + 1
                 oldDefocusU = defocusU
                 groupName = '%s_%06d_%05d'%('ctfgroup',oldDefocusU,focusGroup)
-                counter=0
+                counter = 0
         mdAll.setValue(md.RLN_MLMODEL_GROUP_NAME,groupName,objId)
 
     mdAll.write(imgStar)
     mdCount = md.MetaData()
-    mdCount.aggregate(mdAll, md.AGGR_COUNT, md.RLN_MLMODEL_GROUP_NAME, md.RLN_MLMODEL_GROUP_NAME, md.MDL_COUNT)
+    mdCount.aggregate(mdAll, md.AGGR_COUNT, md.RLN_MLMODEL_GROUP_NAME,
+                      md.RLN_MLMODEL_GROUP_NAME, md.MDL_COUNT)
     print "number of particles per group: ", mdCount
 
        
@@ -743,9 +664,11 @@ def setupCTF(imgRow, sampling):
     
     if hasDefocusU or hasDefocusV:
         if not hasDefocusU:
-            imgRow.setValue(md.MDL_CTF_DEFOCUSU, imgRow.getValue(md.MDL_CTF_DEFOCUSV))
+            imgRow.setValue(md.MDL_CTF_DEFOCUSU,
+                            imgRow.getValue(md.MDL_CTF_DEFOCUSV))
         if not hasDefocusV:
-            imgRow.setValue(md.MDL_CTF_DEFOCUSV, imgRow.getValue(md.MDL_CTF_DEFOCUSU))
+            imgRow.setValue(md.MDL_CTF_DEFOCUSV,
+                            imgRow.getValue(md.MDL_CTF_DEFOCUSU))
         if not hasDefocusAngle:
             imgRow.setValue(md.MDL_CTF_DEFOCUS_ANGLE, 0.)
             
@@ -902,14 +825,6 @@ def readCoordinates(mic, fileName, coordsSet):
         coordsSet.append(coord)
 
 
-def writeSetOfCoordinates(coordSet, outputDir):
-    pass
-
-
-def writeCoordinates(mic, fileName):
-    pass
-
-
 def openStar(fn, extraLabels=False):
     # We are going to write metadata directy to file to do it faster
     f = open(fn, 'w')
@@ -987,6 +902,103 @@ def writeSetOfCoordinates(posDir, coordSet, getStarFileFunc, scale=1):
         f.close()
 
     return posDict.values()
+
+
+def writeSetOfCoordinatesXmipp(posDir, coordSet, ismanual=True, scale=1):
+    """ Write a pos file on metadata format for each micrograph
+    on the coordSet.
+    Params:
+        posDir: the directory where the .pos files will be written.
+        coordSet: the SetOfCoordinates that will be read."""
+
+    boxSize = coordSet.getBoxSize() or 100
+    state = 'Manual' if ismanual else 'Supervised'
+
+    # Create a dictionary with the pos filenames for each micrograph
+    posDict = {}
+    for mic in coordSet.iterMicrographs():
+        micIndex, micFileName = mic.getLocation()
+        micName = os.path.basename(micFileName)
+
+        if micIndex != NO_INDEX:
+            micName = '%06d_at_%s' % (micIndex, micName)
+
+        posFn = join(posDir, replaceBaseExt(micName, "pos"))
+        posDict[mic.getObjId()] = posFn
+
+    f = None
+    lastMicId = None
+    c = 0
+
+    for coord in coordSet.iterItems(orderBy='_micId'):
+        micId = coord.getMicId()
+
+        if micId != lastMicId:
+            # we need to close previous opened file
+            if f:
+                f.close()
+                c = 0
+            f = openMd(posDict[micId], state)
+            lastMicId = micId
+        c += 1
+        if scale != 1:
+            x = coord.getX() * scale
+            y = coord.getY() * scale
+        else:
+            x = coord.getX()
+            y = coord.getY()
+        f.write(" %06d   1   %d  %d  %d   %06d\n"
+                % (coord.getObjId(), x, y, 1, micId))
+
+    if f:
+        f.close()
+
+    # Write config.xmd metadata
+    configFn = join(posDir, 'config.xmd')
+    writeCoordsConfig(configFn, int(boxSize), state)
+
+    return posDict.values()
+
+
+def writeCoordsConfig(configFn, boxSize, state):
+    """ Write the config.xmd file needed for Xmipp picker.
+    Params:
+        configFn: The filename were to store the configuration.
+        boxSize: the box size in pixels for extraction.
+        state: picker state
+    """
+    # Write config.xmd metadata
+    print("writeCoordsConfig: state=", state)
+    mdata = md.MetaData()
+    # Write properties block
+    objId = mdata.addObject()
+    mdata.setValue(md.MDL_PICKING_PARTICLE_SIZE, int(boxSize), objId)
+    mdata.setValue(md.MDL_PICKING_STATE, state, objId)
+    mdata.write('properties@%s' % configFn)
+
+
+def openMd(fn, state='Manual'):
+    # We are going to write metadata directly to file to do it faster
+    f = open(fn, 'w')
+    ismanual = state == 'Manual'
+    block = 'data_particles' if ismanual else 'data_particles_auto'
+    s = """# XMIPP_STAR_1 *
+#
+data_header
+loop_
+ _pickingMicrographState
+%s
+%s
+loop_
+ _itemId
+ _enabled
+ _xcoor
+ _ycoor
+ _cost
+ _micrographId
+""" % (state, block)
+    f.write(s)
+    return f
 
 
 def writeMicCoordinates(mic, coordList, outputFn, getPosFunc=None):

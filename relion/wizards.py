@@ -24,12 +24,15 @@
 # *
 # **************************************************************************
 
-import pyworkflow.utils as pwutils
+import os
+from collections import OrderedDict
 
+import pyworkflow.utils as pwutils
 from pyworkflow.em import *
 from pyworkflow.em.wizard import *
 
 from relion.constants import *
+from relion.convert import writeSetOfMicrographs
 from relion.protocols import (
     ProtRelionClassify3D, ProtRelionRefine3D, ProtRelionClassify2D,
     ProtRelionPreprocessParticles, ProtRelionAutopickFom, ProtRelionAutopick,
@@ -190,8 +193,8 @@ class RelionAutopickParams(EmWizard):
         micSet = autopickFomProt.getInputMicrographs()
         micfn = micSet.getFileName()
         coordsDir = project.getTmpPath(micSet.getName())
-        cleanPath(coordsDir)
-        makePath(coordsDir)
+        pwutils.cleanPath(coordsDir)
+        pwutils.makePath(coordsDir)
         pickerProps = os.path.join(coordsDir, 'picker.conf')
         f = open(pickerProps, "w")
         args = {
@@ -250,17 +253,16 @@ class Relion2AutopickParams(EmWizard):
 
         if not autopickProt.hasAttribute('outputCoordinatesSubset'):
             form.showWarning("You should run the procotol in 'Optimize' mode "
-                               "at least once before opening the wizard.")
+                             "at least once before opening the wizard.")
             return
 
         project = autopickProt.getProject()
         micSet = autopickProt.outputMicrographsSubset
         micfn = micSet.getFileName()
         coordsDir = project.getTmpPath(micSet.getName())
-        cleanPath(coordsDir)
-        makePath(coordsDir)
+        pwutils.cleanPath(coordsDir)
+        pwutils.makePath(coordsDir)
 
-        from pyworkflow.em.packages.xmipp3.convert import writeSetOfMicrographs
         micStarFn = os.path.join(coordsDir, 'micrographs.xmd')
 
         # Set CTF information to the micrographs to be displayed in the
@@ -276,8 +278,8 @@ class Relion2AutopickParams(EmWizard):
 
         # Create a folder in extra to backup the original autopick star files
         backupDir = autopickProt._getExtraPath('wizard-backup')
-        cleanPath(backupDir)
-        makePath(backupDir)
+        pwutils.cleanPath(backupDir)
+        pwutils.makePath(backupDir)
         pwutils.copyPattern(autopickProt._getExtraPath("*autopick.star"),
                             backupDir)
 
@@ -289,7 +291,7 @@ class Relion2AutopickParams(EmWizard):
         cmd += ' --read_fom_maps'
         cmd += autopickProt.getAutopickParams()
 
-        convertCmd = pw.join('apps', 'pw_convert.py')
+        convertCmd = pwutils.join('apps', 'pw_convert.py')
         convertCmd += ' --coordinates --from relion --to xmipp '
         convertCmd += ' --input %s' % micSet.getFileName()
         convertCmd += ' --output %s' % coordsDir

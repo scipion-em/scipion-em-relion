@@ -31,7 +31,6 @@ from pyworkflow.em.protocol import ProtProcessParticles
 
 import relion
 import relion.convert
-from relion.constants import V1_3, V1_4
 
  
 class ProtRelionExpandSymmetry(ProtProcessParticles):
@@ -46,7 +45,7 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
 
     @classmethod
     def isDisabled(cls):
-        return relion.Plugin.getActiveVersion() in [V1_3, V1_4]
+        return relion.Plugin.getActiveVersion() in ['1.4']
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineProcessParams(self, form):
@@ -100,13 +99,11 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
         if not hasattr(self, 'outputParticles'):
             summary.append("Output particles not ready yet.")
         else:
-            summary.append("Symmetry: %s" % self.symmetryGroup.get())
+            summary.append("Symmetry used: %s" % self.symmetryGroup.get())
         return summary
     
     def _validate(self):
         errors = []
-        self.validatePackageVersion('RELION_HOME', errors)
-
         if not self.inputParticles.get().hasAlignmentProj():
             errors.append('Input particles must have angular assignment.')
 
@@ -116,7 +113,9 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
         return []
     
     def _methods(self):
-        methods = []
+        methods = ['Input particle dataset was artificially expanded according'
+                   ' to pseudo-symmetric %s point group' %
+                   self.symmetryGroup.get()]
 
         return methods
 
@@ -124,4 +123,3 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
     def _postprocessImageRow(self, img, imgRow):
         relion.convert.setRelionAttributes(
             img, imgRow, md.RLN_MLMODEL_GROUP_NAME)
-

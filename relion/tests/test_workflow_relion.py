@@ -24,16 +24,17 @@
 # *
 # **************************************************************************
 
-import unittest, sys
 from pyworkflow.em import *
+from pyworkflow.em.convert import ImageHandler
 from pyworkflow.tests import *
-
+from pyworkflow.utils import importFromPlugin
 from pyworkflow.tests.em.workflows.test_workflow import TestWorkflow
-from xmipp3.protocols import XmippProtPreprocessMicrographs
-from grigoriefflab.protocols import ProtCTFFind
 
 from relion.protocols import *
-from relion.protocols.protocol_autopick_v2 import *
+#from relion.protocols.protocol_autopick_v2 import *
+
+ProtCTFFind = importFromPlugin('grigoriefflab.protocols', 'ProtCTFFind')
+XmippProtPreprocessMicrographs = importFromPlugin('xmipp3.protocols', 'XmippProtPreprocessMicrographs')
 
 
 class TestWorkflowRelionPick(TestWorkflow):
@@ -226,7 +227,7 @@ class TestWorkflowRelionExtract(TestWorkflowRelionPick):
         splitSetsProt.inputSet.set(self.protCropMics.outputMicrographs)
         self.launchProtocol(splitSetsProt)
 
-        # We choose the first output to keep the assertation procedure 
+        # We choose the first output to keep the assertion procedure
         otherSetMics = splitSetsProt.outputMicrographs01
 
         protExtract3 = self.proj.copyProtocol(protExtract)
@@ -238,4 +239,3 @@ class TestWorkflowRelionExtract(TestWorkflowRelionPick):
         # The number of particles is different than the imported coordinates
         # due to the subSet done.
         self._checkOutput(protExtract3, size=2884)
-

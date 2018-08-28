@@ -1,7 +1,7 @@
 # **************************************************************************
 # *
 # * Authors:     Josue Gomez Blanco     (josue.gomez-blanco@mcgill.ca)
-# *              J.M. De la Rosa Trevin (jmdelarosa@cnb.csic.es)
+# *              J.M. de la Rosa Trevin (delarosatrevin@scilifelab.se)
 # *
 # * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
 # *
@@ -170,7 +170,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
         
         form.addParallelSection(threads=0, mpi=0)
     
-    # -------------------------- INSERT steps functions ------------------------
+    # -------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self):
         objId = self.protRefine.get().getObjId()
         self._createFilenameTemplates()
@@ -179,7 +179,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
         self._insertFunctionStep('postProcessStep', self.paramDict)
         self._insertFunctionStep('createOutputStep')
     
-    # -------------------------- STEPS functions -------------------------------
+    # -------------------------- STEPS functions ------------------------------
     def initializeStep(self, protId):
         protRef = self.protRefine.get()
         protClassName = protRef.getClassName()
@@ -255,7 +255,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
             self._defineOutputs(outputMask=mask)
             self._defineSourceRelation(vol, mask)
 
-    # -------------------------- INFO functions --------------------------------
+    # -------------------------- INFO functions -------------------------------
     def _validate(self):
         """ Should be overwritten in subclasses to
         return summary message for NORMAL EXECUTION.
@@ -289,7 +289,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
         
         return summary
         
-    # -------------------------- UTILS functions -------------------------------
+    # -------------------------- UTILS functions ------------------------------
     def _defineParamDict(self):
         """ Define all parameters to run relion_postprocess"""
         volume = self.protRefine.get().outputVolume

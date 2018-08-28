@@ -1,8 +1,8 @@
 # **************************************************************************
 # *
-# * Authors:     Grigory Sharov (sharov@igbmc.fr)
+# * Authors:     Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk)
 # *
-# * L'Institut de genetique et de biologie moleculaire et cellulaire (IGBMC)
+# * MRC Laboratory of Molecular Biology (MRC-LMB)
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -23,18 +23,13 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-from pyworkflow import VERSION_1_1
 from pyworkflow.em import ProtCreateMask3D, VolumeMask
 import pyworkflow.protocol.params as params
 
 import relion
 import relion.convert
+from relion.constants import AND, OR, AND_NOT, OR_NOT
 
-
-AND = 0
-OR = 1
-AND_NOT = 2
-OR_NOT = 3
 
 
 class ProtRelionCreateMask3D(ProtCreateMask3D):
@@ -42,16 +37,17 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
     The mask is created from a 3d volume or by comparing two input volumes.
     """
     _label = 'create 3d mask'
-    _lastUpdateVersion = VERSION_1_1
-    
-    # --------------------------- DEFINE param functions ------------------------
+
+    # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
         form.addSection(label='Mask generation')
-        form.addParam('inputVolume', params.PointerParam, pointerClass="Volume",
+        form.addParam('inputVolume', params.PointerParam,
+                      pointerClass="Volume",
                       label="Input volume",
                       help="Select the volume that will be used to create the mask")
         if relion.Plugin.isVersion2Active():
-            form.addParam('initialLowPassFilterA', params.FloatParam, default=-1,
+            form.addParam('initialLowPassFilterA', params.FloatParam,
+                          default=-1,
                           label='Lowpass filter map by (A)',
                           help='Lowpass filter that will be applied to the input map, '
                                'prior to binarization. To calculate solvent masks, a '
@@ -72,7 +68,8 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
                       label='Compare with another volume to produce a mask?',
                       help='Logical comparison of two input volumes to produce a mask')
 
-        form.addParam('inputVolume2', params.PointerParam, pointerClass="Volume",
+        form.addParam('inputVolume2', params.PointerParam,
+                      pointerClass="Volume",
                       condition='doCompare',
                       expertLevel=params.LEVEL_ADVANCED,
                       label="Input volume (second)",
@@ -108,14 +105,14 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
                       label='Invert final mask',
                       help='Invert the final mask')
 
-    # --------------------------- INSERT steps functions ------------------------
+    # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         self.maskFile = self._getExtraPath('mask.mrc')
         self._insertFunctionStep('convertInputStep', self.inputVolume.get().getObjId())
         self._insertFunctionStep('createMaskStep')
         self._insertFunctionStep('createOutputStep')
     
-    # --------------------------- STEPS functions -------------------------------
+    # --------------------------- STEPS functions -----------------------------
     def convertInputStep(self, volId):
         self.inputVolFn = relion.convert.convertBinaryVol(
             self.inputVolume.get(), self._getTmpPath())
@@ -162,10 +159,9 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
         self._defineOutputs(outputMask=volMask)
         self._defineSourceRelation(self.inputVolume, self.outputMask)
         
-    # --------------------------- INFO functions --------------------------------
+    # --------------------------- INFO functions ------------------------------
     def _validate(self):
         errors = []
-        self.validatePackageVersion('RELION_HOME', errors)
 
         if self.doCompare:
             pixVol1 = self.inputVolume.get().getSamplingRate()
@@ -183,10 +179,9 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
             "*Mask processing*",
             "   Extend by %d pixels" % self.extend,
             "   Apply soft edge of %d pixels" % self.edge,
-            "   Logical operation: %s" % self.getEnumText('operation')
-        ]
+            "   Logical operation: %s" % self.getEnumText('operation')]
         if self.doCompare:
-            messages.append()
+            messages.append("")
         if self.doInvert:
             messages.append("   Inverted")
 

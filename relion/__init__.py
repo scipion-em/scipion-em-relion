@@ -28,10 +28,11 @@ import os
 import pyworkflow.em
 import pyworkflow.utils as pwutils
 
-from .constants import RELION_HOME, V2_0, V2_1
+from .constants import RELION_HOME, V2_0, V2_1, RELION_CUDA_LIB
 
 
 _logo = "relion_logo.png"
+_references = ['Scheres2012a', 'Scheres2012b', 'Chen2012']
 
 
 class Plugin(pyworkflow.em.Plugin):
@@ -58,7 +59,7 @@ class Plugin(pyworkflow.em.Plugin):
                             }, position=pwutils.Environ.BEGIN)
 
         # Take Scipion CUDA library path
-        cudaLib = environ.getFirst(('RELION_CUDA_LIB', 'CUDA_LIB'))
+        cudaLib = environ.getFirst((RELION_CUDA_LIB, 'CUDA_LIB'))
         environ.addLibrary(cudaLib)
 
         return environ

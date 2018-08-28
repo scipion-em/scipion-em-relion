@@ -1,6 +1,6 @@
 # **************************************************************************
 # *
-# * Authors:     Grigory Sharov     (sharov@igbmc.fr)
+# * Authors:     Grigory Sharov     (gsharov@mrc-lmb.cam.ac.uk)
 # *
 # * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
 # *
@@ -25,7 +25,6 @@
 # **************************************************************************
 
 import pyworkflow.object as pwobj
-from pyworkflow import VERSION_1_1
 from pyworkflow.protocol.params import (PointerParam, FloatParam, StringParam,
                                         BooleanParam, IntParam, LEVEL_ADVANCED)
 from pyworkflow.utils import removeExt
@@ -48,7 +47,6 @@ class ProtRelionSortParticles(ProtParticles):
 
     """
     _label = 'sort particles'
-    _lastUpdateVersion = VERSION_1_1
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
@@ -113,7 +111,8 @@ class ProtRelionSortParticles(ProtParticles):
                            'CTFs (e.g. 10-20%) often yields better results. '
                            'Therefore, this option is not generally '
                            'recommended.')
-        form.addParam('minZ', FloatParam, default=0, expertLevel=LEVEL_ADVANCED,
+        form.addParam('minZ', FloatParam, default=0,
+                      expertLevel=LEVEL_ADVANCED,
                       label='Min Z-value?',
                       help='Minimum Z-value to count in the sorting of '
                            'outliers')

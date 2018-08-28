@@ -43,12 +43,14 @@ class ProtRelionReconstruct(ProtReconstruct3D):
     _label = 'reconstruct'
     ##doContinue = False
     
-    #--------------------------- DEFINE param functions --------------------------------------------   
+    #--------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')
 
-        form.addParam('inputParticles', PointerParam, pointerClass='SetOfParticles',
-                      pointerCondition='hasAlignmentProj', label="Input particles",
+        form.addParam('inputParticles', PointerParam,
+                      pointerClass='SetOfParticles',
+                      pointerCondition='hasAlignmentProj',
+                      label="Input particles",
                       help='Select the input images from the project.')     
 #         form.addParam('doNormalize', BooleanParam, default=False,
 #                       label='Normalize',
@@ -66,26 +68,27 @@ class ProtRelionReconstruct(ProtReconstruct3D):
                       label="Padding factor",  
                       help='Padding factor, *--pad* param in Relion.') 
         
-        form.addParam('extraParams', StringParam, default='', expertLevel=LEVEL_ADVANCED,
+        form.addParam('extraParams', StringParam, default='',
+                      expertLevel=LEVEL_ADVANCED,
                       label='Extra parameters: ', 
                       help='Extra parameters to *relion_reconstruct* program:\n'
                       """
-                      --subtract () : Subtract projections of this map from the images used for reconstruction                                                                                                                               
-                       --NN (false) : Use nearest-neighbour instead of linear interpolation before gridding correction                                                                                                                       
-                     --blob_r (1.9) : Radius of blob for gridding interpolation                                                                                                                                                              
-                       --blob_m (0) : Order of blob for gridding interpolation                                                                                                                                                               
-                      --blob_a (15) : Alpha-value of blob for gridding interpolation                                                                                                                                                         
-                        --iter (10) : Number of gridding-correction iterations                                                                                                                                                               
-                       --refdim (3) : Dimension of the reconstruction (2D or 3D)                                                                                                                                                             
-               --angular_error (0.) : Apply random deviations with this standard deviation (in degrees) to each of the 3 Euler angles                                                                                                        
-                 --shift_error (0.) : Apply random deviations with this standard deviation (in pixels) to each of the 2 translations
-            --fom_weighting (false) : Weight particles according to their figure-of-merit (_rlnParticleFigureOfMerit)
-                           --fsc () : FSC-curve for regularized reconstruction
+                        --subtract ():\t\tSubtract projections of this map from the images used for reconstruction
+                        --NN (false):\t\tUse nearest-neighbour instead of linear interpolation before gridding correction
+                        --blob_r (1.9):\t\tRadius of blob for gridding interpolation
+                        --blob_m (0):\t\tOrder of blob for gridding interpolation
+                        --blob_a (15):\t\tAlpha-value of blob for gridding interpolation
+                        --iter (10):\t\tNumber of gridding-correction iterations
+                        --refdim (3):\t\tDimension of the reconstruction (2D or 3D)
+                        --angular_error (0.):\t\tApply random deviations with this standard deviation (in degrees) to each of the 3 Euler angles
+                        --shift_error (0.):\t\tApply random deviations with this standard deviation (in pixels) to each of the 2 translations
+                        --fom_weighting (false):\t\tWeight particles according to their figure-of-merit (_rlnParticleFigureOfMerit)
+                        --fsc ():\t\tFSC-curve for regularized reconstruction
                       """)
         form.addSection('CTF')#, condition='doCTF')
         form.addParam('doCTF', BooleanParam, default=False,
-                       label='Apply CTF correction?',
-                       help='Param *--ctf* in Relion.')
+                      label='Apply CTF correction?',
+                      help='Param *--ctf* in Relion.')
         form.addParam('ctfIntactFirstPeak', BooleanParam, default=False,
                       condition='doCTF',
                       label='Leave CTFs intact until first peak?',
@@ -101,9 +104,10 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         line.addParam('beamTiltY', FloatParam, default='0.0', label='Y ')            
         
         form.addParallelSection(threads=2, mpi=0) 
-        #TODO: Add an option to allow the user to decide if copy binary files or not        
+        #TODO: Add an option to allow the user to
+        # decide if copy binary files or not
             
-    #--------------------------- INSERT steps functions --------------------------------------------  
+    #--------------------------- INSERT steps functions -----------------------
 
     def _insertAllSteps(self): 
         ##self._initialize()
@@ -148,7 +152,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
 
         self._insertFunctionStep('reconstructStep', params)
 
-    #--------------------------- STEPS functions --------------------------------------------
+    #--------------------------- STEPS functions ------------------------------
     def reconstructStep(self, params):
         """ Create the input file in STAR format as expected by Relion.
         If the input particles comes from Relion, just link the file. 
@@ -184,13 +188,12 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         self._defineOutputs(outputVolume=volume)
         self._defineSourceRelation(self.inputParticles, volume)
     
-    #--------------------------- INFO functions -------------------------------------------- 
+    #--------------------------- INFO functions -------------------------------
     def _validate(self):
         """ Should be overwritten in subclasses to
         return summary message for NORMAL EXECUTION. 
         """
         errors = []
-        self.validatePackageVersion('RELION_HOME', errors)
         return errors
     
     def _summary(self):
@@ -198,5 +201,3 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         return summary message for NORMAL EXECUTION. 
         """
         return []
-    
-    #--------------------------- UTILS functions --------------------------------------------

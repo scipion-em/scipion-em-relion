@@ -1,8 +1,8 @@
 # **************************************************************************
 # *
-# * Authors:     J.M. De la Rosa Trevin (jmdelarosa@cnb.csic.es)
+# * Authors:     J.M. de la Rosa Trevin (delarosatrevin@scilifelab.se)
 # *
-# * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+# * SciLifeLab, Stockholm University
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -26,9 +26,9 @@
 
 import os
 from os.path import relpath
-from pyworkflow.protocol.params import (PointerParam, FloatParam, RelationParam,
-                                        IntParam, BooleanParam, LEVEL_ADVANCED, 
-                                        LabelParam)
+from pyworkflow.protocol.params import (PointerParam, FloatParam,
+                                        RelationParam, IntParam, BooleanParam,
+                                        LEVEL_ADVANCED, LabelParam)
 from pyworkflow.protocol.constants import STEPS_PARALLEL
 from pyworkflow.em.protocol import ProtParticlePicking
 from pyworkflow.em.constants import RELATION_CTF
@@ -84,7 +84,8 @@ class ProtRelionAutopickBase(ProtParticlePicking, ProtRelionBase):
             img.setCTF(self.ctfDict[img.getMicName()])
         
     def _getMicStarFile(self, mic):
-        return self._getExtraPath(pwutils.replaceBaseExt(mic.getFileName(), 'star'))            
+        return self._getExtraPath(pwutils.replaceBaseExt(mic.getFileName(),
+                                                         'star'))
         
     def _postprocessMicrographRow(self, img, imgRow):
         imgRow.writeToFile(self._getMicStarFile(img))
@@ -112,9 +113,11 @@ class ProtRelionAutopickBase(ProtParticlePicking, ProtRelionBase):
         """ Launch the 'relion_autopick' for a micrograph with the given parameters. """
         # Call relion_autopick to allow picking of micrographs with different size
         params += ' --i %s' % relpath(micStarFile, self.getWorkingDir())
-        params += ' --threshold %0.3f --min_distance %0.3f %s' % (threshold, minDistance, fom)
+        params += ' --threshold %0.3f --min_distance %0.3f %s' % (
+            threshold, minDistance, fom)
         
-        self.runJob(self._getProgram('relion_autopick'), params, cwd=self.getWorkingDir())      
+        self.runJob(self._getProgram('relion_autopick'), params,
+                    cwd=self.getWorkingDir())
 
     # -------------------------- UTILS functions ------------------------------
     def getInputReferences(self):
@@ -134,11 +137,11 @@ class ProtRelionAutopickBase(ProtParticlePicking, ProtRelionBase):
         coordPath = self._getTmpPath('xmipp_coordinates')
         pwutils.cleanPath(coordPath)
         pwutils.makePath(coordPath)
-        import xmipp3
 #         micPath = os.path.join(coordPath, 'micrographs.xmd')
 #         xmipp3.writeSetOfMicrographs(micSet, micPath)
         micPath = micSet.getFileName()
-        xmipp3.writeSetOfCoordinates(coordPath, coordSet, ismanual=False)
+        relion.convert.writeSetOfCoordinatesXmipp(coordPath, coordSet,
+                                                  ismanual=False)
         return micPath, coordPath
         
     def writeXmippOutputCoords(self):
@@ -151,8 +154,8 @@ class ProtRelionAutopickBase(ProtParticlePicking, ProtRelionBase):
         micSet = self.getInputMicrographs()
         coordSet = self._createSetOfCoordinates(micSet)
         coordSet.setBoxSize(self.getInputReferences().getDim()[0])
-        starFiles = [self._getExtraPath(pwutils.removeBaseExt(mic.getFileName()) + '_autopick.star')
-                     for mic in micSet]
+        starFiles = [self._getExtraPath(pwutils.removeBaseExt(mic.getFileName()) +
+                                        '_autopick.star') for mic in micSet]
         relion.convert.readSetOfCoordinates(coordSet, starFiles)
         return self._writeXmippCoords(coordSet)
         
@@ -181,19 +184,22 @@ class ProtRelionAutopickFom(ProtRelionAutopickBase):
     # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')
-        form.addParam('inputMicrographs', PointerParam, pointerClass='SetOfMicrographs',
+        form.addParam('inputMicrographs', PointerParam,
+                      pointerClass='SetOfMicrographs',
                       label='Input micrographs (a few)', important=True,
                       help='Select a set with just a few micrographs to be used\n'
                            'in the auto-picking job. A few should be used in order\n'
                            'to perform the expensive calculation of the figure-of-merits.\n'
                            'writing out the so-called FOM maps.')
         form.addParam('ctfRelations', RelationParam, allowsNull=True,
-                      relationName=RELATION_CTF, attributeName='getInputMicrographs',
+                      relationName=RELATION_CTF,
+                      attributeName='getInputMicrographs',
                       label='CTF estimation',
                       help='Choose some CTF estimation related to input micrographs. \n')
         
         form.addSection('References')
-        form.addParam('inputReferences', PointerParam, pointerClass='SetOfAverages',
+        form.addParam('inputReferences', PointerParam,
+                      pointerClass='SetOfAverages',
                       label='Input references', important=True, 
                       help='Input references (SetOfAverages) for auto-pick. \n\n'
                            'Note that the absolute greyscale needs to be correct, \n'
@@ -274,12 +280,7 @@ class ProtRelionAutopickFom(ProtRelionAutopickBase):
     
     # --------------------------- INFO functions --------------------------------
     def _validate(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION. 
-        """
         errors = []
-        self.validatePackageVersion('RELION_HOME', errors)
-
         if self.particleDiameter > self.getInputDimA():
             errors.append('Particle diameter (%d) can not be greater than '
                           'size (%d)' % (self.particleDiameter,
@@ -292,9 +293,6 @@ class ProtRelionAutopickFom(ProtRelionAutopickBase):
         return errors
     
     def _summary(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION. 
-        """
         summary = ['This protocol does not generate any output.',
                    'The FOM maps were written to be used later to optimize ',
                    'the _Threshold_ and _Inter-particle distance_ parameters.']
@@ -327,10 +325,12 @@ class ProtRelionAutopick(ProtRelionAutopickBase):
         
         form.addSection(label='Input')
         
-        form.addParam('inputAutopickFom', PointerParam, pointerClass='ProtRelionAutopickFom',
+        form.addParam('inputAutopickFom', PointerParam,
+                      pointerClass='ProtRelionAutopickFom',
                       label='Input auto-pick FOM', important=True,
                       help='Select a previous auto-picking job that generated the FOM maps.')        
-        form.addParam('inputMicrographs', PointerParam, pointerClass='SetOfMicrographs',
+        form.addParam('inputMicrographs', PointerParam,
+                      pointerClass='SetOfMicrographs',
                       label='Input micrographs (full set)', important=True,
                       help='Select the full set of micrographs to be picked automatically\n'
                            'with the adjusted parameters.')        
@@ -361,7 +361,8 @@ class ProtRelionAutopick(ProtRelionAutopickBase):
         """ Prepare the command line for calling 'relion_autopick' program """
         params = self.getAutopickParams()
         # Use by default the references size as --min_distance
-        return self._insertFunctionStep('autopickMicrographStep', self._getMicStarFile(mic), 
+        return self._insertFunctionStep('autopickMicrographStep',
+                                        self._getMicStarFile(mic),
                                         params,
                                         self.pickingThreshold.get(),
                                         self.interParticleDistance.get(),
@@ -374,8 +375,8 @@ class ProtRelionAutopick(ProtRelionAutopickBase):
         micSet = self.getInputMicrographs()
         coordSet = self._createSetOfCoordinates(micSet)
         coordSet.setBoxSize(self.getInputReferences().getDim()[0])
-        starFiles = [self._getExtraPath(pwutils.removeBaseExt(mic.getFileName()) + '_autopick.star')
-                     for mic in micSet]
+        starFiles = [self._getExtraPath(pwutils.removeBaseExt(mic.getFileName()) +
+                                        '_autopick.star') for mic in micSet]
         relion.convert.readSetOfCoordinates(coordSet, starFiles)
         
         self._defineOutputs(outputCoordinates=coordSet)
@@ -383,17 +384,10 @@ class ProtRelionAutopick(ProtRelionAutopickBase):
     
     # --------------------------- INFO functions ------------------------------
     def _validate(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION. 
-        """
         errors = []
-        self.validatePackageVersion('RELION_HOME', errors)
         return errors
     
     def _summary(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION. 
-        """
         return [self.summaryVar.get('')]
     
     # --------------------------- UTILS functions -----------------------------

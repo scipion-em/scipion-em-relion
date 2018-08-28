@@ -1,6 +1,6 @@
 # **************************************************************************
 # *
-# * Authors:     J.M. De la Rosa Trevin (jmdelarosa@cnb.csic.es)
+# * Authors:     J.M. de la Rosa Trevin (delarosatrevin@scilifelab.se)
 # *
 # * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
 # *
@@ -34,7 +34,7 @@ from pyworkflow.em.data import Micrograph
 import pyworkflow.em.metadata as md
 from pyworkflow.utils.path import findRootFrom
 
-from .convert import (readSetOfParticles, relionToLocation, rowToCoordinate)
+from .convert import readSetOfParticles, relionToLocation, rowToCoordinate
 
 
 class RelionImport:

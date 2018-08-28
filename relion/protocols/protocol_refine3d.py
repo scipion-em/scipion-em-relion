@@ -185,8 +185,7 @@ leads to objective and high-quality results.
             continueIter = int(self.continueIter.get())
         
         if continueIter > lastIter:
-            errors += ["The iteration from you want to continue must be %01d "
-                       "or less" % lastIter]
+            errors += ["You can continue only from the iteration %01d or less" % lastIter]
         
         return errors
     
@@ -245,4 +244,3 @@ leads to objective and high-quality results.
 
     def _updateParticle(self, particle, row):
         particle._coordinate._micName = em.String(row.getValue('rlnMicrographName'))
-

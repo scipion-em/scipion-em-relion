@@ -38,6 +38,7 @@ from pyworkflow.em import getSubsetByDefocus
 
 import relion
 import relion.convert
+from relion.constants import *
 from .protocol_base import ProtRelionBase
 
 
@@ -64,15 +65,6 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
     """
     _label = 'auto-picking'
 
-    REF_AVERAGES = 0
-    REF_BLOBS = 1
-
-    RUN_OPTIMIZE = 0  # Run only on several micrographs to optimize parameters
-    RUN_COMPUTE = 1  # Run the picking for all micrographs after optimize
-
-    MICS_AUTO = 0
-    MICS_SUBSET = 1
-
     @classmethod
     def isDisabled(cls):
         return not relion.Plugin.isVersion2Active()
@@ -95,7 +87,8 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                       help='Choose some CTF estimation related to the '
                            'input micrographs.')
 
-        form.addParam('runType', params.EnumParam, default=self.RUN_OPTIMIZE,
+        form.addParam('runType', params.EnumParam,
+                      default=RUN_OPTIMIZE,
                       choices=['Optimize params', 'Pick all micrographs'],
                       display=params.EnumParam.DISPLAY_LIST,
                       label='Run type: ',
@@ -106,10 +99,10 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                            ' mode and auto-pick all the micrographs. ')
 
         group = form.addGroup('Micrographs for optimization',
-                              condition='runType==%d' % self.RUN_OPTIMIZE)
+                              condition='runType==%d' % RUN_OPTIMIZE)
 
         group.addParam('micrographsSelection', params.EnumParam,
-                       default=self.MICS_AUTO,
+                       default=MICS_AUTO,
                        choices=['automatic selection', 'input subset'],
                        display=params.EnumParam.DISPLAY_HLIST,
                        label='Choose micrographs by',
@@ -118,12 +111,12 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                             'and that number will be selected to cover the '
                             'defocus range. ')
         group.addParam('micrographsNumber', params.IntParam, default='10',
-                      condition='micrographsSelection==%d' % self.MICS_AUTO,
+                      condition='micrographsSelection==%d' % MICS_AUTO,
                       label='Micrographs for optimization:',
                       help='Select the number of micrographs that you want'
                            'to be used for the parameters optimization. ')
         group.addParam('micrographsSubset', params.PointerParam,
-                       condition='micrographsSelection==%d' % self.MICS_SUBSET,
+                       condition='micrographsSelection==%d' % MICS_SUBSET,
                        pointerClass='SetOfMicrographs',
                        label='Subset of micrographs',
                        help='Choose as input a subset of micrographs that '
@@ -132,12 +125,12 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
 
         # From Relion 2.+, it can be picked with gaussian blobs, so we
         # need to add these parameters
-        refCondition = 'referencesType==%s' % self.REF_AVERAGES
+        refCondition = 'referencesType==%s' % REF_AVERAGES
 
         group = form.addGroup('References')
         group.addParam('referencesType', params.EnumParam,
                       choices=['References', 'Gaussian blobs'],
-                      default=self.REF_AVERAGES,
+                      default=REF_AVERAGES,
                       display=params.EnumParam.DISPLAY_HLIST,
                       label='References type',
                       help='You may select "Gaussian blobs" to be used as '
@@ -148,7 +141,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                            'kickstart a new data set.')
 
         group.addParam('gaussianPeak', params.FloatParam, default=0.1,
-                      condition='referencesType==%s' % self.REF_BLOBS,
+                      condition='referencesType==%s' % REF_BLOBS,
                       label='Gaussian peak value',
                       help='The peak value of the Gaussian blob. '
                            'Weaker data will need lower values.')
@@ -385,7 +378,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         # self._store()
 
     def getAutopickParams(self):
-        # Return the autopicking parameters except for the interative ones:
+        # Return the autopicking parameters except for the interactive ones:
         # - threshold
         # - minDistance
         # - maxStd
@@ -440,6 +433,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         params += ' --i %s' % relpath(micStarFile, self.getWorkingDir())
         params += ' --threshold %0.3f ' % threshold
         params += ' --min_distance %0.3f %s' % (minDistance, fom)
+
 
         program = self._getProgram('relion_autopick')
 
@@ -522,7 +516,6 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
     # -------------------------- INFO functions --------------------------------
     def _validate(self):
         errors = []
-        self.validatePackageVersion('RELION_HOME', errors)
 
         if self.useInputReferences():
             if self.particleDiameter > self.getInputDimA():
@@ -541,7 +534,6 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
             errors.append("References CTF corrected parameter must be set to "
                           "False or set ctf relations.")
 
-
         errors.extend(self._validateMicSelection())
 
         return errors
@@ -554,7 +546,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         inputCTFs = self.ctfRelations.get()
 
         if self.isRunOptimize():
-            if self.micrographsSelection == self.MICS_AUTO:
+            if self.micrographsSelection == MICS_AUTO:
                 n = self.micrographsNumber.get()
                 if n < 3 or n > min(30, inputMics.getSize()):
                     return ['Number of micrographs should be between 3 and '
@@ -601,10 +593,10 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
 
     # -------------------------- UTILS functions -------------------------------
     def useInputReferences(self):
-        return self.referencesType == self.REF_AVERAGES
+        return self.referencesType == REF_AVERAGES
 
     def isRunOptimize(self):
-        return self.runType == self.RUN_OPTIMIZE
+        return self.runType == RUN_OPTIMIZE
 
     def getInputDimA(self):
         """ Return the dimension of input references in A. """
@@ -652,7 +644,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         if not self.isRunOptimize():
             return inputMics
 
-        if self.micrographsSelection == self.MICS_AUTO:
+        if self.micrographsSelection == MICS_AUTO:
             mics = getSubsetByDefocus(self.ctfRelations.get(), inputMics,
                                       self.micrographsNumber.get())
         else:  # Subset selection
@@ -668,9 +660,8 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         coordPath = self._getTmpPath('xmipp_coordinates')
         pwutils.cleanPath(coordPath)
         pwutils.makePath(coordPath)
-        import xmipp3
         micPath = micSet.getFileName()
-        xmipp3.writeSetOfCoordinates(coordPath, coordSet, ismanual=False)
+        relion.convert.writeSetOfCoordinatesXmipp(coordPath, coordSet, ismanual=False)
         return micPath, coordPath
 
     def writeXmippOutputCoords(self):

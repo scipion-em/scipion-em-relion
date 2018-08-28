@@ -23,7 +23,7 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-from pyworkflow import VERSION_1_2
+
 from pyworkflow.protocol.params import (PointerParam, FloatParam, FileParam,
                                         IntParam, LabelParam, LEVEL_ADVANCED)
 from pyworkflow.em.data import Volume
@@ -43,7 +43,6 @@ class ProtRelionLocalRes(ProtAnalysis3D):
     of that mask.
     """
     _label = 'local resolution'
-    _lastUpdateVersion = VERSION_1_2
 
     @classmethod
     def isDisabled(cls):
@@ -114,7 +113,7 @@ class ProtRelionLocalRes(ProtAnalysis3D):
 
         form.addParallelSection(threads=0, mpi=1)
     
-    #--------------------------- INSERT steps functions ------------------------
+    #--------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self):
         objId = self.protRefine.get().getObjId()
         self._createFilenameTemplates()
@@ -123,7 +122,7 @@ class ProtRelionLocalRes(ProtAnalysis3D):
         self._insertFunctionStep('postProcessStep', self.paramDict)
         self._insertFunctionStep('createOutputStep')
     
-    #--------------------------- STEPS functions -------------------------------
+    #--------------------------- STEPS functions ------------------------------
     def initializeStep(self, protId):
         protRef = self.protRefine.get()
         protClassName = protRef.getClassName()
@@ -187,7 +186,7 @@ class ProtRelionLocalRes(ProtAnalysis3D):
         self._defineOutputs(outputVolume=volume)
         self._defineSourceRelation(vol, volume)
 
-    #--------------------------- INFO functions --------------------------------
+    #--------------------------- INFO functions -------------------------------
     def _validate(self):
         """ Should be overwritten in subclasses to
         return summary message for NORMAL EXECUTION.
@@ -221,7 +220,7 @@ class ProtRelionLocalRes(ProtAnalysis3D):
                            "and sharpened" % self.getObjectTag(output))
         return summary
     
-    #--------------------------- UTILS functions -------------------------------
+    #--------------------------- UTILS functions ------------------------------
     def _defineParamDict(self):
         """ Define all parameters to run relion_postprocess"""
         volume = self.protRefine.get().outputVolume
