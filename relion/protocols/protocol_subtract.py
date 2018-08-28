@@ -3,7 +3,7 @@
 # * Authors:     Josue Gomez Blanco (josue.gomez-blanco@mcgill.ca)
 # *
 # *
-# * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+# * Department of Anatomy and Cell Biology, McGill University
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by

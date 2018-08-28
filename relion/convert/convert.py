@@ -1,10 +1,12 @@
 # **************************************************************************
 # *
-# * Authors:     J.M. de la Rosa Trevin (delarosatrevin@scilifelab.se)
-# *              Laura del Cano (ldelcano@cnb.csic.es)
-# *              Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk)
+# * Authors:     J.M. de la Rosa Trevin (delarosatrevin@scilifelab.se) [1]
+# *              Laura del Cano (ldelcano@cnb.csic.es) [2]
+# *              Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk) [3]
 # *
-# * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+# * [1] SciLifeLab, Stockholm University
+# * [2] Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+# * [3] MRC Laboratory of Molecular Biology, MRC-LMB
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
