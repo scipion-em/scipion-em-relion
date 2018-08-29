@@ -1118,9 +1118,8 @@ class RelionAutopickViewer(Viewer):
     
     def visualize(self, obj, **args):
         micPath, coordPath = obj.writeXmippOutputCoords()
-        import xmipp3
-        xmipp3.viewer.launchSupervisedPickerGUI(micPath,
-                                                coordPath, self.protocol)
+        from pyworkflow.em.showj import launchSupervisedPickerGUI
+        launchSupervisedPickerGUI(micPath, coordPath, self.protocol)
 
 
 class RelionPolishViewer(ProtocolViewer):

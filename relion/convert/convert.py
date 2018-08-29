@@ -690,7 +690,7 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs'):
     def getUniqueFileName(fn, extension):
         """ Get an unique file for either link or convert files.
         It is possible that the base name overlap if they come
-        from different runs. (like partices.mrcs after relion preprocess)
+        from different runs. (like particles.mrcs after relion preprocess)
         """
         newFn = join(outputDir, replaceBaseExt(fn, extension))
         newRoot = removeExt(newFn)

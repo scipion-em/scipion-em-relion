@@ -31,7 +31,6 @@ from pyworkflow.utils import importFromPlugin
 from pyworkflow.tests.em.workflows.test_workflow import TestWorkflow
 
 from relion.protocols import *
-#from relion.protocols.protocol_autopick_v2 import *
 
 ProtCTFFind = importFromPlugin('grigoriefflab.protocols', 'ProtCTFFind')
 XmippProtPreprocessMicrographs = importFromPlugin('xmipp3.protocols', 'XmippProtPreprocessMicrographs')

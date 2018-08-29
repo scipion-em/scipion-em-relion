@@ -43,10 +43,6 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
     """
     _label = 'expand symmetry'
 
-    @classmethod
-    def isDisabled(cls):
-        return relion.Plugin.getActiveVersion() in ['1.4']
-
     # -------------------------- DEFINE param functions -----------------------
     def _defineProcessParams(self, form):
         form.addParam('symmetryGroup', StringParam, default="c1",

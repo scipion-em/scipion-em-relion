@@ -143,18 +143,13 @@ class ProtRelionSubtract(ProtOperateParticles):
             imgSet, self._getFileName('input_star'), self._getExtraPath())
     
     def applyMaskStep(self):
-        # TODO: Move apply mask to ImageHandler (if not there already)
-        params = ' -i %s --mult %s -o %s' % (
+        params = ' --i %s --multiply %s --o %s' % (
             ImageHandler.locationToXmipp(self.inputVolume.get()),
             ImageHandler.locationToXmipp(self.refMask.get()),
             self._getFileName('volume_masked'))
 
-        try:
-            import xmipp3
-            self.runJob('xmipp_image_operate', params, env=xmipp3.getEnviron())
-        except:
-            print('Xmipp plugin not found, cannot create/apply a mask!')
-    
+        self.runJob('relion_image_handler', params)
+
     def removeStep(self):
         volume = self.inputVolume.get()
         if self.refMask.get() is not None:

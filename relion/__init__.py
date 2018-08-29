@@ -52,7 +52,7 @@ class Plugin(pyworkflow.em.Plugin):
         binPath = cls.getHome('bin')
         libPath = cls.getHome('lib') + ":" + cls.getHome('lib64')
 
-        if not binPath in environ['PATH']:
+        if binPath not in environ['PATH']:
             environ.update({'PATH': binPath,
                             'LD_LIBRARY_PATH': libPath,
                             'SCIPION_MPI_FLAGS': os.environ.get('RELION_MPI_FLAGS', ''),
