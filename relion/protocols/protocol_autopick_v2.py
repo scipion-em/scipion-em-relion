@@ -421,11 +421,12 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         basicArgs = self.getAutopickParams()
         threshold = self.pickingThreshold.get()
         interDist = self.interParticleDistance.get()
+        maxStd = self.maxStddevNoise.get()
         fomParam = ' --write_fom_maps' if self.isRunOptimize() else ''
-        return [basicArgs, threshold, interDist, fomParam]
+        return [basicArgs, threshold, interDist, maxStd, fomParam]
 
     def _pickMicrographsFromStar(self, micStarFile, params,
-                                 threshold, minDistance, fom):
+                                 threshold, minDistance, maxStddevNoise, fom):
         """ Launch the 'relion_autopick' for micrographs in the inputStarFile.
          If the input set of complete, the star file will contain all the
          micrographs. If working in streaming, it will be only one micrograph.
@@ -433,13 +434,14 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         params += ' --i %s' % relpath(micStarFile, self.getWorkingDir())
         params += ' --threshold %0.3f ' % threshold
         params += ' --min_distance %0.3f %s' % (minDistance, fom)
-
+        params += ' --max_stddev_noise %0.3f' % maxStddevNoise
 
         program = self._getProgram('relion_autopick')
 
         self.runJob(program, params, cwd=self.getWorkingDir())
 
-    def _pickMicrograph(self, mic, params, threshold, minDistance, fom):
+    def _pickMicrograph(self, mic, params, threshold, minDistance,
+                        maxStddevNoise, fom):
         """ This method should be invoked only when working in streaming mode.
         """
         micRow = md.Row()
@@ -447,9 +449,10 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         relion.convert.micrographToRow(mic, micRow)
         self._postprocessMicrographRow(mic, micRow)
         self._pickMicrographsFromStar(self._getMicStarFile(mic), params,
-                                      threshold, minDistance, fom)
+                                      threshold, minDistance, maxStddevNoise, fom)
 
-    def _pickMicrographList(self, micList, params, threshold, minDistance, fom):
+    def _pickMicrographList(self, micList, params, threshold,
+                            minDistance, maxStddevNoise, fom):
         micStar = self._getPath('input_micrographs_%s-%s.star' %
                                 (micList[0].strId(), micList[-1].strId()))
         relion.convert.writeSetOfMicrographs(
@@ -458,7 +461,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
             preprocessImageRow=self._preprocessMicrographRow)
 
         self._pickMicrographsFromStar(
-            micStar, params, threshold, minDistance, fom)
+            micStar, params, threshold, minDistance, maxStddevNoise, fom)
 
     def _createSetOfCoordinates(self, micSet, suffix=''):
         """ Override this method to set the box size. """
