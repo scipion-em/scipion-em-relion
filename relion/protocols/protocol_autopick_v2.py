@@ -391,7 +391,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         if self.doGpu:
             params += ' --gpu "%s"' % self.gpusToUse
 
-        # Now in Relion2.0 autopick can use gassian blobs
+        # Now in Relion2.0 autopick can use gaussian blobs
         if self.useInputReferences():
             params += ' --ref input_references.star'
             ps = self.getInputReferences().getSamplingRate()
