@@ -36,6 +36,7 @@ RELION_HOME = 'RELION_HOME'
 # Supported versions:
 V1_3 = '1.3'
 V1_4 = '1.4'
+V1_4f = '1.4f'
 V2_0 = '2.0'
 V2_1 = '2.1'
 
