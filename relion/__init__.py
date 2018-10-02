@@ -36,7 +36,7 @@ _logo = "relion_logo.png"
 
 class Plugin(pyworkflow.em.Plugin):
     _homeVar = RELION_HOME
-    _supportedVersions = [V2_0, V2_1, V1_4, V1_4f, V1_3]
+    _supportedVersions = [V2_0, V2_1]
 
     @classmethod
     def _defineVariables(cls):
@@ -74,8 +74,7 @@ class Plugin(pyworkflow.em.Plugin):
 
         env.addPackage('relion', version='1.4',
                        tar='relion-1.4.tgz',
-                       commands=relion_commands,
-                       default=False)
+                       commands=relion_commands)
 
         env.addPackage('relion', version='1.4f',
                        tar='relion-1.4_float.tgz',
