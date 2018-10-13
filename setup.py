@@ -1,5 +1,30 @@
-"""A setuptools based setup module.
+# **************************************************************************
+# *
+# * Authors:     Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk)
+# *
+# * MRC Laboratory of Molecular Biology (MRC-LMB)
+# *
+# * This program is free software; you can redistribute it and/or modify
+# * it under the terms of the GNU General Public License as published by
+# * the Free Software Foundation; either version 2 of the License, or
+# * (at your option) any later version.
+# *
+# * This program is distributed in the hope that it will be useful,
+# * but WITHOUT ANY WARRANTY; without even the implied warranty of
+# * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# * GNU General Public License for more details.
+# *
+# * You should have received a copy of the GNU General Public License
+# * along with this program; if not, write to the Free Software
+# * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+# * 02111-1307  USA
+# *
+# *  All comments concerning this program package may be sent to the
+# *  e-mail address 'scipion@cnb.csic.es'
+# *
+# **************************************************************************
 
+"""A setuptools based setup module.
 See:
 https://packaging.python.org/en/latest/distributing.html
 https://github.com/pypa/sampleproject
@@ -14,7 +39,7 @@ from os import path
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
-with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 # Arguments marked as "Required" below must be included for upload to PyPI.
@@ -40,12 +65,12 @@ setup(
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='2.1',  # Required
+    version='1.0.0',  # Required
 
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
     # https://packaging.python.org/specifications/core-metadata/#summary
-    description='Relion ready to use in scipion.',  # Required
+    description='Plugin to use Relion programs within the Scipion framework',  # Required
 
     # This is an optional longer description of your project that represents
     # the body of text which users will see when they visit PyPI.
@@ -65,39 +90,39 @@ setup(
 
     # This should be your name or the name of the organization which owns the
     # project.
-    author='I2PC',  # Optional
+    author='Grigory Sharov, J.M. De la Rosa Trevin, Josue Gomez Blanco',  # Optional
 
     # This should be a valid email address corresponding to the author listed
     # above.
-    author_email='scipion@cnb.csic.es',  # Optional
+    author_email='gsharov@mrc-lmb.cam.ac.uk, delarosatrevin@scilifelab.se, josue.gomez-blanco@mcgill.ca',  # Optional
 
     # Classifiers help users find your project by categorizing it.
     #
     # For a list of valid classifiers, see
     # https://pypi.python.org/pypi?%3Aaction=list_classifiers
-    #classifiers=[  # Optional
+    classifiers=[  # Optional
         # How mature is this project? Common values are
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-     #   'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
 
         # Indicate who your project is intended for
-     #   'Intended Audience :: Users',
+        #   'Intended Audience :: Users',
 
         # Pick your license as you wish
-     #   'License :: OSI Approved :: MIT License',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-     #   'Programming Language :: Python :: 2.7'
-    #],
+        'Programming Language :: Python :: 2.7'
+    ],
 
     # This field adds keywords for your project which will appear on the
     # project page. What does your project relate to?
     #
     # Note that this is a string of words separated by whitespace, not a list.
-    keywords='scipion cryoem imageprocessing scipion-1.2',  # Optional
+    keywords='scipion electron-microscopy cryo-em structural-biology image-processing',  # Optional
 
     # You can just specify package directories manually here if your project is
     # simple. Or you can use find_packages().
@@ -160,4 +185,18 @@ setup(
     #        'sample=sample:main',
     #    ],
     #},
+
+    # List additional URLs that are relevant to your project as a dict.
+    #
+    # This field corresponds to the "Project-URL" metadata fields:
+    # https://packaging.python.org/specifications/core-metadata/#project-url-multiple-use
+    #
+    # Examples listed include a pattern for specifying where the package tracks
+    # issues, where the source is hosted, where to say thanks to the package
+    # maintainers, and where to support the project financially. The key is
+    # what's used to render the link text on PyPI.
+    project_urls={  # Optional
+        'Bug Reports': 'https://github.com/scipion-em/scipion-em-relion/issues',
+        'Source': 'https://github.com/scipion-em/scipion-em-relion/',
+    },
 )
