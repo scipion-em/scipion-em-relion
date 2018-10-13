@@ -37,7 +37,6 @@ _references = ['Scheres2012a', 'Scheres2012b', 'Chen2012']
 
 class Plugin(pyworkflow.em.Plugin):
     _homeVar = RELION_HOME
-    _pathVars = [RELION_HOME]
     _supportedVersions = [V2_0, V2_1]
 
     @classmethod
@@ -66,7 +65,42 @@ class Plugin(pyworkflow.em.Plugin):
 
     @classmethod
     def isVersion2Active(cls):
-        return cls.getActiveVersion().startswith("2.")
+        return cls.getActiveVersion().startswith(V2_1)
+
+    @classmethod
+    def defineBinaries(cls, env):
+        relion_commands = [('./INSTALL.sh -j %d' % env.getProcessors(),
+                            ['relion_build.log',
+                             'bin/relion_refine'])]
+
+        env.addPackage('relion', version='1.4',
+                       tar='relion-1.4.tgz',
+                       commands=relion_commands)
+
+        env.addPackage('relion', version='1.4f',
+                       tar='relion-1.4_float.tgz',
+                       commands=relion_commands)
+
+        # Define FFTW3 path variables
+        relion_vars = [('FFTW_LIB', env.getLibFolder()),
+                       ('FFTW_INCLUDE', env.getIncludeFolder())]
+
+        relion2_commands = [('cmake -DGUI=OFF -DCMAKE_INSTALL_PREFIX=./ .', []),
+                            ('make -j %d' % env.getProcessors(),
+                             ['bin/relion_refine'])]
+
+        env.addPackage('relion', version='2.0',
+                       tar='relion-2.0.4.tgz',
+                       commands=relion2_commands,
+                       updateCuda=True,
+                       vars=relion_vars)
+
+        env.addPackage('relion', version='2.1',
+                       tar='relion-2.1.tgz',
+                       commands=relion2_commands,
+                       updateCuda=True,
+                       vars=relion_vars,
+                       default=True)
 
 
 pyworkflow.em.Domain.registerPlugin(__name__)
