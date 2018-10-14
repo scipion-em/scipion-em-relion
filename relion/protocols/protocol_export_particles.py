@@ -41,6 +41,7 @@ from .protocol_base import ProtRelionBase
 
 class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
     """ Export particles from Relion to be used outside Scipion. """
+
     _label = 'export particles'
     
     # --------------------------- DEFINE param functions ----------------------

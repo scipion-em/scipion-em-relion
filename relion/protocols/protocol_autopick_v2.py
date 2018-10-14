@@ -43,7 +43,8 @@ from .protocol_base import ProtRelionBase
 
 
 class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
-    """
+    """ This protocol runs Relion autopicking (version 2.0+).
+
     This Relion protocol uses the 'relion_autopick' program to pick particles
     from micrographs, either using templates or gaussian blobs.
 

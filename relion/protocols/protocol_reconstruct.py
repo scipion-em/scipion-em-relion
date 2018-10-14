@@ -35,8 +35,9 @@ import relion.convert
 
 
 class ProtRelionReconstruct(ProtReconstruct3D):
-    """    
-    Reconstruct a volume using Relion from a given set of particles.
+    """ This protocol reconstructs a volume using Relion.
+
+    Reconstruct a volume from a given set of particles.
     The alignment parameters will be converted to a Relion star file
     and used as direction projections to reconstruct.
     """

@@ -34,8 +34,7 @@ import relion
 
 
 class ProtRelionLocalRes(ProtAnalysis3D):
-    """
-    Relion local-resolution estimation protocol.
+    """ This protocol does local resolution estimation using Relion.
 
     This program basically performs a series of post-processing operations
     with a small soft, spherical mask that is moved over the entire map,

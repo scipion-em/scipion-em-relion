@@ -41,6 +41,7 @@ from .protocol_base import ProtRelionBase
 
 
 class ProtRelionAutopickBase(ProtParticlePicking, ProtRelionBase):
+    """ Base protocol for Relion autopicking. """
 
     @classmethod
     def isDisabled(cls):
@@ -161,9 +162,10 @@ class ProtRelionAutopickBase(ProtParticlePicking, ProtRelionBase):
         
 
 class ProtRelionAutopickFom(ProtRelionAutopickBase):
-    """    
-    This Relion protocol uses 2D class averages as templates to run the auto-picking 
-    job-type. In this first stage, the auto-picking will be run just in few micrographs 
+    """ This protocol runs Relion reference-based autopicking (step 1).
+
+    It uses 2D class averages as templates to run the auto-picking
+    job-type. In this first stage, the auto-picking will be run just in few micrographs
     to optimise two of its main parameters ( _Picking threshold_ and _Minimum inter-particle distance_).
     
     In order to save time, only 2 or 3 micrographs should be used with their CTF 
@@ -309,8 +311,9 @@ class ProtRelionAutopickFom(ProtRelionAutopickBase):
                 
         
 class ProtRelionAutopick(ProtRelionAutopickBase):
-    """    
-    This Relion protocol uses 2D class averages as templates to run the auto-picking 
+    """ This protocol runs Relion reference-based autopicking (step 2).
+
+    It uses 2D class averages as templates to run the auto-picking
     job-type. In this second stage, the protocol reads the FOM maps to optimize
     the 'Threshold' and 'Inter-particle distance'.
     """

@@ -45,7 +45,8 @@ from .protocol_base import ProtRelionBase
 
 
 class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
-    """
+    """ This protocols runs particle polishing using Relion.
+
     This Relion protocol tracks particle movement in movie frames
     (from previous movie refinement run), applies a resolution
     and dose-dependent weighting scheme for each frame

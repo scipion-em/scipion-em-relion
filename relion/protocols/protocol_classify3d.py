@@ -34,13 +34,8 @@ from .protocol_base import ProtRelionBase
 
 
 class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
-    """    
-    Protocol to classify 3D using Relion. Relion employs an empirical
-    Bayesian approach to refinement of (multiple) 3D reconstructions
-    or 2D class averages in electron cryo-microscopy (cryo-EM). Many
-    parameters of a statistical model are learned from the data,which
-    leads to objective and high-quality results.
-    """
+    """ This protocol runs Relion 3D classification. """
+
     _label = '3D classification'
     CHANGE_LABELS = [md.RLN_OPTIMISER_CHANGES_OPTIMAL_ORIENTS, 
                      md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS,

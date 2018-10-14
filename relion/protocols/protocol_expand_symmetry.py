@@ -34,7 +34,8 @@ import relion.convert
 
  
 class ProtRelionExpandSymmetry(ProtProcessParticles):
-    """
+    """ This protocols wraps relion_particle_symmetry_expand program.
+
     Given an input set of particles with angular assignment,
     expand the set by applying a pseudo-symmetry.
 

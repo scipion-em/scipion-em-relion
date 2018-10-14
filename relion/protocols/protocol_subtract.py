@@ -39,7 +39,8 @@ import relion.convert
 
 
 class ProtRelionSubtract(ProtOperateParticles):
-    """
+    """ Signal subtraction protocol of Relion.
+
     Subtract volume projections from the experimental particles.
     The particles must have projection alignment in order to
     properly generate volume projections.

@@ -40,7 +40,8 @@ from .protocol_base import ProtRelionBase
 
 
 class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
-    """Protocol to extract particles from a set of coordinates"""
+    """ Protocol to extract particles using a set of coordinates. """
+
     _label = 'particles extraction'
     
     @classmethod

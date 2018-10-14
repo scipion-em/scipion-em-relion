@@ -36,9 +36,10 @@ import pyworkflow.utils.path as putils
 
 
 class ProtRelionPostprocess(ProtAnalysis3D):
-    """
-    Relion post-processing protocol for automated masking,
-    overfitting estimation, MTF-correction and B-factor sharpening.
+    """ Relion post-processing protocol.
+
+    It is used for automated masking, overfitting estimation,
+    MTF-correction and B-factor sharpening.
     """
     _label = 'post-processing'
     

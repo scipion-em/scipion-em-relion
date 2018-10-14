@@ -33,7 +33,7 @@ from relion.constants import AND, OR, AND_NOT, OR_NOT
 
 
 class ProtRelionCreateMask3D(ProtCreateMask3D):
-    """ Create a 3D mask.
+    """ This protocols creates a 3D mask using Relion.
     The mask is created from a 3d volume or by comparing two input volumes.
     """
     _label = 'create 3d mask'

@@ -45,7 +45,8 @@ from relion.constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO, V2_0
 
 
 class ProtRelionBase(EMProtocol):
-    """ This class contains the common functions for all Relion protocols.
+    """ Base protocol for Relion utils.
+
     In subclasses there should be little changes about how to create the command
     line and the files produced.
     

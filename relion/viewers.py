@@ -92,7 +92,8 @@ class RelionPlotter(EmPlotter):
         
 
 class RelionViewer(ProtocolViewer):
-    """ This protocol serve to analyze the results of Relion runs.
+    """ Visualization of Relion results.
+
     (for protocols classify 2d/3d, 3d auto-refine and initial model)
     The visualization tools follow the recommendations of Relion 2.1 tutorial:
     http://www2.mrc-lmb.cam.ac.uk/groups/scheres/relion21_tutorial.pdf
@@ -872,7 +873,7 @@ Examples:
 
 
 class PostprocessViewer(ProtocolViewer):
-    """ Class to visualize Relion postprocess protocol """
+    """ Visualization of Relion postprocess results. """
     _targets = [ProtRelionPostprocess]
     _environments = [DESKTOP_TKINTER, WEB_DJANGO]
     
@@ -1102,7 +1103,7 @@ class PostprocessViewer(ProtocolViewer):
 
 
 class RelionAutopickViewerFOM(Viewer):
-    """ Class to visualize Relion postprocess protocol """
+    """ Visualization of Relion autopicking (step 1) results. """
     _targets = [ProtRelionAutopickFom]
     _environments = [DESKTOP_TKINTER]
     
@@ -1112,7 +1113,7 @@ class RelionAutopickViewerFOM(Viewer):
         
 
 class RelionAutopickViewer(Viewer):
-    """ Class to visualize Relion postprocess protocol """
+    """ Visualization of Relion autopicking (step 2) results. """
     _targets = [ProtRelionAutopick]
     _environments = [DESKTOP_TKINTER]
     
@@ -1123,7 +1124,8 @@ class RelionAutopickViewer(Viewer):
 
 
 class RelionPolishViewer(ProtocolViewer):
-    """ Viewer for Relion polishing protocol"""
+    """ Visualization of Relion polishing results. """
+
     _targets = [ProtRelionPolish]
     _environments = [DESKTOP_TKINTER, WEB_DJANGO]
     
@@ -1552,8 +1554,8 @@ Examples:
 
 
 class RelionSortViewer(Viewer):
-    """ Wrapper to visualize Relion sort protocol results
-    """
+    """ Visualization of Relion sorting results."""
+
     _environments = [DESKTOP_TKINTER, WEB_DJANGO]
     _targets = [ProtRelionSortParticles]
 
@@ -1595,9 +1597,8 @@ binaryCondition = ('(colorMap == %d) ' % (COLOR_OTHER))
 
 
 class RelionLocalResViewer(ProtocolViewer):
-    """
-    Visualization tools for local resolution results.
-    """
+    """ Visualization of Relion local resolution results. """
+
     _environments = [DESKTOP_TKINTER, WEB_DJANGO]
     _targets = [ProtRelionLocalRes]
     _label = 'viewer relion localres'

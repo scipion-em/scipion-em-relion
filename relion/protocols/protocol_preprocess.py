@@ -40,9 +40,9 @@ from .protocol_base import ProtRelionBase
 
 
 class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
-    """ Wrapper to Relion preprocess program.
-    This protocol provides an easy way to execute *relion_preprocess* program
-    to perform operations such us: normalize, filtering or scaling on
+    """ This protocol wraps relion_preprocess program.
+
+    It is used to perform normalisation, filtering or scaling of
     the particles.
     """
     _label = 'preprocess particles'

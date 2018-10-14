@@ -35,7 +35,8 @@ from .protocol_base import ProtRelionBase
 
 
 class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
-    """ Wrapper around the Relion 2D classification program."""
+    """ This protocol runs Relion 2D classification."""
+
     _label = '2D classification'
     IS_2D = True
     OUTPUT_TYPE = SetOfClasses2D

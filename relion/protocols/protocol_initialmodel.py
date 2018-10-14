@@ -41,7 +41,8 @@ from .protocol_base import ProtRelionBase
 
 
 class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
-    """    
+    """ This protocols creates a 3D initial model using Relion.
+
     Generate a 3D initial model _de novo_ from 2D particles using
     Relion Stochastic Gradient Descent (SGD) algorithm.
     """

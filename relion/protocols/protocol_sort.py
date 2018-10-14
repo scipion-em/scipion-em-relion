@@ -38,8 +38,8 @@ import relion.convert
 
 
 class ProtRelionSortParticles(ProtParticles):
-    """
-    Relion particle sorting protocol.
+    """ Relion particle sorting protocol.
+
     It calculates difference images between particles and their aligned
     (and CTF-convoluted) references, and produces Z-score on the characteristics
     of these difference images (such as mean, standard deviation, skewness,

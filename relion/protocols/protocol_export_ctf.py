@@ -36,9 +36,8 @@ import relion.convert
 
 
 class ProtRelionExportCtf(EMProtocol):
-    """
-    Export a SetOfCTF into a Relion STAR file.
-    """
+    """ Export a SetOfCTF to a Relion STAR file. """
+
     _label = 'export ctf'
     CTF_STAR_FILE = 'micrographs_ctf_%06d.star'
     
