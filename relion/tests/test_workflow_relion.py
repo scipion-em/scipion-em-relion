@@ -24,6 +24,8 @@
 # *
 # **************************************************************************
 
+import os
+
 from pyworkflow.em import *
 from pyworkflow.em.convert import ImageHandler
 from pyworkflow.tests import *
@@ -83,7 +85,7 @@ class TestWorkflowRelionPick(TestWorkflow):
         
         print "Preprocessing the micrographs..."
         protCropMics = self.newProtocol(XmippProtPreprocessMicrographs,
-                                          doCrop=True, cropPixels=25)
+                                        doCrop=True, cropPixels=25)
         protCropMics.inputMicrographs.set(protImport.outputMicrographs)
         protCropMics.setObjLabel('crop 50px')
         self.launchProtocol(protCropMics)
@@ -222,8 +224,8 @@ class TestWorkflowRelionExtract(TestWorkflowRelionPick):
         
         # Now test changing micrographs source option
         splitSetsProt = self.newProtocol(ProtSplitSet,
-                                      randomize=False,
-                                      numberOfSets=2)
+                                         randomize=False,
+                                         numberOfSets=2)
         splitSetsProt.inputSet.set(self.protCropMics.outputMicrographs)
         self.launchProtocol(splitSetsProt)
 
@@ -238,4 +240,4 @@ class TestWorkflowRelionExtract(TestWorkflowRelionPick):
         
         # The number of particles is different than the imported coordinates
         # due to the subSet done.
-        self._checkOutput(protExtract3, size=2884)
+        self._checkOutput(protExtract3, size=2881)
