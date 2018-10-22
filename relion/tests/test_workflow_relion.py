@@ -24,16 +24,20 @@
 # *
 # **************************************************************************
 
-import unittest, sys
-from pyworkflow.em import *
-from pyworkflow.tests import *
+import os
 
+from pyworkflow.em import *
+from pyworkflow.em.convert import ImageHandler
+from pyworkflow.tests import *
+from pyworkflow.utils import importFromPlugin
 from pyworkflow.tests.em.workflows.test_workflow import TestWorkflow
-from xmipp3.protocols import XmippProtPreprocessMicrographs
-from grigoriefflab.protocols import ProtCTFFind
 
 from relion.protocols import *
-from relion.protocols.protocol_autopick_v2 import *
+from relion.constants import (RUN_OPTIMIZE, REF_AVERAGES,
+                              RUN_COMPUTE, REF_BLOBS)
+
+ProtCTFFind = importFromPlugin('grigoriefflab.protocols', 'ProtCTFFind')
+XmippProtPreprocessMicrographs = importFromPlugin('xmipp3.protocols', 'XmippProtPreprocessMicrographs')
 
 
 class TestWorkflowRelionPick(TestWorkflow):
@@ -81,7 +85,7 @@ class TestWorkflowRelionPick(TestWorkflow):
         
         print "Preprocessing the micrographs..."
         protCropMics = self.newProtocol(XmippProtPreprocessMicrographs,
-                                          doCrop=True, cropPixels=25)
+                                        doCrop=True, cropPixels=25)
         protCropMics.inputMicrographs.set(protImport.outputMicrographs)
         protCropMics.setObjLabel('crop 50px')
         self.launchProtocol(protCropMics)
@@ -126,9 +130,9 @@ class TestWorkflowRelionPick(TestWorkflow):
         protPick1 = self.newProtocol(
             ProtRelion2Autopick,
             objLabel='autopick refs (optimize)',
-            runType=ProtRelion2Autopick.RUN_OPTIMIZE,
+            runType=RUN_OPTIMIZE,
             micrographsList=5,
-            referencesType=ProtRelion2Autopick.REF_AVERAGES,
+            referencesType=REF_AVERAGES,
             refsHaveInvertedContrast=True,
             particleDiameter=380)
 
@@ -146,13 +150,13 @@ class TestWorkflowRelionPick(TestWorkflow):
         # Launch the same picking run but now for all micrographs
         protPick2 = self.proj.copyProtocol(protPick1)
         protPick2.setObjLabel('autopick refs (all)')
-        protPick2.runType.set(ProtRelion2Autopick.RUN_COMPUTE)
+        protPick2.runType.set(RUN_COMPUTE)
         self._launchPick(protPick2)
 
         # Launch now using the Gaussian as references
         protPick3 = self.proj.copyProtocol(protPick1)
         protPick3.setObjLabel('autopick gauss (optimize)')
-        protPick3.referencesType.set(ProtRelion2Autopick.REF_BLOBS)
+        protPick3.referencesType.set(REF_BLOBS)
         protPick3.inputReferences.set(None)
         self._launchPick(protPick3)
 
@@ -193,7 +197,7 @@ class TestWorkflowRelionExtract(TestWorkflowRelionPick):
     def test_ribo(self):
         """ Reimplement this test to run several extract cases. """
         protPick1 = self._runPickWorkflow()
-        protPick1.runType.set(ProtRelion2Autopick.RUN_COMPUTE)
+        protPick1.runType.set(RUN_COMPUTE)
         self._launchPick(protPick1)
         proj = protPick1.getProject()
         size = protPick1.outputCoordinates.getSize()
@@ -201,8 +205,7 @@ class TestWorkflowRelionExtract(TestWorkflowRelionPick):
         protExtract = self.newProtocol(ProtRelionExtractParticles,
                                        objLabel='extract - box=64',
                                        boxSize=64,
-                                       doInvert=True
-                                       )
+                                       doInvert=True)
 
         protExtract.inputCoordinates.set(protPick1.outputCoordinates)
         protExtract.ctfRelations.set(self.protCTF.outputCTF)
@@ -221,12 +224,12 @@ class TestWorkflowRelionExtract(TestWorkflowRelionPick):
         
         # Now test changing micrographs source option
         splitSetsProt = self.newProtocol(ProtSplitSet,
-                                      randomize=False,
-                                      numberOfSets=2)
+                                         randomize=False,
+                                         numberOfSets=2)
         splitSetsProt.inputSet.set(self.protCropMics.outputMicrographs)
         self.launchProtocol(splitSetsProt)
 
-        # We choose the first output to keep the assertation procedure 
+        # We choose the first output to keep the assertion procedure
         otherSetMics = splitSetsProt.outputMicrographs01
 
         protExtract3 = self.proj.copyProtocol(protExtract)
@@ -237,5 +240,4 @@ class TestWorkflowRelionExtract(TestWorkflowRelionPick):
         
         # The number of particles is different than the imported coordinates
         # due to the subSet done.
-        self._checkOutput(protExtract3, size=2884)
-
+        self._checkOutput(protExtract3, size=2881)

@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # **************************************************************************
 # *
-# * Authors:     J.M. De la Rosa Trevin (jmdelarosa@cnb.csic.es)
-# *              Roberto Marabini       (roberto@cnb.csic.es)
+# * Authors:     J.M. de la Rosa Trevin (delarosatrevin@scilifelab.se) [1]
+# *              Roberto Marabini       (roberto@cnb.csic.es) [2]
 # *
-# * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+# * [1] SciLifeLab, Stockholm University
+# * [2] Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -27,7 +28,6 @@
 # **************************************************************************
 
 from __future__ import print_function
-import unittest
 import os
 import subprocess
 import numpy
@@ -50,18 +50,14 @@ class TestConversions(BaseTest):
         setupTestOutput(cls)
         cls.dataset = DataSet.getDataSet('relion_tutorial')  
         cls.getFile = cls.dataset.getFile
-        
-        # cls.ds = cls.dataset
-        
-        
+
     def test_particlesToStar(self):
         """ Write a SetOfParticles to Relion star input file. """
         imgSet = SetOfParticles(filename=self.getOutputPath("particles.sqlite"))
         n = 10
         fn = self.getFile('particles_binary')
         ctfs = [CTFModel(defocusU=10000, defocusV=15000, defocusAngle=15),
-                CTFModel(defocusU=20000, defocusV=25000, defocusAngle=25)
-               ]
+                CTFModel(defocusU=20000, defocusV=25000, defocusAngle=25)]
         acquisition = Acquisition(magnification=60000, voltage=300,
                                   sphericalAberration=2., amplitudeContrast=0.07)
         imgSet.setAcquisition(acquisition)
@@ -100,8 +96,7 @@ class TestConversions(BaseTest):
         ctfs = [CTFModel(defocusU=10000, defocusV=15000,
                          defocusAngle=15, phaseShift=90),
                 CTFModel(defocusU=20000, defocusV=25000,
-                         defocusAngle=25, phaseShift=60)
-                ]
+                         defocusAngle=25, phaseShift=60)]
         acquisition = Acquisition(magnification=60000, voltage=300,
                                   sphericalAberration=2.,
                                   amplitudeContrast=0.07)
@@ -334,7 +329,7 @@ class TestAlignment(TestConvertAnglesBase):
     
     def test_isInverse(self):
         """Consistency between fordwards and backwards geometrical
-        tranformations"""
+        transformations"""
         def _testInv(matrix):
             matrix = numpy.array(matrix)
             a = Transform(matrix)
@@ -780,7 +775,3 @@ class TestReconstruct(TestConvertAnglesBase):
         ]
 
         self.launchTest('reconstRotandShiftFlip', mList, alignType=ALIGN_PROJ)
-
-
-if __name__ == "__main__":
-    unittest.main()

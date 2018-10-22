@@ -1,8 +1,8 @@
 # **************************************************************************
 # *
-# * Authors:     J.M. De la Rosa Trevin (jmdelarosa@cnb.csic.es)
+# * Authors:     J.M. de la Rosa Trevin (delarosatrevin@scilifelab.se)
 # *
-# * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+# * SciLifeLab, Stockholm University
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ from pyworkflow.em.data import Micrograph
 import pyworkflow.em.metadata as md
 from pyworkflow.utils.path import findRootFrom
 
-from .convert import (readSetOfParticles, relionToLocation, rowToCoordinate)
+from .convert import readSetOfParticles, relionToLocation, rowToCoordinate
 
 
 class RelionImport:
@@ -199,10 +199,19 @@ class RelionImport:
             else:
                 self._classesFunc = None
         else:
-            self.alignType = ALIGN_NONE
             self._classesFunc = None
             self._modelStarFile = None
             modelRow = None
+                       
+            # Check if we have rot angle -> ALIGN_PROJ,
+            # if only psi angle -> ALIGN_2D
+            if row.containsLabel('rlnAngleRot') and row.getValue("rlnAngleRot") != 0.0:
+                self.alignType = ALIGN_PROJ
+            elif row.containsLabel('rlnAnglePsi') and row.getValue("rlnAnglePsi") != 0.0:
+                self.alignType = ALIGN_2D
+            else:
+                self.alignType = ALIGN_NONE
+            
         # Check if the MetaData contains either MDL_MICROGRAPH_ID
         # or MDL_MICROGRAPH, this will be used when imported
         # particles to keep track of the particle's micrograph

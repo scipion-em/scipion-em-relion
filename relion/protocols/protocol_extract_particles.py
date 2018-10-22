@@ -34,16 +34,14 @@ import pyworkflow.em.metadata as md
 
 import relion
 import relion.convert
+from relion.constants import SAME_AS_PICKING, OTHER
 from .protocol_base import ProtRelionBase
 
 
-# Micrograph type constants for particle extraction
-SAME_AS_PICKING = 0
-OTHER = 1
-
 
 class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
-    """Protocol to extract particles from a set of coordinates"""
+    """ Protocol to extract particles using a set of coordinates. """
+
     _label = 'particles extraction'
     
     @classmethod
@@ -143,7 +141,7 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
     def _doNothing(self, *args):
         pass # used to avoid some streaming functions
 
-    # -------------------------- STEPS functions -------------------------------
+    # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self, micsId):
         pass
 
@@ -159,8 +157,8 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
     def _extractMicrographList(self, micList, params):
         micsStar = self._getMicsStar(micList)
         relion.convert.writeSetOfMicrographs(micList, self._getPath(micsStar),
-                              alignType=em.ALIGN_NONE,
-                              preprocessImageRow=self._preprocessMicrographRow)
+                                             alignType=em.ALIGN_NONE,
+                                             preprocessImageRow=self._preprocessMicrographRow)
 
         partsStar = self._getMicParticlesStar(micList)
 
@@ -180,7 +178,6 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
     def _validate(self):
         errors = []
         
-        self.validatePackageVersion('RELION_HOME', errors)
         if self.doNormalize and self.backDiameter > self.boxSize:
             errors.append("Background diameter for normalization should "
                           "be equal or less than the box size.")
@@ -222,17 +219,13 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
             msg += self.methodsVar.get('')
             methodsMsgs.append(msg)
 
-            if self.doRemoveDust:
-                methodsMsgs.append("Removed dust over a threshold of %s."
-                                   % self.thresholdDust)
             if self.doInvert:
                 methodsMsgs.append("Inverted contrast on images.")
             if self._doDownsample():
                 methodsMsgs.append("Particles downsampled by a factor of %0.2f."
                                    % self.downFactor)
             if self.doNormalize:
-                methodsMsgs.append("Normalization: %s."
-                                   % self.getEnumText('normType'))
+                methodsMsgs.append("Particles were normalised.")
 
         return methodsMsgs
 
@@ -262,7 +255,7 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
         # The following parameters are executing 'relion_preprocess' to
         # extract the particles of a given micrographs
         # The following is assumed:
-        # - relion_preproces will be executed from the protocol workingDir
+        # - relion_preprocess will be executed from the protocol workingDir
         # - the micrographs (or links) and coordinate files will be in 'extra'
         # - coordinate files have the 'coords.star' suffix
         params = ' --coord_dir "."'
@@ -388,7 +381,7 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
 
     def getOutput(self):
         if (self.hasAttribute('outputParticles') and
-            self.outputParticles.hasValue()):
+                self.outputParticles.hasValue()):
             return self.outputParticles
         else:
             return None
@@ -430,7 +423,7 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
         item._appendItem = False
 
     def _preprocessMicrographRow(self, img, imgRow):
-        # Temporarly convert the few micrographs to tmp and make sure
+        # Temporarily convert the few micrographs to tmp and make sure
         # they are in 'mrc' format
         # Get basename and replace extension by 'mrc'
         newName = pwutils.replaceBaseExt(img.getFileName(), 'mrc')

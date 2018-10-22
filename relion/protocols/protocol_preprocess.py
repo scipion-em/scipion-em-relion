@@ -2,7 +2,7 @@
 # *
 # * Authors:     Josue Gomez Blanco (josue.gomez-blanco@mcgill.ca)
 # *
-# * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+# * Department of Anatomy and Cell Biology, McGill University
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -40,9 +40,9 @@ from .protocol_base import ProtRelionBase
 
 
 class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
-    """ Wrapper to Relion preprocess program.
-    This protocol provides an easy way to execute *relion_preprocess* program
-    to perform operations such us: normalize, filtering or scaling on
+    """ This protocol wraps relion_preprocess program.
+
+    It is used to perform normalisation, filtering or scaling of
     the particles.
     """
     _label = 'preprocess particles'
@@ -50,7 +50,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
     def __init__(self, **args):
         ProtProcessParticles.__init__(self, **args)
     
-    # --------------------------- DEFINE param functions -----------------------
+    # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')
         form.addParam('inputParticles', PointerParam,
@@ -117,7 +117,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
                       help='New particles windows size (in pixels).')
         form.addParallelSection(threads=0, mpi=3)
     
-    # --------------------------- INSERT steps functions -----------------------
+    # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         self._createFilenameTemplates()
         objId = self.inputParticles.get().getObjId()
@@ -125,7 +125,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
         self._insertFunctionStep('processStep')
         self._insertFunctionStep('createOutputStep')
 
-    # --------------------------- STEPS functions ------------------------------
+    # --------------------------- STEPS functions -----------------------------
     def convertInputStep(self, particlesId):
         """ Create the input file in STAR format as expected by Relion.
         If the input particles comes from Relion, just link the file. 
@@ -197,14 +197,13 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
         self._defineOutputs(outputParticles=imgSet)
         self._defineTransformRelation(inputSet, imgSet)
     
-    # --------------------------- INFO functions -------------------------------
+    # --------------------------- INFO functions ------------------------------
     def _validate(self):
         """ Should be overwritten in subclasses to
         return summary message for NORMAL EXECUTION. 
         """
         validateMsgs = []
-        self.validatePackageVersion('RELION_HOME', validateMsgs)
-        
+
         if self.doScale and self.scaleSize.get() % 2 != 0:
             validateMsgs.append("Only re-scaling to even-sized images is "
                                 "allowed in RELION.")
@@ -265,7 +264,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
             summary += ' The original constrast was inverted.'
         
         return [summary]
-    # --------------------------- UTILS functions ------------------------------
+    # --------------------------- UTILS functions -----------------------------
     
     def _getOutputRadius(self):
         """ Get the radius of the output particles"""
@@ -290,11 +289,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
         return scaleFactor
     
     def _getOutParam(self):
-        if relion.Plugin.getActiveVersion() == "1.3" or relion.Plugin.getActiveVersion() == "1.4":
-            outParam = '--o '
-        else:
-            outParam = '--operate_out '
-        
+        outParam = '--operate_out '
         outParam += self._getFileName("preprocess_particles_preffix")
         return outParam
     

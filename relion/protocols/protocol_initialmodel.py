@@ -36,12 +36,13 @@ from pyworkflow.em.protocol import ProtInitialVolume
 
 import relion
 import relion.convert
-from relion.constants import V1_3, V1_4, V2_0, ANGULAR_SAMPLING_LIST
+from relion.constants import V2_0, ANGULAR_SAMPLING_LIST
 from .protocol_base import ProtRelionBase
 
 
 class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
-    """    
+    """ This protocols creates a 3D initial model using Relion.
+
     Generate a 3D initial model _de novo_ from 2D particles using
     Relion Stochastic Gradient Descent (SGD) algorithm.
     """
@@ -54,7 +55,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
 
     @classmethod
     def isDisabled(cls):
-        return relion.Plugin.getActiveVersion() in [V1_3, V1_4, V2_0]
+        return relion.Plugin.getActiveVersion() in [V2_0]
 
     def __init__(self, **args):
         ProtRelionBase.__init__(self, **args)
@@ -75,7 +76,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         self.realignMovieFrames = False
 
 
-    #--------------------------- DEFINE param functions --------------------------------------------   
+    #--------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
         self.IS_3D = not self.IS_2D
         form.addSection(label='Input')
@@ -349,9 +350,9 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                                 'WebHome?topic=Symmetry')
 
 
-    #--------------------------- INSERT steps functions -------------------------------------
+    #--------------------------- INSERT steps functions -----------------------
 
-    #--------------------------- STEPS functions --------------------------------------------
+    #--------------------------- STEPS functions ------------------------------
     def createOutputStep(self):
         imgSet = self._getInputParticles()
         vol = Volume()
@@ -368,7 +369,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(self.inputParticles, outImgSet)
     
-    #--------------------------- INFO functions -------------------------------------------- 
+    #--------------------------- INFO functions -------------------------------
     def _validateNormal(self):
         """ Should be overwritten in subclasses to
         return summary message for NORMAL EXECUTION.
@@ -391,7 +392,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
             continueIter = int(self.continueIter.get())
 
         if continueIter > lastIter:
-            errors += ["The iteration from you want to continue must be %01d or less" % lastIter]
+            errors += ["You can continue only from the iteration %01d or less" % lastIter]
 
         return errors
 
@@ -402,7 +403,8 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         summary = []
         it = self._lastIter()
         if it >= 1:
-            row = md.getFirstRow('model_general@' + self._getFileName('model', iter=it))
+            row = md.getFirstRow('model_general@' +
+                                 self._getFileName('model', iter=it))
             resol = row.getValue("rlnCurrentResolution")
             summary.append("Current resolution: *%0.2f*" % resol)
         return summary
@@ -416,7 +418,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         return summary
 
 
-    #--------------------------- UTILS functions --------------------------------------------
+    #--------------------------- UTILS functions ------------------------------
     def _setBasicArgs(self, args):
         """ Return a dictionary with basic arguments. """
         args.update({'--o': self._getExtraPath('relion'),
@@ -452,7 +454,8 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         imgSet.setAlignmentProj()
         imgSet.copyItems(self._getInputParticles(),
                          updateItemCallback=self._createItemMatrix,
-                         itemDataIterator=md.iterRows(outImgsFn, sortByLabel=md.RLN_IMAGE_ID))
+                         itemDataIterator=md.iterRows(outImgsFn,
+                                                      sortByLabel=md.RLN_IMAGE_ID))
 
     def _createItemMatrix(self, item, row):
         relion.convert.createItemMatrix(item, row, align=ALIGN_PROJ)

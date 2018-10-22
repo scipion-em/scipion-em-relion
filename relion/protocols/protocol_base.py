@@ -1,8 +1,8 @@
 # **************************************************************************
 # *
-# * Authors:     J.M. De la Rosa Trevin (jmdelarosa@cnb.csic.es)
+# * Authors:     J.M. de la Rosa Trevin (delarosatrevin@scilifelab.se)
 # *
-# * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+# * SciLifeLab, Stockholm University
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -45,7 +45,8 @@ from relion.constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO, V2_0
 
 
 class ProtRelionBase(EMProtocol):
-    """ This class contains the common functions for all Relion protocols.
+    """ Base protocol for Relion utils.
+
     In subclasses there should be little changes about how to create the command
     line and the files produced.
     
@@ -778,7 +779,7 @@ class ProtRelionBase(EMProtocol):
                                 ' http://xmipp.cnb.csic.es/twiki/bin/view/'
                                 'Xmipp/WebHome?topic=Symmetry')
 
-    # -------------------------- INSERT steps functions ------------------------
+    # -------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self):
         self._initialize()
         self._insertFunctionStep('convertInputStep',
@@ -806,7 +807,7 @@ class ProtRelionBase(EMProtocol):
         
         self._insertFunctionStep('runRelionStep', params)
     
-    # -------------------------- STEPS functions -------------------------------
+    # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self, particlesId, copyAlignment):
         """ Create the input file in STAR format as expected by Relion.
         If the input particles comes from Relion, just link the file.
@@ -900,10 +901,9 @@ class ProtRelionBase(EMProtocol):
     def createOutputStep(self):
         pass  # should be implemented in subclasses
     
-    #--------------------------- INFO functions --------------------------------
+    #--------------------------- INFO functions -------------------------------
     def _validate(self):
         errors = []
-        self.validatePackageVersion('RELION_HOME', errors)
 
         if self.doContinue:
             continueProtocol = self.continueRun.get()
@@ -1075,7 +1075,8 @@ class ProtRelionBase(EMProtocol):
             args['--tau2_fudge'] = self.regularisationParamT.get()
             args['--iter'] = self._getnumberOfIters()
 
-            if not self.doContinue and relion.Plugin.isVersion2Active() and relion.Plugin.getActiveVersion() != V2_0:
+            if (not self.doContinue and relion.Plugin.isVersion2Active() and
+                relion.Plugin.getActiveVersion() != V2_0):
                 self._setSubsetArgs(args)
     
         self._setSamplingArgs(args)
@@ -1284,7 +1285,8 @@ class ProtRelionBase(EMProtocol):
                 for i, avg in enumerate(inputAvgs):
                     newAvgLoc = (i+1, refStack)
                     ih.convert(avg, newAvgLoc)
-                    row.setValue(md.RLN_MLMODEL_REF_IMAGE, "%05d@%s" % newAvgLoc)
+                    row.setValue(md.RLN_MLMODEL_REF_IMAGE,
+                                 "%05d@%s" % newAvgLoc)
                     row.addToMd(refMd)
                 refMd.write(self._getRefStar())
 
@@ -1320,11 +1322,15 @@ class ProtRelionBase(EMProtocol):
     
     def _copyAlignAsPriors(self, mdParts, alignType):
         # set priors equal to orig. values
-        mdParts.copyColumn(md.RLN_ORIENT_ORIGIN_X_PRIOR, md.RLN_ORIENT_ORIGIN_X)
-        mdParts.copyColumn(md.RLN_ORIENT_ORIGIN_Y_PRIOR, md.RLN_ORIENT_ORIGIN_Y)
-        mdParts.copyColumn(md.RLN_ORIENT_PSI_PRIOR, md.RLN_ORIENT_PSI)
+        mdParts.copyColumn(md.RLN_ORIENT_ORIGIN_X_PRIOR,
+                           md.RLN_ORIENT_ORIGIN_X)
+        mdParts.copyColumn(md.RLN_ORIENT_ORIGIN_Y_PRIOR,
+                           md.RLN_ORIENT_ORIGIN_Y)
+        mdParts.copyColumn(md.RLN_ORIENT_PSI_PRIOR,
+                           md.RLN_ORIENT_PSI)
         
         if alignType == em.ALIGN_PROJ:
-            mdParts.copyColumn(md.RLN_ORIENT_ROT_PRIOR, md.RLN_ORIENT_ROT)
-            mdParts.copyColumn(md.RLN_ORIENT_TILT_PRIOR, md.RLN_ORIENT_TILT)
- 
+            mdParts.copyColumn(md.RLN_ORIENT_ROT_PRIOR,
+                               md.RLN_ORIENT_ROT)
+            mdParts.copyColumn(md.RLN_ORIENT_TILT_PRIOR,
+                               md.RLN_ORIENT_TILT)

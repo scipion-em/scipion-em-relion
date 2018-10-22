@@ -30,12 +30,12 @@ from protocol_base import ProtRelionBase
 
 
 class ProtRelionCenterAverages(em.ProtProcessParticles, ProtRelionBase):
-    """ Simple protocol to center averages.
-     This protocol uses the *relion_image_handler* with *--shift_com* option.
+    """ This protocol aligns class averages by their center of mass.
+     It uses the *relion_image_handler* with *--shift_com* option.
     """
     _label = 'center averages'
     
-    # --------------------------- DEFINE param functions -----------------------
+    # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')
         form.addParam('inputAverages', PointerParam,
@@ -45,13 +45,13 @@ class ProtRelionCenterAverages(em.ProtProcessParticles, ProtRelionBase):
         
         form.addParallelSection(threads=0, mpi=0)
     
-    # --------------------------- INSERT steps functions -----------------------
+    # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         self._insertFunctionStep("centerAveragesStep",
                                  self.inputAverages.get().getObjId())
         self._insertFunctionStep('createOutputStep')
 
-    # --------------------------- STEPS functions ------------------------------
+    # --------------------------- STEPS functions -----------------------------
     def centerAveragesStep(self, averagesId):
         fn = self._getStackFn()
 
@@ -70,17 +70,18 @@ class ProtRelionCenterAverages(em.ProtProcessParticles, ProtRelionBase):
         self._defineOutputs(outputAverages=avgSet)
         self._defineTransformRelation(inputSet, avgSet)
 
-    # --------------------------- INFO functions -------------------------------
+    # --------------------------- INFO functions ------------------------------
     def _validate(self):
         """ Just overwrite the default behaviour of the base class. """
         return []
 
     def _summary(self):
-        summary = []
+        summary = ['']
         return summary
 
     def _methods(self):
-        return []
+        return ['Class averages were aligned by relion_image_handler '
+                'using their center of mass.']
 
     def _getStackFn(self):
         return self._getPath('averages.mrcs')
@@ -89,4 +90,3 @@ class ProtRelionCenterAverages(em.ProtProcessParticles, ProtRelionBase):
         self._counter = getattr(self, '_counter', 0)
         self._counter += 1
         item.setLocation(self._counter, self._getStackFn())
-

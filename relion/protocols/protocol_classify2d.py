@@ -35,7 +35,8 @@ from .protocol_base import ProtRelionBase
 
 
 class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
-    """ Wrapper around the Relion 2D classification program."""
+    """ This protocol runs Relion 2D classification."""
+
     _label = '2D classification'
     IS_2D = True
     OUTPUT_TYPE = SetOfClasses2D
@@ -52,7 +53,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         self.ClassFnTemplate = '%(ref)03d@%(rootDir)s/relion_it%(iter)03d_classes.mrcs'
         
 
-    #--------------------------- INSERT steps functions ------------------------
+    #--------------------------- INSERT steps functions -----------------------
     def _setSamplingArgs(self, args):
         """ Set sampling related params. """
         # Sampling stuff
@@ -63,7 +64,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         else:
             args['--skip_align'] = ''
 
-    #--------------------------- STEPS functions -------------------------------
+    #--------------------------- STEPS functions ------------------------------
     def _loadClassesInfo(self, iteration):
         """ Read some information about the produced Relion 2D classes
         from the *model.star file.
@@ -97,7 +98,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         self._defineOutputs(outputClasses=classes2D)
         self._defineSourceRelation(self.inputParticles, classes2D)
         
-    #--------------------------- INFO functions --------------------------------
+    #--------------------------- INFO functions -------------------------------
     def _validateNormal(self):
         """ Should be overwritten in subclasses to
         return summary message for NORMAL EXECUTION. 
@@ -119,7 +120,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
             continueIter = int(self.continueIter.get())
         
         if continueIter > lastIter:
-            errors += ["The iteration from you want to continue must be %01d or less" % lastIter]
+            errors += ["You can continue only from the iteration %01d or less" % lastIter]
         
         return errors
     
@@ -148,13 +149,14 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         
         if hasattr(self, 'outputClasses'):
             
-            methods += "We classified input particles %s (%d items) " % (self.getObjectTag('inputParticles'),
-                                                                         self.inputParticles.get().getSize())
+            methods += "We classified input particles %s (%d items) " % (
+                self.getObjectTag('inputParticles'),
+                self.inputParticles.get().getSize())
             methods += "into %d classes using Relion Classify2d. " % self.numberOfClasses
             methods += 'Output classes: %s' % self.getObjectTag('outputClasses')
         return [methods]
     
-    #--------------------------- UTILS functions --------------------------------------------
+    #--------------------------- UTILS functions ------------------------------
     def _updateParticle(self, item, row):
         item.setClassId(row.getValue(md.RLN_PARTICLE_CLASS))
         item.setTransform(relion.convert.rowToAlignment(row, em.ALIGN_2D))

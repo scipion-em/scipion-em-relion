@@ -1,10 +1,12 @@
 # **************************************************************************
 # *
-# * Authors:     Josue Gomez Blanco (josue.gomez-blanco@mcgill.ca)
-# *              J.M. De la Rosa Trevin (jmdelarosa@cnb.csic.es)
-# *              Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk)
+# * Authors:     Josue Gomez Blanco (josue.gomez-blanco@mcgill.ca) [1]
+# *              J.M. de la Rosa Trevin (delarosatrevin@scilifelab.se) [2]
+# *              Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk) [3]
 # *
-# * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+# * [1] Department of Anatomy and Cell Biology, McGill University
+# * [2] SciLifeLab, Stockholm University
+# * [3] MRC Laboratory of Molecular Biology, MRC-LMB
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -38,13 +40,13 @@ import pyworkflow.utils as pwutils
 from pyworkflow.em.protocol import ProtProcessParticles
 
 import relion
-from relion.constants import V1_3
 import relion.convert
 from .protocol_base import ProtRelionBase
 
 
 class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
-    """
+    """ This protocols runs particle polishing using Relion.
+
     This Relion protocol tracks particle movement in movie frames
     (from previous movie refinement run), applies a resolution
     and dose-dependent weighting scheme for each frame
@@ -64,7 +66,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         self._createIterTemplates()
 
     
-    #--------------------------- DEFINE param functions --------------------------------------------   
+    #--------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')
         
@@ -86,7 +88,8 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
                            "and/or expert use of the program.")
 
         form.addSection('Movement')
-        form.addParam('linerFitParticleMovements', BooleanParam, default=True,
+        form.addParam('linerFitParticleMovements', BooleanParam,
+                      default=True,
                       label='Linear fit particle movements?',
                       help='If set to Yes, then the program will fit linear '
                            'tracks (in X-Y and in time) through the estimated '
@@ -205,7 +208,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
 
         form.addParallelSection(threads=0, mpi=3)
     
-    #--------------------------- INSERT steps functions --------------------------------------------  
+    #--------------------------- INSERT steps functions -----------------------
 
     def _insertAllSteps(self): 
         self._initialize()
@@ -250,7 +253,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
 
         self._insertFunctionStep('polishStep', params)
         
-    #--------------------------- STEPS functions --------------------------------------------
+    #--------------------------- STEPS functions ------------------------------
     def convertInputStep(self, particlesId):
         """ Create the input file in STAR format as expected by Relion.
         If the input particles comes from Relion, just link the file.
@@ -272,10 +275,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         mdImg = md.MetaData(imgStarTmp)
 
         # replace mdColumn from *.stk to *.mrcs as Relion2 requires
-        if relion.Plugin.getActiveVersion() == V1_3:
-            mdColumn = md.RLN_PARTICLE_NAME
-        else:
-            mdColumn = md.RLN_PARTICLE_ORI_NAME
+        mdColumn = md.RLN_PARTICLE_ORI_NAME
 
         for objId in mdImg:
             index, imgPath = relion.convert.relionToLocation(mdImg.getValue(mdColumn, objId))
@@ -292,11 +292,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         self.runJob(self._getProgram('relion_particle_polish'), params)
     
     def organizeDataStep(self):
-        if relion.Plugin.getActiveVersion() == V1_3:
-            mdColumn = md.RLN_PARTICLE_NAME
-        else:
-            mdColumn = md.RLN_PARTICLE_ORI_NAME
-
+        mdColumn = md.RLN_PARTICLE_ORI_NAME
         shinyStar = self._getFileName('shiny')
         newDir = self._getExtraPath('polished_particles')
         pwutils.makePath(newDir)
@@ -358,14 +354,12 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         self._defineSourceRelation(imgSet, shinyPartSet)
         self._defineSourceRelation(imgSet, vol)
 
-    #--------------------------- INFO functions -------------------------------------------- 
+    #--------------------------- INFO functions -------------------------------
     def _validate(self):
         """ Should be overwritten in subclasses to
         return summary message for NORMAL EXECUTION. 
         """
         errors = []
-        self.validatePackageVersion('RELION_HOME', errors)
-
         if self.performBfactorWeighting:
             if self.maskForReconstructions.get() is None:
                 errors.append('You should provide a *mask* when performing B-factor weighting.')
@@ -388,7 +382,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
 
         return summary
     
-    #--------------------------- UTILS functions --------------------------------------------
+    #--------------------------- UTILS functions ------------------------------
     def _getInputParticles(self):
         return self.inputMovieParticles.get()
 
@@ -399,7 +393,6 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         return nrOfFrames
 
     def _createItemMatrix(self, item, row):
-        from pyworkflow.em import ALIGN_PROJ
         relion.convert.createItemMatrix(item, row, align=ALIGN_PROJ)
 
     def _renameFiles(self, pattern1, pattern2):
