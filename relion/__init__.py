@@ -82,8 +82,8 @@ class Plugin(pyworkflow.em.Plugin):
                        commands=relion_commands)
 
         # Define FFTW3 path variables
-        relion_vars = [('FFTW_LIB', env.getLibFolder()),
-                       ('FFTW_INCLUDE', env.getIncludeFolder())]
+        relion_vars = {'FFTW_LIB': env.getLibFolder(),
+                       'FFTW_INCLUDE': env.getIncludeFolder()}
 
         relion2_commands = [('cmake -DGUI=OFF -DCMAKE_INSTALL_PREFIX=./ .', []),
                             ('make -j %d' % env.getProcessors(),
