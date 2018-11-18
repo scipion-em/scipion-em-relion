@@ -32,7 +32,7 @@ from .constants import RELION_HOME, V2_0, V2_1, RELION_CUDA_LIB
 
 
 _logo = "relion_logo.png"
-_references = ['Scheres2012a', 'Scheres2012b', 'Chen2012']
+_references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016']
 
 
 class Plugin(pyworkflow.em.Plugin):

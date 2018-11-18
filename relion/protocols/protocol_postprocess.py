@@ -290,6 +290,9 @@ class ProtRelionPostprocess(ProtAnalysis3D):
             summary.append("Final resolution: *%0.2f A*" % resol)
         
         return summary
+
+    def _citations(self):
+        return ['Chen2012', 'Chen2013']
         
     # -------------------------- UTILS functions ------------------------------
     def _defineParamDict(self):

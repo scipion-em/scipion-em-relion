@@ -38,7 +38,6 @@ from protocol_expand_symmetry import ProtRelionExpandSymmetry
 from protocol_initialmodel import ProtRelionInitialModel
 from protocol_localres import ProtRelionLocalRes
 
-from protocol_autopick import ProtRelionAutopickFom, ProtRelionAutopick
 from protocol_autopick_v2 import ProtRelion2Autopick
 from protocol_extract_particles import ProtRelionExtractParticles
 

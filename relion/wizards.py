@@ -35,7 +35,7 @@ from relion.constants import *
 from relion.convert import writeSetOfMicrographs
 from relion.protocols import (
     ProtRelionClassify3D, ProtRelionRefine3D, ProtRelionClassify2D,
-    ProtRelionPreprocessParticles, ProtRelionAutopickFom, ProtRelionAutopick,
+    ProtRelionPreprocessParticles,
     ProtRelion2Autopick, ProtRelionCreateMask3D,
     ProtRelionSortParticles, ProtRelionInitialModel)
 
@@ -174,74 +174,6 @@ class RelionVolFilterWizard(FilterVolumesWizard):
 #===============================================================================
 # PICKING
 #===============================================================================
-
-class RelionPartDiameter(RelionPartMaskDiameterWizard):  
-    _targets = [(ProtRelionAutopickFom, ['particleDiameter'])]
-    
-    def _getProtocolImages(self, protocol):
-        return protocol.inputReferences 
-
-
-class RelionAutopickParams(EmWizard):  
-    _targets = [(ProtRelionAutopick, ['pickingThreshold',
-                                      'interParticleDistance'])]
-    
-    def show(self, form):
-        autopickProt = form.protocol
-        autopickFomProt = autopickProt.getInputAutopick()
-        project = autopickProt.getProject()
-        micSet = autopickFomProt.getInputMicrographs()
-        micfn = micSet.getFileName()
-        coordsDir = project.getTmpPath(micSet.getName())
-        pwutils.cleanPath(coordsDir)
-        pwutils.makePath(coordsDir)
-        pickerProps = os.path.join(coordsDir, 'picker.conf')
-        f = open(pickerProps, "w")
-        args = {
-          "picker" : "%s relion_autopick" % pw.getScipionScript(),
-          "convert" : pw.join('apps', 'pw_convert.py'),
-          'coordsDir':coordsDir,
-          'micsSqlite': micSet.getFileName(),
-          "diameter": autopickFomProt.particleDiameter,
-          "threshold": autopickProt.pickingThreshold,
-          "apix": micSet.getSamplingRate(),
-          'ang': autopickFomProt.angularSampling,
-          'lowpass':autopickFomProt.lowpassFilterRefs,
-          'ref': 'input_references.star',
-          'min_distance': autopickProt.interParticleDistance,
-          'protDir': autopickFomProt.getWorkingDir()
-          }
-
-        autopickCmd = '%(picker)s --i extra/%%(micrographName).star --o autopick --particle_diameter %(diameter)s '
-        autopickCmd += '--angpix %(apix)s --ref %(ref)s --ang %(ang)s --lowpass %(lowpass)s --threshold %%(threshold) '
-        autopickCmd += '--min_distance %%(ipd) --read_fom_maps' % args
-        if autopickFomProt.refsHaveInvertedContrast:
-            autopickCmd += ' --invert'
-        
-        if autopickFomProt.refsCtfCorrected:
-            autopickCmd += ' --ctf'
-        args['autopickCmd'] = autopickCmd
-        f.write("""
-        parameters = ipd,threshold
-        ipd.value = %(min_distance)s
-        ipd.label = Minimum inter-particles distance
-        ipd.help = some help
-        threshold.value =  %(threshold)s
-        threshold.label = Threshold
-        threshold.help = some help
-        runDir = %(protDir)s
-        autopickCmd = %(autopickCmd)s
-        convertCommand = %(convert)s --coordinates --from relion --to xmipp --input  %(micsSqlite)s --output %(coordsDir)s --extra %(protDir)s/extra
-        """ % args)
-        f.close()
-        process = CoordinatesObjectView(autopickProt.getProject(), micfn, coordsDir, autopickFomProt, pickerProps=pickerProps).show()
-        process.wait()
-        myprops = pwutils.readProperties(pickerProps)
-
-        if myprops['applyChanges'] == 'true':
-            form.setVar('pickingThreshold', myprops['threshold.value'])
-            form.setVar('interParticleDistance', myprops['ipd.value'])
-
 
 class Relion2AutopickParams(EmWizard):
     _targets = [(ProtRelion2Autopick, ['runType',

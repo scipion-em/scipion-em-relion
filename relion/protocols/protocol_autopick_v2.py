@@ -582,6 +582,9 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         summary = []
         return summary
 
+    def _citations(self):
+        return ['Scheres2015']
+
     def _methods(self):
         methodsMsgs = []
         if self.getOutputsSize() > 0:

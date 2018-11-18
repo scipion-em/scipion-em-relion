@@ -41,9 +41,8 @@ import relion
 import relion.convert
 from relion.protocols import (
     ProtRelionClassify2D, ProtRelionClassify3D, ProtRelionRefine3D,
-    ProtRelionPolish, ProtRelionPostprocess, ProtRelionAutopick,
-    ProtRelionAutopickFom, ProtRelionSortParticles, ProtRelionInitialModel,
-    ProtRelionLocalRes)
+    ProtRelionPolish, ProtRelionPostprocess, ProtRelionSortParticles,
+    ProtRelionInitialModel, ProtRelionLocalRes)
 from relion.constants import *
 
 
@@ -1100,28 +1099,7 @@ class PostprocessViewer(ProtocolViewer):
             return 'log(Amplitudes) MTF Corrected'
         else:
             return 'log(Amplitudes) Intercept'
-
-
-class RelionAutopickViewerFOM(Viewer):
-    """ Visualization of Relion autopicking (step 1) results. """
-    _targets = [ProtRelionAutopickFom]
-    _environments = [DESKTOP_TKINTER]
-    
-    def _visualize(self, obj, **args):
-        return [self.warnMessage('\n'.join(obj._summary()), 
-                                 "No output expected")]
         
-
-class RelionAutopickViewer(Viewer):
-    """ Visualization of Relion autopicking (step 2) results. """
-    _targets = [ProtRelionAutopick]
-    _environments = [DESKTOP_TKINTER]
-    
-    def visualize(self, obj, **args):
-        micPath, coordPath = obj.writeXmippOutputCoords()
-        from pyworkflow.em.showj import launchSupervisedPickerGUI
-        launchSupervisedPickerGUI(micPath, coordPath, self.protocol)
-
 
 class RelionPolishViewer(ProtocolViewer):
     """ Visualization of Relion polishing results. """

@@ -54,6 +54,27 @@ author = "Scheres, Sjors H.W.",
 keywords = "Electron microscopy, Single-particle analysis, Maximum likelihood, Image processing, Software development "
 }
 
+@article{Kimanius2016,
+title = "Accelerated cryo-EM structure determination with parallelisation using GPUs in RELION-2",
+journal = "eLife",
+volume = "5",
+pages = "e18722",
+year = "2016",
+doi = "https://doi.org/10.7554/eLife.18722",
+author = "Kimanius, Dari and Forsberg, Björn O. and Scheres, Sjors H.W. and Lindahl, Erik",
+}
+
+@article{Scheres2015,
+title = "Semi-automated selection of cryo-EM particles in RELION-1.3",
+journal = "JSB",
+volume = "189",
+issue = "2",
+pages = "114-122",
+year = "2015",
+doi = "https://doi.org/10.1016/j.jsb.2014.11.010",
+author = "Scheres, Sjors H.W.",
+}
+
 @article{Chen2012,
 title = "Prevention of overfitting in cryo-EM structure determination",
 journal = "Nat. Meth.",
@@ -63,6 +84,17 @@ pages = "853 - 854",
 year = "2012",
 doi = "http://dx.doi.org/10.1038/nmeth.2115",
 author = "Chen, Shaoxia and Scheres, Sjors H.W.",
+}
+
+@article{Chen2013,
+title = "High-resolution noise substitution to measure overfitting and validate resolution in 3D structure determination by single particle electron cryomicroscopy.",
+journal = "JSB",
+volume = "135",
+number = "3",
+pages = "24-35",
+year = "2013",
+doi = "https://doi.org/10.1016/j.ultramic.2013.06.004",
+author = "Chen, Shaoxia and McMullan, Greg and Faruqi, Abdul R. and Murshudov, Garib N. and Short, Judith M. and Scheres, Sjors H.W. and Henderson, Richard",
 }
 
 """
