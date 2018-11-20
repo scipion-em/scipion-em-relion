@@ -29,9 +29,9 @@ from os.path import exists
 from math import radians
 
 import pyworkflow.em as em
-import pyworkflow.em.showj as showj
+import pyworkflow.em.viewers.showj as showj
 import pyworkflow.em.metadata as md
-from pyworkflow.em.plotter import EmPlotter
+from pyworkflow.em.viewers import EmPlotter
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 import pyworkflow.protocol.params as params
 from pyworkflow.viewer import (Viewer, ProtocolViewer,
