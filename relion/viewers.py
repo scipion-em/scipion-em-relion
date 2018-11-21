@@ -31,11 +31,13 @@ from math import radians
 import pyworkflow.em as em
 import pyworkflow.em.viewers.showj as showj
 import pyworkflow.em.metadata as md
-from pyworkflow.em.viewers import EmPlotter
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 import pyworkflow.protocol.params as params
 from pyworkflow.viewer import (Viewer, ProtocolViewer,
                                DESKTOP_TKINTER, WEB_DJANGO)
+from pyworkflow.em.viewers import (EmPlotter, ObjectView, ChimeraView,
+                                   ChimeraClientView, ClassesView,
+                                   Classes3DView, FscViewer, DataView)
 
 import relion
 import relion.convert
@@ -44,7 +46,6 @@ from relion.protocols import (
     ProtRelionPolish, ProtRelionPostprocess, ProtRelionSortParticles,
     ProtRelionInitialModel, ProtRelionLocalRes)
 from relion.constants import *
-
 
 
 class RelionPlotter(EmPlotter):
@@ -496,7 +497,7 @@ Examples:
             if exists(volFn.replace(':mrc', '')):
                 files.append(volFn)
         self.createVolumesSqlite(files, path, samplingRate)
-        return [em.ObjectView(self._project, self.protocol.strId(), path)]
+        return [ObjectView(self._project, self.protocol.strId(), path)]
     
     def _showVolumesChimera(self):
         """ Create a chimera script to visualize selected volumes. """
@@ -514,10 +515,10 @@ Examples:
                     f.write("open %s\n" % localVol)
             f.write('tile\n')
             f.close()
-            view = em.ChimeraView(cmdFile)
+            view = ChimeraView(cmdFile)
         else:
             #view = CommandView('xmipp_chimera_client --input "%s" --mode projector 256 &' % volumes[0])
-            view = em.ChimeraClientView(volumes[0])
+            view = ChimeraClientView(volumes[0])
             
         return [view]
     
@@ -557,7 +558,7 @@ Examples:
                     if not exists(sqliteFn):
                         self.createAngDistributionSqlite(sqliteFn, nparts,
                                                          itemDataIterator=self._iterAngles(self._getMdOut(it, prefix, ref3d)))
-                    return em.ChimeraClientView(volFn,
+                    return ChimeraClientView(volFn,
                                                 angularDistFile=sqliteFn, spheresDistance=radius)
             else:
                 raise Exception("This class is Empty. Please try with other class")
@@ -657,7 +658,7 @@ Examples:
         
         md.activateMathExtensions()
         
-        fscViewer = em.FscViewer(project=self.protocol.getProject(),
+        fscViewer = FscViewer(project=self.protocol.getProject(),
                                  threshold=threshold,
                                  protocol=self.protocol,
                                  figure=self._getFigure(),
@@ -698,7 +699,7 @@ Examples:
             return ['There are not iterations completed.'] 
     
     def createDataView(self, filename, viewParams={}):
-        return em.DataView(filename, env=self._env, viewParams=viewParams)
+        return DataView(filename, env=self._env, viewParams=viewParams)
 
     def createScipionView(self, filename):
         labels =  'enabled id _size _representative._filename '
@@ -710,7 +711,7 @@ Examples:
                       showj.ZOOM: str(self._getZoom())
                       }
         inputParticlesId = self.protocol.inputParticles.get().strId()
-        ViewClass = em.ClassesView if self.protocol.IS_2D else em.Classes3DView
+        ViewClass = ClassesView if self.protocol.IS_2D else Classes3DView
         view = ViewClass(self._project,
                           self.protocol.strId(), filename, other=inputParticlesId,
                           env=self._env,
@@ -726,7 +727,7 @@ Examples:
                       showj.VISIBLE: labels, showj.RENDER:'_filename',
                       'labels': 'id',
                       }
-        return em.ObjectView(self._project, 
+        return ObjectView(self._project,
                              self.protocol.strId(), filename, other=inputParticlesId,
                              env=self._env,
                              viewParams=viewParams)
@@ -882,10 +883,7 @@ class PostprocessViewer(ProtocolViewer):
         ProtocolViewer.setProtocol(self, protocol)
         self.__defineParams(self._form)
         self._createVarsFromDefinition()
-        import xmipp3
-        self._env = dict(xmipp3.getEnviron())
-#        self._load()
-        
+
     def _defineParams(self, form):
         self._form = form
         
@@ -940,12 +938,12 @@ class PostprocessViewer(ProtocolViewer):
 #==============================================================================
         
     def _showVolumeShowj(self, volPath):        
-        return [em.DataView(volPath)]
+        return [DataView(volPath)]
     
     def _showVolumesChimera(self, volPath):
         """ Create a chimera script to visualize selected volumes. """
         #view = CommandView('xmipp_chimera_client --input "%s" --mode projector 256 &' % volPath)
-        view = em.ChimeraClientView(volPath)
+        view = ChimeraClientView(volPath)
         return [view]
             
     def _showVolume(self, paramName=None):
@@ -979,7 +977,7 @@ class PostprocessViewer(ProtocolViewer):
         gridsize = [1, 1]
 
         md.activateMathExtensions()
-        fscViewer = em.FscViewer(project=self.protocol.getProject(),
+        fscViewer = FscViewer(project=self.protocol.getProject(),
                                  threshold=threshold,
                                  protocol=self.protocol,
                                  figure=self._getFigure(),
@@ -1241,7 +1239,7 @@ Examples:
             if exists(volFn.replace(':mrc', '')):
                 files.append(volFn)
         self.createVolumesSqlite(files, path, samplingRate)
-        return [em.ObjectView(self._project, self.protocol.strId(), path)]
+        return [ObjectView(self._project, self.protocol.strId(), path)]
     
     def _showVolumesChimera(self):
         """ Create a chimera script to visualize selected volumes. """
@@ -1259,9 +1257,9 @@ Examples:
                     f.write("open %s\n" % localVol)
             f.write('tile\n')
             f.close()
-            view = em.ChimeraView(cmdFile)
+            view = ChimeraView(cmdFile)
         else:
-            view = em.ChimeraClientView(volumes[0])
+            view = ChimeraClientView(volumes[0])
             
         return [view]
     
@@ -1289,7 +1287,7 @@ Examples:
             if not exists(sqliteFn):
                 self.createAngDistributionSqlite(sqliteFn, nparts,
                                                  itemDataIterator=self._iterAngles(self.protocol._getFileName('shiny')))
-            return em.ChimeraClientView(volFn, angularDistFile=sqliteFn,
+            return ChimeraClientView(volFn, angularDistFile=sqliteFn,
                                         spheresDistance=radius)
         else:
             raise Exception("They aren't shiny particles to show it's angular distribution.")
@@ -1443,7 +1441,7 @@ Examples:
                       showj.VISIBLE: labels, showj.RENDER:'_filename',
                       'labels': 'id',
                       }
-        return em.ObjectView(self._project, 
+        return ObjectView(self._project,
                              self.protocol.strId(), filename, other=partsId,
                              env=self._env,
                              viewParams=viewParams)
@@ -1549,7 +1547,7 @@ class RelionSortViewer(Viewer):
             sortBy = '_rlnSelectParticlesZscore asc'
             strId = particles.strId()
             fn = particles.getFileName()
-            views.append(em.ObjectView(self._project, strId, fn,
+            views.append(ObjectView(self._project, strId, fn,
                                        viewParams={showj.ORDER: labels,
                                                    showj.VISIBLE: labels,
                                                    showj.SORT_BY: sortBy,
@@ -1645,7 +1643,7 @@ class RelionLocalResViewer(ProtocolViewer):
     def _showChimera(self, param=None):
         cmdFile = self.protocol._getExtraPath('chimera_local_res.cmd')
         self._createChimeraScript(cmdFile)
-        view = em.ChimeraView(cmdFile)
+        view = ChimeraView(cmdFile)
         return [view]
 
 # =============================================================================
