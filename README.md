@@ -1,4 +1,4 @@
-# Relion plugin
+# Relion plugin (work after header & convert refactorization)
 
  This plugin allows to use Relion programs within the Scipion framework.
 
