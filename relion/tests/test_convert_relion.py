@@ -144,7 +144,42 @@ class TestConversions(BaseTest):
                       'rlnNrOfSignificantSamples', 'rlnMaxValueProbDistribution']
         self.assertEqual(goldLabels, [md.label2Str(l) for l in mdAll.getActiveLabels()])
         self.assertEqual(4700, mdAll.size())
-        
+
+    def test_particlesFromStarNewLabels(self):
+        """ Read a set of particles from an .star file.  """
+        fnStar = self.getFile('relion_it020_data_newlabels')
+
+        print(">>> Reading new star file: ", fnStar)
+
+        goldLabels = ['rlnVoltage', 'rlnDefocusU', 'rlnDefocusV',
+                      'rlnDefocusAngle', 'rlnSphericalAberration',
+                      'rlnAmplitudeContrast', 'rlnImageName', 'rlnImageId',
+                      'rlnCoordinateX', 'rlnCoordinateY',
+                      'rlnMagnificationCorrection',
+                      'rlnNormCorrection', 'rlnMicrographName',
+                      'rlnGroupNumber',
+                      'rlnOriginX', 'rlnOriginY', 'rlnAngleRot', 'rlnAngleTilt',
+                      'rlnAnglePsi', 'rlnClassNumber',
+                      'rlnLogLikeliContribution',
+                      'rlnNrOfSignificantSamples',
+                      'rlnNewLabel']
+
+        # Read the metadata without defining the new label
+        mdAll = md.MetaData(fnStar)
+
+
+        # This should warn about it and have 1 less label
+        self.assertEqual(goldLabels[:-1],
+                         [md.label2Str(l) for l in mdAll.getActiveLabels()])
+
+        # Define new label reusing existing one
+        md.addLabelAlias(md.BUFFER1, "rlnNewLabel", True, md.LABEL_DOUBLE)
+
+        mdAll = md.MetaData(fnStar)
+
+        self.assertEqual(goldLabels,
+                         [md.label2Str(l) for l in mdAll.getActiveLabels()])
+
 
 class TestConvertBinaryFiles(BaseTest):
     
