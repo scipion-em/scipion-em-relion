@@ -24,17 +24,22 @@
 # *
 # **************************************************************************
 
-import pyworkflow.em as em
+import pyworkflow as pw
 import pyworkflow.em.metadata as md
-from pyworkflow.em.protocol import ProtClassify3D
 
 import relion
 import relion.convert
 from .protocol_base import ProtRelionBase
 
 
-class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
-    """ This protocol runs Relion 3D classification. """
+class ProtRelionClassify3D(pw.em.ProtClassify3D, ProtRelionBase):
+    """
+    Protocol to classify 3D using Relion Bayesian approach.
+    Relion employs an empirical Bayesian approach to refinement of (multiple)
+    3D reconstructions or 2D class averages in electron cryo-EM. Many
+    parameters of a statistical model are learned from the data, which
+    leads to objective and high-quality results.
+    """
 
     _label = '3D classification'
     CHANGE_LABELS = [md.RLN_OPTIMISER_CHANGES_OPTIMAL_ORIENTS, 
@@ -94,10 +99,6 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
         return summary message for NORMAL EXECUTION. 
         """
         errors = []
-        # We scale the input volume to have the same size as the particles...
-        # so no need to validate the following
-        # self._validateDim(self._getInputParticles(), self.referenceVolume.get(),
-        #                   errors, 'Input particles', 'Reference volume')
         return errors
     
     def _validateContinue(self):
@@ -179,11 +180,11 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
     
     def _updateParticle(self, item, row):
         item.setClassId(row.getValue(md.RLN_PARTICLE_CLASS))
-        item.setTransform(relion.convert.rowToAlignment(row, em.ALIGN_PROJ))
+        item.setTransform(relion.convert.rowToAlignment(row, pw.em.ALIGN_PROJ))
         
-        item._rlnLogLikeliContribution = em.Float(row.getValue('rlnLogLikeliContribution'))
-        item._rlnMaxValueProbDistribution = em.Float(row.getValue('rlnMaxValueProbDistribution'))
-        item._rlnGroupName = em.String(row.getValue('rlnGroupName'))
+        item._rlnLogLikeliContribution = pw.em.Float(row.getValue('rlnLogLikeliContribution'))
+        item._rlnMaxValueProbDistribution = pw.em.Float(row.getValue('rlnMaxValueProbDistribution'))
+        item._rlnGroupName = pw.em.String(row.getValue('rlnGroupName'))
 
     def _updateClass(self, item):
         classId = item.getObjId()
@@ -192,6 +193,6 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
             fn += ":mrc"
             item.setAlignmentProj()
             item.getRepresentative().setLocation(index, fn)
-            item._rlnclassDistribution = em.Float(row.getValue('rlnClassDistribution'))
-            item._rlnAccuracyRotations = em.Float(row.getValue('rlnAccuracyRotations'))
-            item._rlnAccuracyTranslations = em.Float(row.getValue('rlnAccuracyTranslations'))
+            item._rlnClassDistribution = pw.em.Float(row.getValue('rlnClassDistribution'))
+            item._rlnAccuracyRotations = pw.em.Float(row.getValue('rlnAccuracyRotations'))
+            item._rlnAccuracyTranslations = pw.em.Float(row.getValue('rlnAccuracyTranslations'))

@@ -28,7 +28,7 @@ import os
 import pyworkflow.em
 import pyworkflow.utils as pwutils
 
-from .constants import RELION_HOME, V2_0, V2_1, RELION_CUDA_LIB
+from .constants import RELION_HOME, RELION_CUDA_LIB, V2_0, V2_1, V3_0
 
 
 _logo = "relion_logo.png"
@@ -37,7 +37,7 @@ _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016']
 
 class Plugin(pyworkflow.em.Plugin):
     _homeVar = RELION_HOME
-    _supportedVersions = [V2_0, V2_1]
+    _supportedVersions = [V2_0, V2_1, V3_0]
 
     @classmethod
     def _defineVariables(cls):
@@ -66,6 +66,10 @@ class Plugin(pyworkflow.em.Plugin):
     @classmethod
     def isVersion2Active(cls):
         return cls.getActiveVersion().startswith(V2_1)
+
+    @classmethod
+    def isVersion3Active(cls):
+        return cls.getActiveVersion().startswith('3.')
 
     @classmethod
     def defineBinaries(cls, env):

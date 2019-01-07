@@ -32,12 +32,14 @@ from pyworkflow.tests import *
 from pyworkflow.utils import importFromPlugin
 from pyworkflow.tests.em.workflows.test_workflow import TestWorkflow
 
+import relion
 from relion.protocols import *
 from relion.constants import (RUN_OPTIMIZE, REF_AVERAGES,
                               RUN_COMPUTE, REF_BLOBS)
 
 ProtCTFFind = importFromPlugin('grigoriefflab.protocols', 'ProtCTFFind')
-XmippProtPreprocessMicrographs = importFromPlugin('xmipp3.protocols', 'XmippProtPreprocessMicrographs')
+XmippProtPreprocessMicrographs = importFromPlugin(
+    'xmipp3.protocols', 'XmippProtPreprocessMicrographs')
 
 
 class TestWorkflowRelionPick(TestWorkflow):
@@ -166,6 +168,42 @@ class TestWorkflowRelionPick(TestWorkflow):
         protPick4.gpusToUse.set('0:0:0:0')
         self._launchPick(protPick4)
 
+    def test_ribo_LoG(self):
+        if relion.Plugin.isVersion2Active():
+            print("LoG picker requires Relion 3.0 or greater. Skipping test...")
+            return
+
+        # First, import a set of micrographs
+        print "Importing a set of micrographs..."
+        protImport = self.newProtocol(ProtImportMicrographs,
+                                      filesPath=self.ds.getFile('micrographs'),
+                                      filesPattern='*.mrc',
+                                      samplingRateMode=1,
+                                      magnification=79096,
+                                      scannedPixelSize=56, voltage=300,
+                                      sphericalAberration=2.0)
+        protImport.setObjLabel('import 20 mics')
+        self.launchProtocol(protImport)
+        self.assertIsNotNone(protImport.outputMicrographs,
+                             "There was a problem with the import")
+
+        print "Preprocessing the micrographs..."
+        protCropMics = self.newProtocol(XmippProtPreprocessMicrographs,
+                                        doCrop=True, cropPixels=25)
+        protCropMics.inputMicrographs.set(protImport.outputMicrographs)
+        protCropMics.setObjLabel('crop 50px')
+        self.launchProtocol(protCropMics)
+        self.assertIsNotNone(protCropMics.outputMicrographs,
+                             "There was a problem with the downsampling")
+
+        protPick = self.newProtocol(ProtRelionAutopickLoG,
+                                    objLabel='autopick LoG',
+                                    boxSize=60,
+                                    minDiameter=30,
+                                    maxDiameter=50)
+        protPick.inputMicrographs.set(protCropMics.outputMicrographs)
+        self._launchPick(protPick)
+
 
 class TestWorkflowRelionExtract(TestWorkflowRelionPick):
     @classmethod
@@ -182,17 +220,19 @@ class TestWorkflowRelionExtract(TestWorkflowRelionPick):
         outputParts = getattr(prot, 'outputParticles', None)
 
         self.assertIsNotNone(outputParts)
-        self.assertEqual(outputParts.getSize(), size)
+        # Maybe number of particles changes between different versions
+        # of Relion, so let's give a delta
+        self.assertAlmostEqual(outputParts.getSize(), size, delta=10)
 
         first = outputParts.getFirstItem()
         ctfModel = first.getCTF()
 
-        ctfModelExpected = self.protCTF.outputCTF.getFirstItem()
+        ctfGold = self.protCTF.outputCTF.getFirstItem()
         
         self.assertEqual(first.getDim(), (dim, dim, 1))
         self.assertAlmostEqual(first.getSamplingRate(), sampling, delta=0.001)
-        self.assertAlmostEqual(ctfModel.getDefocusU(), ctfModelExpected.getDefocusU())
-        self.assertAlmostEqual(ctfModel.getDefocusV(), ctfModelExpected.getDefocusV())
+        self.assertAlmostEqual(ctfModel.getDefocusU(), ctfGold.getDefocusU())
+        self.assertAlmostEqual(ctfModel.getDefocusV(), ctfGold.getDefocusV())
 
     def test_ribo(self):
         """ Reimplement this test to run several extract cases. """

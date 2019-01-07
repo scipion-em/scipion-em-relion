@@ -60,8 +60,7 @@ leads to objective and high-quality results.
         """
         ProtRelionBase._initialize(self)
         self.ClassFnTemplate = '%(ref)03d@%(rootDir)s/relion_it%(iter)03d_classes.mrcs'
-        self.numberOfClasses.set(1)  # For refinement we only need just one "class"
-    
+
     # -------------------------- INSERT steps functions -----------------------
     def _setSamplingArgs(self, args):
         """ Set sampling related params"""
@@ -246,3 +245,11 @@ leads to objective and high-quality results.
 
     def _updateParticle(self, particle, row):
         particle._coordinate._micName = em.String(row.getValue('rlnMicrographName'))
+
+    def getFinalVolumes(self):
+        """ Implemented from base class to return the final and half-maps
+        filenames. """
+        self._createFilenameTemplates()
+        return [self._getFileName('finalvolume', ref3d=1),
+                self._getFileName('final_half1_volume', ref3d=1),
+                self._getFileName('final_half2_volume', ref3d=1)]

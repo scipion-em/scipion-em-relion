@@ -26,30 +26,24 @@
 
 import os
 
-import pyworkflow.utils as pwutils
+import pyworkflow as pw
 from pyworkflow.protocol.constants import STATUS_FINISHED
 import pyworkflow.protocol.params as params
-import pyworkflow.em as em
 import pyworkflow.em.metadata as md
 
 import relion
 import relion.convert
-from relion.constants import SAME_AS_PICKING, OTHER
+from relion.constants import OTHER
 from .protocol_base import ProtRelionBase
 
 
-
-class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
+class ProtRelionExtractParticles(pw.em.ProtExtractParticles, ProtRelionBase):
     """ Protocol to extract particles using a set of coordinates. """
 
     _label = 'particles extraction'
     
-    @classmethod
-    def isDisabled(cls):
-        return not relion.Plugin.isVersion2Active()
-
     def __init__(self, **kwargs):
-        em.ProtExtractParticles.__init__(self, **kwargs)
+        pw.em.ProtExtractParticles.__init__(self, **kwargs)
 
     # -------------------------- DEFINE param functions -----------------------
     def _definePreprocessParams(self, form):
@@ -124,7 +118,7 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
         self._setupBasicProperties()
 
         # used to convert micrographs if not in .mrc format
-        self._ih = em.ImageHandler()
+        self._ih = pw.em.ImageHandler()
 
         # dict to map between micrographs and its coordinates file
         self._micCoordStarDict = {}
@@ -157,7 +151,7 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
     def _extractMicrographList(self, micList, params):
         micsStar = self._getMicsStar(micList)
         relion.convert.writeSetOfMicrographs(micList, self._getPath(micsStar),
-                                             alignType=em.ALIGN_NONE,
+                                             alignType=pw.em.ALIGN_NONE,
                                              preprocessImageRow=self._preprocessMicrographRow)
 
         partsStar = self._getMicParticlesStar(micList)
@@ -219,13 +213,17 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
             msg += self.methodsVar.get('')
             methodsMsgs.append(msg)
 
+            if self.doRemoveDust:
+                methodsMsgs.append("Removed dust over a threshold of %s."
+                                   % self.thresholdDust)
             if self.doInvert:
                 methodsMsgs.append("Inverted contrast on images.")
             if self._doDownsample():
                 methodsMsgs.append("Particles downsampled by a factor of %0.2f."
                                    % self.downFactor)
             if self.doNormalize:
-                methodsMsgs.append("Particles were normalised.")
+                methodsMsgs.append("Normalization: %s."
+                                   % self.getEnumText('normType'))
 
         return methodsMsgs
 
@@ -264,11 +262,11 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
         params += ' --extract_size %d' % self.boxSize
 
         if self.backDiameter <= 0:
-            diameter = self.boxSize.get() * 0.75 / self._getDownFactor()
+            diameter = self.boxSize.get() * 0.75
         else:
             diameter = self.backDiameter.get()
 
-        params += ' --bg_radius %d' % int(diameter/2)
+        params += ' --bg_radius %d' % int(diameter/(2 * self._getDownFactor()))
 
         if self.doInvert:
             params += ' --invert_contrast'
@@ -291,7 +289,7 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
         """ Read the particles extract for the given list of micrographs
         and update the outputParts set with new items.
         """
-        p = em.Particle()
+        p = pw.em.Particle()
 
         # Let's create a dict with the names of the mic in Relion star files
         # and also create a set with all star files to iterate them once
@@ -300,7 +298,7 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
 
         for mic in micList:
             starSet.add(self._micCoordStarDict[mic.getObjId()])
-            micName = pwutils.replaceBaseExt(mic.getFileName(), 'mrc')
+            micName = pw.utils.replaceBaseExt(mic.getFileName(), 'mrc')
             micFile = os.path.join('extra', micName)
             micPathDict[micFile] = mic
 
@@ -321,13 +319,18 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
                     mic = micPathDict[micFile]
                     coordDict = {self._getPos(coord): coord
                                  for coord in self.coordDict[mic.getObjId()]}
-
+                    posSet = set()  # Set of (x, y) pairs to avoid duplicates
                     prevMicFile = micFile
 
                 pos = (row.getValue(md.RLN_IMAGE_COORD_X),
                        row.getValue(md.RLN_IMAGE_COORD_Y))
 
-                coord = coordDict.get(pos, None)
+                if pos in posSet:
+                    print("Duplicate coordinate at: %s, IGNORED. " % str(pos))
+                    coord = None
+                else:
+                    coord = coordDict.get(pos, None)
+
                 if coord is not None:
                     # scale the coordinates according to particles dimension.
                     coord.scale(self.getBoxScale())
@@ -338,6 +341,7 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
                     p.setMicId(mic.getObjId())
                     p.setCTF(mic.getCTF())
                     outputParts.append(p)
+                    posSet.add(pos)
 
         # Clean up the last mic if necessary
         if mic is not None:
@@ -426,13 +430,13 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
         # Temporarily convert the few micrographs to tmp and make sure
         # they are in 'mrc' format
         # Get basename and replace extension by 'mrc'
-        newName = pwutils.replaceBaseExt(img.getFileName(), 'mrc')
+        newName = pw.utils.replaceBaseExt(img.getFileName(), 'mrc')
         newPath = self._getExtraPath(newName)
 
         # If the micrographs are in 'mrc' format just create a link
         # if not, convert to 'mrc'
         if img.getFileName().endswith('mrc'):
-            pwutils.createLink(img.getFileName(), newPath)
+            pw.utils.createLink(img.getFileName(), newPath)
         else:
             self._ih.convert(img, newPath)
         # The command will be launched from the working dir
@@ -450,7 +454,7 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
         The filename will be located in the extra folder and with
         the given extension.
         """
-        return self._getExtraPath(pwutils.replaceBaseExt(mic.getFileName(),ext))
+        return self._getExtraPath(pw.utils.replaceBaseExt(mic.getFileName(),ext))
     
     def _useCTF(self):
         return self.ctfRelations.hasValue()
@@ -471,7 +475,7 @@ class ProtRelionExtractParticles(em.ProtExtractParticles, ProtRelionBase):
 
     def _getMicPos(self, mic):
         """ Return the corresponding .pos file for a given micrograph. """
-        micBase = pwutils.removeBaseExt(mic.getFileName())
+        micBase = pw.utils.removeBaseExt(mic.getFileName())
         return self._getExtraPath(micBase + ".coords.star")
 
     def _isStreamOpen(self):

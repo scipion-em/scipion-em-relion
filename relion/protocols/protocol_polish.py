@@ -65,8 +65,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         self._createFilenameTemplates()
         self._createIterTemplates()
 
-    
-    #--------------------------- DEFINE param functions -----------------------
+    # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')
         
