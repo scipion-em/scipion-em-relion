@@ -51,3 +51,4 @@ from .protocol_bayesian_polishing import ProtRelionBayesianPolishing
 from .protocol_ctf_refinement import ProtRelionCtfRefinement
 from .protocol_motioncor import ProtRelionMotioncor
 from .protocol_multibody import ProtRelionMultiBody
+from .protocol_symmetrize_volume import ProtRelionSymmetrizeVolume
