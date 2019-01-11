@@ -1013,9 +1013,6 @@ class ProtRelionBase(EMProtocol):
                 args['--ini_high'] = self.initialLowPassFilterA.get()
                 args['--sym'] = self.symmetryGroup.get()
         
-        if not relion.Plugin.isVersion2Active():
-            args['--memory_per_thread'] = self.memoryPreThreads.get()
-
         refArg = self._getRefArg()
         if refArg:
             args['--ref'] = refArg
