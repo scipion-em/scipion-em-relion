@@ -397,9 +397,9 @@ def particleToRow(part, partRow, **kwargs):
     imageToRow(part, partRow, md.RLN_IMAGE_NAME, **kwargs)
 
 
-def rowToParticle(partRow, **kwargs):
+def rowToParticle(partRow, particleClass=em.Particle, **kwargs):
     """ Create a Particle from a row of a meta """
-    img = em.Particle()
+    img = particleClass()
     
     # Provide a hook to be used if something is needed to be 
     # done for special cases before converting image to row
@@ -471,6 +471,10 @@ def readSetOfParticles(filename, partSet, **kwargs):
         
     partSet.setHasCTF(img.hasCTF())
     partSet.setAlignment(kwargs['alignType'])
+
+
+def readSetOfMovieParticles(filename, partSet, **kwargs):
+    readSetOfParticles(filename, partSet, particleClass=em.MovieParticle, **kwargs)
     
 
 def setOfImagesToMd(imgSet, imgMd, imgToFunc, **kwargs):
@@ -500,8 +504,9 @@ def writeSetOfParticles(imgSet, starFile,
         starFile: the filename where to write the meta
         filesMapping: this dict will help when there is need to replace images names
     """
-    filesDict = convertBinaryFiles(imgSet, outputDir)
-    kwargs['filesDict'] = filesDict
+    if outputDir is not None:
+        filesDict = convertBinaryFiles(imgSet, outputDir)
+        kwargs['filesDict'] = filesDict
     partMd = md.MetaData()
     setOfImagesToMd(imgSet, partMd, particleToRow, **kwargs)
     
@@ -570,15 +575,27 @@ def micrographToRow(mic, micRow, **kwargs):
     """ Set labels values from Micrograph mic to md row. """
     imageToRow(mic, micRow, imgLabel=md.RLN_MICROGRAPH_NAME, **kwargs)
 
+
+def movieToRow(movie, movieRow, **kwargs):
+    """ Set labels values from movie to md row. """
+    imageToRow(movie, movieRow, imgLabel=md.RLN_MICROGRAPH_MOVIE_NAME, **kwargs)
+
     
 def writeSetOfMicrographs(micSet, starFile, **kwargs):
-    """ If 'outputDir' is in kwargs, the micrographs are\
+    """ If 'outputDir' is in kwargs, the micrographs are
     converted or linked in the outputDir.
     """
     micMd = md.MetaData()
     setOfImagesToMd(micSet, micMd, micrographToRow, **kwargs)
     blockName = kwargs.get('blockName', 'Micrographs')
     micMd.write('%s@%s' % (blockName, starFile))
+
+
+def writeSetOfMovies(movieSet, starFile, **kwargs):
+    movieMd = md.MetaData()
+    setOfImagesToMd(movieSet, movieMd, movieToRow, **kwargs)
+    blockName = kwargs.get('blockName', '')
+    movieMd.write('%s@%s' % (blockName, starFile))
 
 
 def writeSqliteIterData(imgStar, imgSqlite, **kwargs):
