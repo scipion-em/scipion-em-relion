@@ -1055,9 +1055,6 @@ class ProtRelionBase(EMProtocol):
             if self.IS_V3:
                 args['--pad'] = 1 if self.skipPadding else 2
 
-        # FIXME: The following is still being used?
-        #args['--memory_per_thread'] = self.memoryPreThreads.get()
-
         refArg = self._getRefArg()
         if refArg:
             args['--ref'] = refArg
