@@ -257,7 +257,7 @@ class Relion2AutopickParams(EmWizard):
         ipd.help = Minimum distance (in Angstroms) between particles
         threshold.value =  %(threshold)s
         threshold.label = Threshold
-        threshold.help = some help
+        threshold.help = Picking threshold
         maxStddevNoise.value = %(maxStddevNoise)s
         maxStddevNoise.label = Max. stddev noise
         maxStddevNoise.help = Prevent picking in carbon areas, useful values probably between 1.0 and 1.2, use -1 to switch it off
