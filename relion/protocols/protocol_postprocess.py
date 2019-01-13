@@ -213,6 +213,9 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
                           'and half1 and half1 paths. ')
         return errors
 
+    def _citations(self):
+        return ['Chen2013']
+
     def _summary(self):
         """ Should be overwritten in subclasses to
         return summary message for NORMAL EXECUTION.

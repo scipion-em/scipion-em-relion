@@ -218,8 +218,11 @@ class ProtRelionMotioncor(ProtAlignMovies):
         summary = []
         return summary
 
+    def _citations(self):
+        return ['Zivanov2019']
+
     def _validate(self):
-        # Check base validation before the specific ones for Motioncorr
+        # Check base validation before the specific ones for Motioncor
         errors = ProtAlignMovies._validate(self)
         return errors
 

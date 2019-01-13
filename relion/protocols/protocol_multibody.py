@@ -51,7 +51,7 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
     over all particle images in the data set, we generate movies that describe
     the most important motions in the data.
     """
-    _label = '3D - multi-body'
+    _label = '3D multi-body'
 
     @classmethod
     def isDisabled(cls):
@@ -269,6 +269,9 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
                 for f in missing:
                     errors.append(" - %s" % f)
         return errors
+
+    def _citations(self):
+        return ['Nakane2018']
     
     def _summary(self):
         """ Should be overwritten in subclasses to
