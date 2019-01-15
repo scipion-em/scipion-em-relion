@@ -32,7 +32,9 @@ from collections import OrderedDict
 
 import pyworkflow as pw
 from pyworkflow.em import *
+from pyworkflow.em.viewers import CoordinatesObjectView
 from pyworkflow.em.wizard import *
+import pyworkflow.em.metadata as md
 
 from relion.constants import *
 from relion.convert import writeSetOfMicrographs
@@ -328,7 +330,6 @@ class RelionWizLogPickParams(EmWizard):
         pw.utils.cleanPath(coordsDir)
         pw.utils.makePath(coordsDir, 'extra')
         pickerProps = os.path.join(coordsDir, 'picker.conf')
-        from pyworkflow.em.packages.relion.convert import writeSetOfMicrographs
         micStarFn = os.path.join(coordsDir, 'input_micrographs.star')
 
         def _postprocessMic(mic, micRow):
