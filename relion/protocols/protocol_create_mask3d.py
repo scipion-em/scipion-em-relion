@@ -124,7 +124,8 @@ class ProtRelionCreateMask3D(pw.em.ProtCreateMask3D):
         argsDict = {'--i ': self.inputVolFn,
                     '--ini_threshold ': self.threshold.get(),
                     '--extend_inimask ': self.extend.get(),
-                    '--width_soft_edge ': self.edge.get()
+                    '--width_soft_edge ': self.edge.get(),
+                    '--angpix ': self.inputVolume.get().getSamplingRate()
                     }
         if self.initialLowPassFilterA.get() != -1:
             argsDict['--lowpass '] = self.initialLowPassFilterA.get()
