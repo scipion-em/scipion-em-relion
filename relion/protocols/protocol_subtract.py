@@ -69,7 +69,8 @@ class ProtRelionSubtract(ProtOperateParticles):
                       label="Input particles", important=True,
                       help='Select the experimental particles.')
         form.addParam('inputVolume', PointerParam, pointerClass='Volume',
-                      label="Input volume",
+                      label="Input map to be projected",
+                      important=True,
                       help='Provide the input volume that will be used to '
                            'calculate projections, which will be subtracted '
                            'from the experimental particles. Make sure this '
@@ -79,7 +80,8 @@ class ProtRelionSubtract(ProtOperateParticles):
                            'greyscale is the same as in the experimental '
                            'particles.')
         form.addParam('refMask', PointerParam, pointerClass='VolumeMask',
-                      label='Reference mask (optional)', allowsNull=True,
+                      label='Mask to be applied to this map',
+                      allowsNull=True,
                       help="Provide a soft mask where the protein density "
                            "you wish to subtract from the experimental "
                            "particles is white (1) and the rest of the "
@@ -128,9 +130,7 @@ class ProtRelionSubtract(ProtOperateParticles):
         partSetId = imgSet.getObjId()
         
         self._insertFunctionStep('convertInputStep', partSetId)
-        if self.refMask.get() is not None:
-            self._insertFunctionStep('applyMaskStep')
-        self._insertFunctionStep('removeStep')
+        self._insertFunctionStep('subtractStep')
         self._insertFunctionStep('createOutputStep')
     
     # -------------------------- STEPS functions ------------------------------
@@ -151,16 +151,17 @@ class ProtRelionSubtract(ProtOperateParticles):
 
         self.runJob('relion_image_handler', params)
 
-    def removeStep(self):
+    def subtractStep(self):
         volume = self.inputVolume.get()
-        if self.refMask.get() is not None:
-            volFn = self._getFileName('volume_masked')
-        else:
-            volFn = relion.convert.convertBinaryVol(volume,
-                                                    self._getExtraPath())
-        
+        volFn = relion.convert.convertBinaryVol(volume,
+                                                self._getExtraPath())
         params = ' --i %s --subtract_exp --angpix %0.3f' % (volFn,
                                                             volume.getSamplingRate())
+        if self.refMask.get() is not None:
+            maskFn = relion.convert.convertBinaryVol(self.refMask.get(),
+                                                     self._getExtraPath())
+            params += ' --mask %s' % maskFn
+        
         if self._getInputParticles().isPhaseFlipped():
             params += ' --ctf_phase_flip'
 
@@ -234,3 +235,4 @@ class ProtRelionSubtract(ProtOperateParticles):
 
     def _getInputParticles(self):
         return self.inputParticles.get()
+
