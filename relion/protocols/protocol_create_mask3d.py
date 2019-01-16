@@ -171,10 +171,7 @@ class ProtRelionCreateMask3D(pw.em.ProtCreateMask3D):
             % self.threshold.get(),
             "*Mask processing*",
             "   Extend by %d pixels" % self.extend,
-            "   Apply soft edge of %d pixels" % self.edge,
-            "   Logical operation: %s" % self.getEnumText('operation')]
-        if self.doCompare:
-            messages.append("")
+            "   Apply soft edge of %d pixels" % self.edge]
         if self.doInvert:
             messages.append("   Inverted")
 

@@ -364,13 +364,13 @@ class RelionWizLogPickParams(EmWizard):
         f.write("""
         parameters = mind,maxd,threshold
         mind.value = %(minDiameter)s
-        mind.label = Min. Diameter for LoG filter
-        mind.help = some help
+        mind.label = Min. Diameter (A)
+        mind.help = Min. Diameter for LoG filter
         maxd.value = %(maxDiameter)s
-        maxd.label = Max. Diameter for LoG filter
-        maxd.help = some help
+        maxd.label = Max. Diameter (A)
+        maxd.help = Max. Diameter for LoG filter
         threshold.value =  %(threshold)s
-        threshold.label = Adjust default threshold
+        threshold.label = Threshold
         threshold.help = Lower threshold -> more particles
         runDir = %(coordsDir)s
         autopickCommand = %(autopickCmd)s
