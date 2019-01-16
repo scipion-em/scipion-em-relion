@@ -55,8 +55,7 @@ class ProtRelionSubtract(ProtOperateParticles):
         myDict = {
                   'input_star': self._getPath('input_particles.star'),
                   'output': self._getExtraPath('output_particles'),
-                  'output_star': self._getExtraPath('output_particles.star'),
-                  'volume_masked': self._getTmpPath('volume_masked.mrc'),
+                  'output_star': self._getExtraPath('output_particles.star')
                   }
         self._updateFilenamesDict(myDict)
     
@@ -135,22 +134,11 @@ class ProtRelionSubtract(ProtOperateParticles):
     
     # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self, particlesId):
-        """ Write the input images as a Xmipp metadata file. 
-        particlesId: is only need to detect changes in
-        input particles and cause restart from here.
-        """
+        """ Write the input images as a Relion star file. """
         imgSet = self.inputParticles.get()
         relion.convert.writeSetOfParticles(
             imgSet, self._getFileName('input_star'), self._getExtraPath())
     
-    def applyMaskStep(self):
-        params = ' --i %s --multiply %s --o %s' % (
-            ImageHandler.locationToXmipp(self.inputVolume.get()),
-            ImageHandler.locationToXmipp(self.refMask.get()),
-            self._getFileName('volume_masked'))
-
-        self.runJob('relion_image_handler', params)
-
     def subtractStep(self):
         volume = self.inputVolume.get()
         volFn = relion.convert.convertBinaryVol(volume,
