@@ -256,10 +256,10 @@ class Relion2AutopickParams(EmWizard):
         parameters = ipd,threshold,maxStddevNoise
         ipd.value = %(min_distance)s
         ipd.label = Inter-particles distance (A)
-        ipd.help = Minimum distance (in Angstroms) between particles
+        ipd.help = Particles closer together than this distance will be consider to be a single cluster. From each cluster, only one particle will be picked.
         threshold.value =  %(threshold)s
         threshold.label = Threshold
-        threshold.help = Picking threshold
+        threshold.help = Use lower thresholds to pick more particles (and more junk probably).
         maxStddevNoise.value = %(maxStddevNoise)s
         maxStddevNoise.label = Max. stddev noise
         maxStddevNoise.help = Prevent picking in carbon areas, useful values probably between 1.0 and 1.2, use -1 to switch it off
@@ -365,10 +365,10 @@ class RelionWizLogPickParams(EmWizard):
         parameters = mind,maxd,threshold
         mind.value = %(minDiameter)s
         mind.label = Min. Diameter (A)
-        mind.help = Min. Diameter for LoG filter
+        mind.help = The smallest allowed diameter for the blob-detection algorithm. This should correspond to the smallest size of your particles in Angstroms.
         maxd.value = %(maxDiameter)s
         maxd.label = Max. Diameter (A)
-        maxd.help = Max. Diameter for LoG filter
+        maxd.help = The largest allowed diameter for the blob-detection algorithm. This should correspond to the largest size of your particles in Angstroms.
         threshold.value =  %(threshold)s
         threshold.label = Threshold
         threshold.help = Lower threshold -> more particles
