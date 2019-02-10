@@ -134,9 +134,9 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         params += ' --pad %0.3f' % self.pad.get()
 
         if relion.Plugin.getActiveVersion().startswith("2."):
-            params += ' --j %d' % self.numberOfThreads.get()
+            params += ' --j %d' % self.numberOfThreads
         else:
-            params += ' --jomp %d' % self.numberOfThreads.get()
+            params += ' --jomp %d' % self.numberOfThreads
 
         #TODO Test that the CTF part is working
         if self.doCTF:
@@ -198,10 +198,10 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         return summary message for NORMAL EXECUTION. 
         """
         errors = []
-        if relion.Plugin.getActiveVersion().startswith("2.") and self.numberOfMpis > 1:
+        if relion.Plugin.getActiveVersion().startswith("2.") and self.numberOfMpi > 1:
             errors.append('Relion version 2.x does not support MPI for reconstruct program!')
 
-        if self.numberOfMpis > 1 and self.numberOfThreads > 1:
+        if self.numberOfMpi > 1 and self.numberOfThreads > 1:
             errors.append('Relion reconstruct can run either with mpi or threads, not both!')
 
         return errors

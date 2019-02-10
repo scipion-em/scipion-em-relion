@@ -181,7 +181,7 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
                            for k, v in self.paramDict.iteritems()])
 
         program = 'relion_postprocess'
-        if self.numberOfMpi.get() > 1:
+        if self.numberOfMpi > 1:
             program += '_mpi'
 
         self.runJob(program, params)
