@@ -213,17 +213,11 @@ class ProtRelionExtractParticles(pw.em.ProtExtractParticles, ProtRelionBase):
             msg += self.methodsVar.get('')
             methodsMsgs.append(msg)
 
-            if self.doRemoveDust:
-                methodsMsgs.append("Removed dust over a threshold of %s."
-                                   % self.thresholdDust)
             if self.doInvert:
                 methodsMsgs.append("Inverted contrast on images.")
             if self._doDownsample():
                 methodsMsgs.append("Particles downsampled by a factor of %0.2f."
                                    % self.downFactor)
-            if self.doNormalize:
-                methodsMsgs.append("Normalization: %s."
-                                   % self.getEnumText('normType'))
 
         return methodsMsgs
 
