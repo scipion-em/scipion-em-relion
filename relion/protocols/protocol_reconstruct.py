@@ -133,7 +133,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         params += ' --maxres %0.3f' % self.maxRes.get()
         params += ' --pad %0.3f' % self.pad.get()
 
-        if relion.Plugin.getActiveVersion().startswith("2."):
+        if relion.Plugin.getActiveVersion().startswith("2.") and self.numberOfThreads > 1:
             params += ' --j %d' % self.numberOfThreads
         else:
             params += ' --jomp %d' % self.numberOfThreads
