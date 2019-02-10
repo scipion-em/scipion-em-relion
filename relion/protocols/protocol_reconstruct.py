@@ -52,10 +52,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
                       pointerClass='SetOfParticles',
                       pointerCondition='hasAlignmentProj',
                       label="Input particles",
-                      help='Select the input images from the project.')     
-#         form.addParam('doNormalize', BooleanParam, default=False,
-#                       label='Normalize',
-#                       help='If set to True, particles will be normalized in the way RELION prefers it.')
+                      help='Select the input images from the project.')
         form.addParam('symmetryGroup', StringParam, default='c1',
                       label="Symmetry group",
                       help='See [[Relion Symmetry][http://www2.mrc-lmb.cam.ac.uk/relion/index.php/Conventions_%26_File_formats#Symmetry]] page '
@@ -86,7 +83,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
                         --fom_weighting (false):\t\tWeight particles according to their figure-of-merit (_rlnParticleFigureOfMerit)
                         --fsc ():\t\tFSC-curve for regularized reconstruction
                       """)
-        form.addSection('CTF')#, condition='doCTF')
+        form.addSection('CTF')
         form.addParam('doCTF', BooleanParam, default=False,
                       label='Apply CTF correction?',
                       help='Param *--ctf* in Relion.')
@@ -104,7 +101,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         line.addParam('beamTiltX', FloatParam, default='0.0', label='X ')
         line.addParam('beamTiltY', FloatParam, default='0.0', label='Y ')            
         
-        form.addParallelSection(threads=2, mpi=0) 
+        form.addParallelSection(threads=2, mpi=1)
         #TODO: Add an option to allow the user to
         # decide if copy binary files or not
             
@@ -117,10 +114,12 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         self._insertReconstructStep()
         self._insertFunctionStep('createOutputStep')
 
-    def _getProgram(self, program='relion_refine'):
+    def _getProgram(self, program='relion_reconstruct'):
         """ Get the program name depending on the MPI use or not. """
         if self.numberOfMpi > 1:
             program += '_mpi'
+        if self.numberOfThreads > 1 and not relion.Plugin.getActiveVersion().startswith("2."):
+            program += '_openmp'
         return program
 
     def _insertReconstructStep(self):
@@ -133,8 +132,12 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         params += ' --angpix %0.3f' % imgSet.getSamplingRate()
         params += ' --maxres %0.3f' % self.maxRes.get()
         params += ' --pad %0.3f' % self.pad.get()
-        params += ' --j %d' % self.numberOfThreads.get()
-        
+
+        if relion.Plugin.getActiveVersion().startswith("2."):
+            params += ' --j %d' % self.numberOfThreads.get()
+        else:
+            params += ' --jomp %d' % self.numberOfThreads.get()
+
         #TODO Test that the CTF part is working
         if self.doCTF:
             params += ' --ctf'
@@ -158,7 +161,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         """ Create the input file in STAR format as expected by Relion.
         If the input particles comes from Relion, just link the file. 
         """
-        self.runJob(self._getProgram('relion_reconstruct'), params)
+        self.runJob(self._getProgram(), params)
 
     def _createFilenameTemplates(self):
         """ Centralize how files are called for iterations and references. """
@@ -195,6 +198,12 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         return summary message for NORMAL EXECUTION. 
         """
         errors = []
+        if relion.Plugin.getActiveVersion().startswith("2.") and self.numberOfMpis > 1:
+            errors.append('Relion version 2.x does not support MPI for reconstruct program!')
+
+        if self.numberOfMpis > 1 and self.numberOfThreads > 1:
+            errors.append('Relion reconstruct can run either with mpi or threads, not both!')
+
         return errors
     
     def _summary(self):
