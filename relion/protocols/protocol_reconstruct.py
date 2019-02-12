@@ -33,6 +33,9 @@ from pyworkflow.em.constants import ALIGN_PROJ
 import relion
 import relion.convert
 
+# TODO: Check if we can centralize this, and how it combines with related functions
+IS_V2 = relion.Plugin.getActiveVersion().startswith("2.")
+
 
 class ProtRelionReconstruct(ProtReconstruct3D):
     """ This protocol reconstructs a volume using Relion.
@@ -44,7 +47,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
     _label = 'reconstruct'
     ##doContinue = False
     
-    #--------------------------- DEFINE param functions -----------------------
+    # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')
 
@@ -55,8 +58,10 @@ class ProtRelionReconstruct(ProtReconstruct3D):
                       help='Select the input images from the project.')
         form.addParam('symmetryGroup', StringParam, default='c1',
                       label="Symmetry group",
-                      help='See [[Relion Symmetry][http://www2.mrc-lmb.cam.ac.uk/relion/index.php/Conventions_%26_File_formats#Symmetry]] page '
-                           'for a description of the symmetry format accepted by Relion') 
+                      help='See [[Relion Symmetry][http://www2.mrc-lmb.cam.ac.uk/'
+                           'relion/index.php/Conventions_%26_File_formats#Symmetry]] '
+                           'page for a description of the symmetry format '
+                           'accepted by Relion')
         form.addParam('maxRes', FloatParam, default=-1,
                       label="Maximum resolution (A)",  
                       help='Maximum resolution (in Angstrom) to consider \n'
@@ -105,9 +110,8 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         #TODO: Add an option to allow the user to
         # decide if copy binary files or not
             
-    #--------------------------- INSERT steps functions -----------------------
-
-    def _insertAllSteps(self): 
+    # -------------------------- INSERT steps functions -----------------------
+    def _insertAllSteps(self):
         ##self._initialize()
         self._createFilenameTemplates()
         self._insertFunctionStep('convertInputStep')
@@ -118,7 +122,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         """ Get the program name depending on the MPI use or not. """
         if self.numberOfMpi > 1:
             program += '_mpi'
-        if self.numberOfThreads > 1 and not relion.Plugin.getActiveVersion().startswith("2."):
+        if self.numberOfThreads > 1 and not IS_V2:
             program += '_openmp'
         return program
 
@@ -133,10 +137,9 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         params += ' --maxres %0.3f' % self.maxRes.get()
         params += ' --pad %0.3f' % self.pad.get()
 
-        if relion.Plugin.getActiveVersion().startswith("2.") and self.numberOfThreads > 1:
-            params += ' --j %d' % self.numberOfThreads
-        else:
-            params += ' --jomp %d' % self.numberOfThreads
+        if self.numberOfThreads > 1:
+            threadsArg = 'j' if IS_V2 else 'jomp'
+            params += ' --%s %d' % (threadsArg, self.numberOfThreads)
 
         #TODO Test that the CTF part is working
         if self.doCTF:
@@ -156,7 +159,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
 
         self._insertFunctionStep('reconstructStep', params)
 
-    #--------------------------- STEPS functions ------------------------------
+    # -------------------------- STEPS functions ------------------------------
     def reconstructStep(self, params):
         """ Create the input file in STAR format as expected by Relion.
         If the input particles comes from Relion, just link the file. 
@@ -171,7 +174,6 @@ class ProtRelionReconstruct(ProtReconstruct3D):
             }
         self._updateFilenamesDict(myDict)
 
-
     def convertInputStep(self):
         """ Create the input file in STAR format as expected by Relion.
         If the input particles comes from Relion, just link the file.
@@ -181,7 +183,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
 
         # Pass stack file as None to avoid write the images files
         relion.convert.writeSetOfParticles(
-            imgSet,imgStar,self._getTmpPath(), alignType=ALIGN_PROJ)
+            imgSet, imgStar, self._getTmpPath(), alignType=ALIGN_PROJ)
 
     def createOutputStep(self):
         imgSet = self.inputParticles.get()
@@ -192,18 +194,19 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         self._defineOutputs(outputVolume=volume)
         self._defineSourceRelation(self.inputParticles, volume)
     
-    #--------------------------- INFO functions -------------------------------
+    # -------------------------- INFO functions -------------------------------
     def _validate(self):
         """ Should be overwritten in subclasses to
         return summary message for NORMAL EXECUTION. 
         """
         errors = []
-        if relion.Plugin.getActiveVersion().startswith("2.") and self.numberOfMpi > 1:
-            errors.append('Relion version 2.x does not support MPI for reconstruct program!')
+        if IS_V2 and self.numberOfMpi > 1:
+            errors.append('Relion version 2.x does not support MPI for '
+                          'reconstruct program!')
 
         if self.numberOfMpi > 1 and self.numberOfThreads > 1:
-            errors.append('Relion reconstruct can run either with mpi or threads, not both!')
-
+            errors.append('Relion reconstruct can run either with mpi or '
+                          'threads, not both!')
         return errors
     
     def _summary(self):
