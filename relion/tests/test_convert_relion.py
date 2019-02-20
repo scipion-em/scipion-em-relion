@@ -165,20 +165,28 @@ class TestConversions(BaseTest):
                       'rlnNewLabel']
 
         # Read the metadata without defining the new label
+        # In this case label should be treated as string
         mdAll = md.MetaData(fnStar)
 
-
-        # This should warn about it and have 1 less label
-        self.assertEqual(goldLabels[:-1],
+        # This should warn about it and tolerate the undefined rlnNewLabel
+        self.assertEqual(goldLabels,
                          [md.label2Str(l) for l in mdAll.getActiveLabels()])
 
-        # Define new label reusing existing one
-        md.addLabelAlias(md.BUFFER1, "rlnNewLabel", True, md.LABEL_DOUBLE)
+        value = mdAll.getValue(md.getLabel("rlnNewLabel"), 1)
+        self.assertTrue(isinstance(value, basestring),
+                        "undefined labels are not treated as strings")
 
+        # Define new label reusing existing one
+        # md.addLabelAlias(2, "rlnNewLabel", True, md.LABEL_DOUBLE)
+        newLabel = md.getNewAlias("rlnNewLabel", md.LABEL_DOUBLE)
         mdAll = md.MetaData(fnStar)
 
         self.assertEqual(goldLabels,
                          [md.label2Str(l) for l in mdAll.getActiveLabels()])
+
+        value = mdAll.getValue(newLabel, 1)
+        self.assertTrue(isinstance(value, float),
+                        "Defined label to DOUBLE does not take the type")
 
 
 class TestConvertBinaryFiles(BaseTest):
