@@ -1023,8 +1023,6 @@ class ProtRelionBase(EMProtocol):
         continueRun = self.continueRun.get()
         continueRun._initialize()
     
-        if self.IS_CLASSIFY:
-            self.copyAttributes(continueRun, 'regularisationParamT')
         self._setBasicArgs(args)
     
         continueIter = self._getContinueIter()
