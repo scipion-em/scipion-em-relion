@@ -41,7 +41,7 @@ class Plugin(pyworkflow.em.Plugin):
 
     @classmethod
     def _defineVariables(cls):
-        cls._defineEmVar(RELION_HOME, 'relion-2.1')
+        cls._defineEmVar(RELION_HOME, 'relion-3.0')
 
     @classmethod
     def getEnviron(cls):
@@ -65,7 +65,7 @@ class Plugin(pyworkflow.em.Plugin):
 
     @classmethod
     def isVersion2Active(cls):
-        return cls.getActiveVersion().startswith(V2_1)
+        return cls.getActiveVersion().startswith('2.')
 
     @classmethod
     def isVersion3Active(cls):
@@ -101,6 +101,12 @@ class Plugin(pyworkflow.em.Plugin):
 
         env.addPackage('relion', version='2.1',
                        tar='relion-2.1.tgz',
+                       commands=relion2_commands,
+                       updateCuda=True,
+                       vars=relion_vars)
+
+        env.addPackage('relion', version='3.0',
+                       tar='relion-3.0.tgz',
                        commands=relion2_commands,
                        updateCuda=True,
                        vars=relion_vars,

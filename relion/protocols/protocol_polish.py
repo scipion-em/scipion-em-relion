@@ -57,6 +57,10 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
     
     PREFIXES = ['half1_', 'half2_']
 
+    @classmethod
+    def isDisabled(cls):
+        return relion.Plugin.isVersion3Active()
+
     def _initialize(self):
         """ This function is meant to be called after the
         working dir for the protocol have been set.
@@ -101,18 +105,6 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
                            'also be included in the fitting of each particle. '
                            'Again, in particular for smaller particles this '
                            'may improve the robustness of the fits.')
-        if not relion.Plugin.isVersion2Active():
-            form.addParam('movieAvgWindow', FloatParam, default=5,
-                          label='Running average window',
-                          help='The individual movie frames will be '
-                               'averaged using a running average window '
-                               'with the specified width. Use an odd '
-                               'number. The optimal value will depend on '
-                               'the SNR in the individual movie frames. '
-                               'For ribosomes, we used a value of 5, '
-                               'where each movie frame integrated '
-                               'approximately 1 electron per squared '
-                               'Angstrom.')
         form.addParam('stddevParticleDistance', IntParam, default=100,
                       condition='linerFitParticleMovements',
                       label='Stddev on particle distance (px)',
@@ -176,24 +168,23 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
                            'described in the Rosenthal and Henderson (2003) '
                            'paper in JMB can be used. Probably a value around '
                            '20A is still OK.')
-        if relion.Plugin.isVersion2Active():
-            form.addParam('avgFramesBfac', IntParam, default=1,
-                          condition='performBfactorWeighting',
-                          label='Average frames B-factor estimation',
-                          help='B-factors for each movie frame will be estimated '
-                               'from reconstructions of all particles for that '
-                               'movie frame. Single-frame reconstructions '
-                               'sometimes give not enough signal to estimate '
-                               'reliable B-factors. This option allows one to '
-                               'calculate the B-factors from running averages of '
-                               'movie frames. The value specified should be an '
-                               'odd number. Calculating B-factors from multiple '
-                               'movie frames improves the SNR in the reconstructions, '
-                               'but limits the estimation of sudden changes in '
-                               'B-factors throughout the movie, for example in '
-                               'the first few frames when beam-induced movement '
-                               'is very rapid. Therefore, one should not use '
-                               'higher values than strictly necessary.')
+        form.addParam('avgFramesBfac', IntParam, default=1,
+                      condition='performBfactorWeighting',
+                      label='Average frames B-factor estimation',
+                      help='B-factors for each movie frame will be estimated '
+                           'from reconstructions of all particles for that '
+                           'movie frame. Single-frame reconstructions '
+                           'sometimes give not enough signal to estimate '
+                           'reliable B-factors. This option allows one to '
+                           'calculate the B-factors from running averages of '
+                           'movie frames. The value specified should be an '
+                           'odd number. Calculating B-factors from multiple '
+                           'movie frames improves the SNR in the reconstructions, '
+                           'but limits the estimation of sudden changes in '
+                           'B-factors throughout the movie, for example in '
+                           'the first few frames when beam-induced movement '
+                           'is very rapid. Therefore, one should not use '
+                           'higher values than strictly necessary.')
            
         form.addParam('maskForReconstructions', PointerParam,
                       pointerClass='VolumeMask',
@@ -222,21 +213,14 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         imgStar = self._getFileName('movie_particles')
         
         params = ' --i %s' % imgStar
-        if relion.Plugin.isVersion2Active():
-            params += ' --o %s/shiny' % self._getExtraPath()
-        else:
-            params += ' --o shiny'
+        params += ' --o %s/shiny' % self._getExtraPath()
+
         params += ' --angpix %0.3f' % imgSet.getSamplingRate()
         params += ' --sym %s' % self.symmetryGroup.get()
         params += ' --sigma_nb %d' % self.stddevParticleDistance.get()
         params += ' --perframe_highres %0.3f' % self.highresLimitPerFrameMaps.get()
         params += ' --autob_lowres %0.3f' % self.lowresLimitBfactorEstimation.get()
-
-        if not relion.Plugin.isVersion2Active():
-            params += ' --movie_frames_running_avg %d' % self.movieAvgWindow.get()
-            params += ' --dont_read_old_files'
-        else:
-            params += ' --bfactor_running_avg %d' % self.avgFramesBfac.get()
+        params += ' --bfactor_running_avg %d' % self.avgFramesBfac.get()
 
         x, _, _ = imgSet.getDimensions()
         if self.maskRadius.get() >= x/2 or self.maskRadius.get() < 0:
@@ -296,23 +280,6 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         newDir = self._getExtraPath('polished_particles')
         pwutils.makePath(newDir)
 
-        if not relion.Plugin.isVersion2Active():
-            pwutils.makePath(self._getExtraPath('shiny'))
-            shinyOld = "shiny.star"
-            inputFit = "movie_particles_shiny.star"
-            try:
-                pwutils.moveFile(shinyOld, shinyStar)
-                pwutils.moveFile(
-                    self._getPath(inputFit),
-                    self._getExtraPath("shiny/all_movies_input_fit.star"))
-                for half in self.PREFIXES:
-                    pwutils.moveFile(self._getPath('movie_particles_shiny_%sclass001_unfil.mrc' % half),
-                                     self._getExtraPath('shiny/shiny_%sclass001_unfil.mrc' % half))
-                self._renameFiles('movie_particles_shiny_post*', 'movie_particles_')
-                self._renameFiles('movie_particles_shiny*', 'movie_particles_shiny_')
-            except:
-                raise Exception('ERROR: some file(s) were not found!')
-
         # move polished particles from Tmp to Extra path
         # and restore previous mdColumn
         mdShiny = md.MetaData(shinyStar)
@@ -345,7 +312,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         shinyPartSet.copyInfo(imgSet)
         shinyPartSet.setAlignmentProj()
         relion.convert.readSetOfParticles(self._getFileName('shiny'), shinyPartSet,
-                           alignType=ALIGN_PROJ)
+                                          alignType=ALIGN_PROJ)
 
         self._defineOutputs(outputParticles=shinyPartSet)
         self._defineOutputs(outputVolume=vol)
@@ -393,11 +360,3 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
 
     def _createItemMatrix(self, item, row):
         relion.convert.createItemMatrix(item, row, align=ALIGN_PROJ)
-
-    def _renameFiles(self, pattern1, pattern2):
-        # find files by pattern1, move and rename them by replacing pattern2
-        filesList = sorted(glob(self._getPath(pattern1)))
-        for fn in filesList:
-            oldFn = os.path.basename(fn)
-            newFn = pwutils.join(self._getExtraPath('shiny'), oldFn.replace(pattern2, ''))
-            pwutils.moveFile(fn, newFn)
