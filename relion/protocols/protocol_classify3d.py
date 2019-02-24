@@ -44,6 +44,8 @@ class ProtRelionClassify3D(pw.em.ProtClassify3D, ProtRelionBase):
     _label = '3D classification'
     CHANGE_LABELS = [md.RLN_OPTIMISER_CHANGES_OPTIMAL_ORIENTS, 
                      md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS,
+                     md.RLN_OPTIMISER_ACCURACY_ROT,
+                     md.RLN_OPTIMISER_ACCURACY_TRANS,
                      md.RLN_OPTIMISER_CHANGES_OPTIMAL_CLASSES]
     
     def __init__(self, **args):        

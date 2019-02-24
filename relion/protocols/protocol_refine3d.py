@@ -46,7 +46,9 @@ leads to objective and high-quality results.
     _label = '3D auto-refine'
     IS_CLASSIFY = False
     CHANGE_LABELS = [md.RLN_OPTIMISER_CHANGES_OPTIMAL_ORIENTS, 
-                     md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS]
+                     md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS,
+                     md.RLN_OPTIMISER_ACCURACY_ROT,
+                     md.RLN_OPTIMISER_ACCURACY_TRANS]
 
     PREFIXES = ['half1_', 'half2_']
     

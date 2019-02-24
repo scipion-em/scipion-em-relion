@@ -61,6 +61,8 @@ class ProtRelionBase(EMProtocol):
     CLASS_LABEL = md.RLN_PARTICLE_CLASS
     CHANGE_LABELS = [md.RLN_OPTIMISER_CHANGES_OPTIMAL_ORIENTS,
                      md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS,
+                     md.RLN_OPTIMISER_ACCURACY_ROT,
+                     md.RLN_OPTIMISER_ACCURACY_TRANS,
                      md.RLN_OPTIMISER_CHANGES_OPTIMAL_CLASSES]
     PREFIXES = ['']
 
