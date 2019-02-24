@@ -30,7 +30,6 @@
 
 import os
 from os.path import exists
-from glob import glob
 from pyworkflow.protocol.params import (PointerParam, FloatParam, StringParam,
                                         IntParam, BooleanParam, LEVEL_ADVANCED)
 from pyworkflow.em.data import Volume
