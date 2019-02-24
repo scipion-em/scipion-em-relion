@@ -604,59 +604,60 @@ class ProtRelionBase(EMProtocol):
                                    'used from this angular sampling rate '
                                    'onwards.')
 
-                form.addSection("Movies")
-                form.addParam('realignMovieFrames', BooleanParam, default=False,
-                              label='Refine movie particles?',
-                              help='If set to Yes, then running averages of '
-                                   'the particles from individual frames of '
-                                   'recorded movies will be aligned to the '
-                                   '3D reference.')
+                if not self.IS_V3:
+                    form.addSection("Movies")
+                    form.addParam('realignMovieFrames', BooleanParam, default=False,
+                                  label='Refine movie particles?',
+                                  help='If set to Yes, then running averages of '
+                                       'the particles from individual frames of '
+                                       'recorded movies will be aligned to the '
+                                       '3D reference.')
 
-                group = form.addGroup('Movie frames alignment',
-                                      condition='realignMovieFrames and '
-                                                'doContinue')
-                group.addParam('inputMovieParticles', PointerParam,
-                               pointerClass='SetOfMovieParticles',
-                               allowsNull=True, important=True,
-                               label='Input movie particles')
-                group.addParam('movieAvgWindow', FloatParam, default=5,
-                               label='Running average window',
-                               help='The individual movie frames will be '
-                                    'averaged using a running average window '
-                                    'with the specified width. Use an odd '
-                                    'number. The optimal value will depend on '
-                                    'the SNR in the individual movie frames. '
-                                    'For ribosomes, we used a value of 5, '
-                                    'where each movie frame integrated '
-                                    'approximately 1 electron per squared '
-                                    'Angstrom.')
-                group.addParam('movieStdTrans', FloatParam, default=1,
-                               label='Stddev on the translations (px)',
-                               help='A Gaussian prior with the specified '
-                                    'standard deviation will be centered at '
-                                    'the rotations determined for the '
-                                    'corresponding particle where all '
-                                    'movie-frames were averaged. For '
-                                    'ribosomes, we used a value of 2 pixels. ')
-                group.addParam('movieIncludeRotSearch', BooleanParam,
-                               default=False,
-                               label='Also include rotational searches?',
-                               help='If set to Yes, then running averages of '
-                                    'the individual frames of recorded movies '
-                                    'will also be aligned rotationally. \n'
-                                    'If one wants to perform particle '
-                                    'polishing, then rotational alignments of '
-                                    'the movie frames is NOT necessary and '
-                                    'will only take more computing time.')
-                group.addParam('movieStdRot', FloatParam, default=1,
-                               condition='movieIncludeRotSearch',
-                               label='Stddev on the rotations (deg)',
-                               help='A Gaussian prior with the specified '
-                                    'standard deviation will be centered at '
-                                    'the rotations determined for the '
-                                    'corresponding particle where all '
-                                    'movie-frames were averaged. For '
-                                    'ribosomes, we used a value of 1 degree')
+                    group = form.addGroup('Movie frames alignment',
+                                          condition='realignMovieFrames and '
+                                                    'doContinue')
+                    group.addParam('inputMovieParticles', PointerParam,
+                                   pointerClass='SetOfMovieParticles',
+                                   allowsNull=True, important=True,
+                                   label='Input movie particles')
+                    group.addParam('movieAvgWindow', FloatParam, default=5,
+                                   label='Running average window',
+                                   help='The individual movie frames will be '
+                                        'averaged using a running average window '
+                                        'with the specified width. Use an odd '
+                                        'number. The optimal value will depend on '
+                                        'the SNR in the individual movie frames. '
+                                        'For ribosomes, we used a value of 5, '
+                                        'where each movie frame integrated '
+                                        'approximately 1 electron per squared '
+                                        'Angstrom.')
+                    group.addParam('movieStdTrans', FloatParam, default=1,
+                                   label='Stddev on the translations (px)',
+                                   help='A Gaussian prior with the specified '
+                                        'standard deviation will be centered at '
+                                        'the rotations determined for the '
+                                        'corresponding particle where all '
+                                        'movie-frames were averaged. For '
+                                        'ribosomes, we used a value of 2 pixels. ')
+                    group.addParam('movieIncludeRotSearch', BooleanParam,
+                                   default=False,
+                                   label='Also include rotational searches?',
+                                   help='If set to Yes, then running averages of '
+                                        'the individual frames of recorded movies '
+                                        'will also be aligned rotationally. \n'
+                                        'If one wants to perform particle '
+                                        'polishing, then rotational alignments of '
+                                        'the movie frames is NOT necessary and '
+                                        'will only take more computing time.')
+                    group.addParam('movieStdRot', FloatParam, default=1,
+                                   condition='movieIncludeRotSearch',
+                                   label='Stddev on the rotations (deg)',
+                                   help='A Gaussian prior with the specified '
+                                        'standard deviation will be centered at '
+                                        'the rotations determined for the '
+                                        'corresponding particle where all '
+                                        'movie-frames were averaged. For '
+                                        'ribosomes, we used a value of 1 degree')
 
         form.addSection('Compute')
         self._defineComputeParams(form)
@@ -1059,8 +1060,6 @@ class ProtRelionBase(EMProtocol):
         continueRun = self.continueRun.get()
         continueRun._initialize()
 
-        if self.IS_CLASSIFY:
-            self.copyAttributes(continueRun, 'regularisationParamT')
         self._setBasicArgs(args)
 
         continueIter = self._getContinueIter()

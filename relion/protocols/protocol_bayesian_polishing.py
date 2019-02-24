@@ -321,4 +321,3 @@ class ProtRelionBayesianPolishing(em.ProtParticles):
 
     def _getInputPath(self, *paths):
         return self._getPath('input', *paths)
-

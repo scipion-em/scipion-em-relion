@@ -46,6 +46,10 @@ class ProtRelionExtractMovieParticles(ProtExtractMovieParticles,
     """Protocol to extract particles from a set of coordinates"""
     _label = 'movie particles extraction'
 
+    @classmethod
+    def isDisabled(cls):
+        return relion.Plugin.isVersion3Active()
+
     def __init__(self, **kwargs):
         ProtExtractMovieParticles.__init__(self, **kwargs)
         self.stepsExecutionMode = STEPS_SERIAL
