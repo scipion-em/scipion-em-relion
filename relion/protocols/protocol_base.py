@@ -80,7 +80,8 @@ class ProtRelionBase(EMProtocol):
         if not self.doContinue:
             self.continueRun.set(None)
         else:
-            self.referenceVolume.set(None)
+            if not self.IS_2D:
+                self.referenceVolume.set(None)
 
     def _createFilenameTemplates(self):
         """ Centralize how files are called for iterations and references. """
