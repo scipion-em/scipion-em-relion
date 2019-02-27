@@ -165,7 +165,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
     # --------------------------- STEPS functions -------------------------------
     def _convertInputStep(self):
         self.info("Relion version:")
-        self.runJob("which", "relion_run_motioncorr")
+        self.runJob("relion_run_motioncorr --version", numberOfMpi=1)
 
         ProtAlignMovies._convertInputStep(self)
 
@@ -189,7 +189,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
         inputMovies = self.inputMovies.get()
         if inputMovies.getGain():
-            # TODO: Maybe we need to convert the gain to mrc if not?
             args += ' --gainref "%s"' % inputMovies.getGain()
             args += ' --gain_rot %d ' % self.gainRot
             args += ' --gain_flip %d ' % self.gainFlip
