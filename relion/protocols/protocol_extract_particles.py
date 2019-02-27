@@ -82,7 +82,7 @@ class ProtRelionExtractParticles(pw.em.ProtExtractParticles, ProtRelionBase):
 
         form.addParam('backDiameter', params.IntParam, default=-1,
                       condition='doNormalize',
-                      label='Diameter background circle (px)',
+                      label='Diameter background circle before scaling (px)',
                       help='Particles will be normalized to a mean value of '
                            'zero and a standard-deviation of one for all '
                            'pixels in the background area. The background area '
