@@ -125,7 +125,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
             objLabel='relion - extract',
             boxSize=256, doRescale=True, rescaledSize=64,
             doInvert=True, doNormalize=True,
-            backDiameter=50,
+            backDiameter=200,
             numberOfMpi=CPUS/2,
             downsamplingType=0,  # Micrographs same as picking
         )
@@ -150,9 +150,16 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
             allParticlesRam=True
         )
 
-        protRelion2D.inputParticles.set(protExtract.outputParticles)
-        protRelion2D = self.launchProtocol(protRelion2D)
-        return protRelion2D
+    def _runInitModel(self, protRelion2D):
+        relionIniModel = self.newProtocol(relion.protocols.ProtRelionInitialModel,
+                                          doCTF = False, doGpu = True,
+                                          maskDiameterA = 200,
+                                          numberOfIterations = 5,
+                                          symmetryGroup = 'd2',
+                                          numberOfMpi = 3, numberOfThreads = 2)
+        relionIniModel.inputParticles.set(protRelion2D.outputParticles)
+        protInitModel = self.launchProtocol(relionIniModel)
+        return protInitModel
 
     def test_workflow(self):
         protImport = self._importMovies()
@@ -161,6 +168,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         protRelionLog = self._runRelionLog(protRelionMc)
         protRelionExtract = self._runRelionExtract(protRelionLog, protGctf)
         protRelion2D = self._runRelion2D(protRelionExtract)
+        protInitModel = self._runRelion2D(protRelion2D)
 
 
 if __name__ == '__main__':
