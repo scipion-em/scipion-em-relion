@@ -865,10 +865,6 @@ class ProtRelionBase(EMProtocol):
             hasAlign = alignType != em.ALIGN_NONE
             alignToPrior = hasAlign and getattr(self, 'alignmentAsPriors', False)
             fillRandomSubset = hasAlign and getattr(self, 'fillRandomSubset', False)
-            relion3Labels = [md.RLN_PARTICLE_RANDOM_SUBSET
-                             ,md.RLN_IMAGE_BEAMTILT_X
-                             ,md.RLN_IMAGE_BEAMTILT_Y
-                            ]
 
             relion3Labels = [md.RLN_PARTICLE_RANDOM_SUBSET,
                              md.RLN_IMAGE_BEAMTILT_X,
