@@ -181,8 +181,6 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         self.runJob(prog, args)
 
     def createOutputStep(self):
-        #rlnBeamTiltXLabel = md.getNewAlias("rlnBeamTiltX", md.LABEL_DOUBLE)
-        #rlnBeamTiltYLabel = md.getNewAlias("rlnBeamTiltY", md.LABEL_DOUBLE)
         imgSet = self.inputParticles.get()
         outImgSet = self._createSetOfParticles()
         outImgSet.copyInfo(imgSet)
