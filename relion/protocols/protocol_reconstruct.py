@@ -123,7 +123,9 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         if self.numberOfMpi > 1:
             program += '_mpi'
         if self.numberOfThreads > 1 and not IS_V2:
-            program += '_openmp'
+            # TODO: comment josemiguel
+            pass #
+            # program += '_openmp'
         return program
 
     def _insertReconstructStep(self):
