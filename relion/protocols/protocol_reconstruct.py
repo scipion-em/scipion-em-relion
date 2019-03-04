@@ -124,6 +124,8 @@ class ProtRelionReconstruct(ProtReconstruct3D):
             program += '_mpi'
         if self.numberOfThreads > 1 and not IS_V2:
             # TODO: comment josemiguel
+            # This need a better solution
+            # but just addding openmp will not work
             pass #
             # program += '_openmp'
         return program
