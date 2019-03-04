@@ -178,7 +178,6 @@ class ProtRelionCtfRefinement(em.ProtParticles):
 
         args += "--j %d " % self.numberOfThreads
         prog = "relion_ctf_refine" + ("_mpi" if self.numberOfMpi > 1 else "")
-        print (prog, args)
         self.runJob(prog, args)
 
     def createOutputStep(self):
