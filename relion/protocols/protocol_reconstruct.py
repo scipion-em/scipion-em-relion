@@ -106,7 +106,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         line.addParam('beamTiltX', FloatParam, default='0.0', label='X ')
         line.addParam('beamTiltY', FloatParam, default='0.0', label='Y ')            
         
-        form.addParallelSection(threads=2, mpi=1)
+        form.addParallelSection(threads=1, mpi=1)
         #TODO: Add an option to allow the user to
         # decide if copy binary files or not
             
@@ -122,12 +122,6 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         """ Get the program name depending on the MPI use or not. """
         if self.numberOfMpi > 1:
             program += '_mpi'
-        if self.numberOfThreads > 1 and not IS_V2:
-            # TODO: comment josemiguel
-            # This need a better solution
-            # but just addding openmp will not work
-            pass #
-            # program += '_openmp'
         return program
 
     def _insertReconstructStep(self):
@@ -141,9 +135,8 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         params += ' --maxres %0.3f' % self.maxRes.get()
         params += ' --pad %0.3f' % self.pad.get()
 
-        if self.numberOfThreads > 1:
-            threadsArg = 'j' if IS_V2 else 'jomp'
-            params += ' --%s %d' % (threadsArg, self.numberOfThreads)
+        if self.numberOfThreads > 1 and IS_V2:
+            params += ' --j %d' % self.numberOfThreads
 
         #TODO Test that the CTF part is working
         if self.doCTF:
