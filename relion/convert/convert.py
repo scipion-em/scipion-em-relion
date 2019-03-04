@@ -113,21 +113,21 @@ def rowToObject(row, obj, attrDict, extraLabels=[]):
             as properties with the label name such as: _rlnSomeThing
     """
     obj.setEnabled(row.getValue(md.RLN_IMAGE_ENABLED, 1) > 0)
-    
+
     for attr, label in attrDict.iteritems():
         value = row.getValue(label)
         if not hasattr(obj, attr):
             setattr(obj, attr, ObjectWrap(value))
         else:
             getattr(obj, attr).set(value)
-        
+
     attrLabels = attrDict.values()
-    
+
     for label in extraLabels:
         if label not in attrLabels and row.hasLabel(label):
             labelStr = md.label2Str(label)
             setattr(obj, '_' + labelStr, row.getValueAsObject(label))
-    
+
 
 def setObjId(obj, mdRow, label=md.RLN_IMAGE_ID):
     obj.setObjId(mdRow.getValue(label, None))
@@ -387,6 +387,11 @@ def particleToRow(part, partRow, **kwargs):
     if kwargs.get('fillRandomSubset') and part.hasAttribute('_rlnRandomSubset'):
         partRow.setValue(md.RLN_PARTICLE_RANDOM_SUBSET,
                          int(part._rlnRandomSubset.get()))
+        if part.hasAttribute('_rlnBeamTiltX'):
+            partRow.setValue(md.RLN_IMAGE_BEAMTILT_X,
+                         float(part._rlnBeamTiltX.get()))
+            partRow.setValue(md.RLN_IMAGE_BEAMTILT_Y,
+                         float(part._rlnBeamTiltY.get()))
 
     imageToRow(part, partRow, md.RLN_IMAGE_NAME, **kwargs)
 

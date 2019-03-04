@@ -865,12 +865,17 @@ class ProtRelionBase(EMProtocol):
             hasAlign = alignType != em.ALIGN_NONE
             alignToPrior = hasAlign and getattr(self, 'alignmentAsPriors', False)
             fillRandomSubset = hasAlign and getattr(self, 'fillRandomSubset', False)
+            relion3Labels = [md.RLN_PARTICLE_RANDOM_SUBSET
+                             ,md.RLN_IMAGE_BEAMTILT_X
+                             ,md.RLN_IMAGE_BEAMTILT_Y
+                            ]
 
             relion.convert.writeSetOfParticles(
                 imgSet, imgStar, self._getExtraPath(),
                 alignType=alignType,
                 postprocessImageRow=self._postprocessParticleRow,
-                fillRandomSubset=fillRandomSubset)
+                fillRandomSubset=fillRandomSubset,
+                extraLabels=relion3Labels)
 
             if alignToPrior:
                 mdParts = md.MetaData(imgStar)
