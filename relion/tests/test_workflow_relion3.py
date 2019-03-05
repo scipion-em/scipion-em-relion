@@ -28,9 +28,9 @@ import os
 
 import pyworkflow.tests as pwtests
 from pyworkflow.tests.em.workflows import TestWorkflow
+from pyworkflow.utils import importFromPlugin
 import pyworkflow.em as pwem
 
-from gctf.protocols import ProtGctf
 import relion
 import relion.protocols
 
@@ -105,6 +105,8 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         return protRelionLog
 
     def _runGctf(self, protMc):
+        ProtGctf = importFromPlugin('gctf.protocols', 'ProtGctf')
+
         protGctf = self.newProtocol(
             ProtGctf,
             objLabel='gctf',
