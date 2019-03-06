@@ -23,14 +23,13 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-"""
-This modules contains constants related to Relion protocols
-"""
 
-#------------------ Constants values --------------------------------------
 from collections import OrderedDict
 
 import pyworkflow.em.metadata as md
+
+
+# ----------------- Constants values --------------------------------------
 
 RELION_HOME = 'RELION_HOME'
 RELION_CUDA_LIB = 'RELION_CUDA_LIB'
@@ -38,6 +37,7 @@ RELION_CUDA_LIB = 'RELION_CUDA_LIB'
 # Supported versions:
 V2_0 = '2.0'
 V2_1 = '2.1'
+V3_0 = '3.0'
 
 MASK_FILL_ZERO = 0
 MASK_FILL_NOISE = 1
@@ -59,10 +59,10 @@ MICS_AUTO = 0
 MICS_SUBSET = 1
 
 # Protocol create mask 3d
-AND = 0
-OR = 1
-AND_NOT = 2
-OR_NOT = 3
+MASK_AND = 0
+MASK_OR = 1
+MASK_AND_NOT = 2
+MASK_OR_NOT = 3
 
 # Protocol export particles
 STACK_NONE = 0

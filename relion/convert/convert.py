@@ -33,29 +33,27 @@ from os.path import join, basename
 import numpy
 from itertools import izip
 
+import pyworkflow as pw
 from pyworkflow.object import ObjectWrap, String, Integer
-from pyworkflow.utils.path import (createLink, cleanPath, copyFile,
-                                   replaceBaseExt, getExt, removeExt)
-import pyworkflow.em as em
 import pyworkflow.em.metadata as md
 from pyworkflow.em.constants import NO_INDEX
 
 from relion.constants import *
-
+from .metadata import Table
 
 
 def locationToRelion(index, filename):
     """ Convert an index and filename location
     to a string with @ as expected in Relion.
     """
-    if index != em.NO_INDEX:
+    if index != pw.em.NO_INDEX:
         return "%06d@%s" % (index, filename)
     
     return filename
 
 
 def getImageLocation(location):
-    return em.ImageHandler.locationToXmipp(location)
+    return pw.em.ImageHandler.locationToXmipp(location)
 
 
 def relionToLocation(filename):
@@ -65,7 +63,7 @@ def relionToLocation(filename):
         indexStr, fn = filename.split('@')
         return int(indexStr), str(fn)
     else:
-        return em.NO_INDEX, str(filename)
+        return pw.em.NO_INDEX, str(filename)
 
 
 def setRelionAttributes(obj, objRow, *labels):
@@ -88,11 +86,7 @@ def objectToRow(obj, row, attrDict, extraLabels=[]):
         extraLabels: a list with extra labels that could be included
             as _xmipp_labelName
     """
-    if obj.isEnabled():
-        enabled = True
-    else:
-        enabled = False
-    row.setValue(md.RLN_IMAGE_ENABLED, enabled)
+    row.setValue(md.RLN_IMAGE_ENABLED, obj.isEnabled())
     
     for attr, label in attrDict.iteritems():
         if hasattr(obj, attr):
@@ -151,7 +145,7 @@ def acquisitionToRow(acquisition, ctfRow):
 def rowToAcquisition(acquisitionRow):
     """ Create an acquisition from a row of a meta """
     if acquisitionRow.containsAll(ACQUISITION_DICT):
-        acquisition = em.Acquisition()
+        acquisition = pw.em.Acquisition()
         rowToObject(acquisitionRow, acquisition, ACQUISITION_DICT) 
     else:                
         acquisition = None
@@ -183,7 +177,7 @@ def ctfModelToRow(ctfModel, ctfRow):
 def rowToCtfModel(ctfRow):
     """ Create a CTFModel from a row of a meta """
     if ctfRow.containsAll(CTF_DICT):
-        ctfModel = em.CTFModel()
+        ctfModel = pw.em.CTFModel()
 
         rowToObject(ctfRow, ctfModel, CTF_DICT, extraLabels=CTF_EXTRA_LABELS)
         if ctfRow.hasLabel(md.RLN_CTF_PHASESHIFT):
@@ -197,7 +191,7 @@ def rowToCtfModel(ctfRow):
 
 
 def geometryFromMatrix(matrix, inverseTransform):
-    from pyworkflow.em.convert.transformations import  translation_from_matrix, euler_from_matrix
+    from pyworkflow.em.convert.transformations import translation_from_matrix, euler_from_matrix
 
     if inverseTransform:
         from numpy.linalg import inv
@@ -213,7 +207,7 @@ def matrixFromGeometry(shifts, angles, inverseTransform):
     """ Create the transformation matrix from a given
     2D shifts in X and Y...and the 3 euler angles.
     """
-    from pyworkflow.em.convert.transformations import  euler_matrix
+    from pyworkflow.em.convert.transformations import euler_matrix
     from numpy import deg2rad
     radAngles = -deg2rad(angles)
     M = euler_matrix(radAngles[0], radAngles[1], radAngles[2], 'szyz')
@@ -234,9 +228,9 @@ def alignmentToRow(alignment, alignmentRow, alignType):
     invTransform == True  -> for xmipp implies projection
                           -> for xmipp implies alignment
     """
-    is2D = alignType == em.ALIGN_2D
-    is3D = alignType == em.ALIGN_3D
-    inverseTransform = alignType == em.ALIGN_PROJ
+    is2D = alignType == pw.em.ALIGN_2D
+    is3D = alignType == pw.em.ALIGN_3D
+    inverseTransform = alignType == pw.em.ALIGN_PROJ
     matrix = alignment.getMatrix()
     shifts, angles = geometryFromMatrix(matrix, inverseTransform)
 
@@ -270,13 +264,13 @@ def rowToAlignment(alignmentRow, alignType):
             otherwise matrix is 3D (3D volume alignment or projection)
     invTransform == True  -> for xmipp implies projection
     """
-    if alignType == em.ALIGN_3D:
+    if alignType == pw.em.ALIGN_3D:
         raise Exception("3D alignment conversion for Relion not implemented.")
 
-    is2D = alignType == em.ALIGN_2D
-    inverseTransform = alignType == em.ALIGN_PROJ
+    is2D = alignType == pw.em.ALIGN_2D
+    inverseTransform = alignType == pw.em.ALIGN_PROJ
     if alignmentRow.containsAny(ALIGNMENT_DICT):
-        alignment = em.Transform()
+        alignment = pw.em.Transform()
         angles = numpy.zeros(3)
         shifts = numpy.zeros(3)
         shifts[0] = alignmentRow.getValue(md.RLN_ORIENT_ORIGIN_X, 0.)
@@ -313,7 +307,7 @@ def rowToCoordinate(coordRow):
     """ Create a Coordinate from a row of a meta """
     # Check that all required labels are present in the row
     if coordRow.containsAll(COOR_DICT):
-        coord = em.Coordinate()
+        coord = pw.em.Coordinate()
         rowToObject(coordRow, coord, COOR_DICT, extraLabels=COOR_EXTRA_LABELS)
 
         micName = None
@@ -357,7 +351,7 @@ def imageToRow(img, imgRow, imgLabel=md.RLN_IMAGE_NAME, **kwargs):
     # and detected defaults if not passed at readSetOf.. level
     alignType = kwargs.get('alignType') 
     
-    if alignType != em.ALIGN_NONE and img.hasTransform():
+    if alignType != pw.em.ALIGN_NONE and img.hasTransform():
         alignmentToRow(img.getTransform(), imgRow, alignType)
                 
     if kwargs.get('writeAcquisition', True) and img.hasAcquisition():
@@ -397,7 +391,7 @@ def particleToRow(part, partRow, **kwargs):
     imageToRow(part, partRow, md.RLN_IMAGE_NAME, **kwargs)
 
 
-def rowToParticle(partRow, particleClass=em.Particle, **kwargs):
+def rowToParticle(partRow, particleClass=pw.em.Particle, **kwargs):
     """ Create a Particle from a row of a meta """
     img = particleClass()
     
@@ -421,7 +415,7 @@ def rowToParticle(partRow, particleClass=em.Particle, **kwargs):
     # and detected defaults if not passed at readSetOf.. level
     alignType = kwargs.get('alignType') 
     
-    if alignType != em.ALIGN_NONE:
+    if alignType != pw.em.ALIGN_NONE:
         img.setTransform(rowToAlignment(partRow, alignType))
         
     if kwargs.get('readAcquisition', True):
@@ -474,7 +468,7 @@ def readSetOfParticles(filename, partSet, **kwargs):
 
 
 def readSetOfMovieParticles(filename, partSet, **kwargs):
-    readSetOfParticles(filename, partSet, particleClass=em.MovieParticle, **kwargs)
+    readSetOfParticles(filename, partSet, particleClass=pw.em.MovieParticle, **kwargs)
     
 
 def setOfImagesToMd(imgSet, imgMd, imgToFunc, **kwargs):
@@ -539,7 +533,7 @@ def writeReferences(inputSet, outputRoot, useBasename=False, **kwargs):
     stackFile = outputRoot + '.stk'
     stackName = basename(stackFile) if useBasename else stackFile
     starFile = outputRoot + '.star'
-    ih = em.ImageHandler()
+    ih = pw.em.ImageHandler()
     row = md.Row()
 
     def _convert(item, i, convertFunc):
@@ -549,19 +543,19 @@ def writeReferences(inputSet, outputRoot, useBasename=False, **kwargs):
         convertFunc(item, row, **kwargs)
         row.writeToMd(refsMd, refsMd.addObject())
 
-    if isinstance(inputSet, em.SetOfAverages):
+    if isinstance(inputSet, pw.em.SetOfAverages):
         for i, img in enumerate(inputSet):
             _convert(img, i, particleToRow)
 
-    elif isinstance(inputSet, em.SetOfClasses2D):
+    elif isinstance(inputSet, pw.em.SetOfClasses2D):
         for i, rep in enumerate(inputSet.iterRepresentatives()):
             _convert(rep, i, particleToRow)
 
-    elif isinstance(inputSet, em.SetOfClasses3D):
+    elif isinstance(inputSet, pw.em.SetOfClasses3D):
         for i, rep in enumerate(inputSet.iterRepresentatives()):
             _convert(rep, i, imageToRow)
 
-    elif isinstance(inputSet, em.SetOfVolumes):
+    elif isinstance(inputSet, pw.em.SetOfVolumes):
         for i, vol in enumerate(inputSet):
             _convert(vol, i, imageToRow)
 
@@ -587,7 +581,7 @@ def writeSetOfMicrographs(micSet, starFile, **kwargs):
     """
     micMd = md.MetaData()
     setOfImagesToMd(micSet, micMd, micrographToRow, **kwargs)
-    blockName = kwargs.get('blockName', 'Micrographs')
+    blockName = kwargs.get('blockName', 'Particles')
     micMd.write('%s@%s' % (blockName, starFile))
 
 
@@ -604,8 +598,8 @@ def writeSqliteIterData(imgStar, imgSqlite, **kwargs):
     for this iteration. This file can be visualized sorted
     by the LogLikelihood.
     """
-    cleanPath(imgSqlite)
-    imgSet = em.SetOfParticles(filename=imgSqlite)
+    pw.utils.cleanPath(imgSqlite)
+    imgSet = pw.em.SetOfParticles(filename=imgSqlite)
     readSetOfParticles(imgStar, imgSet, **kwargs)
     imgSet.write()
     
@@ -664,9 +658,9 @@ def copyOrLinkFileName(imgRow, prefixDir, outputDir, copyFiles=False):
     newName = os.path.join(outputDir, baseName)
     if not os.path.exists(newName):
         if copyFiles:
-            copyFile(os.path.join(prefixDir, imgPath), newName)
+            pw.utils.copyFile(os.path.join(prefixDir, imgPath), newName)
         else:
-            createLink(os.path.join(prefixDir, imgPath), newName)
+            pw.utils.createLink(os.path.join(prefixDir, imgPath), newName)
             
     imgRow.setValue(md.RLN_IMAGE_NAME, locationToRelion(index, newName))
     
@@ -702,15 +696,15 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs'):
         If empty, not conversion was done.
     """
     filesDict = {}
-    ih = em.ImageHandler()
+    ih = pw.em.ImageHandler()
     
     def getUniqueFileName(fn, extension):
         """ Get an unique file for either link or convert files.
         It is possible that the base name overlap if they come
         from different runs. (like particles.mrcs after relion preprocess)
         """
-        newFn = join(outputDir, replaceBaseExt(fn, extension))
-        newRoot = removeExt(newFn)
+        newFn = join(outputDir, pw.utils.replaceBaseExt(fn, extension))
+        newRoot = pw.utils.removeExt(newFn)
         
         values = filesDict.values()
         counter = 1
@@ -726,7 +720,7 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs'):
         that it is a binary stack file and not a volume.
         """
         newFn = getUniqueFileName(fn, extension)
-        createLink(fn, newFn)
+        pw.utils.createLink(fn, newFn)
         return newFn
         
     def convertStack(fn):
@@ -736,18 +730,20 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs'):
         newFn = getUniqueFileName(fn, 'stk')
         ih.convertStack(fn, newFn)
         return newFn
-        
-    ext = getExt(imgSet.getFirstItem().getFileName())[1:] # remove dot in extension
+
+    # Get the extension without the dot
+    ext = pw.utils.getExt(imgSet.getFirstItem().getFileName())[1:]
     
     if ext == extension:
         mapFunc = createBinaryLink
-        print "convertBinaryFiles: creating soft links."
+        print("convertBinaryFiles: creating soft links.")
     elif ext == 'mrc' and extension == 'mrcs':
         mapFunc = createBinaryLink
-        print "convertBinaryFiles: creating soft links (mrcs -> mrc)."
+        print("convertBinaryFiles: creating soft links (mrcs -> mrc).")
     elif ext.endswith('hdf'): # assume eman .hdf format
         mapFunc = convertStack
-        print "convertBinaryFiles: converting stacks. (%s -> %s)" % (extension, ext)
+        print("convertBinaryFiles: converting stacks. (%s -> %s)"
+              % (extension, ext))
     else:
         mapFunc = None
         
@@ -755,7 +751,7 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs'):
         for fn in imgSet.getFiles():
             newFn = mapFunc(fn) # convert or link 
             filesDict[fn] = newFn # map new filename
-            print "   %s -> %s" % (newFn, fn)
+            print("   %s -> %s" % (newFn, fn))
 
     return filesDict
 
@@ -769,7 +765,7 @@ def convertBinaryVol(vol, outputDir):
         new file name of the volume (converted or not).
     """
     
-    ih = em.ImageHandler()
+    ih = pw.em.ImageHandler()
     # This approach can be extended when
     # converting from a binary file format that
     # is not read from Relion
@@ -777,7 +773,7 @@ def convertBinaryVol(vol, outputDir):
         """ Convert from a format that is not read by Relion
         to mrc format.
         """
-        newFn = join(outputDir, replaceBaseExt(fn, 'mrc'))
+        newFn = join(outputDir, pw.utils.replaceBaseExt(fn, 'mrc'))
         ih.convert(fn, newFn)
         return newFn
         
@@ -801,9 +797,9 @@ def convertMask(img, outputDir):
         new file name of the mask.
     """
     
-    ih = em.ImageHandler()
+    ih = pw.em.ImageHandler()
     imgFn = getImageLocation(img.getLocation())
-    newFn = join(outputDir, replaceBaseExt(imgFn, 'mrc'))
+    newFn = join(outputDir, pw.utils.replaceBaseExt(imgFn, 'mrc'))
     
     ih.truncateMask(imgFn, newFn)
     
@@ -942,7 +938,7 @@ def writeSetOfCoordinatesXmipp(posDir, coordSet, ismanual=True, scale=1):
         if micIndex != NO_INDEX:
             micName = '%06d_at_%s' % (micIndex, micName)
 
-        posFn = join(posDir, replaceBaseExt(micName, "pos"))
+        posFn = join(posDir, pw.utils.replaceBaseExt(micName, "pos"))
         posDict[mic.getObjId()] = posFn
 
     f = None
@@ -1049,3 +1045,14 @@ def writeMicCoordinates(mic, coordList, outputFn, getPosFunc=None):
                        coord._rlnAnglePsi))
 
     f.close()
+
+
+def getVolumesFromPostprocess(postStar):
+    """ Return the filenames of half1, half2 and mask from
+    a given postproces.star file.
+    """
+    table = Table(fileName=postStar, tableName='general')
+    row = table[0]
+    return (row.rlnUnfilteredMapHalf1,
+            row.rlnUnfilteredMapHalf2,
+            row.rlnMaskName)

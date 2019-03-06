@@ -1,8 +1,10 @@
 # **************************************************************************
 # *
-# * Authors:     Jose Gutierrez (jose.gutierrez@cnb.csic.es)
+# * Authors:     Jose Gutierrez (jose.gutierrez@cnb.csic.es) [1]
+# *              J.M. De la Rosa Trevin (delarosatrevin@scilifelab.se) [2]
 # *
-# * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+# * [1] Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+# * [2] SciLifeLab, Stockholm University
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -24,21 +26,23 @@
 # *
 # **************************************************************************
 
+
 import os
 from collections import OrderedDict
 
-import pyworkflow.utils as pwutils
+import pyworkflow as pw
 from pyworkflow.em import *
+from pyworkflow.em.viewers import CoordinatesObjectView
 from pyworkflow.em.wizard import *
+import pyworkflow.em.metadata as md
 
 from relion.constants import *
 from relion.convert import writeSetOfMicrographs
 from relion.protocols import (
     ProtRelionClassify3D, ProtRelionRefine3D, ProtRelionClassify2D,
-    ProtRelionPreprocessParticles,
+    ProtRelionPreprocessParticles, ProtRelionAutopickLoG,
     ProtRelion2Autopick, ProtRelionCreateMask3D,
     ProtRelionSortParticles, ProtRelionInitialModel)
-
 
 #===============================================================================
 # MASKS
@@ -153,7 +157,6 @@ class RelionVolFilterWizard(FilterVolumesWizard):
         provider = self._getProvider(protocol)
 
         if provider is not None:
-
             args = {'mode': params['mode'],
                     'highFreq': params['value'],
                     'unit': UNIT_ANGSTROM
@@ -175,6 +178,13 @@ class RelionVolFilterWizard(FilterVolumesWizard):
 # PICKING
 #===============================================================================
 
+# class RelionPartDiameter(RelionPartMaskDiameterWizard):
+#     _targets = [(ProtRelionAutopickFom, ['particleDiameter'])]
+#
+#     def _getProtocolImages(self, protocol):
+#         return protocol.inputReferences
+
+
 class Relion2AutopickParams(EmWizard):
     _targets = [(ProtRelion2Autopick, ['runType',
                                        'pickingThreshold',
@@ -185,15 +195,15 @@ class Relion2AutopickParams(EmWizard):
 
         if not autopickProt.hasAttribute('outputCoordinatesSubset'):
             form.showWarning("You should run the procotol in 'Optimize' mode "
-                             "at least once before opening the wizard.")
+                               "at least once before opening the wizard.")
             return
 
         project = autopickProt.getProject()
         micSet = autopickProt.outputMicrographsSubset
         micfn = micSet.getFileName()
         coordsDir = project.getTmpPath(micSet.getName())
-        pwutils.cleanPath(coordsDir)
-        pwutils.makePath(coordsDir)
+        pw.utils.cleanPath(coordsDir)
+        pw.utils.makePath(coordsDir)
 
         micStarFn = os.path.join(coordsDir, 'micrographs.xmd')
 
@@ -210,9 +220,9 @@ class Relion2AutopickParams(EmWizard):
 
         # Create a folder in extra to backup the original autopick star files
         backupDir = autopickProt._getExtraPath('wizard-backup')
-        pwutils.cleanPath(backupDir)
-        pwutils.makePath(backupDir)
-        pwutils.copyPattern(autopickProt._getExtraPath("*autopick.star"),
+        pw.utils.cleanPath(backupDir)
+        pw.utils.makePath(backupDir)
+        pw.utils.copyPattern(autopickProt._getExtraPath("*autopick.star"),
                             backupDir)
 
         cmd = '%s relion_autopick ' % pw.getScipionScript()
@@ -223,7 +233,7 @@ class Relion2AutopickParams(EmWizard):
         cmd += ' --read_fom_maps'
         cmd += autopickProt.getAutopickParams()
 
-        convertCmd = pwutils.join('apps', 'pw_convert.py')
+        convertCmd = pw.join('apps', 'pw_convert.py')
         convertCmd += ' --coordinates --from relion --to xmipp '
         convertCmd += ' --input %s' % micSet.getFileName()
         convertCmd += ' --output %s' % coordsDir
@@ -246,10 +256,10 @@ class Relion2AutopickParams(EmWizard):
         parameters = ipd,threshold,maxStddevNoise
         ipd.value = %(min_distance)s
         ipd.label = Inter-particles distance (A)
-        ipd.help = Minimum distance (in Angstroms) between particles
+        ipd.help = Particles closer together than this distance will be consider to be a single cluster. From each cluster, only one particle will be picked.
         threshold.value =  %(threshold)s
         threshold.label = Threshold
-        threshold.help = Picking threshold
+        threshold.help = Use lower thresholds to pick more particles (and more junk probably).
         maxStddevNoise.value = %(maxStddevNoise)s
         maxStddevNoise.label = Max. stddev noise
         maxStddevNoise.help = Prevent picking in carbon areas, useful values probably between 1.0 and 1.2, use -1 to switch it off
@@ -266,7 +276,7 @@ class Relion2AutopickParams(EmWizard):
                                         mode=CoordinatesObjectView.MODE_AUTOMATIC,
                                         pickerProps=pickerProps).show()
         process.wait()
-        myprops = pwutils.readProperties(pickerProps)
+        myprops = pw.utils.readProperties(pickerProps)
 
         # Check if the wizard changes were accepted or just canceled
         if myprops.get('applyChanges', 'false') == 'true':
@@ -275,13 +285,13 @@ class Relion2AutopickParams(EmWizard):
             form.setVar('maxStddevNoise', myprops['maxStddevNoise.value'])
             # Change the run type now to 'Compute' after using the wizard
             # and (supposedly) optimized parameters
-            form.setVar('runType', ProtRelion2Autopick.RUN_COMPUTE)
+            form.setVar('runType', RUN_COMPUTE)
             # Mark the wizard was used
             setattr(autopickProt, 'wizardExecuted', True)
         else:
             # If the wizard was not execute, we should restore the original
             # autopick star files in case their were modified by the wizard
-            pwutils.copyPattern(os.path.join(backupDir, "*autopick.star"),
+            pw.utils.copyPattern(os.path.join(backupDir, "*autopick.star"),
                                 autopickProt._getExtraPath())
 
 
@@ -301,3 +311,81 @@ class Relion2PartDiameter(RelionPartMaskDiameterWizard):
         else: # Gaussian blobs
             form.showWarning("This wizard only works when using input "
                              "references, not Gaussian blobs. ")
+
+
+class RelionWizLogPickParams(EmWizard):
+    _targets = [(ProtRelionAutopickLoG, ['minDiameter',
+                                         'maxDiameter',
+                                         'threshold'])]
+
+    def show(self, form):
+        autopickProt = form.protocol
+        project = autopickProt.getProject()
+        micSet = autopickProt.getInputMicrographs()
+        micfn = micSet.getFileName()
+        coordsDir = project.getTmpPath(micSet.getName())
+        print("coordsDir: ", coordsDir)
+        params, minDiameter, maxDiameter, threshold = autopickProt._getPickArgs()
+
+        pw.utils.cleanPath(coordsDir)
+        pw.utils.makePath(coordsDir, 'extra')
+        pickerProps = os.path.join(coordsDir, 'picker.conf')
+        micStarFn = os.path.join(coordsDir, 'input_micrographs.star')
+
+        def _postprocessMic(mic, micRow):
+            micFn = mic.getFileName()
+            micBase = os.path.basename(micFn)
+            pw.utils.createLink(micFn, os.path.join(coordsDir, micBase))
+            micRow.setValue(md.RLN_MICROGRAPH_NAME, micBase)
+
+        writeSetOfMicrographs(micSet, micStarFn, postprocessImageRow=_postprocessMic)
+
+        f = open(pickerProps, "w")
+
+        #params = params.replace('--odir ""', '--odir extra')
+        autopickCmd = "%s relion_autopick " % pw.getScipionScript()
+        autopickCmd += ' --i input_micrographs.star '
+        autopickCmd += params
+        autopickCmd += ' --LoG_diam_min %(mind) '
+        autopickCmd += ' --LoG_diam_max %(maxd) '
+        autopickCmd += ' --LoG_adjust_threshold %(threshold) '
+
+        args = {
+            "convert": pw.join('apps', 'pw_convert.py'),
+            'coordsDir': coordsDir,
+            'micsSqlite': micSet.getFileName(),
+            "minDiameter": minDiameter,
+            "maxDiameter": maxDiameter,
+            "threshold": threshold,
+            'projDir': project.getPath(), #autopickProt.getWorkingDir(),
+            "autopickCmd": autopickCmd
+        }
+
+        f.write("""
+        parameters = mind,maxd,threshold
+        mind.value = %(minDiameter)s
+        mind.label = Min. Diameter (A)
+        mind.help = The smallest allowed diameter for the blob-detection algorithm. This should correspond to the smallest size of your particles in Angstroms.
+        maxd.value = %(maxDiameter)s
+        maxd.label = Max. Diameter (A)
+        maxd.help = The largest allowed diameter for the blob-detection algorithm. This should correspond to the largest size of your particles in Angstroms.
+        threshold.value =  %(threshold)s
+        threshold.label = Threshold
+        threshold.help = Lower threshold -> more particles
+        runDir = %(coordsDir)s
+        autopickCommand = %(autopickCmd)s
+        convertCommand = %(convert)s --coordinates --from relion --to xmipp --input  %(micsSqlite)s --output %(coordsDir)s --extra %(coordsDir)s/
+        hasInitialCoordinates = false
+        doPickAll = true
+        """ % args)
+        f.close()
+        process = CoordinatesObjectView(autopickProt.getProject(), micfn, coordsDir, autopickProt,
+                                        pickerProps=pickerProps).show()
+        process.wait()
+        myprops = pw.utils.readProperties(pickerProps)
+
+        if myprops['applyChanges'] == 'true':
+            form.setVar('minDiameter', myprops['mind.value'])
+            form.setVar('maxDiameter', myprops['maxd.value'])
+            form.setVar('threshold', myprops['threshold.value'])
+

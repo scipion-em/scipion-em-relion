@@ -23,16 +23,16 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-from pyworkflow.em import ProtCreateMask3D, VolumeMask
+
+import pyworkflow as pw
 import pyworkflow.protocol.params as params
 
 import relion
 import relion.convert
-from relion.constants import AND, OR, AND_NOT, OR_NOT
+from relion.constants import MASK_AND, MASK_OR, MASK_AND_NOT, MASK_OR_NOT
 
 
-
-class ProtRelionCreateMask3D(ProtCreateMask3D):
+class ProtRelionCreateMask3D(pw.em.ProtCreateMask3D):
     """ This protocols creates a 3D mask using Relion.
     The mask is created from a 3d volume or by comparing two input volumes.
     """
@@ -45,13 +45,12 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
                       pointerClass="Volume",
                       label="Input volume",
                       help="Select the volume that will be used to create the mask")
-        if relion.Plugin.isVersion2Active():
-            form.addParam('initialLowPassFilterA', params.FloatParam,
-                          default=-1,
-                          label='Lowpass filter map by (A)',
-                          help='Lowpass filter that will be applied to the input map, '
-                               'prior to binarization. To calculate solvent masks, a '
-                               'lowpass filter of 15-20A may work well.')
+        form.addParam('initialLowPassFilterA', params.FloatParam,
+                      default=-1,
+                      label='Lowpass filter map by (A)',
+                      help='Lowpass filter that will be applied to the input map, '
+                           'prior to binarization. To calculate solvent masks, a '
+                           'lowpass filter of 15-20A may work well.')
         # TODO: add wizard
         form.addParam('threshold', params.FloatParam, default=0.02,
                       label='Initial binarisation threshold',
@@ -75,7 +74,7 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
                       label="Input volume (second)",
                       help="Select the volume that will be compared to the first one")
 
-        form.addParam('operation', params.EnumParam, default=AND,
+        form.addParam('operation', params.EnumParam, default=MASK_AND,
                       condition='doCompare',
                       expertLevel=params.LEVEL_ADVANCED,
                       label='Operation',
@@ -125,24 +124,19 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
         argsDict = {'--i ': self.inputVolFn,
                     '--ini_threshold ': self.threshold.get(),
                     '--extend_inimask ': self.extend.get(),
-                    '--width_soft_edge ': self.edge.get()
+                    '--width_soft_edge ': self.edge.get(),
+                    '--angpix ': self.inputVolume.get().getSamplingRate()
                     }
-        if (relion.Plugin.isVersion2Active()
-            and self.initialLowPassFilterA.get() != -1):
+        if self.initialLowPassFilterA.get() != -1:
             argsDict['--lowpass '] = self.initialLowPassFilterA.get()
 
         args = ' --o %s ' % self.maskFile
         args += ' '.join(['%s %s' % (k, v) for k, v in argsDict.iteritems()])
 
         if self.doCompare:
-            if self.operation.get() == AND:
-                args += ' --and %s' % self.inputVol2Fn
-            elif self.operation.get() == OR:
-                args += ' --or %s' % self.inputVol2Fn
-            elif self.operation.get() == AND_NOT:
-                args += ' --and_not %s' % self.inputVol2Fn
-            elif self.operation.get() == OR_NOT:
-                args += ' --or_not %s' % self.inputVol2Fn
+            op = self.operation.get()
+            opStr = ['--and', '--or', '--and_not', '--or_not'][op]
+            args += ' %s %s' % (opStr, self.inputVol2Fn)
 
         if self.doInvert:
             args += ' --invert'
@@ -152,7 +146,7 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
         return [self.maskFile]
 
     def createOutputStep(self):
-        volMask = VolumeMask()
+        volMask = pw.em.VolumeMask()
         volMask.setFileName(self.maskFile)
         volMask.setSamplingRate(self.inputVolume.get().getSamplingRate())
 
@@ -178,10 +172,7 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
             % self.threshold.get(),
             "*Mask processing*",
             "   Extend by %d pixels" % self.extend,
-            "   Apply soft edge of %d pixels" % self.edge,
-            "   Logical operation: %s" % self.getEnumText('operation')]
-        if self.doCompare:
-            messages.append("")
+            "   Apply soft edge of %d pixels" % self.edge]
         if self.doInvert:
             messages.append("   Inverted")
 

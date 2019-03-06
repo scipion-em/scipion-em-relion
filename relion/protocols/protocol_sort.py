@@ -126,8 +126,7 @@ class ProtRelionSortParticles(ProtParticles):
 
         form.addParallelSection(threads=0, mpi=1)
             
-    #--------------------------- INSERT steps functions -----------------------
-
+    # -------------------------- INSERT steps functions -----------------------
     def isInputAutoPicking(self):
         inputSet = self.inputSet.get()
         return (isinstance(inputSet, SetOfParticles) and
@@ -166,7 +165,6 @@ class ProtRelionSortParticles(ProtParticles):
         self._insertFunctionStep('runRelionStep', params)
 
     # -------------------------- STEPS functions ------------------------------
-
     def _createFilenameTemplates(self):
         """ Centralize how files are called. """
         myDict = {
@@ -208,7 +206,6 @@ class ProtRelionSortParticles(ProtParticles):
         if refSet:
             self.info("Converting reference from '%s' into %s"
                       % (refSet.getFileName(), refStar))
-
             # Compute class mapping
             classList = [cls.getObjId() for cls in refSet]
             classList.sort()
@@ -245,14 +242,9 @@ class ProtRelionSortParticles(ProtParticles):
         self._defineOutputs(outputParticles=sortedImgSet)
         self._defineSourceRelation(self.inputSet, sortedImgSet)
 
-
     # -------------------------- INFO functions -------------------------------
     def _validate(self):
         errors = []
-        #imgSet = self.inputParticles.get()
-        #if not imgSet.hasCTF() and self.doCTF:
-        #    errors.append('Input particles have no CTF information!')
-
         return errors
     
     def _summary(self):
@@ -308,11 +300,7 @@ class ProtRelionSortParticles(ProtParticles):
                      '--min_z': self.minZ.get()
                      })
         
-        if relion.Plugin.isVersion2Active():
-            args['--o'] = self._getFileName('output_star')
-        else:
-            args['--o'] = 'sorted'
-            
+        args['--o'] = self._getFileName('output_star')
         angpixRef = None
 
         if self.isInputAutoRefine():
@@ -323,7 +311,7 @@ class ProtRelionSortParticles(ProtParticles):
             if self.referenceAverages.hasValue():
                 angpixRef = self.referenceAverages.get().getSamplingRate()
 
-        if relion.Plugin.isVersion2Active() and angpixRef is not None:
+        if angpixRef is not None:
             args['--angpix_ref'] = '%0.3f' % angpixRef
 
         if self.doInvert:

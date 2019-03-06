@@ -27,15 +27,13 @@
 import os
 from os.path import join
 
+import pyworkflow as pw
 import pyworkflow.protocol.params as params
-import pyworkflow.utils as pwutils
-from pyworkflow.em.protocol import EMProtocol
-from pyworkflow.em.data import SetOfMicrographs
 
 import relion.convert
 
 
-class ProtRelionExportCtf(EMProtocol):
+class ProtRelionExportCtf(pw.em.EMProtocol):
     """ Export a SetOfCTF to a Relion STAR file. """
 
     _label = 'export ctf'
@@ -82,14 +80,14 @@ class ProtRelionExportCtf(EMProtocol):
         else:
             ctfMicSet = self.inputMicrographs.get()
 
-        micSet = SetOfMicrographs(filename=':memory:')
+        micSet = pw.em.SetOfMicrographs(filename=':memory:')
 
         psd = inputCTF.getFirstItem().getPsdFile()
         hasPsd = psd and os.path.exists(psd)
 
         if hasPsd:
             psdPath = self._getPath('PSD')
-            pwutils.makePath(psdPath)
+            pw.utils.makePath(psdPath)
             print "Writing PSD files to %s" % psdPath
 
         for ctf in inputCTF:
@@ -114,7 +112,7 @@ class ProtRelionExportCtf(EMProtocol):
                     print "PSD file %s does not exits" % psdFile
                     print "Skipping micrograph %s" % micFn
                     continue
-                pwutils.copyFile(psdFile, newPsdFile)
+                pw.utils.copyFile(psdFile, newPsdFile)
                 ctf.setPsdFile(newPsdFile)
             micSet.append(mic2)
 
@@ -133,7 +131,7 @@ class ProtRelionExportCtf(EMProtocol):
 
         # Let's create a link from the project roots to facilitate the import
         # of the star file into a Relion project
-        pwutils.createLink(starFile, os.path.basename(starFile))
+        pw.utils.createLink(starFile, os.path.basename(starFile))
 
     # -------------------------- INFO functions -------------------------------
 

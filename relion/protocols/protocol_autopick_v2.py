@@ -68,7 +68,8 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
 
     @classmethod
     def isDisabled(cls):
-        return not relion.Plugin.isVersion2Active()
+        # Now Relion1 is deprecated, so v2 and v3 should be fine
+        return False
 
     # -------------------------- DEFINE param functions ------------------------
     def _defineParams(self, form):
@@ -137,7 +138,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                       help='You may select "Gaussian blobs" to be used as '
                            'references. The preferred way to autopick is '
                            'by providing 2D references images that were '
-                           'by 2D classification. \n'
+                           'obtained by 2D classification. \n'
                            'The Gaussian blob references may be useful to '
                            'kickstart a new data set.')
 
@@ -147,13 +148,22 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                       help='The peak value of the Gaussian blob. '
                            'Weaker data will need lower values.')
 
+        pointerClassStr = 'SetOfAverages'
+        # In Relion 3 it is also possible to pass a volume as reference for
+        # autopicking
+        if relion.Plugin.isVersion3Active():
+            pointerClassStr += ",Volume"
+
         group.addParam('inputReferences', params.PointerParam,
-                      pointerClass='SetOfAverages',
+                      pointerClass=pointerClassStr,
                       condition=refCondition,
                       label='Input references', important=True,
                       help='Input references (SetOfAverages) for auto-pick. \n\n'
                            'Note that the absolute greyscale needs to be correct, \n'
-                           'so only use images with proper normalization.')
+                           'so only use images with proper normalization. '
+                           'From Relion 3.0 it is also possible to provide a '
+                           '3D volume which projections will be used as '
+                           'references.')
 
         group.addParam('particleDiameter', params.IntParam, default=-1,
                       label='Mask diameter (A)',

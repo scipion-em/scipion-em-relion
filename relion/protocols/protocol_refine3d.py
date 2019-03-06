@@ -46,7 +46,9 @@ leads to objective and high-quality results.
     _label = '3D auto-refine'
     IS_CLASSIFY = False
     CHANGE_LABELS = [md.RLN_OPTIMISER_CHANGES_OPTIMAL_ORIENTS, 
-                     md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS]
+                     md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS,
+                     md.RLN_OPTIMISER_ACCURACY_ROT,
+                     md.RLN_OPTIMISER_ACCURACY_TRANS]
 
     PREFIXES = ['half1_', 'half2_']
     
@@ -60,8 +62,7 @@ leads to objective and high-quality results.
         """
         ProtRelionBase._initialize(self)
         self.ClassFnTemplate = '%(ref)03d@%(rootDir)s/relion_it%(iter)03d_classes.mrcs'
-        self.numberOfClasses.set(1)  # For refinement we only need just one "class"
-    
+
     # -------------------------- INSERT steps functions -----------------------
     def _setSamplingArgs(self, args):
         """ Set sampling related params"""
@@ -80,8 +81,8 @@ leads to objective and high-quality results.
             if not joinHalves in self.extraParams.get():
                 args['--low_resol_join_halves'] = 40
 
-        # Set movie refinement arguments
-        if self.realignMovieFrames:
+        # Set movie refinement arguments for relion < 3.0
+        if not self.IS_V3 and self.realignMovieFrames:
             args['--realign_movie_frames'] = self._getFileName('movie_particles')
             args['--movie_frames_running_avg'] = self.movieAvgWindow.get()
             args['--sigma_off'] = self.movieStdTrans.get()
@@ -94,36 +95,7 @@ leads to objective and high-quality results.
 
     # -------------------------- STEPS functions ------------------------------
     def createOutputStep(self):
-        
-        if not self.realignMovieFrames:
-            imgSet = self._getInputParticles()
-            vol = Volume()
-            vol.setFileName(self._getExtraPath('relion_class001.mrc'))
-            vol.setSamplingRate(imgSet.getSamplingRate())
-            half1 = self._getFileName("final_half1_volume", ref3d=1)
-            half2 = self._getFileName("final_half2_volume", ref3d=1)
-            vol.setHalfMaps([half1, half2])
-            
-            outImgSet = self._createSetOfParticles()
-            outImgSet.copyInfo(imgSet)
-            self._fillDataFromIter(outImgSet, self._lastIter())
-
-            self._defineOutputs(outputVolume=vol)
-            self._defineSourceRelation(self.inputParticles, vol)
-            self._defineOutputs(outputParticles=outImgSet)
-            self._defineTransformRelation(self.inputParticles, outImgSet)
-
-            fsc = FSC(objLabel=self.getRunName())
-            blockName = 'model_class_%d@' % 1
-            fn = blockName + self._getExtraPath("relion_model.star")
-            mData = md.MetaData(fn)
-            fsc.loadFromMd(mData,
-                           md.RLN_RESOLUTION,
-                           md.RLN_MLMODEL_FSC_HALVES_REF)
-            self._defineOutputs(outputFSC=fsc)
-            self._defineSourceRelation(vol, fsc)
-
-        else:
+        if not self.IS_V3 and self.realignMovieFrames:
             movieSet = self.inputMovieParticles.get()
             if self.movieIncludeRotSearch:
                 vol = Volume()
@@ -153,6 +125,33 @@ leads to objective and high-quality results.
             self._defineOutputs(outputParticles=outMovieSet)
             self._defineTransformRelation(self.inputParticles, outMovieSet)
             self._defineTransformRelation(self.inputMovieParticles, outMovieSet)
+        else:
+            imgSet = self._getInputParticles()
+            vol = Volume()
+            vol.setFileName(self._getExtraPath('relion_class001.mrc'))
+            vol.setSamplingRate(imgSet.getSamplingRate())
+            half1 = self._getFileName("final_half1_volume", ref3d=1)
+            half2 = self._getFileName("final_half2_volume", ref3d=1)
+            vol.setHalfMaps([half1, half2])
+            
+            outImgSet = self._createSetOfParticles()
+            outImgSet.copyInfo(imgSet)
+            self._fillDataFromIter(outImgSet, self._lastIter())
+
+            self._defineOutputs(outputVolume=vol)
+            self._defineSourceRelation(self.inputParticles, vol)
+            self._defineOutputs(outputParticles=outImgSet)
+            self._defineTransformRelation(self.inputParticles, outImgSet)
+
+            fsc = FSC(objLabel=self.getRunName())
+            blockName = 'model_class_%d@' % 1
+            fn = blockName + self._getExtraPath("relion_model.star")
+            mData = md.MetaData(fn)
+            fsc.loadFromMd(mData,
+                           md.RLN_RESOLUTION,
+                           md.RLN_MLMODEL_FSC_HALVES_REF)
+            self._defineOutputs(outputFSC=fsc)
+            self._defineSourceRelation(vol, fsc)
 
     # -------------------------- INFO functions -------------------------------
     def _validateNormal(self):
@@ -165,7 +164,7 @@ leads to objective and high-quality results.
         # self._validateDim(self._getInputParticles(), self.referenceVolume.get(),
         #                   errors, 'Input particles', 'Reference volume')
 
-        if relion.Plugin.isVersion2Active() and self.IS_3D:
+        if self.IS_3D:
             if self.solventFscMask and not self.referenceMask.get():
                 errors.append('When using solvent-corrected FSCs, '
                               'please provide a reference mask.')
@@ -211,7 +210,7 @@ leads to objective and high-quality results.
             resol = row.getValue("rlnCurrentResolution")
             summary.append("Final resolution: *%0.2f A*" % resol)
 
-        if self.realignMovieFrames:
+        if not self.IS_V3 and self.realignMovieFrames:
             summary.append('\nMovie refinement:')
             summary.append('    Running average window: %d frames'
                            % self.movieAvgWindow.get())
@@ -246,3 +245,11 @@ leads to objective and high-quality results.
 
     def _updateParticle(self, particle, row):
         particle._coordinate._micName = em.String(row.getValue('rlnMicrographName'))
+
+    def getFinalVolumes(self):
+        """ Implemented from base class to return the final and half-maps
+        filenames. """
+        self._createFilenameTemplates()
+        return [self._getFileName('finalvolume', ref3d=1),
+                self._getFileName('final_half1_volume', ref3d=1),
+                self._getFileName('final_half2_volume', ref3d=1)]
