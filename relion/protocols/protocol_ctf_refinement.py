@@ -198,9 +198,9 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         particle.setCTF(relion.convert.rowToCtfModel(row))
         #TODO: Add other field from the .star file when other options?
         # check if beamtilt is available and save it
-        if row.hasLabel(md.RLN_IMAGE_BEAMTILT_X):
-            particle._rlnBeamTiltX = Float(row.getValue(md.RLN_IMAGE_BEAMTILT_X, 0))
-            particle._rlnBeamTiltY = Float(row.getValue(md.RLN_IMAGE_BEAMTILT_Y, 0))
+        if row.hasLabel('rlnBeamTiltX'):
+            particle._rlnBeamTiltX = Float(row.getValue('rlnBeamTiltX', 0))
+            particle._rlnBeamTiltY = Float(row.getValue('rlnBeamTiltY', 0))
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
