@@ -942,7 +942,7 @@ class ProtRelionBase(EMProtocol):
     # -------------------------- INFO functions -------------------------------
     def _validate(self):
         errors = []
-        self.validatePackageVersion(RELION_HOME, errors)
+        #self.validatePackageVersion(RELION_HOME, errors)
 
         if self.doContinue:
             continueProtocol = self.continueRun.get()
