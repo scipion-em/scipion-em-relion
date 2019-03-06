@@ -28,7 +28,7 @@ import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 import pyworkflow.em as em
 import pyworkflow.em.metadata as md
-
+from pyworkflow.em.data import Float
 import relion
 from relion.convert.metadata import Table
 
@@ -73,12 +73,15 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         form.addParam('minResolution', params.FloatParam, default=30,
                       label='Minimum resolution for fits (A)',
                       help="The minimum spatial frequency (in Angstrom) used "
-                           "in the beamtilt fit.")
-
+                           "in the beamtilt fit. (Default value is usually correct)")
         form.addParam('doCtfFitting', params.BooleanParam, default=True,
                       label='Perform CTF parameter fitting?',
                       help='If set to Yes, then relion_ctf_refine will be '
-                           'used to estimate the selected parameters below.')
+                           'used to estimate the selected parameters below.'
+                           ' (We are interested in re-estimating the defocus'
+                           ' of each particle. This will account for non-horizontal'
+                           ' ice layers, and particles at the top or bottom of'
+                           ' the ice layer.)')
         form.addParam('fitPartDefocus', params.BooleanParam, default=True,
                       condition='doCtfFitting',
                       label='Fit per-particle defocus?',
@@ -88,7 +91,7 @@ class ProtRelionCtfRefinement(em.ProtParticles):
                       condition='doCtfFitting and fitPartDefocus',
                       label='Range for defocus fit (A)',
                       help='The range in (Angstrom) for the defocus fit of '
-                           'each particle.')
+                           'each particle. (Usually, the default value works fine.)')
         form.addParam('fitAstig', params.EnumParam, default=0,
                       choices=['no', 'per-micrograph', 'per-particle'],
                       display=params.EnumParam.DISPLAY_HLIST,
@@ -181,20 +184,23 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         imgSet = self.inputParticles.get()
         outImgSet = self._createSetOfParticles()
         outImgSet.copyInfo(imgSet)
-
         outImgsFn = self._getExtraPath('particles_ctf_refine.star')
         imgSet.setAlignmentProj()
-        rowIterator = md.iterRows(outImgsFn, sortByLabel=md.RLN_IMAGE_ID)
+        rowIterator = md.iterRows(outImgsFn,
+                                  sortByLabel=md.RLN_IMAGE_ID)
         outImgSet.copyItems(imgSet,
-                            updateItemCallback=self._updateItemCtf,
+                            updateItemCallback=self._updateItemCtfBeamTilt,
                             itemDataIterator=rowIterator)
-
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(self.inputParticles, outImgSet)
 
-    def _updateItemCtf(self, particle, row):
+    def _updateItemCtfBeamTilt(self, particle, row):
         particle.setCTF(relion.convert.rowToCtfModel(row))
         #TODO: Add other field from the .star file when other options?
+        # check if beamtilt is available and save it
+        if row.hasLabel('rlnBeamTiltX'):
+            particle._rlnBeamTiltX = Float(row.getValue('rlnBeamTiltX', 0))
+            particle._rlnBeamTiltY = Float(row.getValue('rlnBeamTiltY', 0))
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
