@@ -75,39 +75,39 @@ class ProtRelionMotioncor(ProtAlignMovies):
                       label='to')
 
         form.addParam('doDW', params.BooleanParam, default=False,
-                       label='Do dose-weighting?',
-                       help='If set to Yes, the averaged micrographs will be '
-                            'dose-weighted. \n\n'
-                            'NOTE: In Scipion the Voltage and and Dose '
-                            'information is provided during import, so you '
-                            'do not need to provide them anymore. ')
+                      label='Do dose-weighting?',
+                      help='If set to Yes, the averaged micrographs will be '
+                           'dose-weighted. \n\n'
+                           'NOTE: In Scipion the Voltage and and Dose '
+                           'information is provided during import, so you '
+                           'do not need to provide them anymore. ')
 
         form.addParam('saveNonDW', params.BooleanParam, default=False,
-                       condition='doDW',
-                       label='Save non-dose weighted as well?',
-                       help='Aligned but non-dose weighted images are '
-                            'sometimes useful in CTF estimation, although '
-                            'there is no difference in most cases. Whichever '
-                            'the choice, CTF refinement job is always done on '
-                            'dose-weighted particles.')
+                      condition='doDW',
+                      label='Save non-dose weighted as well?',
+                      help='Aligned but non-dose weighted images are '
+                           'sometimes useful in CTF estimation, although '
+                           'there is no difference in most cases. Whichever '
+                           'the choice, CTF refinement job is always done on '
+                           'dose-weighted particles.')
 
         group = form.addGroup("Motion")
 
         group.addParam('bfactor', params.IntParam, default=150,
-                      label='Bfactor',
-                      help="The B-factor that will be applied to the "
-                           "micrographs.")
+                       label='Bfactor',
+                       help="The B-factor that will be applied to the "
+                            "micrographs.")
 
         line = group.addLine('Number of patches',
-                            help='Number of patches (in X and Y direction) to '
-                                 'apply motion correction. \n')
+                             help='Number of patches (in X and Y direction) to '
+                                  'apply motion correction. \n')
         line.addParam('patchX', params.IntParam, default=1, label='X')
         line.addParam('patchY', params.IntParam, default=1, label='Y')
 
         group.addParam('groupFrames', params.IntParam, default=1,
-                      label='Group frames',
-                      help="Average together this many frames before "
-                           "calculating the beam-induced shifts.")
+                       label='Group frames',
+                       help="Average together this many frames before "
+                            "calculating the beam-induced shifts.")
 
         group.addParam('binFactor', params.FloatParam, default=1.,
                        label='Binning factor',
@@ -123,22 +123,22 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                 ' 90 degrees (1)',
                                 '180 degrees (2)',
                                 '270 degrees (3)'],
-                      label='Gain rotation',
-                      help="Rotate the gain reference by this number times 90 "
-                           "degrees clockwise in relion_display. This is the "
-                           "same as -RotGain in MotionCor2. \n"
-                           "Note that MotionCor2 uses a different convention "
-                           "for rotation so it says 'counter-clockwise'.")
+                       label='Gain rotation',
+                       help="Rotate the gain reference by this number times 90 "
+                            "degrees clockwise in relion_display. This is the "
+                            "same as -RotGain in MotionCor2. \n"
+                            "Note that MotionCor2 uses a different convention "
+                            "for rotation so it says 'counter-clockwise'.")
 
         group.addParam('gainFlip', params.EnumParam, default=0,
                        choices=['No flipping        (0)',
                                 'Flip upside down   (1)',
                                 'Flip left to right (2)'],
-                      label='Gain flip',
-                      help="Flip the gain reference after rotation. "
-                           "This is the same as -FlipGain in MotionCor2. "
-                           "0 means do nothing, 1 means flip Y (upside down) "
-                           "and 2 means flip X (left to right).")
+                       label='Gain flip',
+                       help="Flip the gain reference after rotation. "
+                            "This is the same as -FlipGain in MotionCor2. "
+                            "0 means do nothing, 1 means flip Y (upside down) "
+                            "and 2 means flip X (left to right).")
 
         form.addParam('extraParams', params.StringParam, default='',
                       expertLevel=cons.LEVEL_ADVANCED,
@@ -165,7 +165,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
     # --------------------------- STEPS functions -------------------------------
     def _convertInputStep(self):
         self.info("Relion version:")
-        self.runJob("which", "relion_run_motioncorr")
+        self.runJob("relion_run_motioncorr --version", numberOfMpi=1)
 
         ProtAlignMovies._convertInputStep(self)
 
@@ -189,7 +189,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
         inputMovies = self.inputMovies.get()
         if inputMovies.getGain():
-            # TODO: Maybe we need to convert the gain to mrc if not?
             args += ' --gainref "%s"' % inputMovies.getGain()
             args += ' --gain_rot %d ' % self.gainRot
             args += ' --gain_flip %d ' % self.gainFlip
@@ -208,7 +207,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         if self.extraParams.hasValue():
             args += " " + self.extraParams.get()
 
-        self.runJob("relion_run_motioncorr", args, cwd=movieFolder)
+        self.runJob(self._getProgram(), args, cwd=movieFolder)
 
         self._computeExtra(movie)
         self._moveFiles(movie)
@@ -273,6 +272,12 @@ class ProtRelionMotioncor(ProtAlignMovies):
         return xShifts, yShifts
 
     # --------------------------- UTILS functions -----------------------------
+    def _getProgram(self, program='relion_run_motioncorr'):
+        """ Get the program name depending on the MPI use or not. """
+        if self.numberOfMpi > 1:
+            program += '_mpi'
+        return program
+
     def writeInputStar(self, starFn, *images):
         """ Easy way to write a simple star file with a single micrographs.
         Used by the relion implementation of motioncor.

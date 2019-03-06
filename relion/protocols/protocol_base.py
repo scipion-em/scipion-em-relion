@@ -867,11 +867,16 @@ class ProtRelionBase(EMProtocol):
             alignToPrior = hasAlign and getattr(self, 'alignmentAsPriors', False)
             fillRandomSubset = hasAlign and getattr(self, 'fillRandomSubset', False)
 
+            relion3Labels = [md.RLN_PARTICLE_RANDOM_SUBSET,
+                             md.RLN_IMAGE_BEAMTILT_X,
+                             md.RLN_IMAGE_BEAMTILT_Y]
+
             relion.convert.writeSetOfParticles(
                 imgSet, imgStar, self._getExtraPath(),
                 alignType=alignType,
                 postprocessImageRow=self._postprocessParticleRow,
-                fillRandomSubset=fillRandomSubset)
+                fillRandomSubset=fillRandomSubset,
+                extraLabels=relion3Labels)
 
             if alignToPrior:
                 mdParts = md.MetaData(imgStar)
@@ -1135,14 +1140,14 @@ class ProtRelionBase(EMProtocol):
     def _setMaskArgs(self, args):
         if self.IS_3D:
             if self.referenceMask.hasValue():
-                mask = convertMask(self.referenceMask.get(), self._getTmpPath())
+                mask = relion.convert.convertMask(self.referenceMask.get(), self._getTmpPath())
                 args['--solvent_mask'] = mask
 
             if self.solventMask.hasValue():
-                solventMask = convertMask(self.solventMask.get(), self._getTmpPath())
+                solventMask = relion.convert.convertMask(self.solventMask.get(), self._getTmpPath())
                 args['--solvent_mask2'] = solventMask
 
-            if (self.referenceMask.hasValue() and self.solventFscMask):
+            if self.referenceMask.hasValue() and self.solventFscMask:
                 args['--solvent_correct_fsc'] = ''
 
     def _setSubsetArgs(self, args):
