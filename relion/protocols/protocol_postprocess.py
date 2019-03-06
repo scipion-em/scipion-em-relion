@@ -207,10 +207,12 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
             errors.append("Missing MTF-file '%s'" % mtfFile)
 
         protRef = self.protRefine.get()
-        if not protRef.getFinalVolumes():
-            errors.append('The input refinement protocol should implemented '
-                          'getFinalVolumes function to return the final map'
-                          'and half1 and half1 paths. ')
+        try:
+            protRef.getFinalVolumes()
+        except:
+            errors.append('The input refinement protocol should implement '
+                          'getFinalVolumes function to return the final map '
+                          'and half1 and half1 paths.')
         return errors
 
     def _citations(self):
