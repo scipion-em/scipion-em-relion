@@ -183,8 +183,8 @@ class ProtCtfREfineViewer(ProtocolViewer):
             self.c.execute(sqlComamnd)
             rows = self.c.fetchall()
             if len(rows) == 0 \
-                    and showMicWitID >= self.min \
-                    and showMicWitID <= self.max:
+                    and showMicWitID >= self.smallerMicId \
+                    and showMicWitID <= self.higherMicId:
                 showMicWitID += self.step
             else:
                 break
