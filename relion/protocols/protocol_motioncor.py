@@ -165,7 +165,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
     # --------------------------- STEPS functions -------------------------------
     def _convertInputStep(self):
         self.info("Relion version:")
-        self.runJob("relion_run_motioncorr --version", numberOfMpi=1)
+        self.runJob("relion_run_motioncorr --version", "", numberOfMpi=1)
 
         ProtAlignMovies._convertInputStep(self)
 
