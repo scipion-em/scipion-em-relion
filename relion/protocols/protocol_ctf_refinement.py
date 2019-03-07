@@ -46,22 +46,25 @@ class ProtRelionCtfRefinement(em.ProtParticles):
 
     def _defineParams(self, form):
         form.addSection(label='Input')
-        #TODO: conditions on particles?
+        # TODO: conditions on particles?
         form.addParam('inputParticles', params.PointerParam,
                       important=True,
                       label='Input particles',
                       pointerClass='SetOfParticles',
-                      help='Provide a set of particles for local CTF refinement.')
+                      help='Provide a set of particles for local CTF '
+                           'refinement.')
         form.addParam('inputPostprocess', params.PointerParam,
                       important=True,
                       label='Input Postprocess',
                       pointerClass='ProtRelionPostprocess',
                       help='Select a PostProcess job. The mask used for this '
                            'postprocessing will be applied to the unfiltered '
-                           'half-maps and should encompass the entire complex. '
-                           'The resulting FSC curve will be used for weighting '
-                           'the different frequencies. \n\n'
-                           'Note that for helices it is common practice to use '
+                           'half-maps and should encompass the entire '
+                           'complex. '
+                           'The resulting FSC curve will be used for weighting'
+                           ' the different frequencies.\n\n'
+                           'Note that for helices it is common practice to '
+                           'use '
                            'a mask only encompassing the central 30% or so of '
                            'the box. This gives higher resolution estimates, '
                            'as it disregards ill-defined regions near the box '
@@ -73,13 +76,15 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         form.addParam('minResolution', params.FloatParam, default=30,
                       label='Minimum resolution for fits (A)',
                       help="The minimum spatial frequency (in Angstrom) used "
-                           "in the beamtilt fit. (Default value is usually correct)")
+                           "in the beamtilt fit. (Default value "
+                           "is usually correct)")
         form.addParam('doCtfFitting', params.BooleanParam, default=True,
                       label='Perform CTF parameter fitting?',
                       help='If set to Yes, then relion_ctf_refine will be '
                            'used to estimate the selected parameters below.'
                            ' (We are interested in re-estimating the defocus'
-                           ' of each particle. This will account for non-horizontal'
+                           ' of each particle. This will account for '
+                           'non-horizontal'
                            ' ice layers, and particles at the top or bottom of'
                            ' the ice layer.)')
         form.addParam('fitPartDefocus', params.BooleanParam, default=True,
@@ -91,17 +96,20 @@ class ProtRelionCtfRefinement(em.ProtParticles):
                       condition='doCtfFitting and fitPartDefocus',
                       label='Range for defocus fit (A)',
                       help='The range in (Angstrom) for the defocus fit of '
-                           'each particle. (Usually, the default value works fine.)')
+                           'each particle. (Usually, the default '
+                           'value works fine.)')
         form.addParam('fitAstig', params.EnumParam, default=0,
                       choices=['no', 'per-micrograph', 'per-particle'],
                       display=params.EnumParam.DISPLAY_HLIST,
                       label='Fit astigmatism? ',
-                      help="If *per-micrograph*, ctf_refine will try to refine "
+                      help="If *per-micrograph*, ctf_refine will try to "
+                           "refine "
                            "astigmatism on a per-micrograph basis. This will "
                            "require many particles and good signal-to-noise "
                            "ratios per micrograph.\n\n"
                            "If *per-particle*, astigmatism will be estimated "
-                           "on a per-particle basis. This requires very strong "
+                           "on a per-particle basis. This requires very "
+                           "strong "
                            "data, i.e. very large particles with excellent "
                            "signal-to-noise ratios.")
         form.addParam('fitMicPhaseShift', params.BooleanParam, default=False,
@@ -112,17 +120,19 @@ class ProtRelionCtfRefinement(em.ProtParticles):
                            'micrograph basis. This may be useful for Volta-'
                            'phase plate data, but will require many particles '
                            'and good signal-to-noise ratios per micrograph.')
-        form.addParam('doBeamtiltEstimation', params.BooleanParam, default=False,
+        form.addParam('doBeamtiltEstimation', params.BooleanParam,
+                      default=False,
                       label='Perform beamtilt estimation?',
                       help='If set to Yes, then relion_ctf_refine will also '
                            'estimate the beamtilt over the entire data set. '
-                           'This option is only recommended for high-resolution '
+                           'This option is only recommended for '
+                           'high-resolution '
                            'data sets, i.e. significantly beyond 3 Angstrom '
                            'resolution.')
 
         form.addParallelSection(threads=1, mpi=1)
 
-    # -------------------------- STEPS functions -------------------------------
+    # -------------------------- STEPS functions ------------------------------
     def _insertAllSteps(self):
         self._insertFunctionStep('convertInputStep')
         self._insertFunctionStep('refineCtfStep')
@@ -138,14 +148,13 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         inputFolder = self._getPath('input')
         pwutils.makePath(inputFolder)
         relion.convert.writeSetOfParticles(inputParts, imgStar, inputFolder,
-                                    alignType=em.ALIGN_PROJ,
-                                    fillMagnification=True,
-                                    fillRandomSubset=True)
+                                           alignType=em.ALIGN_PROJ,
+                                           fillMagnification=True,
+                                           fillRandomSubset=True)
 
     def _getInputVolumes(self, postStar):
         """ Parse the input volumes: halfs and mask
         from the postprocess.star file. """
-        half1 = half2 = mask = ''
         table = Table(fileName=postStar, tableName='general')
         row = table[0]
         return (row.rlnUnfilteredMapHalf1,
@@ -155,9 +164,11 @@ class ProtRelionCtfRefinement(em.ProtParticles):
     def refineCtfStep(self):
         args = "--i %s " % self._getPath('input_particles.star')
         args += "--o %s " % self._getExtraPath()
-        postStar = self.inputPostprocess.get()._getExtraPath('postprocess.star')
+        postStar = self.inputPostprocess.get().\
+            _getExtraPath('postprocess.star')
         args += "--f %s " % postStar
-        args += "--m1 %s --m2 %s --mask %s " % relion.convert.getVolumesFromPostprocess(postStar)
+        args += "--m1 %s --m2 %s --mask %s " % \
+                relion.convert.getVolumesFromPostprocess(postStar)
         args += "--kmin_tilt %0.3f " % self.minResolution
         args += "--angpix %0.3f " % self.inputParticles.get().getSamplingRate()
 
@@ -184,7 +195,7 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         imgSet = self.inputParticles.get()
         outImgSet = self._createSetOfParticles()
         outImgSet.copyInfo(imgSet)
-        outImgsFn = self._getExtraPath('particles_ctf_refine.star')
+        outImgsFn = self.fileWithRefinedCTFName()
         imgSet.setAlignmentProj()
         rowIterator = md.iterRows(outImgsFn,
                                   sortByLabel=md.RLN_IMAGE_ID)
@@ -196,7 +207,7 @@ class ProtRelionCtfRefinement(em.ProtParticles):
 
     def _updateItemCtfBeamTilt(self, particle, row):
         particle.setCTF(relion.convert.rowToCtfModel(row))
-        #TODO: Add other field from the .star file when other options?
+        # TODO: Add other field from the .star file when other options?
         # check if beamtilt is available and save it
         if row.hasLabel('rlnBeamTiltX'):
             particle._rlnBeamTiltX = Float(row.getValue('rlnBeamTiltX', 0))
@@ -211,3 +222,13 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         errors = []
         return errors
 
+    def fileWithRefinedCTFName(self):
+        return self._getExtraPath('particles_ctf_refine.star')
+
+    def fileWithPhaseDifferenceName(self):
+        return self._getExtraPath(
+            'beamtilt_delta-phase_per-pixel_class_0.mrc:mrc')
+
+    def fileWithModelFitterName(self):
+        return self._getExtraPath(
+            'beamtilt_delta-phase_lin-fit_class_0.mrc:mrc')
