@@ -1,3 +1,4 @@
+1.0.2: Include protocol.conf to create the source distribution
 1.0.1:
 	- add missing protocol for movie ptcl extraction, other small bugfixes
 	- updated viewers import, added protocols.conf

@@ -41,7 +41,8 @@ from pyworkflow.em.protocol import EMProtocol
 
 import relion
 import relion.convert
-from relion.constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO, V2_0
+from relion.constants import (ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO,
+                              V2_0, RELION_HOME)
 
 
 class ProtRelionBase(EMProtocol):
@@ -946,7 +947,7 @@ class ProtRelionBase(EMProtocol):
     # -------------------------- INFO functions -------------------------------
     def _validate(self):
         errors = []
-        self.validatePackageVersion('RELION_HOME', errors)
+        #self.validatePackageVersion(RELION_HOME, errors)
 
         if self.doContinue:
             continueProtocol = self.continueRun.get()
