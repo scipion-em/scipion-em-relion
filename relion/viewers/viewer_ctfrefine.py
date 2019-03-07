@@ -22,6 +22,7 @@ class ProtCtfREfineViewer(ProtocolViewer):
         ProtocolViewer.__init__(self,  **kwargs)
         # TODO: move this inizialization to protocol
         # create temporary database to store values
+        self.step = 1  # next micrography
 
         def createDB(tableName):
             """ create database and table"""
@@ -176,10 +177,19 @@ class ProtCtfREfineViewer(ProtocolViewer):
     def getData(self, showMicWitID):
         sql = "SELECT coordX, coordY, defocusDiff, micName " \
               "FROM %s " \
-              "WHERE micId = %d" % (self.tableName,
-                                    showMicWitID)
-        self.c.execute(sql)
-        rows = self.c.fetchall()
+              "WHERE micId = %d"
+        while True:
+            sqlComamnd = sql % (self.tableName,  showMicWitID)
+            self.c.execute(sqlComamnd)
+            rows = self.c.fetchall()
+            if len(rows) == 0 \
+                    and showMicWitID >= self.min \
+                    and showMicWitID <= self.max:
+                showMicWitID += self.step
+            else:
+                break
+
+
         x = [item[0] for item in rows]
         y = [item[1] for item in rows]
         defocus = [item[2] for item in rows]
@@ -192,20 +202,28 @@ class ProtCtfREfineViewer(ProtocolViewer):
         sys.stdout.flush()
         if event.key == "left":
             self.showMicWitID -= 1
+            self.step = -1
         elif event.key == "right":
             self.showMicWitID += 1
+            self.step = +1
         elif event.key == "up":
             self.showMicWitID -= 10
+            self.step = -1
         elif event.key == "down":
             self.showMicWitID += 10
+            self.step = +1
         elif event.key == "pageup":
             self.showMicWitID -= 100
+            self.step = -1
         elif event.key == "pagedown":
             self.showMicWitID += 100
+            self.step = +1
         elif event.key == "home":
             self.showMicWitID -= 1000
+            self.step = -1
         elif event.key == "end":
             self.showMicWitID += 1000
+            self.step = +1
         elif event.key == "q":
             quit()
         # else:
