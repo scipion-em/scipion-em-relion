@@ -174,18 +174,18 @@ class ProtCtfREfineViewer(ProtocolViewer):
                 "Displaying Mic = %s (%d)" %
                 (self.micName, self.showMicWitID))
 
-    def getData(self, showMicWitID):
+    def getData(self):
         sql = "SELECT coordX, coordY, defocusDiff, micName " \
               "FROM %s " \
               "WHERE micId = %d"
         while True:
-            sqlComamnd = sql % (self.tableName,  showMicWitID)
+            sqlComamnd = sql % (self.tableName,  self.showMicWitID)
             self.c.execute(sqlComamnd)
             rows = self.c.fetchall()
             if len(rows) == 0 \
-                    and showMicWitID >= self.smallerMicId \
-                    and showMicWitID <= self.higherMicId:
-                showMicWitID += self.step
+                    and self.showMicWitID >= self.smallerMicId \
+                    and self.showMicWitID <= self.higherMicId:
+                self.showMicWitID += self.step
             else:
                 break
 
@@ -242,7 +242,7 @@ class ProtCtfREfineViewer(ProtocolViewer):
         """ Draw plot """
         if event is None:
             self.x, self.y, self.defocus, self.micName = \
-                self.getData(self.showMicWitID)
+                self.getData()
             self.ax.clear()
             self.ax.margins(0.05)
             self.ax.set_title(self._getTitle())
