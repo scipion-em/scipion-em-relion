@@ -62,6 +62,11 @@ class ProtCtfREfineViewer(ProtocolViewer):
             'displayPlotDEfocusStdev': self._displayPlotDefocusStdev
         }
 
+    def onClick(self, event):
+        ix, iy = event.xdata, event.ydata
+        print 'x = %d, y = %d' % (
+            ix, iy)
+
     def _displayPlotDefocusStdev(self, e=None):
         sql = "SELECT COUNT(*) as number, sub.micID, " \
               "    AVG(({tableName}.defocus - sub.a) * " \
@@ -82,6 +87,8 @@ class ProtCtfREfineViewer(ProtocolViewer):
             self.plotter.createSubPlot("Defocus STdev per Micrograph",
                                        "# Micrograph", "stdev")
         im = self.ax.scatter(x, y, s=50, marker='o')
+        self.fig.canvas.mpl_connect('button_press_event', self.onClick)
+
         self.plotter.show()
 
     def _visualizeDefocus(self, e=None):
