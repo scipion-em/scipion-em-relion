@@ -1,16 +1,14 @@
 import sqlite3
 from pyworkflow.protocol.params import LabelParam
 from pyworkflow.viewer import DESKTOP_TKINTER, WEB_DJANGO, ProtocolViewer
-from pyworkflow.em.data import SetOfParticles
 from relion.protocols.protocol_ctf_refinement import ProtRelionCtfRefinement
-from itertools import izip
 from pyworkflow.em.viewers.plotter import plt, EmPlotter
 import matplotlib as mpl
 import pyworkflow.em.viewers.showj as showj
 from pyworkflow.em.viewers import ObjectView, DataView
 import sys
 import os
-
+import math
 
 class ProtCtfREfineViewer(ProtocolViewer):
     """ viewer of relaion cTF refine"""
@@ -20,33 +18,13 @@ class ProtCtfREfineViewer(ProtocolViewer):
 
     def __init__(self,  **kwargs):
         ProtocolViewer.__init__(self,  **kwargs)
-        # TODO: move this inizialization to protocol
-        # create temporary database to store values
         self.step = 1  # next micrography
 
-        def createDB(tableName):
-            """ create database and table"""
-            # TODO: IS this sectio is moved to protocol
-            # data base must be written in disk rather than in memory
-            conn = sqlite3.connect(":memory:")
-            # conn = sqlite3.connect(self._getExtraPath("kk.sqlite3"))
-            c = conn.cursor()
-            commandCreateTable = """
-                    CREATE TABLE {tableName}(
-                         id           integer primary key autoincrement,
-                         micId        int,
-                         micName      text,
-                         coordX       float,
-                         coordY       float,
-                         defocusDiff  float
-                         );"""
-            c.execute(commandCreateTable.format(tableName=tableName))
-            return c, conn
-
-        self.tableName = 'defoci'
-
-        self.c, self.conn = createDB(self.tableName)
+        """ create database and table"""
+        self.conn = sqlite3.connect(self.protocol.getDatabaseName())
+        self.c = self.conn.cursor()
         self.doDb = True
+        self.tableName = self.protocol.getTableName()
 
     def _defineParams(self, form):
         self._env = os.environ.copy()
@@ -62,6 +40,10 @@ class ProtCtfREfineViewer(ProtocolViewer):
                            "page_up/page_down keys (move +100/-100 "
                            "micrographs)\n"
                            "home/end keys (move +1000/-1000 micrographs)\n")
+        form.addParam('displayPlotDEfocusStdev', LabelParam,
+                      label="variance of defocus per micrograph",
+                      help="Stdev of defocus per micrographs. Micrograph"
+                           "with less than 7 particles are skept.")
         form.addParam('displayBeamTilt', LabelParam,
                       label="Show BeanTilt Images",
                       condition="{}".format(showBeamTilt),
@@ -76,52 +58,44 @@ class ProtCtfREfineViewer(ProtocolViewer):
         return{
             'displayDefocus': self._visualizeDefocus,
             'displayBeamTilt': self._displayBeamTilt,
-            'displayParticles': self._displayParticles
+            'displayParticles': self._displayParticles,
+            'displayPlotDEfocusStdev': self._displayPlotDEfocusStdev
         }
+
+    def _displayPlotDEfocusStdev(self, e=None):
+        sql = "SELECT COUNT(*) as number, sub.micID, " \
+              "    AVG(({tableName}.defocus - sub.a) * " \
+              "        ({tableName}.defocus - sub.a)) as var " \
+              "FROM {tableName}, (SELECT micId, AVG(d.defocus) AS a " \
+              "         FROM {tableName} as d  " \
+              "         GROUP BY micId) AS sub " \
+              "WHERE {tableName}.micID = sub.micID " \
+              "GROUP BY sub.micID " \
+              "HAVING number > 7;".format(tableName=self.tableName)
+        print sql
+        self.c.execute(sql)
+        rows = self.c.fetchall()
+        x = [item[1] for item in rows]  # micId
+        y = [math.sqrt(item[2]) for item in rows]  # stdev
+        self.plotter = EmPlotter(windowTitle="Defocus STdev per Micrograph")
+        print x, y
+        self.fig = self.plotter.getFigure()
+        self.ax = \
+            self.plotter.createSubPlot("Defocus STdev per Micrograph",
+                                       "# Micrograph", "stdev")
+        im = self.ax.scatter(x, y,
+                             s=50,
+                             marker='o')
+        self.plotter.show()
 
     def _visualizeDefocus(self, e=None):
         """Show matplotlib with defocus values."""
         # read input and output metadata
         if self.doDb:  # TODO MOVE DATABASE INSERTIONS TO  PROTOCOL
-            outPartSet = SetOfParticles(
-                filename=self.protocol._getPath("particles.sqlite"))
-            inPartSet = SetOfParticles(
-                filename=self.protocol.inputParticles.get().getFileName())
-            # compute difference in defocus
-            # and save in database
-            data = []
-            resultDict = {}
-            resultDict['tableName'] = self.tableName
-
-            for p1, p2 in izip(inPartSet, outPartSet):
-                p1D = (p1.getCTF().getDefocusU() +
-                       p1.getCTF().getDefocusV())/2.0
-                p2D = (p2.getCTF().getDefocusU() +
-                       p2.getCTF().getDefocusV())/2.0
-                coordinate = p1.getCoordinate()
-                micId = coordinate.getMicId()
-                micName = coordinate.getMicName()
-                coordX = coordinate.getX()
-                coordY = coordinate.getY()
-                defocusDiff = p2D - p1D
-                data.append((micId, micName, coordX, coordY,  defocusDiff))
-            try:
-                sql = "INSERT INTO %s  " \
-                      " (micID, micName, coordX, coordY, defocusDiff)" \
-                      " VALUES " \
-                      " (?, ?, ?, ?, ?)" % self.tableName
-                self.c.executemany(sql, data)
-            except sqlite3.IntegrityError as e:
-                print('sqlite error: ', e.args[0])  # something went wrong
-
-            self.conn.commit()
-
-            # create index on micId
-            sql = "CREATE INDEX micIDindex ON %s(micId);" % self.tableName
-            self.c.execute(sql)
-
             # find first and last micId
-            sql = "SELECT min(micId), max(micId) FROM %s" % self.tableName
+            sql = "SELECT min(micId), max(micId) FROM %s" % \
+                  self.tableName
+            print "sql", sql
             self.c.execute(sql)
             row = self.c.fetchone()
             self.smallerMicId = int(row[0])
@@ -188,7 +162,6 @@ class ProtCtfREfineViewer(ProtocolViewer):
                 self.showMicWitID += self.step
             else:
                 break
-
 
         x = [item[0] for item in rows]
         y = [item[1] for item in rows]

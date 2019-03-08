@@ -31,7 +31,9 @@ import pyworkflow.em.metadata as md
 from pyworkflow.em.data import Float
 import relion
 from relion.convert.metadata import Table
-
+import sqlite3
+from pyworkflow.em.data import SetOfParticles
+from itertools import izip
 
 class ProtRelionCtfRefinement(em.ProtParticles):
     """
@@ -191,6 +193,65 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         prog = "relion_ctf_refine" + ("_mpi" if self.numberOfMpi > 1 else "")
         self.runJob(prog, args)
 
+    def _createDB(self, tableName):
+        """ create database and table"""
+        conn = sqlite3.connect(self.getDatabaseName())
+        c = conn.cursor()
+        c.execute("DROP TABLE IF EXISTS {tableName}".format(
+            tableName=tableName))
+        commandCreateTable = """
+                CREATE TABLE {tableName}(
+                     id           integer primary key autoincrement,
+                     micId        int,
+                     micName      text,
+                     coordX       float,
+                     coordY       float,
+                     defocusDiff  float,
+                     defocus      float
+                     );"""
+        c.execute(commandCreateTable.format(tableName=tableName))
+
+        outPartSet = SetOfParticles(
+            filename=self._getPath("particles.sqlite"))
+        inPartSet = SetOfParticles(
+            filename=self.inputParticles.get().getFileName())
+        # compute difference in defocus
+        # and save in database
+        data = []
+        resultDict = {}
+        resultDict['tableName'] = self.tableName
+
+        for p1, p2 in izip(inPartSet, outPartSet):
+            p1D = (p1.getCTF().getDefocusU() +
+                   p1.getCTF().getDefocusV())/2.0
+            p2D = (p2.getCTF().getDefocusU() +
+                   p2.getCTF().getDefocusV())/2.0
+            coordinate = p1.getCoordinate()
+            micId = coordinate.getMicId()
+            micName = coordinate.getMicName()
+            coordX = coordinate.getX()
+            coordY = coordinate.getY()
+            defocusDiff = p2D - p1D
+            defocus = p2D
+            data.append((micId, micName,
+                         coordX, coordY,
+                         defocusDiff, defocus))
+        try:
+            sql = "INSERT INTO %s  " \
+                  " (micID, micName, coordX, coordY, defocusDiff, defocus)" \
+                  " VALUES " \
+                  " (?, ?, ?, ?, ?, ?)" % self.tableName
+            c.executemany(sql, data)
+        except sqlite3.IntegrityError as e:
+            print('sqlite error: ', e.args[0])  # something went wrong
+
+
+        # create index on micId
+        sql = "CREATE INDEX micIDindex ON %s(micId);" % self.tableName
+        c.execute(sql)
+        conn.commit()
+        conn.close()
+
     def createOutputStep(self):
         imgSet = self.inputParticles.get()
         outImgSet = self._createSetOfParticles()
@@ -204,6 +265,10 @@ class ProtRelionCtfRefinement(em.ProtParticles):
                             itemDataIterator=rowIterator)
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(self.inputParticles, outImgSet)
+
+        # Create auxiliary database used in the analyze section
+        self._createDB(self.getTableName())
+
 
     def _updateItemCtfBeamTilt(self, particle, row):
         particle.setCTF(relion.convert.rowToCtfModel(row))
@@ -232,3 +297,9 @@ class ProtRelionCtfRefinement(em.ProtParticles):
     def fileWithModelFitterName(self):
         return self._getExtraPath(
             'beamtilt_delta-phase_lin-fit_class_0.mrc:mrc')
+
+    def getDatabaseName(self):
+        return self._getExtraPath('analyze.sqlite')
+
+    def getTableName(self):
+        return 'defoci'
