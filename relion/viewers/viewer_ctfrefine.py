@@ -20,7 +20,7 @@ class ProtCtfREfineViewer(ProtocolViewer):
         ProtocolViewer.__init__(self,  **kwargs)
         self.step = 1  # next micrography
 
-        """ create database and table"""
+        """ create connection with database """
         self.conn = sqlite3.connect(self.protocol.getDatabaseName())
         self.c = self.conn.cursor()
         self.doDb = True
@@ -59,10 +59,10 @@ class ProtCtfREfineViewer(ProtocolViewer):
             'displayDefocus': self._visualizeDefocus,
             'displayBeamTilt': self._displayBeamTilt,
             'displayParticles': self._displayParticles,
-            'displayPlotDEfocusStdev': self._displayPlotDEfocusStdev
+            'displayPlotDEfocusStdev': self._displayPlotDefocusStdev
         }
 
-    def _displayPlotDEfocusStdev(self, e=None):
+    def _displayPlotDefocusStdev(self, e=None):
         sql = "SELECT COUNT(*) as number, sub.micID, " \
               "    AVG(({tableName}.defocus - sub.a) * " \
               "        ({tableName}.defocus - sub.a)) as var " \
@@ -72,30 +72,25 @@ class ProtCtfREfineViewer(ProtocolViewer):
               "WHERE {tableName}.micID = sub.micID " \
               "GROUP BY sub.micID " \
               "HAVING number > 7;".format(tableName=self.tableName)
-        print sql
         self.c.execute(sql)
         rows = self.c.fetchall()
         x = [item[1] for item in rows]  # micId
         y = [math.sqrt(item[2]) for item in rows]  # stdev
         self.plotter = EmPlotter(windowTitle="Defocus STdev per Micrograph")
-        print x, y
         self.fig = self.plotter.getFigure()
         self.ax = \
             self.plotter.createSubPlot("Defocus STdev per Micrograph",
                                        "# Micrograph", "stdev")
-        im = self.ax.scatter(x, y,
-                             s=50,
-                             marker='o')
+        im = self.ax.scatter(x, y, s=50, marker='o')
         self.plotter.show()
 
     def _visualizeDefocus(self, e=None):
         """Show matplotlib with defocus values."""
         # read input and output metadata
-        if self.doDb:  # TODO MOVE DATABASE INSERTIONS TO  PROTOCOL
+        if self.doDb:
             # find first and last micId
             sql = "SELECT min(micId), max(micId) FROM %s" % \
                   self.tableName
-            print "sql", sql
             self.c.execute(sql)
             row = self.c.fetchone()
             self.smallerMicId = int(row[0])
@@ -111,7 +106,7 @@ class ProtCtfREfineViewer(ProtocolViewer):
 
             self.doDb = False
 
-            # find plot dimensions
+            # TODO: find plot dimensions
             # I would rather use the micrograph dimensions but I do
             # not know how to get them
             sql = "SELECT max(coordX), max(coordY) FROM %s" % self.tableName
@@ -134,8 +129,10 @@ class ProtCtfREfineViewer(ProtocolViewer):
                                        "Mic-Xdim",
                                        "Mic-Ydim",
                                        projection='3d')
+
         # call self.press after pressing any key
         self.fig.canvas.mpl_connect('key_press_event', self.press)
+
         # scatter plots loss colormap after rotation, so
         # if the user rotates the canvas repaint.
         # I guess this is a bug in matplotlib
@@ -152,6 +149,9 @@ class ProtCtfREfineViewer(ProtocolViewer):
         sql = "SELECT coordX, coordY, defocusDiff, micName " \
               "FROM %s " \
               "WHERE micId = %d"
+
+        # MicIds may not be consecutive so search the closest
+        # valid one
         while True:
             sqlComamnd = sql % (self.tableName,  self.showMicWitID)
             self.c.execute(sqlComamnd)
@@ -216,6 +216,9 @@ class ProtCtfREfineViewer(ProtocolViewer):
         if event is None:
             self.x, self.y, self.defocus, self.micName = \
                 self.getData()
+
+            # I need to clear the plot otherwise
+            # ols points are not removed
             self.ax.clear()
             self.ax.margins(0.05)
             self.ax.set_title(self._getTitle())
@@ -234,9 +237,6 @@ class ProtCtfREfineViewer(ProtocolViewer):
             #  after redraw
             plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
 
-#        im = self.plotter.plotScatter(self.x, self.y, zs=self.defocus,
-        # IT will be niver to create a plotScatter function in scipion but
-        # scipion is frozen
         im = self.ax.scatter(self.x, self.y, zs=self.defocus,
                              c=self.defocus,
                              s=100,
@@ -248,8 +248,8 @@ class ProtCtfREfineViewer(ProtocolViewer):
     def _displayBeamTilt(self, paramName=None):
         phaseDifferenceFn = self.protocol.fileWithPhaseDifferenceName()
         modelFitFn = self.protocol.fileWithModelFitterName()
-        # TODO: how can I change the window title?
 
+        # TODO: how can I change the window title?
         return [DataView(phaseDifferenceFn), DataView(modelFitFn)]
 
     def createScipionPartView(self, filename, viewParams={}):

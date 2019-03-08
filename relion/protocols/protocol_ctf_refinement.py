@@ -245,7 +245,6 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         except sqlite3.IntegrityError as e:
             print('sqlite error: ', e.args[0])  # something went wrong
 
-
         # create index on micId
         sql = "CREATE INDEX micIDindex ON %s(micId);" % self.tableName
         c.execute(sql)
