@@ -219,7 +219,7 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         # and save in database
         data = []
         resultDict = {}
-        resultDict['tableName'] = self.tableName
+        resultDict['tableName'] = tableName
 
         for p1, p2 in izip(inPartSet, outPartSet):
             p1D = (p1.getCTF().getDefocusU() +
@@ -240,13 +240,13 @@ class ProtRelionCtfRefinement(em.ProtParticles):
             sql = "INSERT INTO %s  " \
                   " (micID, micName, coordX, coordY, defocusDiff, defocus)" \
                   " VALUES " \
-                  " (?, ?, ?, ?, ?, ?)" % self.tableName
+                  " (?, ?, ?, ?, ?, ?)" % tableName
             c.executemany(sql, data)
         except sqlite3.IntegrityError as e:
             print('sqlite error: ', e.args[0])  # something went wrong
 
         # create index on micId
-        sql = "CREATE INDEX micIDindex ON %s(micId);" % self.tableName
+        sql = "CREATE INDEX micIDindex ON %s(micId);" % tableName
         c.execute(sql)
         conn.commit()
         conn.close()
