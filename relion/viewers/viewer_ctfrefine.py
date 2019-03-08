@@ -63,10 +63,13 @@ class ProtCtfREfineViewer(ProtocolViewer):
         }
 
     def onClick(self, event):
-        ix, iy = event.xdata, event.ydata
-        print 'x = %d, y = %d' % (
-            ix, iy)
-
+        # If click outside plot print will fail
+        # because xdata is Nonetype
+        try:
+            ix, iy = event.xdata, event.ydata
+            print 'x = %d, y = %d' % (ix, iy)
+        except:
+            pass
     def _displayPlotDefocusStdev(self, e=None):
         sql = "SELECT COUNT(*) as number, sub.micID, " \
               "    AVG(({tableName}.defocus - sub.a) * " \
@@ -125,9 +128,13 @@ class ProtCtfREfineViewer(ProtocolViewer):
             # disable default binding for arrows
             # because I want to use them
             # to navigate between micrographs
-            mpl.rcParams['keymap.back'].remove('left')
-            mpl.rcParams['keymap.forward'].remove('right')
-
+            # wrap in try, except because matplotlib will raise
+            # an exception if the value is not in the list
+            try:
+                mpl.rcParams['keymap.back'].remove('left')
+                mpl.rcParams['keymap.forward'].remove('right')
+            except:
+                pass
         self.plotter = EmPlotter(windowTitle="CTF Refinement")
 
         self.fig = self.plotter.getFigure()
