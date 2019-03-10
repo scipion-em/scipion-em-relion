@@ -23,12 +23,12 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # ******************************************************************************
-
+import math
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 import pyworkflow.em as em
 import pyworkflow.em.metadata as md
-from pyworkflow.em.data import Float
+from pyworkflow.em.data import Float, Integer, String, EMObject
 import relion
 from relion.convert.metadata import Table
 import sqlite3
@@ -193,64 +193,6 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         prog = "relion_ctf_refine" + ("_mpi" if self.numberOfMpi > 1 else "")
         self.runJob(prog, args)
 
-    def _createDB(self, tableName):
-        """ create database and table"""
-        conn = sqlite3.connect(self.getDatabaseName())
-        c = conn.cursor()
-        c.execute("DROP TABLE IF EXISTS {tableName}".format(
-            tableName=tableName))
-        commandCreateTable = """
-                CREATE TABLE {tableName}(
-                     id           integer primary key autoincrement,
-                     micId        int,
-                     micName      text,
-                     coordX       float,
-                     coordY       float,
-                     defocusDiff  float,
-                     defocus      float
-                     );"""
-        c.execute(commandCreateTable.format(tableName=tableName))
-
-        outPartSet = SetOfParticles(
-            filename=self._getPath("particles.sqlite"))
-        inPartSet = SetOfParticles(
-            filename=self.inputParticles.get().getFileName())
-        # compute difference in defocus
-        # and save in database
-        data = []
-        resultDict = {}
-        resultDict['tableName'] = tableName
-
-        for p1, p2 in izip(inPartSet, outPartSet):
-            p1D = (p1.getCTF().getDefocusU() +
-                   p1.getCTF().getDefocusV())/2.0
-            p2D = (p2.getCTF().getDefocusU() +
-                   p2.getCTF().getDefocusV())/2.0
-            coordinate = p1.getCoordinate()
-            micId = coordinate.getMicId()
-            micName = coordinate.getMicName()
-            coordX = coordinate.getX()
-            coordY = coordinate.getY()
-            defocusDiff = p2D - p1D
-            defocus = p2D
-            data.append((micId, micName,
-                         coordX, coordY,
-                         defocusDiff, defocus))
-        try:
-            sql = "INSERT INTO %s  " \
-                  " (micID, micName, coordX, coordY, defocusDiff, defocus)" \
-                  " VALUES " \
-                  " (?, ?, ?, ?, ?, ?)" % tableName
-            c.executemany(sql, data)
-        except sqlite3.IntegrityError as e:
-            print('sqlite error: ', e.args[0])  # something went wrong
-
-        # create index on micId
-        sql = "CREATE INDEX micIDindex ON %s(micId);" % tableName
-        c.execute(sql)
-        conn.commit()
-        conn.close()
-
     def createOutputStep(self):
         imgSet = self.inputParticles.get()
         outImgSet = self._createSetOfParticles()
@@ -265,8 +207,64 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(self.inputParticles, outImgSet)
 
-        # Create auxiliary database used in the analyze section
-        self._createDB(self.getTableName())
+        # Create auxiliary set of _Micrograph objects used in analyze
+        self._createMicObject (self.getSetOfMicName())
+
+    def _createMicObject(self, setOfMicsName):
+        setOfMics = _SetOfMics(filename=setOfMicsName)
+
+        outPartSet = SetOfParticles(
+            filename=self._getPath("particles.sqlite"))
+        inPartSet = SetOfParticles(
+            filename=self.inputParticles.get().getFileName())
+        # compute difference in defocus
+        # and save in database
+        x = []
+        y = []
+        defocus = []
+        defocusDiff = []
+
+        lastMicId = inPartSet.getFirstItem().getCoordinate().getMicId()
+        n = 0
+        for p1, p2 in izip(inPartSet, outPartSet):
+            p1D = (p1.getCTF().getDefocusU() +
+                   p1.getCTF().getDefocusV())/2.0
+            p2D = (p2.getCTF().getDefocusU() +
+                   p2.getCTF().getDefocusV())/2.0
+            coordinate = p1.getCoordinate()
+            micId = coordinate.getMicId()
+
+            if lastMicId != micId:
+                # do not save mic without particles
+                if n == 0:
+                    break
+                mic = _Micrograph(xCoord=x, yCoord=y, defocus=defocus,
+                                  defocusDiff=defocusDiff)
+                mic.micId = Integer(lastMicId)
+                mic.micName = String(micName)
+                mic.n = Integer(n)  # number of particles in mic
+                setOfMics.append(mic)
+                lastMicId = micId
+                sum = 0
+                for i in range(0 ,n):
+                    sum += defocus[i]
+                mean = sum /n
+                sqDiff = 0
+                for i in range(0, n):
+                    sqDiff += ((defocus[i] - mean)
+                               * (defocus[i] - mean))
+                mic.stdev = Float(math.sqrt(sqDiff / n)) # defocus stdev
+                x = []; y = []; n = 0
+                defocus = []; defocusDiff = []
+
+            micName = coordinate.getMicName()
+            x.append(coordinate.getX())
+            y.append(coordinate.getY())
+            defocusDiff.append(p2D - p1D)
+            defocus.append(p2D)
+            n += 1
+
+        setOfMics.write()
 
 
     def _updateItemCtfBeamTilt(self, particle, row):
@@ -297,8 +295,39 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         return self._getExtraPath(
             'beamtilt_delta-phase_lin-fit_class_0.mrc:mrc')
 
-    def getDatabaseName(self):
+    def getSetOfMicName(self):
         return self._getExtraPath('analyze.sqlite')
 
-    def getTableName(self):
-        return 'defoci'
+
+# ----- classes to transffer information to viewer -----------------------
+
+class _Micrograph(EMObject):
+    def __init__(self, **kwargs):
+        EMObject.__init__(self, **kwargs)
+        # micId
+        self.micId = Integer()
+        # micName
+        self.micName = String()
+
+        # list particle x coordinate
+        self._xCoord = params.CsvList(pType=float)
+        self._xCoord.set(kwargs.get('xCoord', []))
+        # list particle y coordinate
+        self._yCoord = params.CsvList(pType=float)
+        self._yCoord.set(kwargs.get('yCoord', []))
+        # list particle defocus
+        self._defocus = params.CsvList(pType=float)
+        self._defocus.set(kwargs.get('defocus', []))
+        # list particle defocus difference
+        self._defocusDiff = params.CsvList(pType=float)
+        self._defocusDiff.set(kwargs.get('defocusDiff', []))
+
+        self.stdev = Float()  # defocus stdev
+        self.n = Integer()  # number particles in the microhraph
+
+    def getCoordinates(self):
+        return self._xCoord, self._yCoord
+
+class _SetOfMics(em.EMSet):
+    """Represents a set of FSCs"""
+    ITEM_TYPE = _Micrograph
