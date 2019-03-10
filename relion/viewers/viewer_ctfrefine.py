@@ -1,7 +1,7 @@
 import sqlite3
 from pyworkflow.protocol.params import LabelParam
 from pyworkflow.viewer import DESKTOP_TKINTER, WEB_DJANGO, ProtocolViewer
-from relion.protocols.protocol_ctf_refinement import ProtRelionCtfRefinement
+from relion.protocols.protocol_ctf_refinement import ProtRelionCtfRefinement, _SetOfMics
 from pyworkflow.em.viewers.plotter import plt, EmPlotter
 import matplotlib as mpl
 import pyworkflow.em.viewers.showj as showj
@@ -18,13 +18,12 @@ class ProtCtfREfineViewer(ProtocolViewer):
 
     def __init__(self,  **kwargs):
         ProtocolViewer.__init__(self,  **kwargs)
-        self.step = 1  # next micrography
+        self.step = 1  # next micrograph
 
-        """ create connection with database """
-        self.conn = sqlite3.connect(self.protocol.getDatabaseName())
-        self.c = self.conn.cursor()
-        self.doDb = True
-        self.tableName = self.protocol.getTableName()
+        setOfMicFnName = self.protocol.getSetOfMicName()
+        print "setOfMicFnName", os.path.abspath(setOfMicFnName)
+#        print "mapper", self.protocol.getMapper().dictClasses
+        self.setOfMic = _SetOfMics(filename=setOfMicFnName)
 
     def _defineParams(self, form):
         self._env = os.environ.copy()
@@ -70,20 +69,15 @@ class ProtCtfREfineViewer(ProtocolViewer):
             print 'x = %d, y = %d' % (ix, iy)
         except:
             pass
+
     def _displayPlotDefocusStdev(self, e=None):
-        sql = "SELECT COUNT(*) as number, sub.micID, " \
-              "    AVG(({tableName}.defocus - sub.a) * " \
-              "        ({tableName}.defocus - sub.a)) as var " \
-              "FROM {tableName}, (SELECT micId, AVG(d.defocus) AS a " \
-              "         FROM {tableName} as d  " \
-              "         GROUP BY micId) AS sub " \
-              "WHERE {tableName}.micID = sub.micID " \
-              "GROUP BY sub.micID " \
-              "HAVING number > 7;".format(tableName=self.tableName)
-        self.c.execute(sql)
-        rows = self.c.fetchall()
-        x = [item[1] for item in rows]  # micId
-        y = [math.sqrt(item[2]) for item in rows]  # stdev
+        micIdSet = []
+        stdevSet = []
+        for mic in self.setOfMic.iteritems:
+            micIdSet.append(mic.micId)
+            stdevSet.appdend(mic.stdev)
+        x = micIdSet
+        y = stdevSet
         self.plotter = EmPlotter(windowTitle="Defocus STdev per Micrograph")
         self.fig = self.plotter.getFigure()
         self.ax = \
