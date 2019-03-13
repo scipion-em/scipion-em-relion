@@ -271,6 +271,7 @@ class Relion2AutopickParams(EmWizard):
         doPickAll = true
         """ % args)
         f.close()
+        os.environ['XMIPP_EXTRA_ALIASES'] = 'micrograph=rlnMicrographName'
         process = CoordinatesObjectView(autopickProt.getProject(), micStarFn,
                                         coordsDir, autopickProt,
                                         mode=CoordinatesObjectView.MODE_AUTOMATIC,
