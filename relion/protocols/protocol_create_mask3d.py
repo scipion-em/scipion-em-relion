@@ -31,6 +31,8 @@ import relion
 import relion.convert
 from relion.constants import MASK_AND, MASK_OR, MASK_AND_NOT, MASK_OR_NOT
 
+IS_V3 = relion.Plugin.isVersion3Active()
+
 
 class ProtRelionCreateMask3D(pw.em.ProtCreateMask3D):
     """ This protocols creates a 3D mask using Relion.
@@ -104,6 +106,9 @@ class ProtRelionCreateMask3D(pw.em.ProtCreateMask3D):
                       label='Invert final mask',
                       help='Invert the final mask')
 
+        if IS_V3:
+            form.addParallelSection(threads=4, mpi=0)
+
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         self.maskFile = self._getExtraPath('mask.mrc')
@@ -140,6 +145,9 @@ class ProtRelionCreateMask3D(pw.em.ProtCreateMask3D):
 
         if self.doInvert:
             args += ' --invert'
+
+        if IS_V3 and self.numberOfThreads > 1:
+            args += ' --j %d' % self.numberOfThreads
 
         self.runJob("relion_mask_create", args)
 
