@@ -1,3 +1,30 @@
+# ******************************************************************************
+# *
+# * Authors:    Roberto Marabini       (roberto@cnb.csic.es) [1]
+# *             J.M. De la Rosa Trevin (delarosatrevin@scilifelab.se) [2]
+# *
+# * [1] Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+# * [2] SciLifeLab, Stockholm University
+# *
+# * This program is free software; you can redistribute it and/or modify
+# * it under the terms of the GNU General Public License as published by
+# * the Free Software Foundation; either version 2 of the License, or
+# * (at your option) any later version.
+# *
+# * This program is distributed in the hope that it will be useful,
+# * but WITHOUT ANY WARRANTY; without even the implied warranty of
+# * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# * GNU General Public License for more details.
+# *
+# * You should have received a copy of the GNU General Public License
+# * along with this program; if not, write to the Free Software
+# * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+# * 02111-1307  USA
+# *
+# *  All comments concerning this program package may be sent to the
+# *  e-mail address 'scipion@cnb.csic.es'
+# *
+# ******************************************************************************
 
 import sys
 import os
@@ -135,7 +162,6 @@ class ProtCtfREfineViewer(ProtocolViewer):
             'pageup': -100, 'pagedown': 100,
             'home': -1000, 'end': 1000
         }
-
         shift = shiftDict[event.key]
         # Check the new micrograph index is between first and last
         newIndex = self._currentMicIndex + shift
@@ -157,11 +183,9 @@ class ProtCtfREfineViewer(ProtocolViewer):
             self.ax.set_ylabel("Mic Ydim (px)", fontsize=newFontSize)
             #self.ax.set_zlabel("Defocus Difference (A)", fontsize=newFontSize)
             self.ax.grid(True)
-
             # FIXME: Use mic size
             self.ax.set_xlim(0, np.max(micInfo.x))
             self.ax.set_ylim(0, np.max(micInfo.y))
-
             # if I do not use subplots_adjust the window shrinks
             #  after redraw
             plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
@@ -264,9 +288,7 @@ class AnalizeCtfInfo:
 
             p1D = _avgDefocus(p1)
             p2D = _avgDefocus(p2)
-
             x, y = coord.getPosition()
-
             micInfo.addEntry(x, y, p2D, p2D - p1D)
 
         for micInfo in infoList:
