@@ -23,17 +23,19 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # ******************************************************************************
+
 import math
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 import pyworkflow.em as em
 import pyworkflow.em.metadata as md
 from pyworkflow.em.data import Float, Integer, String, EMObject
+
 import relion
 from relion.convert.metadata import Table
-import sqlite3
 from pyworkflow.em.data import SetOfParticles
 from itertools import izip
+
 
 class ProtRelionCtfRefinement(em.ProtParticles):
     """
@@ -166,11 +168,11 @@ class ProtRelionCtfRefinement(em.ProtParticles):
     def refineCtfStep(self):
         args = "--i %s " % self._getPath('input_particles.star')
         args += "--o %s " % self._getExtraPath()
-        postStar = self.inputPostprocess.get().\
-            _getExtraPath('postprocess.star')
+        inputProt = self.inputPostprocess.get()
+        postStar = inputProt._getExtraPath('postprocess.star')
+        postVols = relion.convert.getVolumesFromPostprocess(postStar)
         args += "--f %s " % postStar
-        args += "--m1 %s --m2 %s --mask %s " % \
-                relion.convert.getVolumesFromPostprocess(postStar)
+        args += "--m1 %s --m2 %s --mask %s " % postVols
         args += "--kmin_tilt %0.3f " % self.minResolution
         args += "--angpix %0.3f " % self.inputParticles.get().getSamplingRate()
 
@@ -208,64 +210,7 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         self._defineTransformRelation(self.inputParticles, outImgSet)
 
         # Create auxiliary set of _Micrograph objects used in analyze
-        self._createMicObject (self.getSetOfMicName())
-
-    def _createMicObject(self, setOfMicsName):
-        setOfMics = _SetOfMics(filename=setOfMicsName)
-
-        outPartSet = SetOfParticles(
-            filename=self._getPath("particles.sqlite"))
-        inPartSet = SetOfParticles(
-            filename=self.inputParticles.get().getFileName())
-        # compute difference in defocus
-        # and save in database
-        x = []
-        y = []
-        defocus = []
-        defocusDiff = []
-
-        lastMicId = inPartSet.getFirstItem().getCoordinate().getMicId()
-        n = 0
-        for p1, p2 in izip(inPartSet, outPartSet):
-            p1D = (p1.getCTF().getDefocusU() +
-                   p1.getCTF().getDefocusV())/2.0
-            p2D = (p2.getCTF().getDefocusU() +
-                   p2.getCTF().getDefocusV())/2.0
-            coordinate = p1.getCoordinate()
-            micId = coordinate.getMicId()
-
-            if lastMicId != micId:
-                # do not save mic without particles
-                if n == 0:
-                    break
-                mic = _Micrograph(xCoord=x, yCoord=y, defocus=defocus,
-                                  defocusDiff=defocusDiff)
-                mic.micId = Integer(lastMicId)
-                mic.micName = String(micName)
-                mic.n = Integer(n)  # number of particles in mic
-                setOfMics.append(mic)
-                lastMicId = micId
-                sum = 0
-                for i in range(0 ,n):
-                    sum += defocus[i]
-                mean = sum /n
-                sqDiff = 0
-                for i in range(0, n):
-                    sqDiff += ((defocus[i] - mean)
-                               * (defocus[i] - mean))
-                mic.stdev = Float(math.sqrt(sqDiff / n)) # defocus stdev
-                x = []; y = []; n = 0
-                defocus = []; defocusDiff = []
-
-            micName = coordinate.getMicName()
-            x.append(coordinate.getX())
-            y.append(coordinate.getY())
-            defocusDiff.append(p2D - p1D)
-            defocus.append(p2D)
-            n += 1
-
-        setOfMics.write()
-
+        self._createMicObject(self.getSetOfMicName())
 
     def _updateItemCtfBeamTilt(self, particle, row):
         particle.setCTF(relion.convert.rowToCtfModel(row))
@@ -295,39 +240,3 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         return self._getExtraPath(
             'beamtilt_delta-phase_lin-fit_class_0.mrc:mrc')
 
-    def getSetOfMicName(self):
-        return self._getExtraPath('analyze.sqlite')
-
-
-# ----- classes to transffer information to viewer -----------------------
-
-class _Micrograph(EMObject):
-    def __init__(self, **kwargs):
-        EMObject.__init__(self, **kwargs)
-        # micId
-        self.micId = Integer()
-        # micName
-        self.micName = String()
-
-        # list particle x coordinate
-        self._xCoord = params.CsvList(pType=float)
-        self._xCoord.set(kwargs.get('xCoord', []))
-        # list particle y coordinate
-        self._yCoord = params.CsvList(pType=float)
-        self._yCoord.set(kwargs.get('yCoord', []))
-        # list particle defocus
-        self._defocus = params.CsvList(pType=float)
-        self._defocus.set(kwargs.get('defocus', []))
-        # list particle defocus difference
-        self._defocusDiff = params.CsvList(pType=float)
-        self._defocusDiff.set(kwargs.get('defocusDiff', []))
-
-        self.stdev = Float()  # defocus stdev
-        self.n = Integer()  # number particles in the microhraph
-
-    def getCoordinates(self):
-        return self._xCoord, self._yCoord
-
-class _SetOfMics(em.EMSet):
-    """Represents a set of FSCs"""
-    ITEM_TYPE = _Micrograph

@@ -1,29 +1,32 @@
-import sqlite3
-from pyworkflow.protocol.params import LabelParam
-from pyworkflow.viewer import DESKTOP_TKINTER, WEB_DJANGO, ProtocolViewer
-from relion.protocols.protocol_ctf_refinement import ProtRelionCtfRefinement, _SetOfMics
-from pyworkflow.em.viewers.plotter import plt, EmPlotter
-import matplotlib as mpl
-import pyworkflow.em.viewers.showj as showj
-from pyworkflow.em.viewers import ObjectView, DataView
+
 import sys
 import os
-import math
+import numpy as np
+import matplotlib as mpl
+from itertools import izip
+
+import pyworkflow as pw
+import pyworkflow.object as pwobj
+from pyworkflow.protocol.params import LabelParam
+from pyworkflow.viewer import DESKTOP_TKINTER, WEB_DJANGO, ProtocolViewer
+from pyworkflow.em.viewers.plotter import plt, EmPlotter
+from pyworkflow.em.viewers import ObjectView, DataView
+import pyworkflow.em.viewers.showj as showj
+
+from relion.protocols import ProtRelionCtfRefinement
+
 
 class ProtCtfREfineViewer(ProtocolViewer):
-    """ viewer of relaion cTF refine"""
-    _label = 'CTF Refine Viewer'
+    """ viewer of Relion cTF refine"""
+    _label = 'ctf refine viewer'
     _environments = [DESKTOP_TKINTER, WEB_DJANGO]
     _targets = [ProtRelionCtfRefinement]
 
     def __init__(self,  **kwargs):
         ProtocolViewer.__init__(self,  **kwargs)
-        self.step = 1  # next micrograph
-
-        setOfMicFnName = self.protocol.getSetOfMicName()
-        print "setOfMicFnName", os.path.abspath(setOfMicFnName)
-#        print "mapper", self.protocol.getMapper().dictClasses
-        self.setOfMic = _SetOfMics(filename=setOfMicFnName)
+        self._micInfoList = None
+        self._currentMicIndex = 0
+        self._loadAnalyzeInfo()
 
     def _defineParams(self, form):
         self._env = os.environ.copy()
@@ -32,15 +35,15 @@ class ProtCtfREfineViewer(ProtocolViewer):
         form.addParam('displayDefocus', LabelParam,
                       label="Show Defocus",
                       help="Display the defocus estimation.\n "
-                           "Plot defocus difference vs positin in micrograph\n"
-                           "You may move between microgaphs by typing:\:"
+                           "Plot defocus difference vs position in micrograph\n"
+                           "You may move between micrographs by typing:\:"
                            "left/right keys (move +1/-1 micrograph)\n"
                            "up/down keys (move +10/-10 micrographs)\n"
                            "page_up/page_down keys (move +100/-100 "
                            "micrographs)\n"
                            "home/end keys (move +1000/-1000 micrographs)\n")
         form.addParam('displayPlotDEfocusStdev', LabelParam,
-                      label="variance of defocus per micrograph",
+                      label="Show defocus variance per micrograph",
                       help="Stdev of defocus per micrographs. Micrograph"
                            "with less than 7 particles are skept.")
         form.addParam('displayBeamTilt', LabelParam,
@@ -71,18 +74,12 @@ class ProtCtfREfineViewer(ProtocolViewer):
             pass
 
     def _displayPlotDefocusStdev(self, e=None):
-        micIdSet = []
-        stdevSet = []
-        for mic in self.setOfMic.iteritems:
-            micIdSet.append(mic.micId)
-            stdevSet.appdend(mic.stdev)
-        x = micIdSet
-        y = stdevSet
+        x = [mi.micId.get() for mi in self._micInfoList]
+        y = [mi.stdev.get() for mi in self._micInfoList]
         self.plotter = EmPlotter(windowTitle="Defocus STdev per Micrograph")
         self.fig = self.plotter.getFigure()
-        self.ax = \
-            self.plotter.createSubPlot("Defocus STdev per Micrograph",
-                                       "# Micrograph", "stdev")
+        self.ax = self.plotter.createSubPlot("Defocus STdev per Micrograph",
+                                             "# Micrograph", "stdev")
         im = self.ax.scatter(x, y, s=50, marker='o')
         self.fig.canvas.mpl_connect('button_press_event', self.onClick)
 
@@ -90,53 +87,23 @@ class ProtCtfREfineViewer(ProtocolViewer):
 
     def _visualizeDefocus(self, e=None):
         """Show matplotlib with defocus values."""
-        # read input and output metadata
-        if self.doDb:
-            # find first and last micId
-            sql = "SELECT min(micId), max(micId) FROM %s" % \
-                  self.tableName
-            self.c.execute(sql)
-            row = self.c.fetchone()
-            self.smallerMicId = int(row[0])
-            self.higherMicId = int(row[1])
-            self.showMicWitID = self.smallerMicId
+        micInfo = self._micInfoList[self._currentMicIndex]
+        # disable default binding for arrows
+        # because I want to use them
+        # to navigate between micrographs
+        # wrap in try, except because matplotlib will raise
+        # an exception if the value is not in the list
+        try:
+            mpl.rcParams['keymap.back'].remove('left')
+            mpl.rcParams['keymap.forward'].remove('right')
+        except:
+            pass
 
-            # get micrograph name
-            sql = "SELECT micName FROM %s WHERE micID=%s LIMIT 1" %\
-                  (self.tableName, self.smallerMicId)
-            self.c.execute(sql)
-            row = self.c.fetchone()
-            self.micName = row[0]
-
-            self.doDb = False
-
-            # TODO: find plot dimensions
-            # I would rather use the micrograph dimensions but I do
-            # not know how to get them
-            sql = "SELECT max(coordX), max(coordY) FROM %s" % self.tableName
-            self.c.execute(sql)
-            row = self.c.fetchone()
-            self.xSize = int(row[0])
-            self.ySize = int(row[1])
-
-            # disable default binding for arrows
-            # because I want to use them
-            # to navigate between micrographs
-            # wrap in try, except because matplotlib will raise
-            # an exception if the value is not in the list
-            try:
-                mpl.rcParams['keymap.back'].remove('left')
-                mpl.rcParams['keymap.forward'].remove('right')
-            except:
-                pass
         self.plotter = EmPlotter(windowTitle="CTF Refinement")
 
         self.fig = self.plotter.getFigure()
-        self.ax = \
-            self.plotter.createSubPlot(self._getTitle(),
-                                       "Mic-Xdim",
-                                       "Mic-Ydim",
-                                       projection='3d')
+        self.ax = self.plotter.createSubPlot(
+            self._getTitle(micInfo), "Mic-Xdim", "Mic-Ydim")#, projection='3d')
 
         # call self.press after pressing any key
         self.fig.canvas.mpl_connect('key_press_event', self.press)
@@ -148,107 +115,59 @@ class ProtCtfREfineViewer(ProtocolViewer):
 
         self.show()
 
-    def _getTitle(self):
+    def _getTitle(self, micInfo):
         return ("use arrows or page up/down or home/end to navigate.\n"
                 "Displaying Mic = %s (%d)" %
-                (self.micName, self.showMicWitID))
-
-    def getData(self):
-        sql = "SELECT coordX, coordY, defocusDiff, micName " \
-              "FROM %s " \
-              "WHERE micId = %d"
-
-        # MicIds may not be consecutive so search the closest
-        # valid one
-        while True:
-            sqlComamnd = sql % (self.tableName,  self.showMicWitID)
-            self.c.execute(sqlComamnd)
-            rows = self.c.fetchall()
-            if len(rows) == 0 \
-                    and self.showMicWitID >= self.smallerMicId \
-                    and self.showMicWitID <= self.higherMicId:
-                self.showMicWitID += self.step
-            else:
-                break
-
-        x = [item[0] for item in rows]
-        y = [item[1] for item in rows]
-        defocus = [item[2] for item in rows]
-        micName = rows[0][3]
-        return x, y, defocus, micName
+                (micInfo.micName, micInfo.micId))
 
     def press(self, event):
-        """ if a key is pressed increment/decrement
-        the showMicWitID"""
+        """ Change the currently shown micrograph
+        when a key is pressed (increment/decrement)
+        """
         sys.stdout.flush()
-        if event.key == "left":
-            self.showMicWitID -= 1
-            self.step = -1
-        elif event.key == "right":
-            self.showMicWitID += 1
-            self.step = +1
-        elif event.key == "up":
-            self.showMicWitID -= 10
-            self.step = -1
-        elif event.key == "down":
-            self.showMicWitID += 10
-            self.step = +1
-        elif event.key == "pageup":
-            self.showMicWitID -= 100
-            self.step = -1
-        elif event.key == "pagedown":
-            self.showMicWitID += 100
-            self.step = +1
-        elif event.key == "home":
-            self.showMicWitID -= 1000
-            self.step = -1
-        elif event.key == "end":
-            self.showMicWitID += 1000
-            self.step = +1
-        elif event.key == "q":
-            quit()
-        # else:
-        #    print('press', event.key)
 
-        # you should no go beyond the last micrograph
-        # and before the first one
-        if self.showMicWitID < self.smallerMicId:
-            self.showMicWitID = self.smallerMicId
-        elif self.showMicWitID > self.higherMicId:
-            self.showMicWitID = self.higherMicId
+        if event.key == 'q':
+            quit()  # Quit the whole system?
 
+        shiftDict = {
+            'left': -1, 'right': 1,
+            'up': 10, 'down': -10,
+            'pageup': -100, 'pagedown': 100,
+            'home': -1000, 'end': 1000
+        }
+
+        shift = shiftDict[event.key]
+        # Check the new micrograph index is between first and last
+        newIndex = self._currentMicIndex + shift
+        self._currentMicIndex = min(max(0, newIndex), len(self._micInfoList) - 1)
         self.show()
 
     def show(self, event=None):
         """ Draw plot """
-        if event is None:
-            self.x, self.y, self.defocus, self.micName = \
-                self.getData()
+        micInfo = self._micInfoList[self._currentMicIndex]
 
+        if event is None:
             # I need to clear the plot otherwise
             # ols points are not removed
             self.ax.clear()
             self.ax.margins(0.05)
-            self.ax.set_title(self._getTitle())
-            self.ax.set_xlabel("Mic Xdim (px)",
-                               fontsize=self.plotter.plot_axis_fontsize+2)
-            self.ax.set_ylabel("Mic Ydim (px)",
-                               fontsize=self.plotter.plot_axis_fontsize+2)
-            self.ax.set_zlabel("Defocus Difference (A)",
-                               fontsize=self.plotter.plot_axis_fontsize+2)
+            self.ax.set_title(self._getTitle(micInfo))
+            newFontSize = self.plotter.plot_axis_fontsize + 2
+            self.ax.set_xlabel("Mic Xdim (px)", fontsize=newFontSize)
+            self.ax.set_ylabel("Mic Ydim (px)", fontsize=newFontSize)
+            #self.ax.set_zlabel("Defocus Difference (A)", fontsize=newFontSize)
             self.ax.grid(True)
 
-            self.ax.set_xlim(0, self.xSize)
-            self.ax.set_ylim(0, self.ySize)
+            # FIXME: Use mic size
+            self.ax.set_xlim(0, np.max(micInfo.x))
+            self.ax.set_ylim(0, np.max(micInfo.y))
 
             # if I do not use subplots_adjust the window shrinks
             #  after redraw
             plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
 
-        im = self.ax.scatter(self.x, self.y, zs=self.defocus,
-                             c=self.defocus,
-                             s=100,
-                             marker='o')
+        im = self.ax.scatter(micInfo.x, micInfo.y, #zs=micInfo.defocus,
+                             c=micInfo.defocusDiff, s=100, marker='o')
 
         self.plotter.getColorBar(im)
         self.plotter.show()
@@ -262,8 +181,9 @@ class ProtCtfREfineViewer(ProtocolViewer):
 
     def createScipionPartView(self, filename, viewParams={}):
         inputParticlesId = self.protocol.inputParticles.get().strId()
-        labels = 'enabled id _size _filename ' \
-                 ' _ctfModel._defocusU _ctfModel._defocusV '
+        labels = 'enabled id _size _filename '
+        labels += ' _ctfModel._defocusU _ctfModel._defocusV '
+
         if self.protocol.doBeamtiltEstimation:
             labels += ' _rlnBeamTiltX _rlnBeamTiltY'
 
@@ -287,3 +207,116 @@ class ProtCtfREfineViewer(ProtocolViewer):
         v = self.createScipionPartView(fn)
         views.append(v)
         return views
+
+    # ------------------- UTILS functions -------------------------
+    def _loadAnalyzeInfo(self):
+        # Only load once
+        if self._micInfoList is None:
+            ctfInfoFn = self.protocol._getExtraPath('ctf_analyze.sqlite')
+            if not os.path.exists(ctfInfoFn):
+                ctfInfo = self._createCtfInfo(ctfInfoFn)
+            else:
+                ctfInfo = AnalizeCtfInfo(ctfInfoFn)
+            self._micInfoList = [mi.clone() for mi in ctfInfo]
+            ctfInfo.close()
+
+    def _createCtfInfo(self, ctfInfoFn):
+        ctfInfo = AnalizeCtfInfo(filename=ctfInfoFn)
+        print("Generating CTF statistics...")
+        ctfInfo.loadFromParticles(self.protocol.inputParticles.get(),
+                                  self.protocol.outputParticles)
+        return ctfInfo
+
+
+class AnalizeCtfInfo:
+    """ Simple class to store visualization information related
+    to Micrographs and Particles CTF information after
+    Relion - ctf refinement protocol.
+    """
+    def __init__(self, filename):
+        # The classes dict needs to be updated to register local objects
+        classesDict = dict(pwobj.__dict__)
+        classesDict['MicInfo'] = MicInfo
+        self._infoSet = pwobj.Set(filename, classesDict=classesDict)
+
+    def addMicInfo(self, micId, x, y, defocus, defocusDiff):
+        pass
+
+    def loadFromParticles(self, inputParts, outputParts):
+        # compute difference in defocus and save in database
+        micInfo = None
+        lastMicId = None
+        infoList = []
+
+        def _avgDefocus(p):
+            dU, dV, _ = p.getCTF().getDefocus()
+            return (dU + dV) / 2.0
+
+        for p1, p2 in izip(inputParts.iterItems(orderBy=['_micId', 'id']),
+                           outputParts.iterItems(orderBy=['_micId', 'id'])):
+            coord = p1.getCoordinate()
+            micId = coord.getMicId()
+
+            if micId != lastMicId:
+                micInfo = MicInfo(micId=micId, micName=coord.getMicName())
+                infoList.append(micInfo)
+                lastMicId = micId
+
+            p1D = _avgDefocus(p1)
+            p2D = _avgDefocus(p2)
+
+            x, y = coord.getPosition()
+
+            micInfo.addEntry(x, y, p2D, p2D - p1D)
+
+        for micInfo in infoList:
+            micInfo.computeStats()
+            self._infoSet.append(micInfo)
+
+        self._infoSet.write()
+
+    def __iter__(self):
+        for micInfo in self._infoSet:
+            yield micInfo
+
+    def close(self):
+        self._infoSet.close()
+
+
+class MicInfo(pwobj.OrderedObject):
+    def __init__(self, **kwargs):
+        pwobj.OrderedObject.__init__(self, **kwargs)
+
+        self.micId = pwobj.Integer(kwargs.get('micId', None))
+        self.micName = pwobj.String(kwargs.get('micName', None))
+
+        # list particle x coordinate
+        def _floatList(key):
+            fl = pwobj.CsvList(pType=float)
+            fl.set(kwargs.get(key, []))
+            return fl
+
+        self.x = _floatList('xCoord')
+        # list particle y coordinate
+        self.y = _floatList('yCoord')
+        # list particle defocus
+        self.defocus = _floatList('defocus')
+        # list particle defocus difference
+        self.defocusDiff = _floatList('defocusDiff')
+
+        self.stdev = pwobj.Float()  # defocus stdev
+        self.n = pwobj.Integer()  # number particles in the micrograph
+
+    def addEntry(self, x, y, defocus, defocusDiff):
+        self.x.append(x)
+        self.y.append(y)
+        self.defocus.append(defocus)
+        self.defocusDiff.append(defocusDiff)
+
+    def computeStats(self):
+        self.n.set(len(self.defocus))
+        self.stdev.set(np.std(self.defocus))
+
+    def getCoordinates(self):
+        return self.x, self.y
+
