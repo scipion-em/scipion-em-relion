@@ -209,9 +209,6 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(self.inputParticles, outImgSet)
 
-        # Create auxiliary set of _Micrograph objects used in analyze
-        self._createMicObject(self.getSetOfMicName())
-
     def _updateItemCtfBeamTilt(self, particle, row):
         particle.setCTF(relion.convert.rowToCtfModel(row))
         # TODO: Add other field from the .star file when other options?
