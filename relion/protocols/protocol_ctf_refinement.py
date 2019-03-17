@@ -24,7 +24,6 @@
 # *
 # ******************************************************************************
 
-import math
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 import pyworkflow.em as em
@@ -33,15 +32,10 @@ from pyworkflow.em.data import Float, Integer, String, EMObject
 
 import relion
 from relion.convert.metadata import Table
-from pyworkflow.em.data import SetOfParticles
-from itertools import izip
 
 
 class ProtRelionCtfRefinement(em.ProtParticles):
-    """
-    Wrapper protocol for the Relion's per-particle CTF refinement.
-    """
-
+    """ Wrapper protocol for the Relion's per-particle CTF refinement. """
     _label = 'ctf refinement'
 
     @classmethod
@@ -236,4 +230,3 @@ class ProtRelionCtfRefinement(em.ProtParticles):
     def fileWithModelFitterName(self):
         return self._getExtraPath(
             'beamtilt_delta-phase_lin-fit_class_0.mrc:mrc')
-
