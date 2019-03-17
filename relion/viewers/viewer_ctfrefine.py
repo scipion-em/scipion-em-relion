@@ -57,18 +57,18 @@ class ProtCtfRefineViewer(ProtocolViewer):
     def _defineParams(self, form):
         self._env = os.environ.copy()
         showBeamTilt = self.protocol.doBeamtiltEstimation.get()
-        form.addSection(label="Defocus")
+        form.addSection(label="Results")
         form.addParam('displayDefocus', LabelParam,
                       label="Show Defocus",
                       help="Display the defocus estimation.\n "
-                           "Plot defocus difference vs position in micrograph\n"
+                           "Plot defocus difference (Angstroms) vs position in micrograph\n"
                            "You may move between micrographs by using: \n\n"
                            "Left/Right keys (move +1/-1 micrograph)\n"
                            "Up/Down keys (move +10/-10 micrographs)\n"
                            "Page_up/Page_down keys (move +100/-100 "
                            "micrographs)\n"
                            "Home/End keys (move +1000/-1000 micrographs)")
-        form.addParam('displayPlotDEfocusStdev', LabelParam,
+        form.addParam('displayPlotDefocusStdev', LabelParam,
                       label="Show defocus variance per micrograph",
                       help="Stdev of defocus per micrographs. Micrographs "
                            "with less than 7 particles are skipped.")
@@ -87,7 +87,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
             'displayDefocus': self._visualizeDefocus,
             'displayBeamTilt': self._displayBeamTilt,
             'displayParticles': self._displayParticles,
-            'displayPlotDEfocusStdev': self._displayPlotDefocusStdev
+            'displayPlotDefocusStdev': self._displayPlotDefocusStdev
         }
 
     def onClick(self, event):
@@ -143,7 +143,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
 
     def _getTitle(self, micInfo):
         return ("Use arrows or Page up/Down or Home/End to navigate.\n"
-                "Displaying Mic = %s (%d)" %
+                "Mic = %s (%d)" %
                 (micInfo.micName, micInfo.micId))
 
     def press(self, event):

@@ -157,7 +157,7 @@ class ProtRelionCtfRefinement(em.ProtParticles):
                                            fillRandomSubset=True)
 
     def _getInputVolumes(self, postStar):
-        """ Parse the input volumes: halfs and mask
+        """ Parse the input volumes: halves and mask
         from the postprocess.star file. """
         table = Table(fileName=postStar, tableName='general')
         row = table[0]
