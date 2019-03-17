@@ -32,7 +32,6 @@ import numpy as np
 import matplotlib as mpl
 from itertools import izip
 
-import pyworkflow as pw
 import pyworkflow.object as pwobj
 from pyworkflow.protocol.params import LabelParam
 from pyworkflow.viewer import DESKTOP_TKINTER, WEB_DJANGO, ProtocolViewer
@@ -43,8 +42,8 @@ import pyworkflow.em.viewers.showj as showj
 from relion.protocols import ProtRelionCtfRefinement
 
 
-class ProtCtfREfineViewer(ProtocolViewer):
-    """ viewer of Relion cTF refine"""
+class ProtCtfRefineViewer(ProtocolViewer):
+    """ Viewer for Relion CTF refine results. """
     _label = 'ctf refine viewer'
     _environments = [DESKTOP_TKINTER, WEB_DJANGO]
     _targets = [ProtRelionCtfRefinement]
@@ -63,25 +62,25 @@ class ProtCtfREfineViewer(ProtocolViewer):
                       label="Show Defocus",
                       help="Display the defocus estimation.\n "
                            "Plot defocus difference vs position in micrograph\n"
-                           "You may move between micrographs by typing:\:"
-                           "left/right keys (move +1/-1 micrograph)\n"
-                           "up/down keys (move +10/-10 micrographs)\n"
-                           "page_up/page_down keys (move +100/-100 "
+                           "You may move between micrographs by using: \n\n"
+                           "Left/Right keys (move +1/-1 micrograph)\n"
+                           "Up/Down keys (move +10/-10 micrographs)\n"
+                           "Page_up/Page_down keys (move +100/-100 "
                            "micrographs)\n"
-                           "home/end keys (move +1000/-1000 micrographs)\n")
+                           "Home/End keys (move +1000/-1000 micrographs)")
         form.addParam('displayPlotDEfocusStdev', LabelParam,
                       label="Show defocus variance per micrograph",
-                      help="Stdev of defocus per micrographs. Micrograph"
-                           "with less than 7 particles are skept.")
+                      help="Stdev of defocus per micrographs. Micrographs "
+                           "with less than 7 particles are skipped.")
         form.addParam('displayBeamTilt', LabelParam,
-                      label="Show BeanTilt Images",
+                      label="Show BeamTilt Images",
                       condition="{}".format(showBeamTilt),
                       help="Display two images: (1) phase differences from "
                            "which this estimate was derived and\n"
-                           "(2) the model fitted through it c")
+                           "(2) the model fitted through it.")
         form.addParam('displayParticles', LabelParam,
-                      label="display Particles",
-                      help="See the particles with the new CTF and Beamtilt")
+                      label="Display Particles",
+                      help="See the particles with the new CTF and beam tilt values")
 
     def _getVisualizeDict(self):
         return{
@@ -96,16 +95,16 @@ class ProtCtfREfineViewer(ProtocolViewer):
         # because xdata is Nonetype
         try:
             ix, iy = event.xdata, event.ydata
-            print 'x = %d, y = %d' % (ix, iy)
+            print('x = %d, y = %d' % (ix, iy))
         except:
             pass
 
     def _displayPlotDefocusStdev(self, e=None):
         x = [mi.micId.get() for mi in self._micInfoList]
         y = [mi.stdev.get() for mi in self._micInfoList]
-        self.plotter = EmPlotter(windowTitle="Defocus STdev per Micrograph")
+        self.plotter = EmPlotter(windowTitle="Defocus stdev per Micrograph")
         self.fig = self.plotter.getFigure()
-        self.ax = self.plotter.createSubPlot("Defocus STdev per Micrograph",
+        self.ax = self.plotter.createSubPlot("Defocus stdev per Micrograph",
                                              "# Micrograph", "stdev")
         im = self.ax.scatter(x, y, s=50, marker='o')
         self.fig.canvas.mpl_connect('button_press_event', self.onClick)
@@ -143,7 +142,7 @@ class ProtCtfREfineViewer(ProtocolViewer):
         self.show()
 
     def _getTitle(self, micInfo):
-        return ("use arrows or page up/down or home/end to navigate.\n"
+        return ("Use arrows or Page up/Down or Home/End to navigate.\n"
                 "Displaying Mic = %s (%d)" %
                 (micInfo.micName, micInfo.micId))
 
@@ -174,7 +173,7 @@ class ProtCtfREfineViewer(ProtocolViewer):
 
         if event is None:
             # I need to clear the plot otherwise
-            # ols points are not removed
+            # old points are not removed
             self.ax.clear()
             self.ax.margins(0.05)
             self.ax.set_title(self._getTitle(micInfo))
@@ -341,4 +340,3 @@ class MicInfo(pwobj.OrderedObject):
 
     def getCoordinates(self):
         return self.x, self.y
-
