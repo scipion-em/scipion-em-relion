@@ -31,6 +31,7 @@ import pyworkflow.em.metadata as md
 from pyworkflow.em.data import Float, Integer, String, EMObject
 
 import relion
+from relion.objects import CtfRefineGlobalInfo
 from relion.convert.metadata import Table
 
 
@@ -135,6 +136,7 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         self._insertFunctionStep('convertInputStep')
         self._insertFunctionStep('refineCtfStep')
         self._insertFunctionStep('createOutputStep')
+        self._insertFunctionStep('createGlobalInfoStep')
 
     def convertInputStep(self):
         inputParts = self.inputParticles.get()
@@ -203,6 +205,16 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(self.inputParticles, outImgSet)
 
+    def createGlobalInfo(self, filename):
+        pwutils.cleanPath(filename)
+        ctfInfo = CtfRefineGlobalInfo(filename=filename)
+        ctfInfo.loadFromParticles(self.inputParticles.get(),
+                                  self.outputParticles)
+        return ctfInfo
+
+    def createGlobalInfoStep(self):
+        self.createGlobalInfo(self.fileWithAnalyzeInfo())
+
     def _updateItemCtfBeamTilt(self, particle, row):
         particle.setCTF(relion.convert.rowToCtfModel(row))
         # TODO: Add other field from the .star file when other options?
@@ -230,3 +242,6 @@ class ProtRelionCtfRefinement(em.ProtParticles):
     def fileWithModelFitterName(self):
         return self._getExtraPath(
             'beamtilt_delta-phase_lin-fit_class_0.mrc:mrc')
+
+    def fileWithAnalyzeInfo(self):
+        return self._getExtraPath('ctf_analyze.sqlite')

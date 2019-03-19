@@ -30,15 +30,14 @@ import sys
 import os
 import numpy as np
 import matplotlib as mpl
-from itertools import izip
 
-import pyworkflow.object as pwobj
 from pyworkflow.protocol.params import LabelParam
 from pyworkflow.viewer import DESKTOP_TKINTER, WEB_DJANGO, ProtocolViewer
 from pyworkflow.em.viewers.plotter import plt, EmPlotter
 from pyworkflow.em.viewers import ObjectView, DataView
 import pyworkflow.em.viewers.showj as showj
 
+from relion.objects import CtfRefineGlobalInfo, CtfRefineMicInfo
 from relion.protocols import ProtRelionCtfRefinement
 
 
@@ -235,108 +234,11 @@ class ProtCtfRefineViewer(ProtocolViewer):
     def _loadAnalyzeInfo(self):
         # Only load once
         if self._micInfoList is None:
-            ctfInfoFn = self.protocol._getExtraPath('ctf_analyze.sqlite')
+            ctfInfoFn = self.protocol.fileWithAnalyzeInfo()
             if not os.path.exists(ctfInfoFn):
-                ctfInfo = self._createCtfInfo(ctfInfoFn)
+                ctfInfo = self.protocol.createGlobalInfo(ctfInfoFn)
             else:
-                ctfInfo = AnalizeCtfInfo(ctfInfoFn)
+                ctfInfo = CtfRefineGlobalInfo(ctfInfoFn)
             self._micInfoList = [mi.clone() for mi in ctfInfo]
             ctfInfo.close()
 
-    def _createCtfInfo(self, ctfInfoFn):
-        ctfInfo = AnalizeCtfInfo(filename=ctfInfoFn)
-        print("Generating CTF statistics...")
-        ctfInfo.loadFromParticles(self.protocol.inputParticles.get(),
-                                  self.protocol.outputParticles)
-        return ctfInfo
-
-
-class AnalizeCtfInfo:
-    """ Simple class to store visualization information related
-    to Micrographs and Particles CTF information after
-    Relion - ctf refinement protocol.
-    """
-    def __init__(self, filename):
-        # The classes dict needs to be updated to register local objects
-        classesDict = dict(pwobj.__dict__)
-        classesDict['MicInfo'] = MicInfo
-        self._infoSet = pwobj.Set(filename, classesDict=classesDict)
-
-    def addMicInfo(self, micId, x, y, defocus, defocusDiff):
-        pass
-
-    def loadFromParticles(self, inputParts, outputParts):
-        # compute difference in defocus and save in database
-        micInfo = None
-        lastMicId = None
-        infoList = []
-
-        def _avgDefocus(p):
-            dU, dV, _ = p.getCTF().getDefocus()
-            return (dU + dV) / 2.0
-
-        for p1, p2 in izip(inputParts.iterItems(orderBy=['_micId', 'id']),
-                           outputParts.iterItems(orderBy=['_micId', 'id'])):
-            coord = p1.getCoordinate()
-            micId = coord.getMicId()
-
-            if micId != lastMicId:
-                micInfo = MicInfo(micId=micId, micName=coord.getMicName())
-                infoList.append(micInfo)
-                lastMicId = micId
-
-            p1D = _avgDefocus(p1)
-            p2D = _avgDefocus(p2)
-            x, y = coord.getPosition()
-            micInfo.addEntry(x, y, p2D, p2D - p1D)
-
-        for micInfo in infoList:
-            micInfo.computeStats()
-            self._infoSet.append(micInfo)
-
-        self._infoSet.write()
-
-    def __iter__(self):
-        for micInfo in self._infoSet:
-            yield micInfo
-
-    def close(self):
-        self._infoSet.close()
-
-
-class MicInfo(pwobj.OrderedObject):
-    def __init__(self, **kwargs):
-        pwobj.OrderedObject.__init__(self, **kwargs)
-
-        self.micId = pwobj.Integer(kwargs.get('micId', None))
-        self.micName = pwobj.String(kwargs.get('micName', None))
-
-        # list particle x coordinate
-        def _floatList(key):
-            fl = pwobj.CsvList(pType=float)
-            fl.set(kwargs.get(key, []))
-            return fl
-
-        self.x = _floatList('xCoord')
-        # list particle y coordinate
-        self.y = _floatList('yCoord')
-        # list particle defocus
-        self.defocus = _floatList('defocus')
-        # list particle defocus difference
-        self.defocusDiff = _floatList('defocusDiff')
-
-        self.stdev = pwobj.Float()  # defocus stdev
-        self.n = pwobj.Integer()  # number particles in the micrograph
-
-    def addEntry(self, x, y, defocus, defocusDiff):
-        self.x.append(x)
-        self.y.append(y)
-        self.defocus.append(defocus)
-        self.defocusDiff.append(defocusDiff)
-
-    def computeStats(self):
-        self.n.set(len(self.defocus))
-        self.stdev.set(np.std(self.defocus))
-
-    def getCoordinates(self):
-        return self.x, self.y
