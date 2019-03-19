@@ -61,6 +61,13 @@ class Plugin(pyworkflow.em.Plugin):
         cudaLib = environ.getFirst((RELION_CUDA_LIB, 'CUDA_LIB'))
         environ.addLibrary(cudaLib)
 
+        if 'RELION_MPI_LIB' in os.environ:
+            environ.addLibrary(os.environ['RELION_MPI_LIB'])
+
+        if 'RELION_MPI_BIN' in os.environ:
+            environ.set('PATH', os.environ['RELION_MPI_BIN'],
+                        position=pwutils.Environ.BEGIN)
+
         return environ
 
     @classmethod

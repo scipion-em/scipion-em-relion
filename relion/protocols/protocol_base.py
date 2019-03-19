@@ -1139,12 +1139,14 @@ class ProtRelionBase(EMProtocol):
 
     def _setMaskArgs(self, args):
         if self.IS_3D:
+            tmp = self._getTmpPath()
+            newDim = self._getInputParticles().getXDim()
             if self.referenceMask.hasValue():
-                mask = relion.convert.convertMask(self.referenceMask.get(), self._getTmpPath())
+                mask = relion.convert.convertMask(self.referenceMask.get(), tmp, newDim)
                 args['--solvent_mask'] = mask
 
             if self.solventMask.hasValue():
-                solventMask = relion.convert.convertMask(self.solventMask.get(), self._getTmpPath())
+                solventMask = relion.convert.convertMask(self.solventMask.get(), tmp, newDim)
                 args['--solvent_mask2'] = solventMask
 
             if self.referenceMask.hasValue() and self.solventFscMask:
