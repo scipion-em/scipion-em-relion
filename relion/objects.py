@@ -53,6 +53,10 @@ class CtfRefineGlobalInfo:
         micInfo = None
         lastMicId = None
         infoList = []
+        # Coordinates of the particle with higher x and y values
+        # These values are used for plotting
+        xMax = 0
+        yMax = 0
 
         def _avgDefocus(p):
             dU, dV, _ = p.getCTF().getDefocus()
@@ -64,20 +68,36 @@ class CtfRefineGlobalInfo:
             micId = coord.getMicId()
 
             if micId != lastMicId:
-                micInfo = CtfRefineMicInfo(micId=micId, micName=coord.getMicName())
+                micInfo = CtfRefineMicInfo(micId=micId,
+                                           micName=coord.getMicName())
                 infoList.append(micInfo)
                 lastMicId = micId
 
             p1D = _avgDefocus(p1)
             p2D = _avgDefocus(p2)
             x, y = coord.getPosition()
+            if xMax < x:
+                xMax = x
+            if yMax < y:
+                yMax = y
             micInfo.addEntry(x, y, p2D, p2D - p1D)
 
         for micInfo in infoList:
             micInfo.computeStats()
             self._infoSet.append(micInfo)
 
+        self._infoSet._xMax = pwobj.Integer(xMax)
+        self._infoSet._yMax = pwobj.Integer(yMax)
         self._infoSet.write()
+
+    def getMaxXY(self):
+        """ Return maximum value of  coordinates"""
+        mapper = self._infoSet._getMapper()
+        if mapper.hasProperty('_xMax'):
+            return int(mapper.getProperty('_xMax')), \
+                       int(mapper.getProperty('_yMax'))
+        else:
+            return -1, -1
 
     def __iter__(self):
         for micInfo in self._infoSet:
