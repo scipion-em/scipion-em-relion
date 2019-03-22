@@ -169,10 +169,9 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
         pw.utils.makePath(self._getInputPath())
 
         protRef = self.protRefine.get()
-        outputVol = protRef.outputVolume.get()
-
-        vols = [outputVol]
-        vols.append(outputVol.getHalfMaps())  # half1, half2
+        outVol = protRef.outputVolume
+        vols = outVol.getHalfMaps().split(',')
+        vols.insert(0, outVol.getFileName())
         vols.append(self.solventMask.get())
         ih = pw.em.ImageHandler()
 
