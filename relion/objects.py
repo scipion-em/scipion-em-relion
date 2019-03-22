@@ -93,6 +93,9 @@ class CtfRefineGlobalInfo:
     def getMaxXY(self):
         """ Return maximum value of  coordinates"""
         mapper = self._infoSet._getMapper()
+        # TODO: eventually remove this if
+        # since in the future all instances will
+        # have _xMax (mar 22nd 2019)
         if mapper.hasProperty('_xMax'):
             return int(mapper.getProperty('_xMax')), \
                        int(mapper.getProperty('_yMax'))

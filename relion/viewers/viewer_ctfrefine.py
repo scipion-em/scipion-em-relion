@@ -29,6 +29,7 @@
 import sys
 import os
 import matplotlib as mpl
+import numpy as np
 
 from pyworkflow.protocol.params import LabelParam
 from pyworkflow.viewer import DESKTOP_TKINTER, WEB_DJANGO, ProtocolViewer
@@ -36,7 +37,7 @@ from pyworkflow.em.viewers.plotter import plt, EmPlotter
 from pyworkflow.em.viewers import ObjectView, DataView
 import pyworkflow.em.viewers.showj as showj
 
-from relion.objects import CtfRefineGlobalInfo, CtfRefineMicInfo
+from relion.objects import CtfRefineGlobalInfo
 from relion.protocols import ProtRelionCtfRefinement
 
 
@@ -52,6 +53,8 @@ class ProtCtfRefineViewer(ProtocolViewer):
         self.xMax = None
         self.yMax = None
         self._currentMicIndex = 0
+        self._oldCurrentMicIndex = 0
+        self._currentMicId = 1
         self._loadAnalyzeInfo()
 
     def _defineParams(self, form):
@@ -61,17 +64,15 @@ class ProtCtfRefineViewer(ProtocolViewer):
         form.addParam('displayDefocus', LabelParam,
                       label="Show Defocus and Stdev",
                       help="Display the defocus estimation.\n "
-                           "Plot defocus difference (Angstroms) vs position in micrograph\n"
+                           "Plot defocus difference (Angstroms) vs "
+                           "position in micrograph\n"
                            "You may move between micrographs by using: \n\n"
                            "Left/Right keys (move +1/-1 micrograph)\n"
                            "Up/Down keys (move +10/-10 micrographs)\n"
                            "Page_up/Page_down keys (move +100/-100 "
                            "micrographs)\n"
                            "Home/End keys (move +1000/-1000 micrographs)")
-#        form.addParam('displayPlotDefocusStdev', LabelParam,
-#                      label="Show defocus stdev per micrograph",
-#                      help="Stdev of defocus per micrographs. Micrographs "
-#                           "with less than 7 particles are skipped.")
+
         form.addParam('displayBeamTilt', LabelParam,
                       label="Show BeamTilt Images",
                       condition="{}".format(showBeamTilt),
@@ -80,39 +81,60 @@ class ProtCtfRefineViewer(ProtocolViewer):
                            "(2) the model fitted through it.")
         form.addParam('displayParticles', LabelParam,
                       label="Display Particles",
-                      help="See the particles with the new CTF and beam tilt values")
+                      help="See the particles with the new CTF "
+                           "and beam tilt values")
 
     def _getVisualizeDict(self):
         return{
             'displayDefocus': self._visualizeDefocus,
             'displayBeamTilt': self._displayBeamTilt,
             'displayParticles': self._displayParticles
-            #'displayPlotDefocusStdev': self._displayPlotDefocusStdev
         }
 
     def onClick(self, event):
-        # need try because if clicked outside plot print will fail
-        # because xdata is Nonetype
+        # try is needed because if clicked outside plot
+        # xdata, ydata are Nonetype
         try:
-            ix, iy = event.xdata, event.ydata
-            if ix <= self.len_micInfoList+1:
-                self._currentMicIndex = max(1, int(ix)) -1
-            self.show()
+            ix, iy = int(round(event.xdata)), int(round(event.ydata))
+            # once the user has selected a point
+            # he have a pair of float numbers,
+            # search for the closest micrograph
+            # with the right stdev in a neighbourhood
+            if ix <= self.maxMicId:
+                while ix not in self.micDict:
+                    ix += 1
+                iix = self.micDict[ix]
+                start = max(0, iix-10)
+                end = min(iix+10, self.maxMicId)
+                dist = np.sqrt((np.array(self.x[start:end]) - ix) ** 2 +
+                               (np.array(self.y[start:end]) - iy) ** 2)
+                self._currentMicId = self.x[start + np.argmin(dist)]
+                self._oldCurrentMicIndex = self._currentMicIndex
+                self._currentMicIndex = self.micDict[self._currentMicId]
+                self.show()
         except:
             pass
 
     def _displayPlotDefocusStdev(self, e=None):
-        #self.plotter = EmPlotter(windowTitle="Defocus stdev per Micrograph")
         self.fig = self.plotter.getFigure()
         self.ax1 = self.plotter.createSubPlot("Defocus stdev per Micrograph\n"
-                                              "Click to get the corresponding micrograph",                                         "# Micrograph", "stdev",
-                                             xpos=1, ypos=1)
+                                              "Click on any point to get the "
+                                              "corresponding micrograph\n "
+                                              "in de defocus plot",
+                                              "# Micrograph", "stdev",
+                                              xpos=1, ypos=1)
         self.fig.canvas.mpl_connect('button_press_event', self.onClick)
         self.ax1.grid(True)
+        self.maxMicId = self._micInfoList[-1].micId.get()
+        self.x = [mi.micId.get() for mi in self._micInfoList]
+        self.y = [mi.stdev.get() for mi in self._micInfoList]
+        self.ax1.scatter(self.x, self.y, s=50, marker='o',
+                               c='blue')
 
     def _visualizeDefocus(self, e=None):
         """Show matplotlib with defocus values."""
         micInfo = self._micInfoList[self._currentMicIndex]
+        self._currentMicId = micInfo.micId.get()
         # disable default binding for arrows
         # because I want to use them
         # to navigate between micrographs
@@ -130,12 +152,14 @@ class ProtCtfRefineViewer(ProtocolViewer):
         self.fig = self.plotter.getFigure()
         self.ax2 = self.plotter.createSubPlot(
             self._getTitle(micInfo), "Mic-Xdim", "Mic-Ydim",
-        xpos=1, ypos=2)#, projection='3d')
+            xpos=1, ypos=2)
 
         # call self.press after pressing any key
         self.fig.canvas.mpl_connect('key_press_event', self.press)
 
         # Maximize plot, valid for the 3 most common backends
+        # Not sure if we need it since scipion instal it own TK
+        # but I guess somebody may use the system one
         backend = mpl.get_backend()
         manager = plt.get_current_fig_manager()
         if backend == 'QT':
@@ -165,7 +189,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
         sys.stdout.flush()
 
         if event.key == 'q':
-            quit()  # Quit the whole system?
+            plt.close('all')
 
         shiftDict = {
             'left': -1, 'right': 1,
@@ -174,27 +198,26 @@ class ProtCtfRefineViewer(ProtocolViewer):
             'home': -1000, 'end': 1000
         }
         # if pressed key is not left, up, etc, do nothing
-        try:
+        if event.key in shiftDict:
             shift = shiftDict[event.key]
-        except:
-            pass
-        # Check the new micrograph index is between first and last
-        newIndex = self._currentMicIndex + shift
-        self._currentMicIndex = min(max(0, newIndex), self.len_micInfoList - 1)
-        self.show()
+            # Check the new micrograph index is between first and last
+            newIndex = self._currentMicIndex + shift
+            self._oldCurrentMicIndex = self._currentMicIndex
+            self._currentMicIndex = min(max(0, newIndex),
+                                        self.len_micInfoList - 1)
+            self.show()
 
     def show(self, event=None):
         """ Draw plot """
-
         # stdev plot
-        x = [mi.micId.get() for mi in self._micInfoList]
-        y = [mi.stdev.get() for mi in self._micInfoList]
+        self.ax1.scatter(self.x[self._oldCurrentMicIndex],
+                         self.y[self._oldCurrentMicIndex], s=50,
+                         marker='o', c='blue')
+        self.ax1.scatter(self.x[self._currentMicIndex],
+                         self.y[self._currentMicIndex], s=50,
+                         marker='o', c='red')
 
-        im =self.ax1.scatter(x, y, s=50, marker='o', c='blue')
-        self.ax1.scatter(x[self._currentMicIndex] , y[self._currentMicIndex], s=50,
-                        marker='o', c='red')
-
-        #defoces plot
+        # defocus plot
         micInfo = self._micInfoList[self._currentMicIndex]
         if event is None:
             # I need to clear the plot otherwise
@@ -205,20 +228,18 @@ class ProtCtfRefineViewer(ProtocolViewer):
             newFontSize = self.plotter.plot_axis_fontsize + 2
             self.ax2.set_xlabel("Mic Xdim (px)", fontsize=newFontSize)
             self.ax2.set_ylabel("Mic Ydim (px)", fontsize=newFontSize)
-            #self.ax.set_zlabel("Defocus Difference (A)", fontsize=newFontSize)
 
-            self.ax2.set_xlim(0, self.xMax)#np.max(micInfo.x))
-            self.ax2.set_ylim(0, self.yMax)#np.max(micInfo.y))
+            self.ax2.set_xlim(0, self.xMax)  # np.max(micInfo.x))
+            self.ax2.set_ylim(0, self.yMax)  # np.max(micInfo.y))
             self.ax2.grid(True)
 
             # if I do not use subplots_adjust the window shrinks
             #  after redraw
             plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
 
-        im = self.ax2.scatter(micInfo.x, micInfo.y, #zs=micInfo.defocus,
-                             c=micInfo.defocusDiff, s=100, marker='o')
-        #self.plotter.figure.colorbar(im)
-        self.plotter.getColorBar(im)
+        sc2 = self.ax2.scatter(micInfo.x, micInfo.y,
+                               c=micInfo.defocusDiff, s=100, marker='o')
+        self.plotter.getColorBar(sc2)
         self.plotter.show()
 
     def _displayBeamTilt(self, paramName=None):
@@ -267,6 +288,10 @@ class ProtCtfRefineViewer(ProtocolViewer):
                 ctfInfo = CtfRefineGlobalInfo(ctfInfoFn)
             self._micInfoList = [mi.clone() for mi in ctfInfo]
             self.xMax, self.yMax = ctfInfo.getMaxXY()
+            self.ctfInfoMapper = ctfInfo
             ctfInfo.close()
             self.len_micInfoList = len(self._micInfoList)
-
+            micList = [mi.micId.get() for mi in self._micInfoList]
+            # instead of creating this dict we have
+            # access the mapper and make a query to the database
+            self.micDict = {k: v for v, k in enumerate(micList)}
