@@ -124,7 +124,7 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
         pw.utils.makePath(self._getInputPath())
 
         protRef = self.protRefine.get()
-        vol = protRef.outputVolume.get()
+        vol = protRef.outputVolume
         half1, half2 = vol.getHalfMaps()
         ih = pw.em.ImageHandler()
         ih.convert(half1, self._getFileName("half1"))
