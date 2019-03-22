@@ -169,11 +169,12 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
         pw.utils.makePath(self._getInputPath())
 
         protRef = self.protRefine.get()
-        vols = protRef.getFinalVolumes()  # final, half1, half2
+        vols = protRef.outputVolume.get()
+        vols.append(protRef.getHalfMaps())  # half1, half2
         ih = pw.em.ImageHandler()
         vols.append(self.solventMask.get())
 
-        for vol, key in zip(vols, ['finalVolume', 'half1', 'half2', 'mask']):
+        for vol, key in zip(vols, ['outputVolume', 'half1', 'half2', 'mask']):
             ih.convert(vol, self._getFileName(key))
 
     def postProcessStep(self, paramDict):
@@ -206,13 +207,6 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
         if mtfFile and not exists(mtfFile):
             errors.append("Missing MTF-file '%s'" % mtfFile)
 
-        protRef = self.protRefine.get()
-        try:
-            protRef.getFinalVolumes()
-        except:
-            errors.append('The input refinement protocol should implement '
-                          'getFinalVolumes function to return the final map '
-                          'and half1 and half1 paths.')
         return errors
 
     def _citations(self):
