@@ -104,8 +104,8 @@ class ProtCtfRefineViewer(ProtocolViewer):
                 while ix not in self.micDict:
                     ix += 1
                 iix = self.micDict[ix]
-                start = max(0, iix-10)
-                end = min(iix+10, self.maxMicId)
+                start = max(0, iix-40)
+                end = min(iix+40, self.maxMicId)
                 dist = np.sqrt((np.array(self.x[start:end]) - ix) ** 2 +
                                (np.array(self.y[start:end]) - iy) ** 2)
                 self._currentMicId = self.x[start + np.argmin(dist)]
