@@ -532,12 +532,15 @@ class TestRelionPostprocess(TestRelionBase):
     def setUpClass(cls):
         setupTestProject(cls)
         cls.ds = DataSet.getDataSet('relion_tutorial')
-    
+        pathFns = 'import/refine3d/extra'
+        cls.volFn = cls.ds.getFile(join(pathFns, 'relion_class001.mrc'))
+        cls.half1Fn = cls.ds.getFile(join(pathFns, 'relion_it025_half1_class001.mrc'))
+        cls.half2Fn = cls.ds.getFile(join(pathFns, 'relion_it025_half2_class001.mrc'))
+
     def importVolume(self):
-        volFn = self.ds.getFile('import/refine3d/extra/relion_class001.mrc')
         protVol = self.newProtocol(ProtImportVolumes,
                                    objLabel='import volume',
-                                   filesPath=volFn,
+                                   filesPath=self.volFn,
                                    samplingRate=3)
         self.launchProtocol(protVol)
         return protVol
@@ -555,8 +558,7 @@ class TestRelionPostprocess(TestRelionBase):
         self.launchProtocol(protPart)
         return protPart
 
-    def _createRef3DProtBox(self, label, protocol, volPath="vol.mrc",
-                            volHalf1="half1.mrc", volHalf2="half2.mrc",
+    def _createRef3DProtBox(self, label, protocol,
                             storeIter=False, iterN=0):
         from pyworkflow.protocol.constants import STATUS_FINISHED
 
@@ -564,7 +566,6 @@ class TestRelionPostprocess(TestRelionBase):
         self.saveProtocol(prot)
 
         prot.setObjLabel(label)
-        project = prot.getProject()
         pw.utils.makePath(prot._getPath())
         pw.utils.makePath(prot._getExtraPath())
         pw.utils.makePath(prot._getTmpPath())
@@ -580,12 +581,10 @@ class TestRelionPostprocess(TestRelionBase):
         elif protClassName.startswith('XmippProtProjMatch'):
             prot.input3DReferences.set(outputVol)
         elif protClassName.startswith('EmanProtRefine'):
-            pass
+            prot.input3DReference.set(outputVol)
 
         volume = pw.em.Volume()
-        volume.setFileName(prot._getExtraPath(volPath))
-        volume.setHalfMaps([prot._getExtraPath(volHalf1),
-                            prot._getExtraPath(volHalf2)])
+        volume.setFileName(prot._getExtraPath('test.mrc'))
         pxSize = prot.inputParticles.get().getSamplingRate()
         volume.setSamplingRate(pxSize)
         if storeIter:
@@ -593,7 +592,6 @@ class TestRelionPostprocess(TestRelionBase):
         prot._defineOutputs(outputVolume=volume)
 
         prot.setStatus(STATUS_FINISHED)
-        project._storeProtocol(prot)
 
         # Create a mask protocol, because now it is not part of post-process
         protMask = self.newProtocol(ProtRelionCreateMask3D)
@@ -615,26 +613,21 @@ class TestRelionPostprocess(TestRelionBase):
                                " must be %0.2f" % (sr, pxSize))
 
     def test_postProcess_from_autorefine(self):
-        pathFns = 'import/refine3d/extra'
-        vol = self.ds.getFile(join(pathFns, 'relion_class001.mrc'))
-        half1 = self.ds.getFile(join(pathFns,
-                                     'relion_it025_half1_class001.mrc'))
-        half2 = self.ds.getFile(join(pathFns,
-                                     'relion_it025_half2_class001.mrc'))
-        volPath = 'relion_class001.mrc'
-        volHalf1 = 'relion_half1_class001_unfil.mrc'
-        volHalf2 = 'relion_half2_class001_unfil.mrc'
-
         protRef, protMask = self._createRef3DProtBox("auto-refine",
-                                                     ProtRelionRefine3D,
-                                                     volPath, volHalf1,
-                                                     volHalf2)
+                                                     ProtRelionRefine3D)
+        protRef._createFilenameTemplates()
+        volPath = protRef._getFileName('finalvolume', ref3d=1).split(':')[0]
+        volHalf1 = protRef._getFileName('final_half1_volume', ref3d=1).split(':')[0]
+        volHalf2 = protRef._getFileName('final_half2_volume', ref3d=1).split(':')[0]
 
-        pw.utils.copyFile(vol, protRef._getExtraPath(volPath))
-        pw.utils.copyFile(half1,
-                 protRef._getExtraPath(volHalf1))
-        pw.utils.copyFile(half2,
-                 protRef._getExtraPath(volHalf2))
+        pw.utils.copyFile(self.volFn, volPath)
+        pw.utils.copyFile(self.half1Fn, volHalf1)
+        pw.utils.copyFile(self.half2Fn, volHalf2)
+
+        protRef.outputVolume.setFileName(volPath)
+        protRef.outputVolume.setHalfMaps([volHalf1, volHalf2])
+        project = protRef.getProject()
+        project._storeProtocol(protRef)
 
         postProt = self.newProtocol(ProtRelionPostprocess,
                                     protRefine=protRef,
@@ -648,26 +641,23 @@ class TestRelionPostprocess(TestRelionBase):
         ProtFrealign = pw.utils.importFromPlugin(
             'grigoriefflab.protocols', 'ProtFrealign')
 
-        pathFns = 'import/refine3d/extra'
-        vol = self.ds.getFile(join(pathFns, 'relion_class001.mrc'))
-        half1 = self.ds.getFile(join(pathFns,
-                                     'relion_it025_half1_class001.mrc'))
-        half2 = self.ds.getFile(join(pathFns,
-                                     'relion_it025_half2_class001.mrc'))
-        volPath = 'iter_002/volume_iter_002.mrc'
-        volHalf1 = 'iter_002/volume_1_iter_002.mrc'
-        volHalf2 = 'iter_002/volume_2_iter_002.mrc'
-
         protRef, protMask = self._createRef3DProtBox(
-            "frealign", ProtFrealign, volPath, volHalf1, volHalf2,
-            storeIter=True, iterN=2)
+            "frealign", ProtFrealign, storeIter=True, iterN=2)
 
         pw.utils.makePath(join(protRef._getExtraPath(), 'iter_002'))
-        pw.utils.copyFile(vol, protRef._getExtraPath(volPath))
-        pw.utils.copyFile(
-            half1, protRef._getExtraPath(volHalf1))
-        pw.utils.copyFile(
-            half2, protRef._getExtraPath(volHalf2))
+        protRef._createFilenameTemplates()
+        volPath = protRef._getFileName('iter_vol', iter=2).split(':')[0]
+        volHalf1 = protRef._getFileName('iter_vol1', iter=2).split(':')[0]
+        volHalf2 = protRef._getFileName('iter_vol2', iter=2).split(':')[0]
+
+        pw.utils.copyFile(self.volFn, volPath)
+        pw.utils.copyFile(self.half1Fn, volHalf1)
+        pw.utils.copyFile(self.half2Fn, volHalf2)
+
+        protRef.outputVolume.setFileName(volPath)
+        protRef.outputVolume.setHalfMaps([volHalf1, volHalf2])
+        project = protRef.getProject()
+        project._storeProtocol(protRef)
 
         postProt = self.newProtocol(ProtRelionPostprocess,
                                     protRefine=protRef,
@@ -680,25 +670,11 @@ class TestRelionPostprocess(TestRelionBase):
         XmippProtProjMatch = pw.utils.importFromPlugin('xmipp3.protocols',
                                                        'XmippProtProjMatch')
 
-        pathFns = 'import/refine3d/extra'
-        vol = self.ds.getFile(join(pathFns, 'relion_class001.mrc'))
-        half1 = self.ds.getFile(join(pathFns,
-                                     'relion_it025_half1_class001.mrc'))
-        half2 = self.ds.getFile(join(pathFns,
-                                     'relion_it025_half2_class001.mrc'))
-        
-        volPath = 'iter_002/reconstruction_Ref3D_001.vol'
-        volHalf1 = 'iter_002/reconstruction_split_1_Ref3D_001.vol'
-        volHalf2 = 'iter_002/reconstruction_split_1_Ref3D_001.vol'
-
         protRef, protMask = self._createRef3DProtBox(
-            "Proj Match", XmippProtProjMatch, volPath, volHalf1, volHalf2,
-            storeIter=True, iterN=2)
-        
+            "Proj Match", XmippProtProjMatch, storeIter=True, iterN=2)
+
         pw.utils.makePath(join(protRef._getExtraPath(), 'iter_002'))
-        
         protRef._initialize()
-        
         volXmipp = protRef._getFileName('reconstructedFileNamesIters',
                                         iter=2, ref=1)
         half1Xmipp = protRef._getFileName('reconstructedFileNamesItersSplit1',
@@ -707,9 +683,14 @@ class TestRelionPostprocess(TestRelionBase):
                                           iter=2, ref=1)
         
         ih = ImageHandler()
-        ih.convert(ih.getVolFileName(vol), volXmipp)
-        ih.convert(ih.getVolFileName(half1), half1Xmipp)
-        ih.convert(ih.getVolFileName(half2), half2Xmipp)
+        ih.convert(ih.getVolFileName(self.volFn), volXmipp)
+        ih.convert(ih.getVolFileName(self.half1Fn), half1Xmipp)
+        ih.convert(ih.getVolFileName(self.half2Fn), half2Xmipp)
+
+        protRef.outputVolume.setFileName(volXmipp)
+        protRef.outputVolume.setHalfMaps([half1Xmipp, half2Xmipp])
+        project = protRef.getProject()
+        project._storeProtocol(protRef)
 
         postProt = self.newProtocol(ProtRelionPostprocess,
                                     protRefine=protRef,
@@ -722,19 +703,8 @@ class TestRelionPostprocess(TestRelionBase):
         EmanProtRefine = pw.utils.importFromPlugin('eman2.protocols', 'EmanProtRefine')
         convertImage = pw.utils.importFromPlugin('eman2.convert', 'convertImage')
 
-        pathFns = 'import/refine3d/extra'
-        vol = self.ds.getFile(join(pathFns, 'relion_class001.mrc'))
-        half1 = self.ds.getFile(join(pathFns,
-                                     'relion_it025_half1_class001.mrc'))
-        half2 = self.ds.getFile(join(pathFns,
-                                     'relion_it025_half2_class001.mrc'))
-
-        volPath = 'refine_01/threed_02.hdf'
-        volHalf1 = 'refine_01/threed_even_unmasked.hdf'
-        volHalf2 = 'refine_01/threed_odd_unmasked.hdf'
-
         protRef, protMask = self._createRef3DProtBox(
-            "Eman refine Easy", EmanProtRefine, volPath, volHalf1, volHalf2)
+            "Eman refine Easy", EmanProtRefine)
 
         pw.utils.makePath(join(protRef._getExtraPath(), 'refine_01'))
         protRef._createFilenameTemplates()
@@ -742,9 +712,14 @@ class TestRelionPostprocess(TestRelionBase):
         half1Eman = protRef._getFileName("mapEvenUnmasked", run=1)
         half2Eman = protRef._getFileName("mapOddUnmasked", run=1)
         
-        convertImage(vol, volEman)
-        convertImage(half1, half1Eman)
-        convertImage(half2, half2Eman)
+        convertImage(self.volFn, volEman)
+        convertImage(self.half1Fn, half1Eman)
+        convertImage(self.half2Fn, half2Eman)
+
+        protRef.outputVolume.setFileName(volEman)
+        protRef.outputVolume.setHalfMaps([half1Eman, half2Eman])
+        project = protRef.getProject()
+        project._storeProtocol(protRef)
 
         postProt = self.newProtocol(ProtRelionPostprocess,
                                     protRefine=protRef,
@@ -761,9 +736,13 @@ class TestRelionLocalRes(TestRelionBase):
     def setUpClass(cls):
         setupTestProject(cls)
         cls.ds = DataSet.getDataSet('relion_tutorial')
-        cls.partFn = cls.ds.getFile('import/refine3d/extra/relion_it025_data.star')
+        pathFns = 'import/refine3d/extra'
+        cls.partFn = cls.ds.getFile(join(pathFns, 'relion_it025_data.star'))
         cls.protImport = cls.runImportParticlesStar(cls.partFn, 50000, 7.08)
-        cls.volFn = cls.ds.getFile('import/refine3d/extra/relion_class001.mrc')
+        cls.volFn = cls.ds.getFile(join(pathFns, 'relion_class001.mrc'))
+        cls.half1Fn = cls.ds.getFile(join(pathFns, 'relion_it025_half1_class001.mrc'))
+        cls.half2Fn = cls.ds.getFile(join(pathFns, 'relion_it025_half2_class001.mrc'))
+        cls.modelFn = cls.ds.getFile(join(pathFns, 'relion_model.star'))
 
     def importVolume(self):
         protVol = self.newProtocol(ProtImportVolumes,
@@ -773,12 +752,11 @@ class TestRelionLocalRes(TestRelionBase):
         self.launchProtocol(protVol)
         return protVol
 
-    def _createRef3DProtBox(self, label, volPath="vol.mrc",
-                            volHalf1="half1.mrc", volHalf2="half2.mrc"):
+    def _createRef3DProtBox(self, label):
         prot = self.newProtocol(ProtRelionRefine3D)
         self.saveProtocol(prot)
+
         prot.setObjLabel(label)
-        project = prot.getProject()
         pw.utils.makePath(prot._getPath())
         pw.utils.makePath(prot._getExtraPath())
         pw.utils.makePath(prot._getTmpPath())
@@ -787,15 +765,13 @@ class TestRelionLocalRes(TestRelionBase):
         prot.referenceVolume.set(self.importVolume().outputVolume)
 
         volume = pw.em.Volume()
-        volume.setFileName(prot._getExtraPath(volPath))
-        volume.setHalfMaps([prot._getExtraPath(volHalf1),
-                            prot._getExtraPath(volHalf2)])
+        volume.setFileName(prot._getExtraPath('test.mrc'))
         pxSize = prot.inputParticles.get().getSamplingRate()
         volume.setSamplingRate(pxSize)
 
         prot._defineOutputs(outputVolume=volume)
         prot.setStatus(STATUS_FINISHED)
-        project._storeProtocol(prot)
+
         return prot
 
     def _validations(self, vol, dims, pxSize):
@@ -809,23 +785,23 @@ class TestRelionLocalRes(TestRelionBase):
                                " must be %0.2f" % (sr, pxSize))
 
     def test_runRelionLocalRes(self):
-        pathFns = 'import/refine3d/extra'
-        vol = self.ds.getFile(join(pathFns, 'relion_class001.mrc'))
-        half1 = self.ds.getFile(join(pathFns, 'relion_it025_half1_class001.mrc'))
-        half2 = self.ds.getFile(join(pathFns, 'relion_it025_half2_class001.mrc'))
+        protRef = self._createRef3DProtBox("auto-refine")
 
-        volPath = 'relion_class001.mrc'
-        volHalf1 = 'relion_half1_class001_unfil.mrc'
-        volHalf2 = 'relion_half2_class001_unfil.mrc'
-        modelFn = self.ds.getFile(join(pathFns, 'relion_model.star'))
+        protRef._createFilenameTemplates()
+        volPath = protRef._getFileName('finalvolume', ref3d=1).split(':')[0]
+        volHalf1 = protRef._getFileName('final_half1_volume', ref3d=1).split(':')[0]
+        volHalf2 = protRef._getFileName('final_half2_volume', ref3d=1).split(':')[0]
 
-        protRef = self._createRef3DProtBox("auto-refine", volPath,
-                                           volHalf1, volHalf2)
+        pw.utils.copyFile(self.volFn, volPath)
+        pw.utils.copyFile(self.half1Fn, volHalf1)
+        pw.utils.copyFile(self.half2Fn, volHalf2)
+        pw.utils.copyFile(self.modelFn,
+                          protRef._getExtraPath('relion_model.star'))
 
-        pw.utils.copyFile(vol, protRef._getExtraPath(volPath))
-        pw.utils.copyFile(half1, protRef._getExtraPath(volHalf1))
-        pw.utils.copyFile(half2, protRef._getExtraPath(volHalf2))
-        pw.utils.copyFile(modelFn, protRef._getExtraPath('relion_model.star'))
+        protRef.outputVolume.setFileName(volPath)
+        protRef.outputVolume.setHalfMaps([volHalf1, volHalf2])
+        project = protRef.getProject()
+        project._storeProtocol(protRef)
 
         postProt = self.newProtocol(ProtRelionLocalRes, protRefine=protRef)
         postProt.setObjLabel('Relion local resolution')
