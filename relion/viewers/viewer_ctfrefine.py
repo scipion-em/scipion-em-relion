@@ -120,7 +120,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
         self.ax1 = self.plotter.createSubPlot("Defocus stdev per Micrograph\n"
                                               "Click on any point to get the "
                                               "corresponding micrograph\n "
-                                              "in de defocus plot",
+                                              "in the defocus plot",
                                               "# Micrograph", "stdev",
                                               xpos=1, ypos=1)
         self.fig.canvas.mpl_connect('button_press_event', self.onClick)
@@ -158,7 +158,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
         self.fig.canvas.mpl_connect('key_press_event', self.press)
 
         # Maximize plot, valid for the 3 most common backends
-        # Not sure if we need it since scipion instal it own TK
+        # Not sure if we need it since scipion installs it own TK
         # but I guess somebody may use the system one
         backend = mpl.get_backend()
         manager = plt.get_current_fig_manager()
