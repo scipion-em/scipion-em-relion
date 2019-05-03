@@ -6,4 +6,4 @@
 
  Supported versions of Relion: 2.0.4, 2.1, 3.0
 
-![build status](http://arquimedes.cnb.csic.es:9980/badges/relion_devel.svg "Build status")
+![build status](http://scipion-test.cnb.csic.es:9980/badges/relion_devel.svg "Build status")
