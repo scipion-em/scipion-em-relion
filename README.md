@@ -92,3 +92,4 @@ In 2018 the plugin was updated to support the latest (at that moment) RELION: 3.
 2. Scheres et al., JSB, 2012 
 3. Kimanius et al., eLife, 2016 
 4. Zivanov et al., eLife, 2018
+
