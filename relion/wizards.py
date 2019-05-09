@@ -26,7 +26,6 @@
 # *
 # **************************************************************************
 
-
 import os
 from collections import OrderedDict
 
@@ -35,14 +34,18 @@ from pyworkflow.em import *
 from pyworkflow.em.viewers import CoordinatesObjectView
 from pyworkflow.em.wizard import *
 import pyworkflow.em.metadata as md
+from pyworkflow.gui.browser import FileBrowserWindow
 
 from relion.constants import *
-from relion.convert import writeSetOfMicrographs
+import relion.convert
 from relion.protocols import (
     ProtRelionClassify3D, ProtRelionRefine3D, ProtRelionClassify2D,
     ProtRelionPreprocessParticles, ProtRelionAutopickLoG,
     ProtRelion2Autopick, ProtRelionCreateMask3D,
-    ProtRelionSortParticles, ProtRelionInitialModel)
+    ProtRelionSortParticles, ProtRelionInitialModel, ProtRelionPostprocess
+
+)
+
 
 #===============================================================================
 # MASKS
@@ -215,8 +218,8 @@ class Relion2AutopickParams(EmWizard):
         def _preprocessMic(mic, micRow):
             mic.setCTF(micDict[mic.getMicName()].getCTF())
 
-        writeSetOfMicrographs(micSet, micStarFn,
-                              preprocessImageRow=_preprocessMic)
+        relion.convert.writeSetOfMicrographs(micSet, micStarFn,
+                                             preprocessImageRow=_preprocessMic)
 
         # Create a folder in extra to backup the original autopick star files
         backupDir = autopickProt._getExtraPath('wizard-backup')
@@ -339,7 +342,8 @@ class RelionWizLogPickParams(EmWizard):
             pw.utils.createLink(micFn, os.path.join(coordsDir, micBase))
             micRow.setValue(md.RLN_MICROGRAPH_NAME, micBase)
 
-        writeSetOfMicrographs(micSet, micStarFn, postprocessImageRow=_postprocessMic)
+        relion.convert.writeSetOfMicrographs(micSet, micStarFn,
+                                             postprocessImageRow=_postprocessMic)
 
         f = open(pickerProps, "w")
 
@@ -389,4 +393,18 @@ class RelionWizLogPickParams(EmWizard):
             form.setVar('minDiameter', myprops['mind.value'])
             form.setVar('maxDiameter', myprops['maxd.value'])
             form.setVar('threshold', myprops['threshold.value'])
+
+
+class RelionWizMtfSelector(EmWizard):
+    """ Simple wizard to select MTF from some of the predefined ones.
+    """
+    _targets = [(ProtRelionPostprocess, ['mtf'])]
+
+    def show(self, form):
+        def setPath(fileInfo):
+            form.setVar('mtf', fileInfo.getPath())
+        mtfDir = os.path.join(os.path.dirname(relion.convert.__file__), 'mtfs')
+        browser = FileBrowserWindow("Select the one of the predefined MTF files",
+                                    form, mtfDir, onSelect=setPath)
+        browser.show()
 
