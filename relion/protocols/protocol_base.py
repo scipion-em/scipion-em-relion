@@ -861,8 +861,7 @@ class ProtRelionBase(EMProtocol):
 
             # Pass stack file as None to avoid write the images files
             # If copyAlignment is set to False pass alignType to ALIGN_NONE
-            alignType = imgSet.getAlignment() if copyAlignment \
-                else em.ALIGN_NONE
+            alignType = imgSet.getAlignment() if copyAlignment else em.ALIGN_NONE
             hasAlign = alignType != em.ALIGN_NONE
             alignToPrior = hasAlign and getattr(self, 'alignmentAsPriors', False)
             fillRandomSubset = hasAlign and getattr(self, 'fillRandomSubset', False)
@@ -947,7 +946,6 @@ class ProtRelionBase(EMProtocol):
     # -------------------------- INFO functions -------------------------------
     def _validate(self):
         errors = []
-        #self.validatePackageVersion(RELION_HOME, errors)
 
         if self.doContinue:
             continueProtocol = self.continueRun.get()
