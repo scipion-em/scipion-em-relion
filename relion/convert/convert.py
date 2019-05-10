@@ -791,24 +791,31 @@ def convertBinaryVol(vol, outputDir):
     return fn
 
 
-def convertMask(img, outputDir, newDim=None):
+def convertMask(img, outputPath, newDim=None):
     """ Convert binary mask to a format read by Relion and truncate the
     values between 0-1 values, due to Relion only support masks with this
     values (0-1).
     Params:
         img: input image to be converted.
-        outputDir: where to put the converted file(s)
+        outputPath: it can be either a directory or a file path.
+            If it is a directory, the output name will be inferred from input
+            and put into that directory. If it is not a directory,
+            it is assumed is the output filename.
     Return:
         new file name of the mask.
     """
     
     ih = pw.em.ImageHandler()
     imgFn = getImageLocation(img.getLocation())
-    newFn = join(outputDir, pw.utils.replaceBaseExt(imgFn, 'mrc'))
+
+    if os.path.isdir(outputPath):
+        outFn = join(outputPath, pw.utils.replaceBaseExt(imgFn, 'mrc'))
+    else:
+        outFn = outputPath
+
+    ih.truncateMask(imgFn, outFn, newDim=newDim)
     
-    ih.truncateMask(imgFn, newFn, newDim=newDim)
-    
-    return newFn
+    return outFn
 
 
 def createItemMatrix(item, row, align):
