@@ -174,12 +174,15 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
 
         protRef = self.protRefine.get()
         outVol = protRef.outputVolume
+        dim = outVol.getXDim()
         vols = outVol.getHalfMaps().split(',')
         vols.insert(0, outVol.getFileName())
-        vols.append(self.solventMask.get())
         ih = pw.em.ImageHandler()
 
-        for vol, key in zip(vols, ['outputVolume', 'half1', 'half2', 'mask']):
+        relion.convert.convertMask(self.solventMask.get(),
+                                   self._getFileName('mask'), newDim=dim)
+
+        for vol, key in zip(vols, ['outputVolume', 'half1', 'half2']):
             ih.convert(vol, self._getFileName(key))
 
     def postProcessStep(self, paramDict):
