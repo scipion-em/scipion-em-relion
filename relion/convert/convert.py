@@ -702,13 +702,18 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs'):
     """
     filesDict = {}
     ih = pw.em.ImageHandler()
+    outputRoot = os.path.join(outputDir, 'input')
+    # Get the extension without the dot
+    stackFiles = imgSet.getFiles()
+    ext = pw.utils.getExt(next(iter(stackFiles)))[1:]
+    rootDir = pw.utils.commonPath(stackFiles)
     
     def getUniqueFileName(fn, extension):
         """ Get an unique file for either link or convert files.
         It is possible that the base name overlap if they come
         from different runs. (like particles.mrcs after relion preprocess)
         """
-        newFn = join(outputDir, pw.utils.replaceBaseExt(fn, extension))
+        newFn = join(outputRoot, pw.utils.replaceBaseExt(fn, extension))
         newRoot = pw.utils.removeExt(newFn)
         
         values = filesDict.values()
@@ -725,7 +730,9 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs'):
         that it is a binary stack file and not a volume.
         """
         newFn = getUniqueFileName(fn, extension)
-        pw.utils.createLink(fn, newFn)
+        if not os.path.exists(newFn):
+            pw.utils.createLink(fn, newFn)
+            print("   %s -> %s" % (newFn, fn))
         return newFn
         
     def convertStack(fn):
@@ -734,29 +741,35 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs'):
         """
         newFn = getUniqueFileName(fn, 'stk')
         ih.convertStack(fn, newFn)
+        print("   %s -> %s" % (newFn, fn))
         return newFn
 
-    # Get the extension without the dot
-    ext = pw.utils.getExt(imgSet.getFirstItem().getFileName())[1:]
-    
+    def replaceRoot(fn):
+        """ Link create to the root folder, so just replace that
+        in the name, no need to do anything else.
+        """
+        return fn.replace(rootDir, outputRoot)
+
     if ext == extension:
-        mapFunc = createBinaryLink
         print("convertBinaryFiles: creating soft links.")
+        print("   Root: %s -> %s" % (outputRoot, rootDir))
+        mapFunc = replaceRoot
+        pw.utils.createLink(rootDir, outputRoot)
     elif ext == 'mrc' and extension == 'mrcs':
-        mapFunc = createBinaryLink
         print("convertBinaryFiles: creating soft links (mrcs -> mrc).")
-    elif ext.endswith('hdf'): # assume eman .hdf format
-        mapFunc = convertStack
+        mapFunc = createBinaryLink
+    elif ext.endswith('hdf'):  # assume eman .hdf format
         print("convertBinaryFiles: converting stacks. (%s -> %s)"
               % (extension, ext))
+        mapFunc = convertStack
     else:
         mapFunc = None
         
     if mapFunc is not None:
-        for fn in imgSet.getFiles():
-            newFn = mapFunc(fn) # convert or link 
-            filesDict[fn] = newFn # map new filename
-            print("   %s -> %s" % (newFn, fn))
+        pw.utils.makePath(outputRoot)
+        for fn in stackFiles:
+            newFn = mapFunc(fn)  # convert or link
+            filesDict[fn] = newFn  # map new filename
 
     return filesDict
 
