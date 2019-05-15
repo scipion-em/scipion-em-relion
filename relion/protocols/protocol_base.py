@@ -332,6 +332,13 @@ class ProtRelionBase(EMProtocol):
                                'low-pass filtered, it may be done internally using '
                                'this option. If set to 0, no low-pass filter will '
                                'be applied to the initial reference(s).')
+        else:
+            form.addParam('referenceMask2D', PointerParam, pointerClass='Mask',
+                          label='Reference mask (optional)', allowsNull=True,
+                          expertLevel=LEVEL_ADVANCED,
+                          help='User-provided mask for the references ('
+                               'default is to use spherical mask with '
+                               'particle_diameter)')
 
         form.addSection(label='CTF')
         form.addParam('continueMsg', LabelParam, default=True,
@@ -1151,6 +1158,12 @@ class ProtRelionBase(EMProtocol):
 
             if self.referenceMask.hasValue() and self.solventFscMask:
                 args['--solvent_correct_fsc'] = ''
+        else:
+            tmp = self._getTmpPath()
+            newDim = self._getInputParticles().getXDim()
+            if self.referenceMask2D.hasValue():
+                mask = relion.convert.convertMask(self.referenceMask2D.get(), tmp, newDim)
+                args['--solvent_mask'] = mask
 
     def _setSubsetArgs(self, args):
         if self._doSubsets():
