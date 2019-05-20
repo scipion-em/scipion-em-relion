@@ -145,9 +145,8 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         self.info("Converting set from '%s' into '%s'" %
                   (inputParts.getFileName(), imgStar))
 
-        inputFolder = self._getPath('input')
-        pwutils.makePath(inputFolder)
-        relion.convert.writeSetOfParticles(inputParts, imgStar, inputFolder,
+        relion.convert.writeSetOfParticles(inputParts, imgStar,
+                                           self._getExtraPath(),
                                            alignType=em.ALIGN_PROJ,
                                            fillMagnification=True,
                                            fillRandomSubset=True)

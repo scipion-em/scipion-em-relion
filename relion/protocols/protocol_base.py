@@ -868,8 +868,7 @@ class ProtRelionBase(EMProtocol):
 
             # Pass stack file as None to avoid write the images files
             # If copyAlignment is set to False pass alignType to ALIGN_NONE
-            alignType = imgSet.getAlignment() if copyAlignment \
-                else em.ALIGN_NONE
+            alignType = imgSet.getAlignment() if copyAlignment else em.ALIGN_NONE
             hasAlign = alignType != em.ALIGN_NONE
             alignToPrior = hasAlign and getattr(self, 'alignmentAsPriors', False)
             fillRandomSubset = hasAlign and getattr(self, 'fillRandomSubset', False)
@@ -954,7 +953,6 @@ class ProtRelionBase(EMProtocol):
     # -------------------------- INFO functions -------------------------------
     def _validate(self):
         errors = []
-        #self.validatePackageVersion(RELION_HOME, errors)
 
         if self.doContinue:
             continueProtocol = self.continueRun.get()
@@ -1063,8 +1061,6 @@ class ProtRelionBase(EMProtocol):
                     args['--firstiter_cc'] = ''
                 args['--ini_high'] = self.initialLowPassFilterA.get()
                 args['--sym'] = self.symmetryGroup.get()
-            if self.IS_V3:
-                args['--pad'] = 1 if self.skipPadding else 2
 
         refArg = self._getRefArg()
         if refArg:
@@ -1125,6 +1121,10 @@ class ProtRelionBase(EMProtocol):
 
             if not self.doContinue:
                 self._setSubsetArgs(args)
+
+        # Padding can be set in a normal run or in a continue
+        if self.IS_V3 and self.IS_3D:
+            args['--pad'] = 1 if self.skipPadding else 2
 
         self._setSamplingArgs(args)
         self._setMaskArgs(args)
