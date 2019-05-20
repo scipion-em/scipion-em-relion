@@ -1159,9 +1159,9 @@ class ProtRelionBase(EMProtocol):
             if self.referenceMask.hasValue() and self.solventFscMask:
                 args['--solvent_correct_fsc'] = ''
         else:
-            tmp = self._getTmpPath()
-            newDim = self._getInputParticles().getXDim()
             if self.referenceMask2D.hasValue():
+                tmp = self._getTmpPath()
+                newDim = self._getInputParticles().getXDim()
                 mask = relion.convert.convertMask(self.referenceMask2D.get(), tmp, newDim)
                 args['--solvent_mask'] = mask
 
