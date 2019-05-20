@@ -90,11 +90,12 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
         group.addParam('mtf', params.FileParam,
                       label='MTF-curve file',
                       help='User-provided STAR-file with the MTF-curve '
-                           'of the detector. Use the wizard to load one'
-                           'of the predefined ones provided at:'
-                           '[[https://www3.mrc-lmb.cam.ac.uk/relion/index.php/'
+                           'of the detector. Use the wizard to load one '
+                           'of the predefined ones provided at:\n'
+                           '- [[https://www3.mrc-lmb.cam.ac.uk/relion/index.php/'
                            'FAQs#Where_can_I_find_MTF_curves_for_typical_detectors.3F]'
                            '[Relion\'s Wiki FAQs]]\n'
+                           ' - [[http://www.gatan.com/K3][Gatan\'s website]]\n\n'
                            'Relion param: *--mtf*')
         group.addParam('doAutoBfactor', params.BooleanParam, default=True,
                       label='Estimate B-factor automatically?',
