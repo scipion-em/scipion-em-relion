@@ -49,24 +49,10 @@ def useGpu():
     else:
         return False, 'CPU'
 
-ONLY_GPU = int(os.environ.get('SCIPION_TEST_RELION_ONLY_GPU', 0))
-USE_GPU = useGpu()[0]
-RUN_CPU = not USE_GPU or ONLY_GPU
+
 IS_V3 = relion.Plugin.isVersion3Active()
-
-
-def useGpu():
-    """ Helper function to determine if GPU can be used.
-    Return a boolean and a label to be used in protocol's label. """
-    environ = pw.utils.Environ(os.environ)
-    cudaPath = environ.getFirst(('RELION_CUDA_LIB', 'CUDA_LIB'))
-
-    if cudaPath and pw.utils.existsVariablePaths(cudaPath):
-        return True, 'GPU'
-    else:
-        return False, 'CPU'
-
 USE_GPU = useGpu()[0]
+ONLY_GPU = int(os.environ.get('SCIPION_TEST_RELION_ONLY_GPU', 0))
 RUN_CPU = not USE_GPU or ONLY_GPU
 
 
