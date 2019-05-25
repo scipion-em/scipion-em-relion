@@ -409,6 +409,30 @@ class ProtRelionMotioncor(ProtAlignMovies):
             m._rlnMotionModelCoeff = pwobj.String(json.dumps(coeffs))
         return m
 
+    def createOutputStep(self):
+        # This method is re-implementd here becase a bug in the base protocol
+        # where the outputMicrographs is used without check if it is produced.
+        # validate that we have some output movies
+        if self._createOutputMovies():
+            output = self.outputMovies
+        elif self._createOutputMicrographs():
+            output = self.outputMicroraphs
+        elif self._createOutputWeightedMicrographs():
+            output = self.outputMicrographsDoseWeighted
+        else:
+            raise Exception("It does not seem like any output is produced!")
+
+        inputSize = len(self.listOfMovies)
+        outputSize = output.getSize()
+
+        if outputSize == 0 and inputSize != 0:
+            raise Exception("All movies failed, didn't create outputMicrographs."
+                            "Please review movie processing steps above.")
+
+        if outputSize < inputSize:
+            self.warning(pwutils.yellowStr("WARNING - Failed to align %d movies."
+                                           % (inputSize - outputSize)))
+
 
 def createGlobalAlignmentPlot(meanX, meanY, first):
     """ Create a plotter with the shift per frame. """
