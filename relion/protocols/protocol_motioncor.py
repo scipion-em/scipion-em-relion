@@ -402,7 +402,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         """
         m = ProtAlignMovies._createOutputMovie(self, movie)
         # Load local motion values only if the patches are more than one
-        if self.patchX.get() * self.patchY.get() > 1:
+        if self.patchX.get() > 2 and self.patchY.get() > 2:
             table = md.Table(fileName=self._getMovieExtraFn(movie, '.star'),
                              tableName='local_motion_model')
             coeffs = [row.rlnMotionModelCoeff for row in table]
