@@ -38,7 +38,6 @@ from relion.constants import STACK_NONE, STACK_MULT, STACK_ONE
 from .protocol_base import ProtRelionBase
 
 
-
 class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
     """ Export particles from Relion to be used outside Scipion. """
 
@@ -108,7 +107,8 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
     def _summary(self):
         summary = []
         if pwutils.exists(self._getPath("particles.star")):
-            summary.append('Particles were exported into: %s' % self._getPath("particles.star"))
+            summary.append('Particles were exported into: %s'
+                           % self._getPath("particles.star"))
         else:
             summary.append('Output is not ready.')
         return summary
