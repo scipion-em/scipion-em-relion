@@ -102,7 +102,7 @@ class RelionViewer(ProtocolViewer):
                 ProtRelionRefine3D, ProtRelionInitialModel]
     _environments = [DESKTOP_TKINTER, WEB_DJANGO]
     
-    _label = 'viewer relion'
+    _label = 'viewer'
     
     def _defineParams(self, form):
         self._env = os.environ.copy()
@@ -877,7 +877,7 @@ class PostprocessViewer(ProtocolViewer):
     _targets = [ProtRelionPostprocess]
     _environments = [DESKTOP_TKINTER, WEB_DJANGO]
     
-    _label = 'viewer postprocess relion'
+    _label = 'viewer postprocess'
     
     def setProtocol(self, protocol):
         ProtocolViewer.setProtocol(self, protocol)
@@ -1105,7 +1105,7 @@ class RelionPolishViewer(ProtocolViewer):
     _targets = [ProtRelionPolish]
     _environments = [DESKTOP_TKINTER, WEB_DJANGO]
     
-    _label = 'viewer relion polish'
+    _label = 'viewer polish'
     
     def _defineParams(self, form):
         self._env = os.environ.copy()
@@ -1577,7 +1577,7 @@ class RelionLocalResViewer(ProtocolViewer):
 
     _environments = [DESKTOP_TKINTER, WEB_DJANGO]
     _targets = [ProtRelionLocalRes]
-    _label = 'viewer relion localres'
+    _label = 'viewer localres'
 
     def __init__(self, *args, **kwargs):
         ProtocolViewer.__init__(self, *args, **kwargs)
