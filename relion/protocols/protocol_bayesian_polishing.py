@@ -77,7 +77,8 @@ class ProtRelionBayesianPolishing(em.ProtParticles):
                       important=True,
                       label='Input particles',
                       pointerClass='SetOfParticles',
-                      help='Provide a set of particles for local CTF refinement.')
+                      help='Provide a set of particles from 3D auto-refine '
+                           'or CTF refinement.')
         form.addParam('inputPostprocess', params.PointerParam,
                       important=True,
                       label='Input Postprocess',
