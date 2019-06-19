@@ -28,7 +28,8 @@ import os
 from os.path import relpath
 
 import pyworkflow.protocol.params as params
-from pyworkflow.em.protocol import ProtParticlePickingAuto, STEPS_PARALLEL
+from pyworkflow.protocol import STEPS_SERIAL
+from pyworkflow.em.protocol import ProtParticlePickingAuto
 from pyworkflow.em.constants import ALIGN_NONE
 import pyworkflow.utils as pwutils
 import pyworkflow.em.metadata as md
@@ -52,7 +53,7 @@ class ProtRelionAutopickLoG(ProtParticlePickingAuto, ProtRelionBase):
 
     def __init__(self, **kwargs):
         ProtParticlePickingAuto.__init__(self, **kwargs)
-        self.stepsExecutionMode = STEPS_PARALLEL
+        self.stepsExecutionMode = STEPS_SERIAL
 
     # -------------------------- DEFINE param functions ------------------------
     def _defineParams(self, form):
@@ -111,7 +112,7 @@ class ProtRelionAutopickLoG(ProtParticlePickingAuto, ProtRelionBase):
 
         self._defineStreamingParams(form)
 
-        form.addParallelSection(threads=4, mpi=1)
+        form.addParallelSection(threads=0, mpi=4)
 
     # -------------------------- STEPS functions ------------------------------
 
