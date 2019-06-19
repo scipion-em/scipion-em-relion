@@ -976,6 +976,14 @@ class ProtRelionBase(EMProtocol):
                 if total <= self.subsetSize.get():
                     errors.append('Subset size is bigger than the total number '
                                   'of particles!')
+            if not self.doImageAlignment:
+                if self.doGpu:
+                    errors.append('When only doing classification (no alignment) '
+                                  'GPU acceleration can not be used.')
+                if not self.copyAlignment:
+                    errors.append('If you want to do only classification without '
+                                  'alignment, then you should use the option: \n'
+                                  '*Consider previous alignment?* = Yes')
 
         return errors
 
