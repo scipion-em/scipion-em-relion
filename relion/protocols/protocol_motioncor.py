@@ -175,7 +175,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                  '%s_input.star' % self._getMovieRoot(movie))
         self.writeInputStar(inputStar, movie)
 
-        pwutils.makePath(movieFolder, 'output')
+        pwutils.makePath(os.path.join(movieFolder, 'output'))
         # The program will run in the movie folder, so let's put
         # the input files relative to that
         args = "--i %s --o output/ " % os.path.basename(inputStar)
