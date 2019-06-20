@@ -175,7 +175,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         """ Create the input file in STAR format as expected by Relion.
         If the input particles comes from Relion, just link the file.
         """
-        imgSet  = self.inputParticles.get()
+        imgSet = self.inputParticles.get()
         imgStar = self._getFileName('input_particles.star')
 
         # Pass stack file as None to avoid write the images files

@@ -300,7 +300,8 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
     def _insertAllSteps(self):
         self.inputStreaming = self.getInputMicrographs().isStreamOpen()
 
-        if self.inputStreaming and not self.isRunOptimize():
+        if ((self.streamingBatchSize > 0 or self.inputStreaming)
+            and not self.isRunOptimize()):
             # If the input is in streaming, follow the base class policy
             # about inserting new steps and discovery new input/output
             ProtParticlePickingAuto._insertAllSteps(self)

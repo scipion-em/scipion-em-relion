@@ -332,6 +332,13 @@ class ProtRelionBase(EMProtocol):
                                'low-pass filtered, it may be done internally using '
                                'this option. If set to 0, no low-pass filter will '
                                'be applied to the initial reference(s).')
+        else:
+            form.addParam('referenceMask2D', PointerParam, pointerClass='Mask',
+                          label='Reference mask (optional)', allowsNull=True,
+                          expertLevel=LEVEL_ADVANCED,
+                          help='User-provided mask for the references ('
+                               'default is to use spherical mask with '
+                               'particle_diameter)')
 
         form.addSection(label='CTF')
         form.addParam('continueMsg', LabelParam, default=True,
@@ -861,8 +868,7 @@ class ProtRelionBase(EMProtocol):
 
             # Pass stack file as None to avoid write the images files
             # If copyAlignment is set to False pass alignType to ALIGN_NONE
-            alignType = imgSet.getAlignment() if copyAlignment \
-                else em.ALIGN_NONE
+            alignType = imgSet.getAlignment() if copyAlignment else em.ALIGN_NONE
             hasAlign = alignType != em.ALIGN_NONE
             alignToPrior = hasAlign and getattr(self, 'alignmentAsPriors', False)
             fillRandomSubset = hasAlign and getattr(self, 'fillRandomSubset', False)
@@ -947,7 +953,6 @@ class ProtRelionBase(EMProtocol):
     # -------------------------- INFO functions -------------------------------
     def _validate(self):
         errors = []
-        #self.validatePackageVersion(RELION_HOME, errors)
 
         if self.doContinue:
             continueProtocol = self.continueRun.get()
@@ -971,6 +976,14 @@ class ProtRelionBase(EMProtocol):
                 if total <= self.subsetSize.get():
                     errors.append('Subset size is bigger than the total number '
                                   'of particles!')
+            if not self.doImageAlignment:
+                if self.doGpu:
+                    errors.append('When only doing classification (no alignment) '
+                                  'GPU acceleration can not be used.')
+                if not self.copyAlignment:
+                    errors.append('If you want to do only classification without '
+                                  'alignment, then you should use the option: \n'
+                                  '*Consider previous alignment?* = Yes')
 
         return errors
 
@@ -1056,8 +1069,6 @@ class ProtRelionBase(EMProtocol):
                     args['--firstiter_cc'] = ''
                 args['--ini_high'] = self.initialLowPassFilterA.get()
                 args['--sym'] = self.symmetryGroup.get()
-            if self.IS_V3:
-                args['--pad'] = 1 if self.skipPadding else 2
 
         refArg = self._getRefArg()
         if refArg:
@@ -1119,6 +1130,10 @@ class ProtRelionBase(EMProtocol):
             if not self.doContinue:
                 self._setSubsetArgs(args)
 
+        # Padding can be set in a normal run or in a continue
+        if self.IS_V3 and self.IS_3D:
+            args['--pad'] = 1 if self.skipPadding else 2
+
         self._setSamplingArgs(args)
         self._setMaskArgs(args)
 
@@ -1151,6 +1166,12 @@ class ProtRelionBase(EMProtocol):
 
             if self.referenceMask.hasValue() and self.solventFscMask:
                 args['--solvent_correct_fsc'] = ''
+        else:
+            if self.referenceMask2D.hasValue():
+                tmp = self._getTmpPath()
+                newDim = self._getInputParticles().getXDim()
+                mask = relion.convert.convertMask(self.referenceMask2D.get(), tmp, newDim)
+                args['--solvent_mask'] = mask
 
     def _setSubsetArgs(self, args):
         if self._doSubsets():

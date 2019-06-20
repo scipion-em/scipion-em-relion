@@ -71,13 +71,15 @@ class ProtRelionBayesianPolishing(em.ProtParticles):
         form.addParam('inputMovies', params.PointerParam, pointerClass='SetOfMovies',
                       important=True,
                       label='Input movies',
-                      help='')
+                      help='Provide a set of movies that have at '
+                           'least global alignment information.')
         #TODO: conditions on particles?
         form.addParam('inputParticles', params.PointerParam,
                       important=True,
                       label='Input particles',
                       pointerClass='SetOfParticles',
-                      help='Provide a set of particles for local CTF refinement.')
+                      help='Provide a set of particles from 3D auto-refine '
+                           'or CTF refinement.')
         form.addParam('inputPostprocess', params.PointerParam,
                       important=True,
                       label='Input Postprocess',
@@ -309,6 +311,22 @@ class ProtRelionBayesianPolishing(em.ProtParticles):
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
         summary = []
+
+        if self.operation != self.OP_TRAIN:
+            summary.append('Sigma for velocity: %0.3f' % self.sigmaVel)
+            summary.append('Sigma for divergence: %0.1f' % self.sigmaDiv)
+            summary.append('Sigma for acceleration: %0.2f' % self.sigmaAcc)
+        else:
+            if pwutils.exists(self._getExtraPath('opt_params.txt')):
+                f = open(self._getExtraPath('opt_params.txt'))
+                line = map(float, f.readline().split())
+                summary.append('Sigma for velocity: %0.3f' % line[0])
+                summary.append('Sigma for divergence: %0.1f' % line[1])
+                summary.append('Sigma for acceleration: %0.2f' % line[2])
+                f.close()
+            else:
+                summary.append('Output is not ready yet.')
+
         return summary
 
     def _validate(self):

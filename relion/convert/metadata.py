@@ -19,7 +19,7 @@
 # *
 # **************************************************************************
 
-__version__ = '0.0.3'
+__version__ = '0.0.4'
 __author__ = 'Jose Miguel de la Rosa Trevin'
 
 
@@ -227,7 +227,7 @@ class Table:
                 return line
             line = inputFile.readline()
 
-        raise Exception("%s block was not found")
+        raise Exception("'%s' block was not found" % dataStr)
 
     def _findLabelLine(self, inputFile):
         line = ''

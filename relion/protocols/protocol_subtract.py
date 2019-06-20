@@ -145,9 +145,11 @@ class ProtRelionSubtract(ProtOperateParticles):
                                                 self._getExtraPath())
         params = ' --i %s --subtract_exp --angpix %0.3f' % (volFn,
                                                             volume.getSamplingRate())
-        if self.refMask.get() is not None:
-            maskFn = relion.convert.convertBinaryVol(self.refMask.get(),
-                                                     self._getExtraPath())
+
+        if self.refMask.hasValue():
+            tmp = self._getTmpPath()
+            newDim = self._getInputParticles().getXDim()
+            maskFn = relion.convert.convertMask(self.refMask.get(), tmp, newDim)
             params += ' --mask %s' % maskFn
         
         if self._getInputParticles().isPhaseFlipped():

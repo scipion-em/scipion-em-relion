@@ -221,7 +221,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
     # -------------------------- STEPS functions -------------------------------
     def convertInputStep(self, protId):
         self.info("Relion version:")
-        self.runJob("which", "relion_refine", numberOfMpi=1)
+        self.runJob("relion_refine --version", "", numberOfMpi=1)
 
         pwutils.copyFile(self.bodyStarFile.get(),
                          self._getExtraPath('input_body.star'))
@@ -282,10 +282,11 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         
     # -------------------------- UTILS functions ------------------------------
     def _getRefineArgs(self):
-        """ Define all parameters to run relion_postprocess.
+        """ Define all parameters to run relion_refine.
         """
         protRefine = self.protRefine.get()
-        fnOptimiser = protRefine._getExtraPath('relion_it020_optimiser.star')  # FIXME
+        protRefine._initialize()
+        fnOptimiser = protRefine._getFileName('optimiser', iter=protRefine._lastIter())
         healpix = self.initialAngularSampling.get()
 
         args = {
@@ -299,6 +300,14 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
             '--offset_range': self.initialOffsetRange.get(),
             '--offset_step': self.initialOffsetStep.get()
         }
+
+        # restore mask for previous refinement protocol
+        # it's not used by multibody but required by relion cmd
+        if protRefine.referenceMask.hasValue():
+            tmp = protRefine._getTmpPath()
+            newDim = protRefine._getInputParticles().getXDim()
+            relion.convert.convertMask(protRefine.referenceMask.get(), tmp, newDim)
+
         self._setComputeArgs(args)
 
         if self.recSubtractedBodies:
@@ -325,4 +334,3 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
             })
 
         return args
-
