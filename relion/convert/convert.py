@@ -27,12 +27,14 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-
+from __future__ import print_function
 import os
+import sys
 from os.path import join, basename
 import numpy
 from itertools import izip
 
+from relion.progressbar import ProgressBar
 import pyworkflow as pw
 from pyworkflow.object import ObjectWrap, String, Integer
 import pyworkflow.em.metadata as md
@@ -243,7 +245,7 @@ def alignmentToRow(alignment, alignmentRow, alignType):
 
         flip = bool(numpy.linalg.det(matrix[0:2,0:2]) < 0)
         if flip:
-            print "FLIP in 2D not implemented"
+            print("FLIP in 2D not implemented")
     elif is3D:
         raise Exception("3D alignment conversion for Relion not implemented. "
                         "It seems the particles were generated with an "
@@ -488,12 +490,19 @@ def setOfImagesToMd(imgSet, imgMd, imgToFunc, **kwargs):
     if 'alignType' not in kwargs:
         kwargs['alignType'] = imgSet.getAlignment()
 
-    for img in imgSet:
+    progress = ProgressBar(len(imgSet), fmt=ProgressBar.FULL)
+    print("Creating star file, this may take a while")
+    step = max(10000, len(imgSet) / 100)
+    for i, img in enumerate(imgSet):
+        if i%step == 0:
+            print(progress(), end='')
+            sys.stdout.flush()
+            progress.current += step
         objId = imgMd.addObject()
         imgRow = md.Row()
         imgToFunc(img, imgRow, **kwargs)
         imgRow.writeToMd(imgMd, objId)
-
+    print(progress.done())
 
 def writeSetOfParticles(imgSet, starFile,
                         outputDir, **kwargs):
@@ -639,7 +648,7 @@ def splitInCTFGroups(imgStar, defocusRange=1000, numParticles=10):
     mdCount = md.MetaData()
     mdCount.aggregate(mdAll, md.AGGR_COUNT, md.RLN_MLMODEL_GROUP_NAME,
                       md.RLN_MLMODEL_GROUP_NAME, md.MDL_COUNT)
-    print "number of particles per group: ", mdCount
+    print("number of particles per group: ", mdCount)
 
        
 def prependToFileName(imgRow, prefixPath):
@@ -848,12 +857,12 @@ def readSetOfCoordinates(coordSet, coordFiles, micList=None):
     for mic, coordFn in izip(micList, coordFiles):
 
         if not os.path.exists(coordFn):
-            print "WARNING: Missing coordinates star file: ", coordFn
+            print("WARNING: Missing coordinates star file: ", coordFn)
 
         try:
             readCoordinates(mic, coordFn, coordSet)
         except Exception:
-            print "WARNING: Error reading coordinates star file: ", coordFn
+            print("WARNING: Error reading coordinates star file: ", coordFn)
         
 
 def readCoordinates(mic, fileName, coordsSet):
@@ -914,7 +923,7 @@ def writeSetOfCoordinates(posDir, coordSet, getStarFileFunc, scale=1):
 
         if micId != lastMicId:
             if not micId in posDict:
-                print "Warning: micId %s not found" % micId
+                print("Warning: micId %s not found" % micId)
                 continue
             # we need to close previous opened file
             if f:
