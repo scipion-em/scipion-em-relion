@@ -25,6 +25,7 @@ class ProgressBar(object):
     running operation, providing a visual cue that processing is underway.
     """
 
+    # predefined format strings for prgogessbar
     DEFAULT = 'Progress: %(bar)s %(percent)3d%%'
     FULL = '%(bar)s %(current)d/%(total)d (%(percent)3d%%) %(remaining)d to go'
     OBJID = '%(bar)s %(current)d/%(total)d (%(percent)3d%%) (objectId=%(objId)d)'
@@ -32,8 +33,8 @@ class ProgressBar(object):
     def __init__(self, total, width=40, fmt=DEFAULT, symbol='=',
                  output=sys.stderr, objectId=None):
         # total = mamimum number of character to be written per line. Usually the current terminal width
-        # width = progress bar width (without the percentange and number of iterations loop)
-        # predefined format string, so far DEFAULT, FULL, objId are defined.
+        # width = progress bar width (without the percentange and number of iterations)
+        # predefined format string, so far DEFAULT, FULL, OBJID are defined.
         # symbol: progress bar is made with this symbol
 
         assert len(symbol) == 1
