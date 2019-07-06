@@ -287,7 +287,9 @@ class TestConvertAnglesBase(BaseTest):
             goldFn = self.dataset.getFile(fileKey + '_Gold_output_relion.mrcs')
         else:
             outputFn = self.getOutputPath(fileKey + "_output.vol")
-            goldFn = self.dataset.getFile(fileKey + '_Gold_output.vol')
+            # Once version has this key in the dataset this can be uncommented (v >2.0)
+            #goldFn = self.dataset.getFile(fileKey + 'GoldRln')
+            goldFn = self.dataset.getFile("reconstruction/gold/" + fileKey + '_Gold_rln_output.vol')
 
         if PRINT_FILES:
             print("BINARY DATA: ", stackFn)
