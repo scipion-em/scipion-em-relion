@@ -28,7 +28,7 @@ import os
 import pyworkflow.em
 import pyworkflow.utils as pwutils
 
-from .constants import RELION_HOME, RELION_CUDA_LIB, V2_0, V2_1, V3_0
+from .constants import RELION_HOME, RELION_CUDA_LIB, V2_0, V2_1, V3_0, V3_1
 
 
 _logo = "relion_logo.png"
@@ -37,11 +37,11 @@ _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016', 'Zivanov2018']
 
 class Plugin(pyworkflow.em.Plugin):
     _homeVar = RELION_HOME
-    _supportedVersions = [V2_0, V2_1, V3_0]
+    _supportedVersions = [V2_0, V2_1, V3_0, V3_1]
 
     @classmethod
     def _defineVariables(cls):
-        cls._defineEmVar(RELION_HOME, 'relion-3.0')
+        cls._defineEmVar(RELION_HOME, 'relion-3.1')
 
     @classmethod
     def getEnviron(cls):
