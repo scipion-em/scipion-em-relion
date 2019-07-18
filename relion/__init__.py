@@ -79,6 +79,10 @@ class Plugin(pyworkflow.em.Plugin):
         return cls.getActiveVersion().startswith('3.')
 
     @classmethod
+    def isVersion31Active(cls):
+        return cls.getActiveVersion().startswith('3.1')
+
+    @classmethod
     def defineBinaries(cls, env):
         relion_commands = [('./INSTALL.sh -j %d' % env.getProcessors(),
                             ['relion_build.log',

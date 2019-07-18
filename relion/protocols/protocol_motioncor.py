@@ -282,11 +282,19 @@ class ProtRelionMotioncor(ProtAlignMovies):
         """ Easy way to write a simple star file with a single micrographs.
         Used by the relion implementation of motioncor.
         """
-        with open(starFn, 'w') as f:
-            table = md.Table(columns=['rlnMicrographMovieName'])
-            for img in images:
-                table.addRow(os.path.basename(img.getFileName()))
-            table.writeStar(f)
+
+        if not self._isVersion31():
+            with open(starFn, 'w') as f:
+                table = md.Table(columns=['rlnMicrographMovieName'])
+                for img in images:
+                    table.addRow(os.path.basename(img.getFileName()))
+                table.writeStar(f)
+        else:
+            with open(starFn, 'w') as f:
+                table = md.Table(columns=['rlnMicrographMovieName', 'rlnOpticsGroup'])
+                for img in images:
+                    table.addRow(os.path.basename(img.getFileName()))
+                table.writeStar(f, tableName='movies')
 
     def _getMovieOutFn(self, movie, suffix):
         movieBase = pwutils.removeBaseExt(movie.getFileName()).replace('.', '_')
@@ -432,6 +440,9 @@ class ProtRelionMotioncor(ProtAlignMovies):
         if outputSize < inputSize:
             self.warning(pwutils.yellowStr("WARNING - Failed to align %d movies."
                                            % (inputSize - outputSize)))
+
+    def _isVersion31(self):
+        return relion.Plugin.isVersion31Active()
 
 
 def createGlobalAlignmentPlot(meanX, meanY, first):
