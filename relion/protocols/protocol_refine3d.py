@@ -198,7 +198,7 @@ leads to objective and high-quality results.
         if not hasattr(self, 'outputVolume'):
             summary.append("Output volume not ready yet.")
             it = self._lastIter()
-            if it >= 1:
+            if it >= 1 and it > self._getContinueIter():
                 row = md.getFirstRow('model_general@' +
                                      self._getFileName('half1_model',
                                                        iter=it))
