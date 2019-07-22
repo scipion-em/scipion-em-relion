@@ -1693,12 +1693,12 @@ class RelionLocalResViewer(ProtocolViewer):
         stepColors = self._getStepColors(minRes, maxRes)
         colorList = plotter.getHexColorList(stepColors, self._getColorName())
         
-        fnVol = os.path.abspath(self.protocol._getFileName('finalMap'))
+        fnVol = os.path.abspath(self.protocol._getFileName('outputVolume'))
 
         fhCmd.write("background solid white\n")
         
         fhCmd.write("open %s\n" % fnVol)
-        fhCmd.write("open %s\n" % (imageFile))
+        fhCmd.write("open %s\n" %(imageFile))
         
         sampRate = self.protocol.outputVolume.getSamplingRate()
         fhCmd.write("volume #0 voxelSize %s\n" % (str(sampRate)))
