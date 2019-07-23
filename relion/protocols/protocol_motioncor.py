@@ -227,7 +227,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
         if self.doDW:
             dose = self.inputMovies.get().getAcquisition().getDosePerFrame()
-            if dose is None:
+            if dose == 0.0 or dose is None:
                 errors.append("Input movies do not contain the dose per frame, "
                               "dose-weighting can not be performed. ")
 
