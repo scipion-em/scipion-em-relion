@@ -250,7 +250,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         """ Parse motion values from the 'corrected_micrographs.star' file
         generated for each movie. """
         fn = self._getMovieExtraFn(movie, 'corrected_micrographs.star')
-        table = md.Table(fileName=fn)
+        table = md.Table(fileName=fn, tableName='micrographs')
         row = table[0]
         mic._rlnAccumMotionTotal = pwobj.Float(row.rlnAccumMotionTotal)
         mic._rlnAccumMotionEarly = pwobj.Float(row.rlnAccumMotionEarly)
@@ -291,9 +291,28 @@ class ProtRelionMotioncor(ProtAlignMovies):
                 table.writeStar(f)
         else:
             with open(starFn, 'w') as f:
+                table = md.Table(columns=['rlnOpticsGroupName',
+                                          'rlnOpticsGroup',
+                                          'rlnMtfFileName',
+                                          'rlnMicrographOriginalPixelSize',
+                                          'rlnVoltage',
+                                          'rlnSphericalAberration',
+                                          'rlnAmplitudeContrast'])
+                for img in images:
+                    acq = img.getAcquisition()
+                    table.addRow(acq.getOpticsGroupName(),
+                                 acq.getOpticsGroup(),
+                                 acq.getMtf(),
+                                 img.getSamplingRate(),
+                                 acq.getVoltage(),
+                                 acq.getSphericalAberration(),
+                                 acq.getAmplitudeContrast())
+                table.writeStar(f, tableName='optics')
+
                 table = md.Table(columns=['rlnMicrographMovieName', 'rlnOpticsGroup'])
                 for img in images:
-                    table.addRow(os.path.basename(img.getFileName()))
+                    table.addRow(os.path.basename(img.getFileName()),
+                                 img.getAcquisition().getOpticsGroup())
                 table.writeStar(f, tableName='movies')
 
     def _getMovieOutFn(self, movie, suffix):

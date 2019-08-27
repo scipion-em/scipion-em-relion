@@ -389,9 +389,9 @@ def particleToRow(part, partRow, **kwargs):
                          int(part._rlnRandomSubset.get()))
         if part.hasAttribute('_rlnBeamTiltX'):
             partRow.setValue('rlnBeamTiltX',
-                         float(part._rlnBeamTiltX.get()))
+                             float(part._rlnBeamTiltX.get()))
             partRow.setValue('rlnBeamTiltY',
-                         float(part._rlnBeamTiltY.get()))
+                             float(part._rlnBeamTiltY.get()))
 
     imageToRow(part, partRow, md.RLN_IMAGE_NAME, **kwargs)
 
