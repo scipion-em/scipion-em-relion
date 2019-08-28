@@ -1,3 +1,4 @@
+1.0.7: Add missing MTF files to the pypi plugin
 1.0.6: Fix reconstruction and extract ptcls tests
 1.0.5:
     - wizard for MTF files in post-processing
