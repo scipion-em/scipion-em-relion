@@ -66,9 +66,9 @@ class ProtRelionMotioncor(ProtAlignMovies):
     def _defineAlignmentParams(self, form):
 
         line = form.addLine('Frames for corrected SUM',
-                             help='First and last frames to use in corrected '
-                                  'average (starts counting at 1 and 0 as last '
-                                  'means util the last frame in the movie). ')
+                            help='First and last frames to use in corrected '
+                                 'average (starts counting at 1 and 0 as last '
+                                 'means util the last frame in the movie). ')
         line.addParam('sumFrame0', params.IntParam, default=1,
                       label='from')
         line.addParam('sumFrameN', params.IntParam, default=0,
@@ -90,6 +90,20 @@ class ProtRelionMotioncor(ProtAlignMovies):
                            'there is no difference in most cases. Whichever '
                            'the choice, CTF refinement job is always done on '
                            'dose-weighted particles.')
+
+        if relion.Plugin.isVersion31Active():
+            form.addParam('savePSsum', params.BooleanParam, default=False,
+                          label='Save sum of power spectra?',
+                          help='Sum of non-dose weighted power spectra '
+                               'provides better signal for CTF estimation. '
+                               'The power spectra can be used by CTFFIND4 '
+                               'but not by GCTF.')
+            form.addParam('dosePSsum', params.FloatParam, default=4.0,
+                          condition='savePSsum',
+                          label='Sum power spectra every e/A2',
+                          help='McMullan et al. (Ultramicroscopy, 2015) '
+                               'suggests summing power spectra every '
+                               '4.0 e/A2 gives optimal Thon rings.')
 
         group = form.addGroup("Motion")
 
@@ -192,6 +206,12 @@ class ProtRelionMotioncor(ProtAlignMovies):
             args += ' --gainref "%s"' % inputMovies.getGain()
             args += ' --gain_rot %d ' % self.gainRot
             args += ' --gain_flip %d ' % self.gainFlip
+
+        if relion.Plugin.isVersion31Active():
+            if inputMovies.getDefect():
+                args += ' --defect_file %s' % inputMovies.getDefect()
+            if self.savePSsum:
+                args += ' --grouping_for_ps %d' % self._calcPsDose()
 
         if self.doDW:
             args += "--dose_weighting "
@@ -445,7 +465,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         return m
 
     def createOutputStep(self):
-        # This method is re-implementd here becase a bug in the base protocol
+        # This method is re-implemented here because a bug in the base protocol
         # where the outputMicrographs is used without check if it is produced.
         # validate that we have some output movies
         if self._createOutputMovies():
@@ -470,6 +490,12 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
     def _isVersion31(self):
         return relion.Plugin.isVersion31Active()
+
+    def _calcPsDose(self):
+        _, dose = self._getCorrectedDose(self.inputMovies.get())
+        dose_for_ps = round(self.dosePSSum.get() / dose)
+
+        return 1 if dose_for_ps == 0 else dose_for_ps
 
 
 def createGlobalAlignmentPlot(meanX, meanY, first):
