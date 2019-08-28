@@ -105,55 +105,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                'suggests summing power spectra every '
                                '4.0 e/A2 gives optimal Thon rings.')
 
-        group = form.addGroup("Motion")
-
-        group.addParam('bfactor', params.IntParam, default=150,
-                       label='Bfactor',
-                       help="The B-factor that will be applied to the "
-                            "micrographs.")
-
-        line = group.addLine('Number of patches',
-                             help='Number of patches (in X and Y direction) to '
-                                  'apply motion correction. \n')
-        line.addParam('patchX', params.IntParam, default=1, label='X')
-        line.addParam('patchY', params.IntParam, default=1, label='Y')
-
-        group.addParam('groupFrames', params.IntParam, default=1,
-                       label='Group frames',
-                       help="Average together this many frames before "
-                            "calculating the beam-induced shifts.")
-
-        group.addParam('binFactor', params.FloatParam, default=1.,
-                       label='Binning factor',
-                       help='Bin the micrographs this much by a windowing '
-                            'operation in the Fourier Tranform. Binning at '
-                            'this level is hard to un-do later on, but may be '
-                            'useful to down-scale super-resolution images. '
-                            'Float-values may be used. Do make sure though '
-                            'that the resulting micrograph size is even.')
-
-        group.addParam('gainRot', params.EnumParam, default=0,
-                       choices=['No rotation (0)',
-                                ' 90 degrees (1)',
-                                '180 degrees (2)',
-                                '270 degrees (3)'],
-                       label='Gain rotation',
-                       help="Rotate the gain reference by this number times 90 "
-                            "degrees clockwise in relion_display. This is the "
-                            "same as -RotGain in MotionCor2. \n"
-                            "Note that MotionCor2 uses a different convention "
-                            "for rotation so it says 'counter-clockwise'.")
-
-        group.addParam('gainFlip', params.EnumParam, default=0,
-                       choices=['No flipping        (0)',
-                                'Flip upside down   (1)',
-                                'Flip left to right (2)'],
-                       label='Gain flip',
-                       help="Flip the gain reference after rotation. "
-                            "This is the same as -FlipGain in MotionCor2. "
-                            "0 means do nothing, 1 means flip Y (upside down) "
-                            "and 2 means flip X (left to right).")
-
         form.addParam('extraParams', params.StringParam, default='',
                       expertLevel=cons.LEVEL_ADVANCED,
                       label='Additional parameters',
@@ -173,6 +124,54 @@ class ProtRelionMotioncor(ProtAlignMovies):
                       help='When using this option, we will compute a '
                            'micrograph thumbnail and keep it with the '
                            'micrograph object for visualization purposes. ')
+
+        form.addSection("Motion")
+        form.addParam('bfactor', params.IntParam, default=150,
+                      label='Bfactor',
+                      help="The B-factor that will be applied to the "
+                           "micrographs.")
+
+        line = form.addLine('Number of patches',
+                            help='Number of patches (in X and Y direction) to '
+                                 'apply motion correction. \n')
+        line.addParam('patchX', params.IntParam, default=1, label='X')
+        line.addParam('patchY', params.IntParam, default=1, label='Y')
+
+        form.addParam('groupFrames', params.IntParam, default=1,
+                      label='Group frames',
+                      help="Average together this many frames before "
+                           "calculating the beam-induced shifts.")
+
+        form.addParam('binFactor', params.FloatParam, default=1.,
+                      label='Binning factor',
+                      help='Bin the micrographs this much by a windowing '
+                           'operation in the Fourier Tranform. Binning at '
+                           'this level is hard to un-do later on, but may be '
+                           'useful to down-scale super-resolution images. '
+                           'Float-values may be used. Do make sure though '
+                           'that the resulting micrograph size is even.')
+
+        form.addParam('gainRot', params.EnumParam, default=0,
+                      choices=['No rotation (0)',
+                               ' 90 degrees (1)',
+                               '180 degrees (2)',
+                               '270 degrees (3)'],
+                      label='Gain rotation',
+                      help="Rotate the gain reference by this number times 90 "
+                           "degrees clockwise in relion_display. This is the "
+                           "same as -RotGain in MotionCor2. \n"
+                           "Note that MotionCor2 uses a different convention "
+                           "for rotation so it says 'counter-clockwise'.")
+
+        form.addParam('gainFlip', params.EnumParam, default=0,
+                      choices=['No flipping        (0)',
+                               'Flip upside down   (1)',
+                               'Flip left to right (2)'],
+                      label='Gain flip',
+                      help="Flip the gain reference after rotation. "
+                           "This is the same as -FlipGain in MotionCor2. "
+                           "0 means do nothing, 1 means flip Y (upside down) "
+                           "and 2 means flip X (left to right).")
 
         form.addParallelSection(threads=4, mpi=1)
 
@@ -269,6 +268,9 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
     def _createOutputWeightedMicrographs(self):
         return bool(self.doDW)
+
+    def _createOutputPSMicrographs(self):
+        return bool(self.savePSsum)
 
     def _preprocessOutputMicrograph(self, mic, movie):
         self._setPlotInfo(movie, mic)
@@ -410,6 +412,9 @@ class ProtRelionMotioncor(ProtAlignMovies):
             if self.saveNonDW:
                 pwutils.moveFile(self._getMovieOutFn(movie, '_noDW.mrc'),
                                  self._getExtraPath(self._getOutputMicName(movie)))
+        if self.savePSsum:
+            pwutils.moveFile(self._getMovieOutFn(movie, '_PS.mrc'),
+                             self._getExtraPath(self._getOutputMicPsName(movie)))
         else:
             pwutils.moveFile(self._getMovieOutFn(movie, '.mrc'),
                              self._getExtraPath(self._getOutputMicName(movie)))
@@ -471,9 +476,11 @@ class ProtRelionMotioncor(ProtAlignMovies):
         if self._createOutputMovies():
             output = self.outputMovies
         elif self._createOutputMicrographs():
-            output = self.outputMicroraphs
+            output = self.outputMicrographs
         elif self._createOutputWeightedMicrographs():
             output = self.outputMicrographsDoseWeighted
+        elif self._createOutputPSMicrographs():
+            output = self.outputMicrographsPS
         else:
             raise Exception("It does not seem like any output is produced!")
 
