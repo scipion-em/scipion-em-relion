@@ -7,3 +7,5 @@
 # Include conf file
  include relion/protocols.conf
 
+# Include MTF files
+include relion/convert/mtfs/*star
