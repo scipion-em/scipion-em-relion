@@ -202,15 +202,15 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
         inputMovies = self.inputMovies.get()
         if inputMovies.getGain():
-            args += ' --gainref "%s"' % inputMovies.getGain()
+            args += ' --gainref "%s" ' % inputMovies.getGain()
             args += ' --gain_rot %d ' % self.gainRot
             args += ' --gain_flip %d ' % self.gainFlip
 
         if relion.Plugin.isVersion31Active():
             if inputMovies.getDefect():
-                args += ' --defect_file %s' % inputMovies.getDefect()
+                args += ' --defect_file "%s" ' % inputMovies.getDefect()
             if self.savePSsum:
-                args += ' --grouping_for_ps %d' % self._calcPsDose()
+                args += ' --grouping_for_ps %d ' % self._calcPsDose()
 
         if self.doDW:
             args += "--dose_weighting "
@@ -412,12 +412,12 @@ class ProtRelionMotioncor(ProtAlignMovies):
             if self.saveNonDW:
                 pwutils.moveFile(self._getMovieOutFn(movie, '_noDW.mrc'),
                                  self._getExtraPath(self._getOutputMicName(movie)))
-        if self.savePSsum:
-            pwutils.moveFile(self._getMovieOutFn(movie, '_PS.mrc'),
-                             self._getExtraPath(self._getOutputMicPsName(movie)))
         else:
             pwutils.moveFile(self._getMovieOutFn(movie, '.mrc'),
                              self._getExtraPath(self._getOutputMicName(movie)))
+        if self.savePSsum:
+            pwutils.moveFile(self._getMovieOutFn(movie, '_PS.mrc'),
+                             self._getExtraPath(self._getOutputMicPsName(movie)))
 
         # Keep some local files of this movie in the extra folder
         for suffix in ['.star', '.log']:
@@ -500,7 +500,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
     def _calcPsDose(self):
         _, dose = self._getCorrectedDose(self.inputMovies.get())
-        dose_for_ps = round(self.dosePSSum.get() / dose)
+        dose_for_ps = round(self.dosePSsum.get() / dose)
 
         return 1 if dose_for_ps == 0 else dose_for_ps
 
