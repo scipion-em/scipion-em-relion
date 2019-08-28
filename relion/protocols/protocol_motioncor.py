@@ -195,14 +195,15 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
         if self.doDW:
             args += "--dose_weighting "
+            preExp, dose = self._getCorrectedDose(self.inputMovies.get())
+            args += "--dose_per_frame %f " % dose
+            args += "--preexposure %f " % preExp
+
             if self.saveNonDW:
                 args += " --save_noDW "
 
-        preExp, dose = self._getCorrectedDose(self.inputMovies.get())
         voltage = movie.getAcquisition().getVoltage()
         args += "--voltage %d " % voltage
-        args += "--dose_per_frame %f " % dose
-        args += "--preexposure %f " % preExp
 
         if self.extraParams.hasValue():
             args += " " + self.extraParams.get()
@@ -223,6 +224,13 @@ class ProtRelionMotioncor(ProtAlignMovies):
     def _validate(self):
         # Check base validation before the specific ones for Motioncor
         errors = ProtAlignMovies._validate(self)
+
+        if self.doDW:
+            dose = self.inputMovies.get().getAcquisition().getDosePerFrame()
+            if dose is None or dose < 0.001:
+                errors.append("Input movies do not contain the dose per frame, "
+                              "dose-weighting can not be performed. ")
+
         return errors
 
     # ------------------------ Extra BASE functions ---------------------------
