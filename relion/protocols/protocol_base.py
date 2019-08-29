@@ -709,7 +709,7 @@ class ProtRelionBase(EMProtocol):
                                 'The command *relion_refine --sym D2 '
                                 '--print_symmetry_ops* prints a list of all '
                                 'symmetry operators for symmetry group D2. '
-                                'RELION uses MIPP\'s libraries for symmetry '
+                                'RELION uses XMIPP\'s libraries for symmetry '
                                 'operations.  Therefore, look at the XMIPP '
                                 'Wiki for more details:\n'
                                 ' http://xmipp.cnb.csic.es/twiki/bin/view/'

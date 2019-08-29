@@ -31,6 +31,7 @@ import pyworkflow.protocol.params as params
 from pyworkflow.em.protocol import ProtParticlePickingAuto
 from pyworkflow.em.constants import RELATION_CTF, ALIGN_NONE
 from pyworkflow.em.convert import ImageHandler
+from pyworkflow.em.data import Volume
 from pyworkflow.utils.properties import Message
 import pyworkflow.utils as pwutils
 import pyworkflow.em.metadata as md
@@ -40,6 +41,9 @@ import relion
 import relion.convert
 from relion.constants import *
 from .protocol_base import ProtRelionBase
+
+
+IS_V3 = relion.Plugin.isVersion3Active()
 
 
 class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
@@ -113,10 +117,10 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                             'and that number will be selected to cover the '
                             'defocus range. ')
         group.addParam('micrographsNumber', params.IntParam, default='10',
-                      condition='micrographsSelection==%d' % MICS_AUTO,
-                      label='Micrographs for optimization:',
-                      help='Select the number of micrographs that you want'
-                           'to be used for the parameters optimization. ')
+                       condition='micrographsSelection==%d' % MICS_AUTO,
+                       label='Micrographs for optimization:',
+                       help='Select the number of micrographs that you want'
+                            'to be used for the parameters optimization. ')
         group.addParam('micrographsSubset', params.PointerParam,
                        condition='micrographsSelection==%d' % MICS_SUBSET,
                        pointerClass='SetOfMicrographs',
@@ -131,22 +135,22 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
 
         group = form.addGroup('References')
         group.addParam('referencesType', params.EnumParam,
-                      choices=['References', 'Gaussian blobs'],
-                      default=REF_AVERAGES,
-                      display=params.EnumParam.DISPLAY_HLIST,
-                      label='References type',
-                      help='You may select "Gaussian blobs" to be used as '
-                           'references. The preferred way to autopick is '
-                           'by providing 2D references images that were '
-                           'obtained by 2D classification. \n'
-                           'The Gaussian blob references may be useful to '
-                           'kickstart a new data set.')
+                       choices=['References', 'Gaussian blobs'],
+                       default=REF_AVERAGES,
+                       display=params.EnumParam.DISPLAY_HLIST,
+                       label='References type',
+                       help='You may select "Gaussian blobs" to be used as '
+                            'references. The preferred way to autopick is '
+                            'by providing 2D references images that were '
+                            'obtained by 2D classification. \n'
+                            'The Gaussian blob references may be useful to '
+                            'kickstart a new data set.')
 
         group.addParam('gaussianPeak', params.FloatParam, default=0.1,
-                      condition='referencesType==%s' % REF_BLOBS,
-                      label='Gaussian peak value',
-                      help='The peak value of the Gaussian blob. '
-                           'Weaker data will need lower values.')
+                       condition='referencesType==%s' % REF_BLOBS,
+                       label='Gaussian peak value',
+                       help='The peak value of the Gaussian blob. '
+                            'Weaker data will need lower values.')
 
         pointerClassStr = 'SetOfAverages'
         # In Relion 3 it is also possible to pass a volume as reference for
@@ -155,22 +159,22 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
             pointerClassStr += ",Volume"
 
         group.addParam('inputReferences', params.PointerParam,
-                      pointerClass=pointerClassStr,
-                      condition=refCondition,
-                      label='Input references', important=True,
-                      help='Input references (SetOfAverages) for auto-pick. \n\n'
-                           'Note that the absolute greyscale needs to be correct, \n'
-                           'so only use images with proper normalization. '
-                           'From Relion 3.0 it is also possible to provide a '
-                           '3D volume which projections will be used as '
-                           'references.')
+                       pointerClass=pointerClassStr,
+                       condition=refCondition,
+                       label='Input references', important=True,
+                       help='Input references (SetOfAverages) for auto-pick. \n\n'
+                            'Note that the absolute greyscale needs to be correct, \n'
+                            'so only use images with proper normalization. '
+                            'From Relion 3.x it is also possible to provide a '
+                            '3D volume which projections will be used as '
+                            'references.')
 
         group.addParam('particleDiameter', params.IntParam, default=-1,
-                      label='Mask diameter (A)',
-                      help='Diameter of the circular mask that will be applied '
-                           'around the templates in Angstroms. When set to a '
-                           'negative value, this value is estimated '
-                           'automatically from the templates themselves.')
+                       label='Mask diameter (A)',
+                       help='Diameter of the circular mask that will be applied '
+                            'around the templates in Angstroms. When set to a '
+                            'negative value, this value is estimated '
+                            'automatically from the templates themselves.')
 
         form.addSection('References')
 
@@ -220,63 +224,114 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                       help='Set this to Yes, only if this option was also used '
                            'to generate the references.')
 
+        if IS_V3:
+            group = form.addGroup('3D references')
+            group.addParam('symmetryGroup', params.StringParam, default='c1',
+                           label="Symmetry",
+                           help='Symmetry point group of the 3D reference. '
+                                'Only projections in the asymmetric part of '
+                                'the sphere will be generated.\n'
+                                'If the molecule is asymmetric, set Symmetry '
+                                'group to C1. Note their are multiple '
+                                'possibilities for icosahedral symmetry:\n'
+                                '* I1: No-Crowther 222 (standard in Heymann,'
+                                'Chagoyen  & Belnap, JSB, 151 (2005) 196-207)\n'
+                                '* I2: Crowther 222                          \n'
+                                '* I3: 52-setting (as used in SPIDER?)       \n'
+                                '* I4: A different 52 setting                \n'
+                                'The command *relion_refine --sym D2 '
+                                '--print_symmetry_ops* prints a list of all '
+                                'symmetry operators for symmetry group D2. '
+                                'RELION uses XMIPP\'s libraries for symmetry '
+                                'operations.  Therefore, look at the XMIPP '
+                                'Wiki for more details:\n'
+                                ' http://xmipp.cnb.csic.es/twiki/bin/view/'
+                                'Xmipp/WebHome?topic=Symmetry')
+            group.addParam('angularSamplingDeg', params.EnumParam, default=0,
+                           choices=ANGULAR_SAMPLING_LIST,
+                           label='3D angular sampling (deg)',
+                           help='There are only a few discrete angular samplings'
+                                ' possible because we use the HealPix library to'
+                                ' generate the sampling of the first two Euler '
+                                'angles on the sphere. The samplings are '
+                                'approximate numbers and vary slightly over '
+                                'the sphere.\n'
+                                'For autopicking, 30 degrees is usually fine '
+                                'enough, but for highly symmetrical objects '
+                                'one may need to go finer to adequately '
+                                'sample the asymmetric part of the sphere.')
+
         form.addSection('Autopicking')
 
         group = form.addGroup('Autopick')
-        group.addParam('pickingThreshold', params.FloatParam, default=0.25,
-                      label='Picking threshold:',
-                      help='Use lower thresholds to pick more particles '
-                           '(and more junk probably)')
+        group.addParam('pickingThreshold', params.FloatParam, default=0.05,
+                       label='Picking threshold:',
+                       help='Use lower thresholds to pick more particles '
+                            '(and more junk probably)')
 
-        group.addParam('interParticleDistance', params.IntParam, default=-1,
-                      label='Minimum inter-particle distance (A):',
-                      help='Particles closer together than this distance \n'
-                           'will be consider to be a single cluster. \n'
-                           'From each cluster, only one particle will be '
-                           'picked.')
+        group.addParam('interParticleDistance', params.IntParam, default=100,
+                       label='Minimum inter-particle distance (A):',
+                       help='Particles closer together than this distance \n'
+                            'will be consider to be a single cluster. \n'
+                            'From each cluster, only one particle will be '
+                            'picked.')
 
         group.addParam('maxStddevNoise', params.FloatParam, default=1.1,
-                      label='Maximum stddev noise:',
-                      help='This is useful to prevent picking in carbon areas, '
-                           'or areas with big contamination features. Peaks in '
-                           'areas where the background standard deviation in '
-                           'the normalized micrographs is higher than this '
-                           'value will be ignored. Useful values are probably '
-                           'in the range 1.0 to 1.2. Set to -1 to switch off '
-                           'the feature to eliminate peaks due to high '
-                           'background standard deviations.')
+                       label='Maximum stddev noise:',
+                       help='This is useful to prevent picking in carbon areas, '
+                            'or areas with big contamination features. Peaks in '
+                            'areas where the background standard deviation in '
+                            'the normalized micrographs is higher than this '
+                            'value will be ignored. Useful values are probably '
+                            'in the range 1.0 to 1.2. Set to -1 to switch off '
+                            'the feature to eliminate peaks due to high '
+                            'background standard deviations.')
+
+        if IS_V3:
+            group.addParam('minAvgNoise', params.FloatParam, default=-999.,
+                           expertLevel=params.LEVEL_ADVANCED,
+                           label='Minimum avg noise',
+                           help='This is useful to prevent picking in carbon '
+                                'areas, or areas with big contamination '
+                                'features. Peaks in areas where the background '
+                                'standard deviation in the normalized '
+                                'micrographs is higher than this value will be '
+                                'ignored. Useful values are probably in the '
+                                'range -0.5 to 0. Set to -999 to switch off '
+                                'the feature to eliminate peaks due to low '
+                                'average background densities.')
 
         group = form.addGroup('Computing')
-        group.addParam('shrinkFactor', params.FloatParam, default=0,
-                      validators=[params.Range(0, 1, "value should be "
-                                                     "between 0 and 1. ")],
-                      label='Shrink factor',
-                      help='This is useful to speed up the calculations, '
-                           'and to make them less memory-intensive. The '
-                           'micrographs will be downscaled (shrunk) to '
-                           'calculate the cross-correlations, and peak '
-                           'searching will be done in the downscaled FOM '
-                           'maps. When set to 0, the micrographs will de '
-                           'downscaled to the lowpass filter of the '
-                           'references, a value between 0 and 1 will '
-                           'downscale the micrographs by that factor. '
-                           'Note that the results will not be exactly '
-                           'the same when you shrink micrographs!')
+        group.addParam('shrinkFactor', params.FloatParam, default=1,
+                       validators=[params.Range(0, 1, "value should be "
+                                                      "between 0 and 1. ")],
+                       label='Shrink factor',
+                       help='This is useful to speed up the calculations, '
+                            'and to make them less memory-intensive. The '
+                            'micrographs will be downscaled (shrunk) to '
+                            'calculate the cross-correlations, and peak '
+                            'searching will be done in the downscaled FOM '
+                            'maps. When set to 0, the micrographs will de '
+                            'downscaled to the lowpass filter of the '
+                            'references, a value between 0 and 1 will '
+                            'downscale the micrographs by that factor. '
+                            'Note that the results will not be exactly '
+                            'the same when you shrink micrographs!')
 
         group.addParam('doGpu', params.BooleanParam, default=True,
-                      label='Use GPU acceleration?',
-                      help='If set to Yes, the job will try to use GPU '
-                           'acceleration.')
+                       label='Use GPU acceleration?',
+                       help='If set to Yes, the job will try to use GPU '
+                            'acceleration.')
 
         group.addParam('gpusToUse', params.StringParam, default='',
-                      label='Which GPUs to use:', condition='doGpu',
-                      help='This argument is not necessary. If left empty, '
-                           'the job itself will try to allocate available GPU '
-                           'resources. You can override the default '
-                           'allocation by providing a list of which GPUs '
-                           '(0,1,2,3, etc) to use. MPI-processes are '
-                           'separated by ":", threads by ",". '
-                           'For example: "0,0:1,1:0,0:1,1"')
+                       label='Which GPUs to use:', condition='doGpu',
+                       help='This argument is not necessary. If left empty, '
+                            'the job itself will try to allocate available GPU '
+                            'resources. You can override the default '
+                            'allocation by providing a list of which GPUs '
+                            '(0,1,2,3, etc) to use. MPI-processes are '
+                            'separated by ":", threads by ",". '
+                            'For example: "0,0:1,1:0,0:1,1"')
 
         form.addParam('extraParams', params.StringParam, default='',
                       label='Additional arguments:',
@@ -290,7 +345,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         form.addSection('Helix')
         form.addParam('fomLabel', params.LabelParam,
                       important=True,
-                      label='Helix processing is not implemented still.')
+                      label='Helix processing is not implemented.')
 
         self._defineStreamingParams(form)
 
@@ -301,7 +356,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         self.inputStreaming = self.getInputMicrographs().isStreamOpen()
 
         if ((self.streamingBatchSize > 0 or self.inputStreaming)
-            and not self.isRunOptimize()):
+                and not self.isRunOptimize()):
             # If the input is in streaming, follow the base class policy
             # about inserting new steps and discovery new input/output
             ProtParticlePickingAuto._insertAllSteps(self)
@@ -408,7 +463,12 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
             params += ' --ref input_references.star'
             ps = self.getInputReferences().getSamplingRate()
             params += ' --angpix_ref %0.3f' % ps
-        else: # Gaussian blobs
+
+            if IS_V3 and isinstance(self.getInputReferences(), Volume):
+                params += ' --sym %s' % self.symmetryGroup.get()
+                params += ' --healpix_order %d' % self.angularSamplingDeg.get() + 1  # because 0=60deg is hidden in GUI
+
+        else:  # Gaussian blobs
             params += ' --ref gauss --gauss_max %0.3f' % self.gaussianPeak
 
         if self.refsHaveInvertedContrast:
@@ -434,26 +494,31 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         threshold = self.pickingThreshold.get()
         interDist = self.interParticleDistance.get()
         maxStd = self.maxStddevNoise.get()
+        minAvg = self.minAvgNoise.get() if self.hasAttribute('minAvgNoise') else None
         fomParam = ' --write_fom_maps' if self.isRunOptimize() else ''
-        return [basicArgs, threshold, interDist, maxStd, fomParam]
+        return [basicArgs, threshold, interDist, maxStd, fomParam, minAvg]
 
     def _pickMicrographsFromStar(self, micStarFile, params,
-                                 threshold, minDistance, maxStddevNoise, fom):
+                                 threshold, minDistance, maxStddevNoise,
+                                 fom, minAvgNoise):
         """ Launch the 'relion_autopick' for micrographs in the inputStarFile.
          If the input set of complete, the star file will contain all the
          micrographs. If working in streaming, it will be only one micrograph.
         """
         params += ' --i %s' % relpath(micStarFile, self.getWorkingDir())
-        params += ' --threshold %0.3f ' % threshold
+        params += ' --threshold %0.3f' % threshold
         params += ' --min_distance %0.3f %s' % (minDistance, fom)
         params += ' --max_stddev_noise %0.3f' % maxStddevNoise
+
+        if IS_V3 and minAvgNoise is not None:
+            params += ' --min_avg_noise %0.3f' % minAvgNoise
 
         program = self._getProgram('relion_autopick')
 
         self.runJob(program, params, cwd=self.getWorkingDir())
 
     def _pickMicrograph(self, mic, params, threshold, minDistance,
-                        maxStddevNoise, fom):
+                        maxStddevNoise, fom, minAvgNoise):
         """ This method should be invoked only when working in streaming mode.
         """
         micRow = md.Row()
@@ -461,10 +526,12 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         relion.convert.micrographToRow(mic, micRow)
         self._postprocessMicrographRow(mic, micRow)
         self._pickMicrographsFromStar(self._getMicStarFile(mic), params,
-                                      threshold, minDistance, maxStddevNoise, fom)
+                                      threshold, minDistance, maxStddevNoise,
+                                      fom, minAvgNoise)
 
     def _pickMicrographList(self, micList, params, threshold,
-                            minDistance, maxStddevNoise, fom):
+                            minDistance, maxStddevNoise, fom,
+                            minAvgNoise):
         micStar = self._getPath('input_micrographs_%s-%s.star' %
                                 (micList[0].strId(), micList[-1].strId()))
         relion.convert.writeSetOfMicrographs(
@@ -473,7 +540,8 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
             preprocessImageRow=self._preprocessMicrographRow)
 
         self._pickMicrographsFromStar(
-            micStar, params, threshold, minDistance, maxStddevNoise, fom)
+            micStar, params, threshold, minDistance,
+            maxStddevNoise, fom, minAvgNoise)
 
     def _createSetOfCoordinates(self, micSet, suffix=''):
         """ Override this method to set the box size. """
@@ -493,10 +561,11 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
 
     # -------------------------- STEPS functions -------------------------------
     def autopickStep(self, micStarFile, params, threshold,
-                     minDistance, maxStddevNoise, fom):
+                     minDistance, maxStddevNoise, fom, minAvgNoise):
         """ This method is used from the wizard to optimize the parameters. """
         self._pickMicrographsFromStar(micStarFile, params, threshold,
-                                      minDistance, maxStddevNoise, fom)
+                                      minDistance, maxStddevNoise, fom,
+                                      minAvgNoise)
 
     def createOutputStep(self):
         micSet = self.getInputMicrographs()

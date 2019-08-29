@@ -307,12 +307,12 @@ class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
                             'left dissimilar. 50 seems to work well in many '
                             'cases. Perhaps increase when multiple reference '
                             'have trouble separating.')
-        form.addParam('writeIter', IntParam, default=10,
-                      expertLevel=LEVEL_ADVANCED,
-                      label='Write-out frequency (iter)',
-                      help='Every how many iterations do you want to write the '
-                           'model to disk. Negative value means only write '
-                           'out model after entire iteration.')
+        group.addParam('writeIter', IntParam, default=10,
+                       expertLevel=LEVEL_ADVANCED,
+                       label='Write-out frequency (iter)',
+                       help='Every how many iterations do you want to write the '
+                            'model to disk. Negative value means only write '
+                            'out model after entire iteration.')
 
         line = form.addLine('Resolution (A)',
                             help='This is the resolution cutoff (in A) that '
