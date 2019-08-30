@@ -83,6 +83,11 @@ class Plugin(pyworkflow.em.Plugin):
         return cls.getActiveVersion().startswith('3.1')
 
     @classmethod
+    def hasOpticsGroup(cls):
+        return (not cls.getActiveVersion().startswith('2.')
+                or not cls.getActiveVersion() == '3.0')
+
+    @classmethod
     def defineBinaries(cls, env):
         relion_commands = [('./INSTALL.sh -j %d' % env.getProcessors(),
                             ['relion_build.log',

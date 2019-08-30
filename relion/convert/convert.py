@@ -495,6 +495,23 @@ def setOfImagesToMd(imgSet, imgMd, imgToFunc, **kwargs):
         imgRow.writeToMd(imgMd, objId)
 
 
+def opticsToMd(imgSet, imgMd, **kwargs):
+    """ This function will create an optics table for Relion 3.1+"""
+    opticGroups = dict()
+
+    for img in imgSet:
+        group = img.getAcquisition().getOpticsGroup()
+        if group not in opticGroups:
+            opticGroups[group] = img.getAcquisition()
+
+    for group in opticGroups:
+        objId = imgMd.addObject()
+        imgRow = md.Row()
+        objectToRow(opticGroups[group], imgRow, OPTICS_DICT,
+                    extraLabels=kwargs.get('extraLabels', []))
+        imgRow.writeToMd(imgMd, objId)
+
+
 def writeSetOfParticles(imgSet, starFile,
                         outputDir, **kwargs):
     """ This function will write a SetOfImages as Relion meta
@@ -564,6 +581,9 @@ def writeReferences(inputSet, outputRoot, useBasename=False, **kwargs):
         for i, vol in enumerate(inputSet):
             _convert(vol, i, imageToRow)
 
+    elif isinstance(inputSet, pw.em.Volume):
+        _convert(inputSet, 0, imageToRow)
+
     else:
         raise Exception('Invalid object type: %s' % type(inputSet))
 
@@ -588,6 +608,11 @@ def writeSetOfMicrographs(micSet, starFile, **kwargs):
     setOfImagesToMd(micSet, micMd, micrographToRow, **kwargs)
     blockName = kwargs.get('blockName', 'Particles')
     micMd.write('%s@%s' % (blockName, starFile))
+
+    hasOptics = kwargs.get('hasOptics', False)
+    if hasOptics:
+        opticsToMd(micSet, micMd, **kwargs)
+        micMd.write('%s@%s' % ('optics', starFile))
 
 
 def writeSetOfMovies(movieSet, starFile, **kwargs):

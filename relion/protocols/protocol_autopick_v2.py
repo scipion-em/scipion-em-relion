@@ -423,7 +423,8 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         relion.convert.writeSetOfMicrographs(
             self.getMicrographList(), micStar,
             alignType=ALIGN_NONE,
-            preprocessImageRow=self._preprocessMicrographRow)
+            preprocessImageRow=self._preprocessMicrographRow,
+            hasOptics=self._hasOptics())
 
         if self.useInputReferences():
             relion.convert.writeReferences(self.getInputReferences(),
@@ -466,7 +467,8 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
 
             if IS_V3 and isinstance(self.getInputReferences(), Volume):
                 params += ' --sym %s' % self.symmetryGroup.get()
-                params += ' --healpix_order %d' % self.angularSamplingDeg.get() + 1  # because 0=60deg is hidden in GUI
+                params += ' --healpix_order %d' % \
+                          (self.angularSamplingDeg.get() + 1)  # because 0=60deg is hidden in GUI
 
         else:  # Gaussian blobs
             params += ' --ref gauss --gauss_max %0.3f' % self.gaussianPeak
@@ -537,7 +539,8 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         relion.convert.writeSetOfMicrographs(
             micList, micStar,
             alignType=ALIGN_NONE,
-            preprocessImageRow=self._preprocessMicrographRow)
+            preprocessImageRow=self._preprocessMicrographRow,
+            hasOptics=self._hasOptics())
 
         self._pickMicrographsFromStar(
             micStar, params, threshold, minDistance,
@@ -606,9 +609,10 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                 errors.append('Particle diameter (%d) can not be greater than '
                               'size (%d)' % (self.particleDiameter,
                                              self.getInputDimA()))
-            if self.getInputReferences().isOddX():
-                errors.append("Relion only works with even values for the "
-                              "average dimensions!")
+            if not isinstance(self.getInputReferences(), Volume):
+                if self.getInputReferences().isOddX():
+                    errors.append("Relion only works with even values for the "
+                                  "average dimensions!")
         else:
             if self.particleDiameter <= 0:
                 errors.append('When using Gaussian blobs, you need to specify '
@@ -792,3 +796,6 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
     def _getMicStarFile(self, mic):
         micBase = pwutils.replaceBaseExt(mic.getFileName(), 'star')
         return self._getExtraPath(micBase)
+
+    def _hasOptics(self):
+        return relion.Plugin.hasOpticsGroup()
