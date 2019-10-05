@@ -125,6 +125,12 @@ class Plugin(pyworkflow.em.Plugin):
                        url='https://github.com/3dem/relion/archive/3.0.tar.gz',
                        commands=relion2_commands,
                        updateCuda=True,
+                       vars=relion_vars)
+
+        env.addPackage('relion', version='3.1',
+                       url='https://github.com/3dem/relion/archive/3.1.tar.gz',
+                       commands=relion2_commands,
+                       updateCuda=True,
                        vars=relion_vars,
                        default=True)
 

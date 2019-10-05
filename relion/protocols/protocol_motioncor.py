@@ -309,10 +309,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         return program
 
     def writeInputStar(self, starFn, *images):
-        """ Easy way to write a simple star file with a single micrographs.
-        Used by the relion implementation of motioncor.
-        """
-
+        """ Write input movies star file. """
         if not self._isVersion31():
             with open(starFn, 'w') as f:
                 table = md.Table(columns=['rlnMicrographMovieName'])
@@ -320,30 +317,38 @@ class ProtRelionMotioncor(ProtAlignMovies):
                     table.addRow(os.path.basename(img.getFileName()))
                 table.writeStar(f)
         else:
+            opticGroups = list()
             with open(starFn, 'w') as f:
-                table = md.Table(columns=['rlnOpticsGroupName',
-                                          'rlnOpticsGroup',
-                                          'rlnMtfFileName',
-                                          'rlnMicrographOriginalPixelSize',
-                                          'rlnVoltage',
-                                          'rlnSphericalAberration',
-                                          'rlnAmplitudeContrast'])
-                for img in images:
-                    acq = img.getAcquisition()
-                    table.addRow(acq.getOpticsGroupName(),
-                                 acq.getOpticsGroup(),
-                                 acq.getMtf(),
-                                 img.getSamplingRate(),
-                                 acq.getVoltage(),
-                                 acq.getSphericalAberration(),
-                                 acq.getAmplitudeContrast())
-                table.writeStar(f, tableName='optics')
+                tableGroups = md.Table(columns=['rlnOpticsGroupName',
+                                                'rlnOpticsGroup',
+                                                'rlnMtfFileName',
+                                                'rlnMicrographOriginalPixelSize',
+                                                'rlnVoltage',
+                                                'rlnSphericalAberration',
+                                                'rlnAmplitudeContrast'])
+                tableMovies = md.Table(columns=['rlnMicrographMovieName',
+                                                'rlnOpticsGroup'])
+                groupId = 1
 
-                table = md.Table(columns=['rlnMicrographMovieName', 'rlnOpticsGroup'])
                 for img in images:
-                    table.addRow(os.path.basename(img.getFileName()),
-                                 img.getAcquisition().getOpticsGroup())
-                table.writeStar(f, tableName='movies')
+                    group = img.getAcquisition().getOpticsGroupName()
+
+                    if group not in opticGroups:
+                        opticGroups.append(group)
+                        acq = img.getAcquisition()
+                        tableGroups.addRow(acq.getOpticsGroupName(),
+                                           groupId,
+                                           acq.getMtf(),
+                                           img.getSamplingRate(),
+                                           acq.getVoltage(),
+                                           acq.getSphericalAberration(),
+                                           acq.getAmplitudeContrast())
+                        tableMovies.addRow(os.path.basename(img.getFileName()),
+                                           groupId)
+                        groupId += 1
+
+                tableGroups.writeStar(f, tableName='optics')
+                tableMovies.writeStar(f, tableName='movies')
 
     def _getMovieOutFn(self, movie, suffix):
         movieBase = pwutils.removeBaseExt(movie.getFileName()).replace('.', '_')
@@ -401,7 +406,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
             self.computePSDs(movie, aveMicFn, outMicFn,
                              outputFnCorrected=self._getPsdJpeg(movie))
 
-        self._saveAlignmentPlots(movie)
+        self._saveAlignmentPlots(movie, inputMovies.getSamplingRate())
 
     def _moveFiles(self, movie):
         # It really annoying that Relion default names changes if you use DW or not
@@ -448,11 +453,11 @@ class ProtRelionMotioncor(ProtAlignMovies):
                 return lastFrmAligned
         return movie.getNumberOfFrames()
 
-    def _saveAlignmentPlots(self, movie):
+    def _saveAlignmentPlots(self, movie, pixSize):
         # Create plots and save as an image
         shiftsX, shiftsY = self._getMovieShifts(movie, self._getMovieOutFn(movie, '.star'))
         first, _ = self._getFrameRange(movie.getNumberOfFrames(), 'align')
-        plotter = createGlobalAlignmentPlot(shiftsX, shiftsY, first)
+        plotter = createGlobalAlignmentPlot(shiftsX, shiftsY, first, pixSize)
         plotter.savefig(self._getPlotGlobal(movie))
         plotter.close()
 
@@ -505,31 +510,57 @@ class ProtRelionMotioncor(ProtAlignMovies):
         return 1 if dose_for_ps == 0 else dose_for_ps
 
 
-def createGlobalAlignmentPlot(meanX, meanY, first):
+def createGlobalAlignmentPlot(meanX, meanY, first, pixSize):
     """ Create a plotter with the shift per frame. """
+    sumMeanX = []
+    sumMeanY = []
+
+    def px_to_ang(ax_px):
+        y1, y2 = ax_px.get_ylim()
+        x1, x2 = ax_px.get_xlim()
+        ax_ang2.set_ylim(y1 * pixSize, y2 * pixSize)
+        ax_ang.set_xlim(x1 * pixSize, x2 * pixSize)
+        ax_ang.figure.canvas.draw()
+        ax_ang2.figure.canvas.draw()
+
     figureSize = (6, 4)
     plotter = Plotter(*figureSize)
     figure = plotter.getFigure()
-    ax = figure.add_subplot(111)
-    ax.grid()
-    ax.set_title('Global shift')
-    ax.set_xlabel('Shift x (pixels)')
-    ax.set_ylabel('Shift y (pixels)')
+    ax_px = figure.add_subplot(111)
+    ax_px.grid()
+    ax_px.set_xlabel('Shift x (px)')
+    ax_px.set_ylabel('Shift y (px)')
+
+    ax_ang = ax_px.twiny()
+    ax_ang.set_xlabel('Shift x (A)')
+    ax_ang2 = ax_px.twinx()
+    ax_ang2.set_ylabel('Shift y (A)')
 
     i = first
-    skipLabels = ceil(len(meanX)/10.0)
+    # The output and log files list the shifts relative to the first frame.
+    # ROB unit seems to be pixels since sampling rate is only asked
+    # by the program if dose filtering is required
+    skipLabels = ceil(len(meanX) / 10.0)
     labelTick = 1
 
     for x, y in izip(meanX, meanY):
+        sumMeanX.append(x)
+        sumMeanY.append(y)
         if labelTick == 1:
-            ax.text(x - 0.02, y + 0.02, str(i))
+            ax_px.text(x - 0.02, y + 0.02, str(i))
             labelTick = skipLabels
         else:
             labelTick -= 1
         i += 1
 
-    ax.plot(meanX, meanY, color='b')
-    ax.plot(meanX, meanY, 'yo')
+    # automatically update lim of ax_ang when lim of ax_px changes.
+    ax_px.callbacks.connect("ylim_changed", px_to_ang)
+    ax_px.callbacks.connect("xlim_changed", px_to_ang)
+
+    ax_px.plot(sumMeanX, sumMeanY, color='b')
+    ax_px.plot(sumMeanX, sumMeanY, 'yo')
+    ax_px.plot(sumMeanX[0], sumMeanY[0], 'ro', markersize=10, linewidth=0.5)
+    # ax_ang2.set_title('Full-frame alignment')
 
     plotter.tightLayout()
 

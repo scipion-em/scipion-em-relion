@@ -316,13 +316,3 @@ ALIGNMENT_DICT = OrderedDict([
     ("_rlnAngleTilt", md.RLN_ORIENT_TILT),
     ("_rlnAnglePsi", md.RLN_ORIENT_PSI),
 ])
-
-OPTICS_DICT = OrderedDict([
-    ('rlnOpticsGroupName', md.RLN_IMAGE_OPTICS_GROUP),
-    ('rlnOpticsGroup', md.RLN_IMAGE_OPTICS_GROUP_NAME),
-    ('rlnMtfFileName', md.RLN_IMAGE_MTF_FILENAME),
-    ('rlnMicrographOriginalPixelSize', md.RLN_MICROGRAPH_ORIGINAL_PIXEL_SIZE),
-    ('rlnVoltage', md.RLN_CTF_VOLTAGE),
-    ('rlnSphericalAberration', md.RLN_CTF_CS),
-    ('rlnAmplitudeContrast', md.RLN_CTF_Q0)
-])
