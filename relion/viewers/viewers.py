@@ -909,22 +909,31 @@ class PostprocessViewer(ProtocolViewer):
                            choices=['new', 'active'],
                            label='Figure',
                        display=params.EnumParam.DISPLAY_HLIST,
-                       help="plot in a new window vs the last open one")
+                       help="Plot in a new window vs the last opened one")
         group.addParam('resolutionPlotsFSC', params.EnumParam,
                       choices=['Corrected', 'Unmasked Maps', 'Masked Maps',
                                'Phase Randomized Masked Maps', 'all'],
                       default=FSC_CORRECTED,
                        display=params.EnumParam.DISPLAY_COMBO,
-                      label='Display resolution plots (FSC)',
-                      help='') 
+                      label='Display resolution plots (FSC)')
         group.addParam('resolutionThresholdFSC',
                        params.FloatParam, default=0.143,
                       expertLevel=LEVEL_ADVANCED,
-                      label='Threshold in resolution plots',
-                      help='')
+                      label='Threshold in resolution plots')
         group.addParam('guinierPlots', params.LabelParam,
-              default=True, label='Display guinier plots',
-              help='')
+              default=True, label='Display Guinier plots',
+              help='Guinier plots are the logarithm of the '
+                   'amplitudes of the individual-frame '
+                   'reconstructions divided by the amplitudes of '
+                   'the average reconstruction from all frames '
+                   'versus the square of the resolution. Linear '
+                   'fits through these Guinier plots (which may '
+                   'often be performed for resolution higher '
+                   'than 20 Angstroms) then yield a slope (the '
+                   'B-factor) and an intercept (a '
+                   'resolution-independent scale-factor) which '
+                   'are used to device the resolution-dependent '
+                   'weghting scheme.')
 
     def _getVisualizeDict(self):
         self._load()
