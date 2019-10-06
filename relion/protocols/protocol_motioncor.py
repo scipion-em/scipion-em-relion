@@ -328,13 +328,15 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                                 'rlnAmplitudeContrast'])
                 tableMovies = md.Table(columns=['rlnMicrographMovieName',
                                                 'rlnOpticsGroup'])
-                groupId = 1
 
                 for img in images:
                     group = img.getAcquisition().getOpticsGroupName()
+                    if group is None:
+                        group = 'opticsGroup999'
 
                     if group not in opticGroups:
                         opticGroups.append(group)
+                        groupId = opticGroups.index(group) + 1
                         acq = img.getAcquisition()
                         tableGroups.addRow(acq.getOpticsGroupName(),
                                            groupId,
@@ -345,7 +347,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                            acq.getAmplitudeContrast())
                         tableMovies.addRow(os.path.basename(img.getFileName()),
                                            groupId)
-                        groupId += 1
 
                 tableGroups.writeStar(f, tableName='optics')
                 tableMovies.writeStar(f, tableName='movies')
