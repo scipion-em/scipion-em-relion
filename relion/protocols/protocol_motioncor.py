@@ -275,6 +275,13 @@ class ProtRelionMotioncor(ProtAlignMovies):
     def _preprocessOutputMicrograph(self, mic, movie):
         self._setPlotInfo(movie, mic)
         self._setMotionValues(movie, mic)
+        self._updatePSSampling(mic)
+
+    def _updatePSSampling(self, mic):
+        """ Update sampling rate for output power spectra. """
+        if self.savePSsum:
+            if mic.getFileName().endswith('_aligned_mic_PS.mrc'):
+                mic.setSamplingRate(self._calcPSSampling())
 
     def _setMotionValues(self, movie, mic):
         """ Parse motion values from the 'corrected_micrographs.star' file
@@ -509,6 +516,17 @@ class ProtRelionMotioncor(ProtAlignMovies):
         dose_for_ps = round(self.dosePSsum.get() / dose)
 
         return 1 if dose_for_ps == 0 else dose_for_ps
+
+    def _calcPSSampling(self):
+        """ Copied from relion 3.1 code. """
+        target_pixel_size = 1.4  # from CTFFIND4
+        ps_angpix = self.inputMovies.get().getSamplingRate() * self.binFactor
+        if ps_angpix < target_pixel_size:
+            ps_size_square = min(512, 512)
+            nx_needed = ceil(ps_size_square * ps_angpix / target_pixel_size)
+            nx_needed += nx_needed % 2
+            ps_angpix = 512 * ps_angpix / nx_needed
+        return ps_angpix
 
 
 def createGlobalAlignmentPlot(meanX, meanY, first, pixSize):
