@@ -73,7 +73,7 @@ class ProtRelionBayesianPolishing(em.ProtParticles):
                       label='Input movies',
                       help='Provide a set of movies that have at '
                            'least global alignment information.')
-        #TODO: conditions on particles?
+        # TODO: conditions on particles?
         form.addParam('inputParticles', params.PointerParam,
                       important=True,
                       label='Input particles',
@@ -90,10 +90,10 @@ class ProtRelionBayesianPolishing(em.ProtParticles):
                            'The resulting FSC curve will be used for weighting '
                            'the different frequencies. ')
         line = form.addLine('Movie frames',
-                             help='First and last frames to take into account '
-                                  'in motion fit and combination step. '
-                                  '(starts counting at 1 and 0 as last '
-                                  'means util the last frame in the movie).')
+                            help='First and last frames to take into account '
+                                 'in motion fit and combination step. '
+                                 '(starts counting at 1 and 0 as last '
+                                 'means util the last frame in the movie).')
         line.addParam('frame0', params.IntParam, default=1,
                       label='first')
         line.addParam('frameN', params.IntParam, default=0,
@@ -118,19 +118,19 @@ class ProtRelionBayesianPolishing(em.ProtParticles):
         condTrain = "operation==%s" % self.OP_TRAIN
         group = form.addGroup('Train', condition=condTrain)
         group.addParam('fractionFourierPx', params.FloatParam, default=0.5,
-                      label='Fraction of Fourier pixels for testing',
-                      help="This fraction of Fourier pixels (at higher "
-                           "resolution) will be used for evaluation of the "
-                           "parameters (test set), whereas the rest (at lower "
-                           "resolution) will be used for parameter estimation "
-                           "itself (work set).")
+                       label='Fraction of Fourier pixels for testing',
+                       help="This fraction of Fourier pixels (at higher "
+                            "resolution) will be used for evaluation of the "
+                            "parameters (test set), whereas the rest (at lower "
+                            "resolution) will be used for parameter estimation "
+                            "itself (work set).")
         group.addParam('numberOfParticles', params.IntParam, default=10000,
-                      label='Use this many particles',
-                      help='Use at least this many particles for the '
-                           'meta-parameter optimisation. The more particles '
-                           'the more expensive in time and computer memory '
-                           'the calculation becomes, but the better the results '
-                           'may get.')
+                       label='Use this many particles',
+                       help='Use at least this many particles for the '
+                            'meta-parameter optimisation. The more particles '
+                            'the more expensive in time and computer memory '
+                            'the calculation becomes, but the better the results '
+                            'may get.')
 
         condPolish = "operation==%s" % self.OP_POLISH
         group = form.addGroup('Polish', condition=condPolish)
@@ -295,11 +295,12 @@ class ProtRelionBayesianPolishing(em.ProtParticles):
         outImgSet = self._createSetOfParticles()
         outImgSet.copyInfo(imgSet)
 
-        outImgsFn = self._getExtraPath('shiny.star')
-        rowIterator = md.iterRows(outImgsFn, sortByLabel=md.RLN_IMAGE_ID)
+        outImgsFn = md.MetaData(self._getExtraPath('shiny.star'))
+        rowIterator = md.SetMdIterator(outImgsFn, sortByLabel=md.RLN_IMAGE_ID,
+                                       keyLabel=md.RLN_IMAGE_ID,
+                                       updateItemCallback=self._updateItem)
         outImgSet.copyItems(imgSet,
-                            updateItemCallback=self._updateItem,
-                            itemDataIterator=rowIterator)
+                            updateItemCallback=rowIterator.updateItem)
 
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(self.inputParticles, outImgSet)
