@@ -324,38 +324,38 @@ class ProtRelionMotioncor(ProtAlignMovies):
                     table.addRow(os.path.basename(img.getFileName()))
                 table.writeStar(f)
         else:
-            opticGroups = list()
+            #opticGroups = list()
             with open(starFn, 'w') as f:
-                tableGroups = md.Table(columns=['rlnOpticsGroupName',
-                                                'rlnOpticsGroup',
-                                                'rlnMtfFileName',
-                                                'rlnMicrographOriginalPixelSize',
-                                                'rlnVoltage',
-                                                'rlnSphericalAberration',
-                                                'rlnAmplitudeContrast'])
+                # tableGroups = md.Table(columns=['rlnOpticsGroupName',
+                #                                 'rlnOpticsGroup',
+                #                                 'rlnMtfFileName',
+                #                                 'rlnMicrographOriginalPixelSize',
+                #                                 'rlnVoltage',
+                #                                 'rlnSphericalAberration',
+                #                                 'rlnAmplitudeContrast'])
                 tableMovies = md.Table(columns=['rlnMicrographMovieName',
                                                 'rlnOpticsGroup'])
 
-                for img in images:
-                    group = img.getAcquisition().getOpticsGroupName()
-                    if group is None:
-                        group = 'opticsGroup999'
-
-                    if group not in opticGroups:
-                        opticGroups.append(group)
-                        groupId = opticGroups.index(group) + 1
-                        acq = img.getAcquisition()
-                        tableGroups.addRow(acq.getOpticsGroupName(),
-                                           groupId,
-                                           acq.getMtf(),
-                                           img.getSamplingRate(),
-                                           acq.getVoltage(),
-                                           acq.getSphericalAberration(),
-                                           acq.getAmplitudeContrast())
-                        tableMovies.addRow(os.path.basename(img.getFileName()),
-                                           groupId)
-
-                tableGroups.writeStar(f, tableName='optics')
+                # for img in images:
+                #     group = img.getAcquisition().getOpticsGroupName()
+                #     if group is None:
+                #         group = 'opticsGroup999'
+                #
+                #     if group not in opticGroups:
+                #         opticGroups.append(group)
+                #         groupId = opticGroups.index(group) + 1
+                #         acq = img.getAcquisition()
+                #         tableGroups.addRow(acq.getOpticsGroupName(),
+                #                            groupId,
+                #                            acq.getMtf(),
+                #                            img.getSamplingRate(),
+                #                            acq.getVoltage(),
+                #                            acq.getSphericalAberration(),
+                #                            acq.getAmplitudeContrast())
+                #         tableMovies.addRow(os.path.basename(img.getFileName()),
+                #                            groupId)
+                #
+                # tableGroups.writeStar(f, tableName='optics')
                 tableMovies.writeStar(f, tableName='movies')
 
     def _getMovieOutFn(self, movie, suffix):
