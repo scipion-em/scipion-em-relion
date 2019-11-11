@@ -754,7 +754,18 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs'):
         print("convertBinaryFiles: creating soft links.")
         print("   Root: %s -> %s" % (outputRoot, rootDir))
         mapFunc = replaceRoot
-        pw.utils.createLink(rootDir, outputRoot)
+        # FIXME: There is a bug in pw.utils.createLink when input is a single folder
+        #pw.utils.createLink(rootDir, outputRoot)
+        #relativeOutput = os.path.join(os.path.relpath(rootDir, outputRoot), rootDir)
+        # If the rootDir is a prefix in the outputRoot (usually Runs)
+        # we need to prepend that basename to make the link works
+        if rootDir in outputRoot:
+            relativeOutput = os.path.join(os.path.relpath(rootDir, outputRoot),
+                                          os.path.basename(rootDir))
+        else:
+            relativeOutput = os.path.relpath(rootDir,
+                                             os.path.dirname(outputRoot))
+        os.symlink(relativeOutput, outputRoot)
     elif ext == 'mrc' and extension == 'mrcs':
         print("convertBinaryFiles: creating soft links (mrcs -> mrc).")
         mapFunc = createBinaryLink
