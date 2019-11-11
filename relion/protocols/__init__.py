@@ -53,3 +53,6 @@ from .protocol_ctf_refinement import ProtRelionCtfRefinement
 from .protocol_motioncor import ProtRelionMotioncor
 from .protocol_multibody import ProtRelionMultiBody
 from .protocol_symmetrize_volume import ProtRelionSymmetrizeVolume
+
+# New protocol from Relion v3.1:
+from .protocol_assign_optic_groups import ProtRelionAssignOpticsGroup

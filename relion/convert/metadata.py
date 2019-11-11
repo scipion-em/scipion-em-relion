@@ -203,6 +203,8 @@ class Table:
             col = Column(nameOrTuple)
         elif isinstance(nameOrTuple, tuple):
             col = Column(nameOrTuple[0], nameOrTuple[1])
+        elif isinstance(nameOrTuple, Column):
+            col = nameOrTuple
         else:
             raise Exception("Invalid input as column, "
                             "should be either string or tuple.")

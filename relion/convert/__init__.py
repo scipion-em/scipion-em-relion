@@ -26,3 +26,4 @@
 
 from convert import *
 from dataimport import *
+from .convert31 import SetOfImagesWriter

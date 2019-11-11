@@ -30,50 +30,18 @@
 
 import os
 from os.path import join, basename
-import numpy
+import numpy as np
 from itertools import izip
 
 import pyworkflow as pw
 from pyworkflow.object import ObjectWrap, String, Integer
 import pyworkflow.em.metadata as md
 from pyworkflow.em.constants import NO_INDEX
+import pyworkflow.em.convert.transformations as tfs
 
 from relion.constants import *
 from .metadata import Table
-
-
-def locationToRelion(index, filename):
-    """ Convert an index and filename location
-    to a string with @ as expected in Relion.
-    """
-    if index != pw.em.NO_INDEX:
-        return "%06d@%s" % (index, filename)
-    
-    return filename
-
-
-def getImageLocation(location):
-    return pw.em.ImageHandler.locationToXmipp(location)
-
-
-def relionToLocation(filename):
-    """ Return a location (index, filename) given
-    a Relion filename with the index@filename structure. """
-    if '@' in filename:
-        indexStr, fn = filename.split('@')
-        return int(indexStr), str(fn)
-    else:
-        return pw.em.NO_INDEX, str(filename)
-
-
-def setRelionAttributes(obj, objRow, *labels):
-    """ Set an attribute to obj from a label that is not
-    basic ones. The new attribute will be named _rlnLabelName
-    and the datatype will be set correctly.
-    """
-    for label in labels:
-        setattr(obj, '_%s' % md.label2Str(label),
-                objRow.getValueAsObject(label))
+from .common import *
 
 
 def objectToRow(obj, row, attrDict, extraLabels=[]):
@@ -194,12 +162,11 @@ def geometryFromMatrix(matrix, inverseTransform):
     from pyworkflow.em.convert.transformations import translation_from_matrix, euler_from_matrix
 
     if inverseTransform:
-        from numpy.linalg import inv
-        matrix = inv(matrix)
+        matrix = np.linalg.inv(matrix)
         shifts = -translation_from_matrix(matrix)
     else:
         shifts = translation_from_matrix(matrix)
-    angles = -numpy.rad2deg(euler_from_matrix(matrix, axes='szyz'))
+    angles = -np.rad2deg(euler_from_matrix(matrix, axes='szyz'))
     return shifts, angles
 
 
@@ -207,14 +174,11 @@ def matrixFromGeometry(shifts, angles, inverseTransform):
     """ Create the transformation matrix from a given
     2D shifts in X and Y...and the 3 euler angles.
     """
-    from pyworkflow.em.convert.transformations import euler_matrix
-    from numpy import deg2rad
-    radAngles = -deg2rad(angles)
-    M = euler_matrix(radAngles[0], radAngles[1], radAngles[2], 'szyz')
+    radAngles = -np.deg2rad(angles)
+    M = tfs.euler_matrix(radAngles[0], radAngles[1], radAngles[2], 'szyz')
     if inverseTransform:
-        from numpy.linalg import inv
         M[:3, 3] = -shifts[:3]
-        M = inv(M)
+        M = np.linalg.inv(M)
     else:
         M[:3, 3] = shifts[:3]
 
@@ -241,7 +205,7 @@ def alignmentToRow(alignment, alignmentRow, alignType):
         angle = angles[0] + angles[2]
         alignmentRow.setValue(md.RLN_ORIENT_PSI, -angle)
 
-        flip = bool(numpy.linalg.det(matrix[0:2,0:2]) < 0)
+        flip = bool(np.linalg.det(matrix[0:2,0:2]) < 0)
         if flip:
             print "FLIP in 2D not implemented"
     elif is3D:
@@ -271,8 +235,8 @@ def rowToAlignment(alignmentRow, alignType):
     inverseTransform = alignType == pw.em.ALIGN_PROJ
     if alignmentRow.containsAny(ALIGNMENT_DICT):
         alignment = pw.em.Transform()
-        angles = numpy.zeros(3)
-        shifts = numpy.zeros(3)
+        angles = np.zeros(3)
+        shifts = np.zeros(3)
         shifts[0] = alignmentRow.getValue(md.RLN_ORIENT_ORIGIN_X, 0.)
         shifts[1] = alignmentRow.getValue(md.RLN_ORIENT_ORIGIN_Y, 0.)
         if not is2D:
@@ -336,7 +300,7 @@ def imageToRow(img, imgRow, imgLabel=md.RLN_IMAGE_NAME, **kwargs):
     if preprocessImageRow:
         preprocessImageRow(img, imgRow)
         
-    setRowId(imgRow, img) # Set the id in the metadata as MDL_ITEM_ID
+    setRowId(imgRow, img)  # Set the id in the metadata as MDL_ITEM_ID
     index, fn = img.getLocation()
     # check if the is a file mapping
     filesDict = kwargs.get('filesDict', {})

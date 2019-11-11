@@ -26,15 +26,17 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-
 from __future__ import print_function
+
 import os
 import subprocess
-import numpy
-from pyworkflow.object import Float
+import numpy as np
+
+from pyworkflow.object import Float, String, Integer
 from pyworkflow.tests import BaseTest, setupTestOutput, DataSet
 from pyworkflow.em.data import (SetOfParticles, CTFModel, Acquisition,
-                                Coordinate, Particle, SetOfVolumes, Transform)
+                                SetOfMicrographs, Coordinate, Particle,
+                                SetOfVolumes, Transform)
 from pyworkflow.em import ImageHandler
 import pyworkflow.em.metadata as md
 from pyworkflow.em.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_3D
@@ -311,7 +313,7 @@ class TestConvertAnglesBase(BaseTest):
         # Populate the SetOfParticles with  images
         # taken from images.mrc file
         # and setting the previous alignment parameters
-        aList = [numpy.array(m) for m in mList]
+        aList = [np.array(m) for m in mList]
         for i, a in enumerate(aList):
             p = Particle()
             p.setLocation(i + 1, stackFn)
@@ -348,7 +350,7 @@ class TestConvertAnglesBase(BaseTest):
                 print ('m1:\n', m1, relion.convert.geometryFromMatrix(m1, False))
 
                 print ('m2:\n', m2, relion.convert.geometryFromMatrix(m2, False))
-                # self.assertTrue(numpy.allclose(m1, m2, rtol=1e-2))
+                # self.assertTrue(np.allclose(m1, m2, rtol=1e-2))
 
         # Launch apply transformation and check result images
         runRelionProgram(self.CMD % locals())
@@ -376,7 +378,7 @@ class TestAlignment(TestConvertAnglesBase):
         """Consistency between fordwards and backwards geometrical
         transformations"""
         def _testInv(matrix):
-            matrix = numpy.array(matrix)
+            matrix = np.array(matrix)
             a = Transform(matrix)
 
             row1 = md.Row()
@@ -657,7 +659,7 @@ class TestReconstruct(TestConvertAnglesBase):
                   [0., 0., 0., 1.]]
                 ]
 
-        aList = [numpy.array(m) for m in mList]
+        aList = [np.array(m) for m in mList]
         rowa = md.Row()
         rowb = md.Row()
         rowb1 = md.Row()
@@ -676,7 +678,7 @@ class TestReconstruct(TestConvertAnglesBase):
             b = relion.convert.rowToAlignment(rowa, ALIGN_PROJ)
             relion.convert.alignmentToRow(b, rowb, ALIGN_PROJ)
             #same two matrices
-            self.assertTrue(numpy.allclose(a.getMatrix(), b.getMatrix(),
+            self.assertTrue(np.allclose(a.getMatrix(), b.getMatrix(),
                                            rtol=1e-2))
             for label in labelList:
                 auxBtilt = rowb.getValue(label)
@@ -691,7 +693,7 @@ class TestReconstruct(TestConvertAnglesBase):
             #same two matrices with flip
             print ("aMatrix: \n", aMatrix, "bMatrix: \n", b.getMatrix())
             
-            self.assertTrue(numpy.allclose(aMatrix, b.getMatrix(), rtol=1e-2))
+            self.assertTrue(np.allclose(aMatrix, b.getMatrix(), rtol=1e-2))
 
  #* newrot = rot;
  #* newtilt = tilt + 180;
@@ -820,3 +822,100 @@ class TestReconstruct(TestConvertAnglesBase):
         ]
 
         self.launchTest('reconstRotandShiftFlip', mList, alignType=ALIGN_PROJ)
+
+
+class TestConversions31(BaseTest):
+    @classmethod
+    def setUpClass(cls):
+        setupTestOutput(cls)
+        cls.ds = DataSet.getDataSet('xmipp_tutorial')
+
+    def _createSetOfMics(self, n=10, nOptics=2):
+        micName = 'BPV_13%02d.mrc'
+        psdName = 'BPV_13%02d_PSD.ctf:mrc'
+        ogName = 'opticsGroup%d'
+        mtfFile = 'mtfFile%d.psd'
+
+        outputMics = SetOfMicrographs(filename=self.getOutputPath('micrographs.sqlite'))
+        outputMics.setSamplingRate(1.234)
+
+        mic = SetOfMicrographs.ITEM_TYPE()
+        acq = Acquisition(voltage=300,
+                          sphericalAberration=2,
+                          amplitudeContrast=0.1,
+                          magnification=60000)
+        acq.opticsGroupName = String()
+        acq.mtfFile = String()
+
+        ctf = CTFModel(defocusU=10000, defocusV=15000, defocusAngle=15)
+        mic.setAcquisition(acq)
+        mic.setCTF(ctf)
+
+        itemsPerOptics = n / nOptics
+
+        for i in range(1, n+1):
+            mic.setFileName(micName % i)
+            ctf = mic.getCTF()
+            ctf.setPsdFile(psdName % i)
+            ctf.setFitQuality(np.random.uniform())
+            ctf.setResolution(np.random.uniform(3, 15))
+            ogNumber = (i-1) / itemsPerOptics + 1
+            acq.opticsGroupName.set(ogName % ogNumber)
+            acq.mtfFile.set(mtfFile % ogNumber)
+
+            mic.setObjId(None)
+            outputMics.append(mic)
+
+        outputMics.write()
+
+        return outputMics
+
+
+    def test_particlesToStar(self):
+        """ Write a SetOfParticles to Relion star input file. """
+        # micSet = SetOfMicrographs(filename=self.ds.getFile('micrographs/micrographs.sqlite'))
+        #
+        # outputMics = SetOfMicrographs(filename=self.getOutputPath('micrographs.sqlite'))
+        #
+        # def updateMic(mic, row=None):
+        #     acq = mic.getAcquisition()
+        #     acq.opticsGroupName = String('opticsGroup1')
+        #     acq.mtfFile = String('mtfFile1.star')
+        #
+        #     mic.setCTF(ctf)
+        #
+        # outputMics.copyInfo(micSet)
+        # outputMics.copyItems(micSet, updateItemCallback=updateMic)
+        # outputMics.write()
+        outputStar = self.getOutputPath("micrographs.star")
+
+        outputMics = self._createSetOfMics(10)
+
+        # fn = self.getFile('particles_binary')
+        # ctfs = [CTFModel(defocusU=10000, defocusV=15000, defocusAngle=15),
+        #         CTFModel(defocusU=20000, defocusV=25000, defocusAngle=25)]
+        # acquisition = Acquisition(magnification=60000, voltage=300,
+        #                           sphericalAberration=2., amplitudeContrast=0.07)
+        # imgSet.setAcquisition(acquisition)
+        # coord = Coordinate()
+        # coord.setMicId(1)
+
+        # for i in range(n):
+        #     p = Particle()
+        #     p.setLocation(i + 1, fn)
+        #     ctf = ctfs[i % 2]
+        #     p.setCTF(ctf)
+        #     p.setAcquisition(acquisition)
+        #     p._xmipp_zScore = Float(i)
+        #     coord.setX(i * 10)
+        #     coord.setY(i * 10)
+        #     p.setCoordinate(coord)
+        #     imgSet.append(p)
+        #
+        # fnStar = self.getOutputPath('particles.star')
+        # fnStk = self.getOutputPath('particles.stk')
+
+        print(">>> Writing to micrographs: %s" % outputStar)
+        starWriter = relion.convert.SetOfImagesWriter()
+        starWriter.writeSetOfMicrographs(outputMics, outputStar)
+

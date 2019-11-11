@@ -54,6 +54,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         return not relion.Plugin.isVersion3Active()
 
     def __init__(self, **kwargs):
+
         ProtAlignMovies.__init__(self, **kwargs)
         self.stepsExecutionMode = STEPS_SERIAL
 
@@ -91,7 +92,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
                            'the choice, CTF refinement job is always done on '
                            'dose-weighted particles.')
 
-        if relion.Plugin.isVersion31Active():
+        if self._isVersion31():
             form.addParam('savePSsum', params.BooleanParam, default=False,
                           label='Save sum of power spectra?',
                           help='Sum of non-dose weighted power spectra '
@@ -206,10 +207,10 @@ class ProtRelionMotioncor(ProtAlignMovies):
             args += ' --gain_rot %d ' % self.gainRot
             args += ' --gain_flip %d ' % self.gainFlip
 
-        if relion.Plugin.isVersion31Active():
+        if self._isVersion31():
             if inputMovies.getDefect():
                 args += ' --defect_file "%s" ' % inputMovies.getDefect()
-            if self.savePSsum:
+            if self._createOutputPSMicrographs():
                 args += ' --grouping_for_ps %d ' % self._calcPsDose()
 
         if self.doDW:
@@ -270,7 +271,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         return bool(self.doDW)
 
     def _createOutputPSMicrographs(self):
-        return bool(self.savePSsum)
+        return self.getAttributeValue('savePSsum', False)
 
     def _preprocessOutputMicrograph(self, mic, movie):
         self._setPlotInfo(movie, mic)
@@ -279,7 +280,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
     def _updatePSSampling(self, mic):
         """ Update sampling rate for output power spectra. """
-        if self.savePSsum:
+        if self._createOutputPSMicrographs():
             if mic.getFileName().endswith('_aligned_mic_PS.mrc'):
                 mic.setSamplingRate(self._calcPSSampling())
 
@@ -287,7 +288,8 @@ class ProtRelionMotioncor(ProtAlignMovies):
         """ Parse motion values from the 'corrected_micrographs.star' file
         generated for each movie. """
         fn = self._getMovieExtraFn(movie, 'corrected_micrographs.star')
-        table = md.Table(fileName=fn, tableName='micrographs')
+        micsTableName = 'micrographs' if self._isVersion31() else ''
+        table = md.Table(fileName=fn, tableName=micsTableName)
         row = table[0]
         mic._rlnAccumMotionTotal = pwobj.Float(row.rlnAccumMotionTotal)
         mic._rlnAccumMotionEarly = pwobj.Float(row.rlnAccumMotionEarly)
@@ -428,7 +430,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         else:
             pwutils.moveFile(self._getMovieOutFn(movie, '.mrc'),
                              self._getExtraPath(self._getOutputMicName(movie)))
-        if self.savePSsum:
+        if self._createOutputPSMicrographs():
             pwutils.moveFile(self._getMovieOutFn(movie, '_PS.mrc'),
                              self._getExtraPath(self._getOutputMicPsName(movie)))
 
