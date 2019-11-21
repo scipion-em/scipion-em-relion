@@ -574,25 +574,30 @@ Examples:
             radius = self.protocol.maskDiameterA.get()/2
             
         prefixes = self._getPrefixes()
-        if len(self._refsList) == 1:
-            # If just one reference we can show the angular distribution
-            ref3d = self._refsList[0]
-            volFn = self._getVolumeNames()[0]
-            if exists(volFn.replace(":mrc", "")):
-                for prefix in prefixes:
-                    sqliteFn = self.protocol._getFileName('projections',
-                                                          iter=it, ref3d=ref3d, half=prefix)
-                    if not exists(sqliteFn):
-                        self.createAngDistributionSqlite(sqliteFn, nparts,
-                                                         itemDataIterator=self._iterAngles(self._getMdOut(it, prefix, ref3d)))
-                    return ChimeraClientView(volFn,
-                                                angularDistFile=sqliteFn, spheresDistance=radius)
-            else:
-                raise Exception("This class is Empty. Please try with other class")
-        else:
-            return self.infoMessage("Please select only one class to display angular distribution",
-                                    "Input selection") 
-    
+
+        if len(self._refsList) != 1:
+            return self.infoMessage("Please select only one class to display "
+                                    "angular distribution", "Input selection")
+        # If just one reference we can show the angular distribution
+        ref3d = self._refsList[0]
+        volFn = self._getVolumeNames()[0]
+        if not exists(volFn.replace(":mrc", "")):
+            raise Exception("This class is Empty. Please try with other class")
+
+        for prefix in prefixes:
+            sqliteFn = self.protocol._getFileName('projections',
+                                                  iter=it, ref3d=ref3d,
+                                                  half=prefix)
+            if not exists(sqliteFn):
+                mdOut = self._getMdOut(it, prefix, ref3d)
+                self.createAngDistributionSqlite(
+                    sqliteFn, nparts,
+                    itemDataIterator=self._iterAngles(mdOut))
+
+            return ChimeraClientView(volFn,
+                                     angularDistFile=sqliteFn,
+                                     spheresDistance=radius)
+
     def _createAngDist2D(self, it):
         # Common variables to use
         nparts = self.protocol.inputParticles.get().getSize()
