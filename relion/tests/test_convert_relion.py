@@ -870,7 +870,6 @@ class TestConversions31(BaseTest):
 
         return outputMics
 
-
     def test_particlesToStar(self):
         """ Write a SetOfParticles to Relion star input file. """
         # micSet = SetOfMicrographs(filename=self.ds.getFile('micrographs/micrographs.sqlite'))
@@ -916,6 +915,6 @@ class TestConversions31(BaseTest):
         # fnStk = self.getOutputPath('particles.stk')
 
         print(">>> Writing to micrographs: %s" % outputStar)
-        starWriter = relion.convert.SetOfImagesWriter()
+        starWriter = relion.convert.Writer()
         starWriter.writeSetOfMicrographs(outputMics, outputStar)
 
