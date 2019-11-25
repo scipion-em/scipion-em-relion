@@ -39,6 +39,7 @@ from pyworkflow.gui.plotter import Plotter
 from pyworkflow.protocol import STEPS_SERIAL
 
 import relion
+import relion.convert
 import relion.convert.metadata as md
 
 
@@ -187,7 +188,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         movieFolder = self._getOutputMovieFolder(movie)
         inputStar = os.path.join(movieFolder,
                                  '%s_input.star' % self._getMovieRoot(movie))
-        self.writeInputStar(inputStar, movie)
+        relion.convert.Writer().writeSetOfMovies([movie], inputStar)
 
         pwutils.makePath(os.path.join(movieFolder, 'output'))
         # The program will run in the movie folder, so let's put
@@ -208,8 +209,10 @@ class ProtRelionMotioncor(ProtAlignMovies):
             args += ' --gain_flip %d ' % self.gainFlip
 
         if self._isVersion31():
-            if inputMovies.getDefect():
-                args += ' --defect_file "%s" ' % inputMovies.getDefect()
+            acq = inputMovies.getAcquisition()
+            defectFile = acq.getAttributeValue('defectFile', None)
+            if defectFile:
+                args += ' --defect_file "%s" ' % defectFile
             if self._createOutputPSMicrographs():
                 args += ' --grouping_for_ps %d ' % self._calcPsDose()
 
@@ -316,49 +319,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
         if self.numberOfMpi > 1:
             program += '_mpi'
         return program
-
-    def writeInputStar(self, starFn, *images):
-        """ Write input movies star file. """
-        if not self._isVersion31():
-            with open(starFn, 'w') as f:
-                table = md.Table(columns=['rlnMicrographMovieName'])
-                for img in images:
-                    table.addRow(os.path.basename(img.getFileName()))
-                table.writeStar(f)
-        else:
-            #opticGroups = list()
-            with open(starFn, 'w') as f:
-                # tableGroups = md.Table(columns=['rlnOpticsGroupName',
-                #                                 'rlnOpticsGroup',
-                #                                 'rlnMtfFileName',
-                #                                 'rlnMicrographOriginalPixelSize',
-                #                                 'rlnVoltage',
-                #                                 'rlnSphericalAberration',
-                #                                 'rlnAmplitudeContrast'])
-                tableMovies = md.Table(columns=['rlnMicrographMovieName',
-                                                'rlnOpticsGroup'])
-
-                # for img in images:
-                #     group = img.getAcquisition().getOpticsGroupName()
-                #     if group is None:
-                #         group = 'opticsGroup999'
-                #
-                #     if group not in opticGroups:
-                #         opticGroups.append(group)
-                #         groupId = opticGroups.index(group) + 1
-                #         acq = img.getAcquisition()
-                #         tableGroups.addRow(acq.getOpticsGroupName(),
-                #                            groupId,
-                #                            acq.getMtf(),
-                #                            img.getSamplingRate(),
-                #                            acq.getVoltage(),
-                #                            acq.getSphericalAberration(),
-                #                            acq.getAmplitudeContrast())
-                #         tableMovies.addRow(os.path.basename(img.getFileName()),
-                #                            groupId)
-                #
-                # tableGroups.writeStar(f, tableName='optics')
-                tableMovies.writeStar(f, tableName='movies')
 
     def _getMovieOutFn(self, movie, suffix):
         movieBase = pwutils.removeBaseExt(movie.getFileName()).replace('.', '_')
