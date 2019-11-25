@@ -44,7 +44,7 @@ from relion.constants import *
 from .metadata import Table, Column
 
 
-class SetOfImagesWriter:
+class Writer:
     """ Helper class to convert from Scipion SetOfImages subclasses
     into Relion>3.1 star files (and binaries if conversion needed).
     """
@@ -59,17 +59,29 @@ class SetOfImagesWriter:
                 might be useful in export protocols.
 
         """
-        pass
+        self._optics = None
 
-    def writeSetOfMovies(self, movieSet, starFile):
-        pass  # This is used later in the pipeline in extract particles movies
+    def writeSetOfMovies(self, moviesIterable, starFile):
+        self._writeSetOfMoviesOrMics(moviesIterable, starFile, 'movies',
+                                     'rlnMicrographMovieName')
 
     def writeSetOfMicrographs(self, micsIterable, starFile):
+        self._writeSetOfMoviesOrMics(micsIterable, starFile, 'micrographs',
+                                     'rlnMicrographName')
+
+    def _writeSetOfMoviesOrMics(self, imgIterable,
+                                starFile, tableName, imgLabelName):
+        """ This function can be used to write either movies or micrographs
+        star files. Input can be any iterable of these type of images (e.g
+        set, list, etc).
+        """
         # Process the first item and create the table based
         # on the generated columns
+        self._imgLabelName = imgLabelName
+
         self._optics = OrderedDict()
         micRow = OrderedDict()
-        iterMics = iter(micsIterable)
+        iterMics = iter(imgIterable)
         mic = next(iterMics)
         self._micToRow(mic, micRow)
 
@@ -77,6 +89,7 @@ class SetOfImagesWriter:
         micsTable = self._createTableFromDict(micRow)
 
         while mic is not None:
+
             self._micToRow(mic, micRow)
             micsTable.addRow(**micRow)
             mic = next(iterMics, None)
@@ -89,22 +102,20 @@ class SetOfImagesWriter:
             f.write("# version 30001\n")
             opticsTable.writeStar(f, tableName='optics')
             f.write("# version 30001\n")
-            micsTable.writeStar(f, tableName='micrographs')
+            micsTable.writeStar(f, tableName=tableName)
 
     def _createTableFromDict(self, rowDict):
         """ Helper function to create a Table instance from
         an input dict with keys as columns names and type
         the type of the values in the dict.
         """
-        from pyworkflow.utils import prettyDict
-        prettyDict(rowDict)
-
         return Table(columns=[
             Column(k, type=type(v)) for k, v in rowDict.iteritems()])
 
     def _micToRow(self, mic, row):
-        row['rlnMicrographName'] = mic.getFileName()
-
+        # FIXME: Check if in other cases we don't want to use basename
+        micName = os.path.basename(mic.getFileName())
+        row[self._imgLabelName] = micName
         acq = mic.getAcquisition()
         ogName = acq.opticsGroupName.get()
 

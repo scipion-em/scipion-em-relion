@@ -24,6 +24,12 @@
 # *
 # **************************************************************************
 
+import relion
+
 from convert import *
 from dataimport import *
-from .convert31 import SetOfImagesWriter
+
+if relion.Plugin.isVersion31Active():
+    from .convert31 import Writer
+else:
+    from .convert_old import Writer
