@@ -72,6 +72,28 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
         line.addParam('beamTiltY', params.FloatParam, default=0.,
                       label='Y')
 
+        form.addParam('defectFile', params.FileParam,
+                      label='Defects file',
+                      help='Location of a UCSF MotionCor2-style '
+                      'defect text file or a defect map that '
+                      'describe the defect pixels on the detector. '
+                      'Each line of a defect text file should contain '
+                      'four numbers specifying x, y, width and height '
+                      'of a defect region. A defect map is an image '
+                      '(MRC or TIFF), where 0 means good and 1 means '
+                      'bad pixels. The coordinate system is the same '
+                      'as the input movie before application of '
+                      'binning, rotation and/or flipping.\n\n'
+                      '_Note that the format of the defect text is '
+                      'DIFFERENT from the defect text produced '
+                      'by SerialEM!_\n One can convert a SerialEM-style '
+                      'defect file into a defect map using IMOD '
+                      'utilities e.g.:\n'
+                      '*clip defect -D defect.txt -f tif movie.tif defect_map.tif*\n'
+                      'See explanations in the SerialEM manual.\n'
+                      'Leave empty if you do not have any defects, '
+                      'or do not want to correct for defects on your detector.')
+
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         self._insertFunctionStep('createOutputStep',
@@ -99,7 +121,8 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
         outputSet.copyInfo(inputSet)
         # Update the acquisition object with new parameters from input
         acq = outputSet.getAcquisition()
-        for attr in ['opticsGroupName', 'mtfFile', 'beamTiltX', 'beamTiltY']:
+        for attr in ['opticsGroupName', 'mtfFile', 'beamTiltX', 'beamTiltY',
+                     'defectFile']:
             setattr(acq, attr, getattr(self, attr).clone())
 
         # Copy items from input and set the new Optics Group name

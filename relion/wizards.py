@@ -42,9 +42,8 @@ from relion.protocols import (
     ProtRelionClassify3D, ProtRelionRefine3D, ProtRelionClassify2D,
     ProtRelionPreprocessParticles, ProtRelionAutopickLoG,
     ProtRelion2Autopick, ProtRelionCreateMask3D,
-    ProtRelionSortParticles, ProtRelionInitialModel, ProtRelionPostprocess
-
-)
+    ProtRelionSortParticles, ProtRelionInitialModel, ProtRelionPostprocess,
+    ProtRelionAssignOpticsGroup)
 
 
 #===============================================================================
@@ -97,6 +96,7 @@ class RelionPartMaskDiameterWizard(RelionBackRadiusWizard):
     def setVar(self, form, label, value):
         # adjust again from radius to diameter
         form.setVar(label, value * 2)
+
 
 # We need this specific wizard for the sort protocol because
 # this protocol have a particular way to grab the input images
@@ -398,11 +398,14 @@ class RelionWizLogPickParams(EmWizard):
 class RelionWizMtfSelector(EmWizard):
     """ Simple wizard to select MTF from some of the predefined ones.
     """
-    _targets = [(ProtRelionPostprocess, ['mtf'])]
+    _targets = [(ProtRelionPostprocess, ['mtf']),
+                (ProtRelionAssignOpticsGroup, ['mtfFile'])]
 
     def show(self, form):
         def setPath(fileInfo):
-            form.setVar('mtf', fileInfo.getPath())
+            prot = form.protocol
+            varName = 'mtf' if hasattr(prot, 'mtf') else 'mtfFile'
+            form.setVar(varName, fileInfo.getPath())
         mtfDir = os.path.join(os.path.dirname(relion.convert.__file__), 'mtfs')
         browser = FileBrowserWindow("Select the one of the predefined MTF files",
                                     form, mtfDir, onSelect=setPath)
