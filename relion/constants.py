@@ -50,7 +50,7 @@ OTHER = 1
 
 # Picking protocols
 REF_AVERAGES = 0
-REF_BLOBS = 1
+REF_VOLUME = REF_BLOBS = 1
 
 RUN_OPTIMIZE = 0  # Run only on several micrographs to optimize parameters
 RUN_COMPUTE = 1  # Run the picking for all micrographs after optimize
