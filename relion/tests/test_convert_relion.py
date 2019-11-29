@@ -824,7 +824,7 @@ class TestReconstruct(TestConvertAnglesBase):
         self.launchTest('reconstRotandShiftFlip', mList, alignType=ALIGN_PROJ)
 
 
-class TestConversions31(BaseTest):
+class TestRelionWriter(BaseTest):
     @classmethod
     def setUpClass(cls):
         setupTestOutput(cls)
@@ -870,7 +870,7 @@ class TestConversions31(BaseTest):
 
         return outputMics
 
-    def test_particlesToStar(self):
+    def test_micrographsToStar(self):
         """ Write a SetOfParticles to Relion star input file. """
         # micSet = SetOfMicrographs(filename=self.ds.getFile('micrographs/micrographs.sqlite'))
         #

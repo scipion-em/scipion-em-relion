@@ -49,7 +49,7 @@ from .protocol_export_particles import ProtRelionExportParticles
 # New protocol from Relion v3:
 if relion.Plugin.isVersion3Active():
     # Relion2 in the name is because of compatibility reasons
-    from .protocol_autopick import ProtRelion2Autopick
+    from .protocol_autopick_ref import ProtRelion2Autopick
 else:
     from .protocol_autopick_v2 import ProtRelion2Autopick
 

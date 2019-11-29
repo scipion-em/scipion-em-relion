@@ -188,9 +188,14 @@ class ProtRelionMotioncor(ProtAlignMovies):
         movieFolder = self._getOutputMovieFolder(movie)
         inputStar = os.path.join(movieFolder,
                                  '%s_input.star' % self._getMovieRoot(movie))
-        relion.convert.Writer().writeSetOfMovies([movie], inputStar)
-
         pwutils.makePath(os.path.join(movieFolder, 'output'))
+
+        writer = relion.convert.Writer()
+        # Let's use only the basename, since we will launch the command
+        # from the movieFolder
+        movie.setFileName(os.path.basename(movie.getFileName()))
+        writer.writeSetOfMovies([movie], inputStar)
+
         # The program will run in the movie folder, so let's put
         # the input files relative to that
         args = "--i %s --o output/ " % os.path.basename(inputStar)

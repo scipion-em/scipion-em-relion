@@ -28,36 +28,61 @@
 
 import os
 
-
 from relion.constants import *
-from . import metadata as md
+from .convert_base import WriterBase
 
 
-class Writer:
+class Writer(WriterBase):
     """ Helper class to convert from Scipion SetOfImages subclasses
     with star file format previous to Relion>3.1, but providing the same
      interface as the new Writer class.
     """
-    def __init__(self, **kwargs):
-        """
-        Create a new instance with some configuration parameters.
-
-        Keyword Args:
-            useBaseName: (bool) By default the writer will use the id to
-                generate shorter names. If this option is True, then
-                the images base name will be used instead. This option
-                might be useful in export protocols.
-
-        """
-        self._optics = None
 
     def writeSetOfMovies(self, moviesIterable, starFile):
-        with open(starFile, 'w') as f:
-            table = md.Table(columns=['rlnMicrographMovieName'])
-            for img in moviesIterable:
-                table.addRow(os.path.basename(img.getFileName()))
-            table.writeStar(f)
+        self._writeSetOfMoviesOrMics(moviesIterable, starFile,
+                                     'movies', 'rlnMicrographMovieName')
 
     def writeSetOfMicrographs(self, micsIterable, starFile):
-        raise Exception("Not implemented")
+        self._writeSetOfMoviesOrMics(micsIterable, starFile,
+                                     'micrographs', 'rlnMicrographName')
+
+    def _writeSetOfMoviesOrMics(self, imgIterable,
+                                starFile, tableName, imgLabelName):
+        """ This function can be used to write either movies or micrographs
+        star files. Input can be any iterable of these type of images (e.g
+        set, list, etc).
+        """
+        # Process the first item and create the table based
+        # on the generated columns
+        self._imgLabelName = imgLabelName
+        self._prefix = tableName[:3]
+
+        micRow = OrderedDict()
+        micRow[imgLabelName] = ''  # Just to add label, proper value later
+        iterMics = iter(imgIterable)
+        mic = next(iterMics)
+        self._micToRow(mic, micRow)
+
+        micsTable = self._createTableFromDict(micRow)
+
+        while mic is not None:
+            micRow[imgLabelName] = self._convert(mic)
+            self._micToRow(mic, micRow)
+            micsTable.addRow(**micRow)
+            mic = next(iterMics, None)
+
+        with open(starFile, 'w') as f:
+            f.write("# Star file generated with Scipion\n")
+            micsTable.writeStar(f, tableName=tableName)
+
+    def _micToRow(self, mic, row):
+        WriterBase._micToRow(self, mic, row)
+
+        # Add now the Acquisition labels
+        acq = mic.getAcquisition()
+        row.update({
+            'rlnVoltage': acq.getVoltage(),
+            'rlnSphericalAberration': acq.getSphericalAberration(),
+            'rlnAmplitudeContrast': acq.getAmplitudeContrast()
+        })
 

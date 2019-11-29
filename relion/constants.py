@@ -115,6 +115,15 @@ AX_X = 0
 AX_Y = 1
 AX_Z = 2
 
+# Constant to define the behaviour when
+# dealing with binaries conversion
+
+# Only convert if the format is not supported
+# create link otherwise
+CONVERT_IF_NEEDED = 0
+CONVERT_ALWAYS = 1  # Always convert
+CONVERT_FILENAME = 2  # Only convert the filename
+
 
 # Map from Xmipp labels to Relion labels names
 XMIPP_RELION_LABELS = {
