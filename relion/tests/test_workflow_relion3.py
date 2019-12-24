@@ -27,9 +27,9 @@
 import os
 
 import pyworkflow.tests as pwtests
-from pyworkflow.tests.em.workflows import TestWorkflow
-from pyworkflow.utils import importFromPlugin
-import pyworkflow.em as pwem
+from pwem.tests.workflows import TestWorkflow
+import pwem
+from pyworkflow.plugin import Domain
 
 import relion
 import relion.protocols
@@ -47,7 +47,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
 
     def _importMovies(self):
         protImport = self.newProtocol(
-            pwem.ProtImportMovies,
+            pwem.protocols.ProtImportMovies,
             filesPath=self.ds.getFile('Movies/'),
             filesPattern='*.tiff',
             samplingRateMode=0,
@@ -105,7 +105,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         return protRelionLog
 
     def _runGctf(self, protMc):
-        ProtGctf = importFromPlugin('gctf.protocols', 'ProtGctf')
+        ProtGctf = Domain.importFromPlugin('gctf.protocols', 'ProtGctf')
 
         protGctf = self.newProtocol(
             ProtGctf,
@@ -171,8 +171,3 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         protRelionExtract = self._runRelionExtract(protRelionLog, protGctf)
         protRelion2D = self._runRelion2D(protRelionExtract)
         protInitModel = self._runRelion2D(protRelion2D)
-
-
-if __name__ == '__main__':
-    import unittest
-    unittest.main()

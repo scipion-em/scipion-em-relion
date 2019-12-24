@@ -24,11 +24,11 @@
 # *
 # **************************************************************************
 
-import pyworkflow.em as em
-import pyworkflow.em.metadata as md
-from pyworkflow.em.data import Volume, FSC
-from pyworkflow.em.protocol import ProtRefine3D
-from pyworkflow.em import ALIGN_PROJ
+import pwem.metadata as md
+from pyworkflow.object import String
+from pwem.objects import Volume, FSC
+from pwem.protocols import ProtRefine3D
+from pwem.constants import ALIGN_PROJ
 
 import relion
 from .protocol_base import ProtRelionBase
@@ -119,7 +119,7 @@ leads to objective and high-quality results.
             relion.convert.readSetOfParticles(
                 fnOut, outMovieSet,
                 alignType=ALIGN_PROJ,
-                extraLabels=relion.convert.MOVIE_EXTRA_LABELS,
+                extraLabels=relion.constants.MOVIE_EXTRA_LABELS,
                 postprocessImageRow=self._updateParticle)
 
             self._defineOutputs(outputParticles=outMovieSet)
@@ -244,4 +244,4 @@ leads to objective and high-quality results.
                                            md.RLN_PARTICLE_RANDOM_SUBSET)
 
     def _updateParticle(self, particle, row):
-        particle._coordinate._micName = em.String(row.getValue('rlnMicrographName'))
+        particle._coordinate._micName = String(row.getValue('rlnMicrographName'))

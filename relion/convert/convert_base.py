@@ -31,7 +31,7 @@ New conversion functions dealing with Relion3.1 new star files format.
 
 import os
 
-import pyworkflow.em as pwem
+import pwem
 import pyworkflow.utils as pwutils
 
 from relion.constants import *
@@ -114,7 +114,7 @@ class WriterBase:
         the type of the values in the dict.
         """
         return Table(columns=[
-            Column(k, type=type(v)) for k, v in rowDict.iteritems()])
+            Column(k, type=type(v)) for k, v in rowDict.items()])
 
     def _micToRow(self, mic, row):
         row['rlnImageId'] = mic.getObjId()

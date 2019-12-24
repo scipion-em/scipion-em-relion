@@ -33,9 +33,9 @@ import numpy as np
 
 from pyworkflow.protocol.params import LabelParam
 from pyworkflow.viewer import DESKTOP_TKINTER, WEB_DJANGO, ProtocolViewer
-from pyworkflow.em.viewers.plotter import plt, EmPlotter
-from pyworkflow.em.viewers import ObjectView, DataView
-import pyworkflow.em.viewers.showj as showj
+from pwem.viewers.plotter import plt, EmPlotter
+from pwem.viewers import ObjectView, DataView
+import pwem.viewers.showj as showj
 
 from relion.objects import CtfRefineGlobalInfo
 from relion.protocols import ProtRelionCtfRefinement

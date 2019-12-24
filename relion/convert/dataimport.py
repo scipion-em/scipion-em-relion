@@ -29,9 +29,9 @@ from os.path import exists
 from collections import OrderedDict
 
 from pyworkflow.object import Float
-from pyworkflow.em.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_NONE
-from pyworkflow.em.data import Micrograph
-import pyworkflow.em.metadata as md
+from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_NONE
+from pwem.objects import Micrograph
+import pwem.metadata as md
 from pyworkflow.utils.path import findRootFrom
 
 from .convert import readSetOfParticles, relionToLocation, rowToCoordinate
@@ -253,7 +253,7 @@ class RelionImport:
                 self.micDict[micKey] = mic
 
             # Update the row to set a MDL_MICROGRAPH_ID
-            imgRow.setValue('rlnMicrographId', long(mic.getObjId()))
+            imgRow.setValue('rlnMicrographId', int(mic.getObjId()))
 
     def _postprocessImageRow(self, img, imgRow):
         if self.ignoreIds:

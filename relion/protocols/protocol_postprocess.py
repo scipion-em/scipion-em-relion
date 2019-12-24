@@ -28,9 +28,10 @@
 
 from os.path import exists
 
-import pyworkflow as pw
+import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
-import pyworkflow.em.metadata as md
+from pwem.protocols import ProtAnalysis3D
+import pwem.metadata as md
 
 import relion
 
@@ -38,7 +39,7 @@ import relion
 IS_V3 = relion.Plugin.isVersion3Active()
 
 
-class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
+class ProtRelionPostprocess(ProtAnalysis3D):
     """
     Relion post-processing protocol for automated masking,
     overfitting estimation, MTF-correction and B-factor sharpening.
@@ -171,14 +172,14 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
 
     # -------------------------- STEPS functions -------------------------------
     def convertInputStep(self, protId):
-        pw.utils.makePath(self._getInputPath())
+        pwutils.makePath(self._getInputPath())
 
         protRef = self.protRefine.get()
         outVol = protRef.outputVolume
         dim = outVol.getXDim()
         vols = outVol.getHalfMaps().split(',')
         vols.insert(0, outVol.getFileName())
-        ih = pw.em.ImageHandler()
+        ih = pwem.convert.ImageHandler()
 
         relion.convert.convertMask(self.solventMask.get(),
                                    self._getFileName('mask'), newDim=dim)
@@ -188,7 +189,7 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
 
     def postProcessStep(self, paramDict):
         params = ' '.join(['%s %s' % (k, str(v))
-                           for k, v in self.paramDict.iteritems()])
+                           for k, v in self.paramDict.items()])
 
         program = 'relion_postprocess'
         if self.numberOfMpi > 1:
@@ -197,7 +198,7 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
         self.runJob(program, params)
 
     def createOutputStep(self):
-        volume = pw.em.Volume()
+        volume = pwem.objects.Volume()
         volume.setFileName(self._getFileName('outputVolume'))
         vol = self.protRefine.get().outputVolume
         volume.setSamplingRate(self._getOutputPixelSize())

@@ -34,15 +34,14 @@ from pyworkflow.protocol.params import (BooleanParam, PointerParam, FloatParam,
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pyworkflow.utils.path import cleanPath, replaceBaseExt, removeBaseExt
 
-import pyworkflow.em as em
-import pyworkflow.em.metadata as md
-from pyworkflow.em.data import SetOfClasses3D
-from pyworkflow.em.protocol import EMProtocol
+import pwem
+import pwem.metadata as md
+from pwem.objects import SetOfClasses3D
+from pwem.protocols import EMProtocol
 
 import relion
 import relion.convert
-from relion.constants import (ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO,
-                              V2_0, RELION_HOME)
+from relion.constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO
 
 
 class ProtRelionBase(EMProtocol):
@@ -844,7 +843,7 @@ class ProtRelionBase(EMProtocol):
 
         self._setComputeArgs(args)
 
-        params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.iteritems()])
+        params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.items()])
 
         if self.extraParams.hasValue():
             params += ' ' + self.extraParams.get()
@@ -868,8 +867,8 @@ class ProtRelionBase(EMProtocol):
 
             # Pass stack file as None to avoid write the images files
             # If copyAlignment is set to False pass alignType to ALIGN_NONE
-            alignType = imgSet.getAlignment() if copyAlignment else em.ALIGN_NONE
-            hasAlign = alignType != em.ALIGN_NONE
+            alignType = imgSet.getAlignment() if copyAlignment else pwem.ALIGN_NONE
+            hasAlign = alignType != pwem.ALIGN_NONE
             alignToPrior = hasAlign and getattr(self, 'alignmentAsPriors', False)
             fillRandomSubset = hasAlign and getattr(self, 'fillRandomSubset', False)
 
@@ -926,7 +925,7 @@ class ProtRelionBase(EMProtocol):
             mdFile = continueRun._getFileName('data', iter=continueIter)
             mdParts = md.MetaData(mdFile)
 
-            self._copyAlignAsPriors(mdParts, em.ALIGN_PROJ)
+            self._copyAlignAsPriors(mdParts, pwem.ALIGN_PROJ)
             mdParts.renameColumn(md.RLN_IMAGE_NAME, md.RLN_PARTICLE_ORI_NAME)
             mdParts.removeLabel(md.RLN_MICROGRAPH_NAME)
 
@@ -1234,7 +1233,7 @@ class ProtRelionBase(EMProtocol):
         data_sqlite = self._getFileName('data_scipion', iter=it)
 
         if not exists(data_sqlite):
-            iterImgSet = em.SetOfParticles(filename=data_sqlite)
+            iterImgSet = pwem.SetOfParticles(filename=data_sqlite)
             iterImgSet.copyInfo(self._getInputParticles())
             self._fillDataFromIter(iterImgSet, it)
             iterImgSet.write()
@@ -1281,9 +1280,9 @@ class ProtRelionBase(EMProtocol):
         """
         inputObj = self.referenceVolume.get()
 
-        if isinstance(inputObj, em.Volume):
+        if isinstance(inputObj, pwem.Volume):
             return [inputObj]
-        elif isinstance(inputObj, em.SetOfVolumes):
+        elif isinstance(inputObj, pwem.SetOfVolumes):
             return [vol.clone() for vol in inputObj]
         else:
             raise Exception("Invalid input reference of class: %s"
@@ -1326,7 +1325,7 @@ class ProtRelionBase(EMProtocol):
         return self._getTmpPath("input_references.star")
 
     def _convertRef(self):
-        ih = em.ImageHandler()
+        ih = pwem.convert.ImageHandler()
 
         if self.IS_3D:
             if not self.IS_3D_INIT:
@@ -1362,7 +1361,7 @@ class ProtRelionBase(EMProtocol):
         else:
             micBase = "fake_movie_%06d" % img.getCoordinate().getMicId()
 
-        imgRow.setValue(md.RLN_PARTICLE_ID, long(partId))
+        imgRow.setValue(md.RLN_PARTICLE_ID, int(partId))
         imgRow.setValue(md.RLN_MICROGRAPH_NAME,
                         "%06d@%s.mrcs" % (img.getFrameId(), micBase))
 
@@ -1397,6 +1396,6 @@ class ProtRelionBase(EMProtocol):
         mdParts.copyColumn(md.RLN_ORIENT_ORIGIN_Y_PRIOR, md.RLN_ORIENT_ORIGIN_Y)
         mdParts.copyColumn(md.RLN_ORIENT_PSI_PRIOR, md.RLN_ORIENT_PSI)
 
-        if alignType == em.ALIGN_PROJ:
+        if alignType == pwem.ALIGN_PROJ:
             mdParts.copyColumn(md.RLN_ORIENT_ROT_PRIOR, md.RLN_ORIENT_ROT)
             mdParts.copyColumn(md.RLN_ORIENT_TILT_PRIOR, md.RLN_ORIENT_TILT)

@@ -24,8 +24,8 @@
 # *
 # **************************************************************************
 
-import pyworkflow as pw
 import pyworkflow.protocol.params as params
+from pwem.protocols import ProtCreateMask3D
 
 import relion
 import relion.convert
@@ -34,7 +34,7 @@ from relion.constants import MASK_AND, MASK_OR, MASK_AND_NOT, MASK_OR_NOT
 IS_V3 = relion.Plugin.isVersion3Active()
 
 
-class ProtRelionCreateMask3D(pw.em.ProtCreateMask3D):
+class ProtRelionCreateMask3D(ProtCreateMask3D):
     """ This protocols creates a 3D mask using Relion.
     The mask is created from a 3d volume or by comparing two input volumes.
     """
@@ -136,7 +136,7 @@ class ProtRelionCreateMask3D(pw.em.ProtCreateMask3D):
             argsDict['--lowpass '] = self.initialLowPassFilterA.get()
 
         args = ' --o %s ' % self.maskFile
-        args += ' '.join(['%s %s' % (k, v) for k, v in argsDict.iteritems()])
+        args += ' '.join(['%s %s' % (k, v) for k, v in argsDict.items()])
 
         if self.doCompare:
             op = self.operation.get()
@@ -154,7 +154,7 @@ class ProtRelionCreateMask3D(pw.em.ProtCreateMask3D):
         return [self.maskFile]
 
     def createOutputStep(self):
-        volMask = pw.em.VolumeMask()
+        volMask = pwem.objects.VolumeMask()
         volMask.setFileName(self.maskFile)
         volMask.setSamplingRate(self.inputVolume.get().getSamplingRate())
 

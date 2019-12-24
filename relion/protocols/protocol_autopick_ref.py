@@ -24,16 +24,15 @@
 # *
 # **************************************************************************
 
-import os
 from os.path import relpath
 
 import pyworkflow.protocol.params as params
-from pyworkflow.em.protocol import ProtParticlePickingAuto
-from pyworkflow.em.constants import RELATION_CTF, ALIGN_NONE
-from pyworkflow.em.convert import ImageHandler
+from pwem.protocols import ProtParticlePickingAuto
+from pwem.constants import RELATION_CTF
+from pwem.convert import ImageHandler
 from pyworkflow.utils.properties import Message
 import pyworkflow.utils as pwutils
-from pyworkflow.em import getSubsetByDefocus
+from pwem.convert.utils import getSubsetByDefocus
 
 import relion
 import relion.convert
@@ -363,7 +362,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
 
         # Remove the micrographs that have not CTF
         # and set the CTF property for those who have it
-        for micKey, mic in micDict.iteritems():
+        for micKey, mic in micDict.items():
             if micKey in ctfDict:
                 mic.setCTF(ctfDict[micKey])
             else:

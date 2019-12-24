@@ -24,10 +24,11 @@
 # *
 # **************************************************************************
 
-import pyworkflow.em as em
-import pyworkflow.em.metadata as md
-from pyworkflow.em.data import SetOfClasses2D
-from pyworkflow.em.protocol import ProtClassify2D
+from pyworkflow.object import String, Float
+import pwem
+import pwem.metadata as md
+from pwem.objects import SetOfClasses2D
+from pwem.protocols import ProtClassify2D
 
 import relion
 import relion.convert
@@ -159,12 +160,12 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
     #--------------------------- UTILS functions ------------------------------
     def _updateParticle(self, item, row):
         item.setClassId(row.getValue(md.RLN_PARTICLE_CLASS))
-        item.setTransform(relion.convert.rowToAlignment(row, em.ALIGN_2D))
+        item.setTransform(relion.convert.rowToAlignment(row, pwem.constants.ALIGN_2D))
         
-        item._rlnNormCorrection = em.Float(row.getValue('rlnNormCorrection'))
-        item._rlnLogLikeliContribution = em.Float(row.getValue('rlnLogLikeliContribution'))
-        item._rlnMaxValueProbDistribution = em.Float(row.getValue('rlnMaxValueProbDistribution'))
-        item._rlnGroupName = em.String(row.getValue('rlnGroupName'))
+        item._rlnNormCorrection = Float(row.getValue('rlnNormCorrection'))
+        item._rlnLogLikeliContribution = Float(row.getValue('rlnLogLikeliContribution'))
+        item._rlnMaxValueProbDistribution = Float(row.getValue('rlnMaxValueProbDistribution'))
+        item._rlnGroupName = String(row.getValue('rlnGroupName'))
         
     def _updateClass(self, item):
         classId = item.getObjId()
@@ -172,6 +173,6 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
             index, fn, row = self._classesInfo[classId]
             item.setAlignment2D()
             item.getRepresentative().setLocation(index, fn)
-            item._rlnclassDistribution = em.Float(row.getValue('rlnClassDistribution'))
-            item._rlnAccuracyRotations = em.Float(row.getValue('rlnAccuracyRotations'))
-            item._rlnAccuracyTranslations = em.Float(row.getValue('rlnAccuracyTranslations'))
+            item._rlnclassDistribution = Float(row.getValue('rlnClassDistribution'))
+            item._rlnAccuracyRotations = Float(row.getValue('rlnAccuracyRotations'))
+            item._rlnAccuracyTranslations = Float(row.getValue('rlnAccuracyTranslations'))

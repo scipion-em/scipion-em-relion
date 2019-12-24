@@ -24,15 +24,17 @@
 # *
 # **************************************************************************
 
-import pyworkflow as pw
-import pyworkflow.em.metadata as md
+from pyworkflow.object import String, Float
+from pwem.protocols import ProtClassify3D
+import pwem.metadata as md
+import pwem.constants as emcts
 
 import relion
 import relion.convert
 from .protocol_base import ProtRelionBase
 
 
-class ProtRelionClassify3D(pw.em.ProtClassify3D, ProtRelionBase):
+class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
     """
     Protocol to classify 3D using Relion Bayesian approach.
     Relion employs an empirical Bayesian approach to refinement of (multiple)
@@ -182,11 +184,11 @@ class ProtRelionClassify3D(pw.em.ProtClassify3D, ProtRelionBase):
     
     def _updateParticle(self, item, row):
         item.setClassId(row.getValue(md.RLN_PARTICLE_CLASS))
-        item.setTransform(relion.convert.rowToAlignment(row, pw.em.ALIGN_PROJ))
+        item.setTransform(relion.convert.rowToAlignment(row, emcts.ALIGN_PROJ))
         
-        item._rlnLogLikeliContribution = pw.em.Float(row.getValue('rlnLogLikeliContribution'))
-        item._rlnMaxValueProbDistribution = pw.em.Float(row.getValue('rlnMaxValueProbDistribution'))
-        item._rlnGroupName = pw.em.String(row.getValue('rlnGroupName'))
+        item._rlnLogLikeliContribution = Float(row.getValue('rlnLogLikeliContribution'))
+        item._rlnMaxValueProbDistribution = Float(row.getValue('rlnMaxValueProbDistribution'))
+        item._rlnGroupName = String(row.getValue('rlnGroupName'))
 
     def _updateClass(self, item):
         classId = item.getObjId()
@@ -195,6 +197,6 @@ class ProtRelionClassify3D(pw.em.ProtClassify3D, ProtRelionBase):
             fn += ":mrc"
             item.setAlignmentProj()
             item.getRepresentative().setLocation(index, fn)
-            item._rlnClassDistribution = pw.em.Float(row.getValue('rlnClassDistribution'))
-            item._rlnAccuracyRotations = pw.em.Float(row.getValue('rlnAccuracyRotations'))
-            item._rlnAccuracyTranslations = pw.em.Float(row.getValue('rlnAccuracyTranslations'))
+            item._rlnClassDistribution = Float(row.getValue('rlnClassDistribution'))
+            item._rlnAccuracyRotations = Float(row.getValue('rlnAccuracyRotations'))
+            item._rlnAccuracyTranslations = Float(row.getValue('rlnAccuracyTranslations'))

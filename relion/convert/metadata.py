@@ -126,7 +126,7 @@ class Table:
             m = max([len(c) for c in self._columns.keys()]) + 5
             lineFormat = "_{:<%d} {:>10}\n" % m
             row = self._rows[0]
-            for col, value in row._asdict().iteritems():
+            for col, value in row._asdict().items():
                 outputFile.write(lineFormat.format(col, value))
             outputFile.write('\n\n')
             return

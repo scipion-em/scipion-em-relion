@@ -28,8 +28,8 @@ import os
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
-from pyworkflow.em.data import Volume
-from pyworkflow.em.protocol import ProtAnalysis3D
+from pwem.objects import Volume
+from pwem.protocols import ProtAnalysis3D
 
 import relion
 from relion.convert.metadata import Table
@@ -227,7 +227,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
                          self._getExtraPath('input_body.star'))
 
     def _runProgram(self, program, args):
-        params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.iteritems()])
+        params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.items()])
         prog = program + ('_mpi' if self.numberOfMpi > 1 else '')
         self.runJob(prog, params)
 

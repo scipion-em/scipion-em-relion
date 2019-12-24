@@ -24,21 +24,20 @@
 # *
 # **************************************************************************
 
-import os
-
-from pyworkflow.em import *
-from pyworkflow.em.convert import ImageHandler
+from pwem.convert import ImageHandler
+from pwem.protocols import (ProtImportMicrographs, ProtImportAverages,
+                            ProtImportVolumes, ProtSplitSet)
 from pyworkflow.tests import *
-from pyworkflow.utils import importFromPlugin
-from pyworkflow.tests.em.workflows.test_workflow import TestWorkflow
+from pyworkflow.plugin import Domain
+from pwem.tests.workflows import TestWorkflow
 
 import relion
 from relion.protocols import *
 from relion.constants import (RUN_OPTIMIZE, REF_AVERAGES,
                               RUN_COMPUTE, REF_BLOBS)
 
-ProtCTFFind = importFromPlugin('grigoriefflab.protocols', 'ProtCTFFind')
-XmippProtPreprocessMicrographs = importFromPlugin(
+ProtCTFFind = Domain.importFromPlugin('grigoriefflab.protocols', 'ProtCTFFind')
+XmippProtPreprocessMicrographs = Domain.importFromPlugin(
     'xmipp3.protocols', 'XmippProtPreprocessMicrographs')
 
 
@@ -49,7 +48,7 @@ class TestWorkflowRelionPick(TestWorkflow):
         cls.ds = DataSet.getDataSet('relion_tutorial')
 
     def _launchPick(self, pickProt, validate=True):
-        """ Simple wrapper to launch a pickig protocol.
+        """ Simple wrapper to launch a picking protocol.
         If validate=True, the output will be validated to exist and
         with non-zero elements.
         """
@@ -72,7 +71,7 @@ class TestWorkflowRelionPick(TestWorkflow):
 
     def _runPickWorkflow(self):
         #First, import a set of micrographs
-        print "Importing a set of micrographs..."
+        print("Importing a set of micrographs...")
         protImport = self.newProtocol(ProtImportMicrographs,
                                       filesPath=self.ds.getFile('micrographs'),
                                       filesPattern='*.mrc',
@@ -85,7 +84,7 @@ class TestWorkflowRelionPick(TestWorkflow):
         self.assertIsNotNone(protImport.outputMicrographs,
                              "There was a problem with the import")
         
-        print "Preprocessing the micrographs..."
+        print("Preprocessing the micrographs...")
         protCropMics = self.newProtocol(XmippProtPreprocessMicrographs,
                                         doCrop=True, cropPixels=25)
         protCropMics.inputMicrographs.set(protImport.outputMicrographs)
@@ -96,7 +95,7 @@ class TestWorkflowRelionPick(TestWorkflow):
         self.protCropMics = protCropMics
 
         # Now estimate CTF on the micrographs with ctffind
-        print "Performing CTFfind..."
+        print("Performing CTFfind...")
         protCTF = self.newProtocol(ProtCTFFind,
                                    useCtffind4=True,
                                    lowRes=0.02, highRes=0.45,
@@ -108,7 +107,7 @@ class TestWorkflowRelionPick(TestWorkflow):
         self.protCTF = protCTF
         self.launchProtocol(protCTF)
 
-        print "Importing 2D averages (subset of 4)"
+        print("Importing 2D averages (subset of 4)")
         ih = ImageHandler()
         classesFn = self.ds.getFile('import/classify2d/extra/'
                                     'relion_it015_classes.mrcs')
@@ -187,7 +186,7 @@ class TestWorkflowRelionPick(TestWorkflow):
             return
 
         # First, import a set of micrographs
-        print "Importing a set of micrographs..."
+        print("Importing a set of micrographs...")
         protImport = self.newProtocol(ProtImportMicrographs,
                                       filesPath=self.ds.getFile('micrographs'),
                                       filesPattern='*.mrc',
@@ -200,7 +199,7 @@ class TestWorkflowRelionPick(TestWorkflow):
         self.assertIsNotNone(protImport.outputMicrographs,
                              "There was a problem with the import")
 
-        print "Preprocessing the micrographs..."
+        print("Preprocessing the micrographs...")
         protCropMics = self.newProtocol(XmippProtPreprocessMicrographs,
                                         doCrop=True, cropPixels=25)
         protCropMics.inputMicrographs.set(protImport.outputMicrographs)

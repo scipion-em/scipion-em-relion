@@ -26,9 +26,9 @@
 
 from pyworkflow.protocol.params import (PointerParam, FloatParam,  
                                         StringParam, BooleanParam, LEVEL_ADVANCED)
-from pyworkflow.em.data import Volume 
-from pyworkflow.em.protocol import ProtReconstruct3D
-from pyworkflow.em.constants import ALIGN_PROJ
+from pwem.objects import Volume
+from pwem.protocols import ProtReconstruct3D
+from pwem.constants import ALIGN_PROJ
 
 import relion
 import relion.convert

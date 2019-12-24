@@ -30,10 +30,11 @@ import os
 from collections import OrderedDict
 
 import pyworkflow as pw
-from pyworkflow.em import *
-from pyworkflow.em.viewers import CoordinatesObjectView
-from pyworkflow.em.wizard import *
-import pyworkflow.em.metadata as md
+import pyworkflow.utils as pwutils
+from pwem import *
+from pwem.viewers import CoordinatesObjectView
+from pwem.wizards.wizard import *
+import pwem.metadata as md
 from pyworkflow.gui.browser import FileBrowserWindow
 
 from relion.constants import *
@@ -205,8 +206,8 @@ class Relion2AutopickParams(EmWizard):
         micSet = autopickProt.outputMicrographsSubset
         micfn = micSet.getFileName()
         coordsDir = project.getTmpPath(micSet.getName())
-        pw.utils.cleanPath(coordsDir)
-        pw.utils.makePath(coordsDir)
+        pwutils.cleanPath(coordsDir)
+        pwutils.makePath(coordsDir)
 
         micStarFn = os.path.join(coordsDir, 'micrographs.xmd')
 
@@ -223,9 +224,9 @@ class Relion2AutopickParams(EmWizard):
 
         # Create a folder in extra to backup the original autopick star files
         backupDir = autopickProt._getExtraPath('wizard-backup')
-        pw.utils.cleanPath(backupDir)
-        pw.utils.makePath(backupDir)
-        pw.utils.copyPattern(autopickProt._getExtraPath("*autopick.star"),
+        pwutils.cleanPath(backupDir)
+        pwutils.makePath(backupDir)
+        pwutils.copyPattern(autopickProt._getExtraPath("*autopick.star"),
                             backupDir)
 
         cmd = '%s relion_autopick ' % pw.getScipionScript()
@@ -280,7 +281,7 @@ class Relion2AutopickParams(EmWizard):
                                         mode=CoordinatesObjectView.MODE_AUTOMATIC,
                                         pickerProps=pickerProps).show()
         process.wait()
-        myprops = pw.utils.readProperties(pickerProps)
+        myprops = pwutils.readProperties(pickerProps)
 
         # Check if the wizard changes were accepted or just canceled
         if myprops.get('applyChanges', 'false') == 'true':
@@ -295,7 +296,7 @@ class Relion2AutopickParams(EmWizard):
         else:
             # If the wizard was not execute, we should restore the original
             # autopick star files in case their were modified by the wizard
-            pw.utils.copyPattern(os.path.join(backupDir, "*autopick.star"),
+            pwutils.copyPattern(os.path.join(backupDir, "*autopick.star"),
                                 autopickProt._getExtraPath())
 
 
@@ -333,15 +334,15 @@ class RelionWizLogPickParams(EmWizard):
         print("coordsDir: ", coordsDir)
         params, minDiameter, maxDiameter, threshold = autopickProt._getPickArgs()
 
-        pw.utils.cleanPath(coordsDir)
-        pw.utils.makePath(coordsDir, 'extra')
+        pwutils.cleanPath(coordsDir)
+        pwutils.makePath(coordsDir, 'extra')
         pickerProps = os.path.join(coordsDir, 'picker.conf')
         micStarFn = os.path.join(coordsDir, 'input_micrographs.star')
 
         def _postprocessMic(mic, micRow):
             micFn = mic.getFileName()
             micBase = os.path.basename(micFn)
-            pw.utils.createLink(micFn, os.path.join(coordsDir, micBase))
+            pwutils.createLink(micFn, os.path.join(coordsDir, micBase))
             micRow.setValue(md.RLN_MICROGRAPH_NAME, micBase)
 
         relion.convert.writeSetOfMicrographs(micSet, micStarFn,
@@ -350,7 +351,7 @@ class RelionWizLogPickParams(EmWizard):
         f = open(pickerProps, "w")
 
         #params = params.replace('--odir ""', '--odir extra')
-        autopickCmd = "%s relion_autopick " % pw.getScipionScript()
+        autopickCmd = "%s relion_autopick " % getScipionScript()
         autopickCmd += ' --i input_micrographs.star '
         autopickCmd += params
         autopickCmd += ' --LoG_diam_min %(mind) '
@@ -389,7 +390,7 @@ class RelionWizLogPickParams(EmWizard):
         process = CoordinatesObjectView(autopickProt.getProject(), micfn, coordsDir, autopickProt,
                                         pickerProps=pickerProps).show()
         process.wait()
-        myprops = pw.utils.readProperties(pickerProps)
+        myprops = pwutils.readProperties(pickerProps)
 
         if myprops['applyChanges'] == 'true':
             form.setVar('minDiameter', myprops['mind.value'])

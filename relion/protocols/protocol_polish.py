@@ -32,11 +32,11 @@ import os
 from os.path import exists
 from pyworkflow.protocol.params import (PointerParam, FloatParam, StringParam,
                                         IntParam, BooleanParam, LEVEL_ADVANCED)
-from pyworkflow.em.data import Volume
-from pyworkflow.em import ALIGN_PROJ
-import pyworkflow.em.metadata as md
+from pwem.objects import Volume
+from pwem.constants import ALIGN_PROJ
+import pwem.metadata as md
 import pyworkflow.utils as pwutils
-from pyworkflow.em.protocol import ProtProcessParticles
+from pwem.protocols import ProtProcessParticles
 
 import relion
 import relion.convert

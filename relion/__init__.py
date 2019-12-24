@@ -25,7 +25,7 @@
 # **************************************************************************
 
 import os
-import pyworkflow.em
+import pyworkflow.plugin
 import pyworkflow.utils as pwutils
 
 from .constants import RELION_HOME, RELION_CUDA_LIB, V2_0, V2_1, V3_0, V3_1
@@ -35,7 +35,7 @@ _logo = "relion_logo.png"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016', 'Zivanov2018']
 
 
-class Plugin(pyworkflow.em.Plugin):
+class Plugin(pyworkflow.plugin.Plugin):
     _homeVar = RELION_HOME
     _supportedVersions = [V2_0, V2_1, V3_0, V3_1]
 
@@ -46,8 +46,7 @@ class Plugin(pyworkflow.em.Plugin):
     @classmethod
     def getEnviron(cls):
         """ Setup the environment variables needed to launch Relion. """
-
-        environ = pwutils.Environ(os.environ)
+        environ = pyworkflow.plugin.Plugin.getEnviron(os.environ)
         binPath = cls.getHome('bin')
         libPath = cls.getHome('lib') + ":" + cls.getHome('lib64')
 
@@ -89,18 +88,6 @@ class Plugin(pyworkflow.em.Plugin):
 
     @classmethod
     def defineBinaries(cls, env):
-        relion_commands = [('./INSTALL.sh -j %d' % env.getProcessors(),
-                            ['relion_build.log',
-                             'bin/relion_refine'])]
-
-        env.addPackage('relion', version='1.4',
-                       tar='relion-1.4.tgz',
-                       commands=relion_commands)
-
-        env.addPackage('relion', version='1.4f',
-                       tar='relion-1.4_float.tgz',
-                       commands=relion_commands)
-
         # Define FFTW3 path variables
         relion_vars = {'FFTW_LIB': env.getLibFolder(),
                        'FFTW_INCLUDE': env.getIncludeFolder()}
@@ -135,4 +122,4 @@ class Plugin(pyworkflow.em.Plugin):
                        default=True)
 
 
-pyworkflow.em.Domain.registerPlugin(__name__)
+pyworkflow.plugin.Domain.registerPlugin(__name__)

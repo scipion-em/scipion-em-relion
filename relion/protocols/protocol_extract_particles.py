@@ -26,10 +26,12 @@
 
 import os
 
-import pyworkflow as pw
+import pyworkflow.utils as pwutils
 from pyworkflow.protocol.constants import STATUS_FINISHED
 import pyworkflow.protocol.params as params
-import pyworkflow.em.metadata as md
+from pwem.protocols import ProtExtractParticles
+import pwem.metadata as md
+import pwem.constants as emcts
 
 import relion
 import relion.convert
@@ -37,13 +39,13 @@ from relion.constants import OTHER
 from .protocol_base import ProtRelionBase
 
 
-class ProtRelionExtractParticles(pw.em.ProtExtractParticles, ProtRelionBase):
+class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
     """ Protocol to extract particles using a set of coordinates. """
 
     _label = 'particles extraction'
     
     def __init__(self, **kwargs):
-        pw.em.ProtExtractParticles.__init__(self, **kwargs)
+        ProtExtractParticles.__init__(self, **kwargs)
 
     # -------------------------- DEFINE param functions -----------------------
     def _definePreprocessParams(self, form):
@@ -118,7 +120,7 @@ class ProtRelionExtractParticles(pw.em.ProtExtractParticles, ProtRelionBase):
         self._setupBasicProperties()
 
         # used to convert micrographs if not in .mrc format
-        self._ih = pw.em.ImageHandler()
+        self._ih = pwem.convert.ImageHandler()
 
         # dict to map between micrographs and its coordinates file
         self._micCoordStarDict = {}
@@ -151,7 +153,7 @@ class ProtRelionExtractParticles(pw.em.ProtExtractParticles, ProtRelionBase):
     def _extractMicrographList(self, micList, params):
         micsStar = self._getMicsStar(micList)
         relion.convert.writeSetOfMicrographs(micList, self._getPath(micsStar),
-                                             alignType=pw.em.ALIGN_NONE,
+                                             alignType=emcts.ALIGN_NONE,
                                              preprocessImageRow=self._preprocessMicrographRow)
 
         partsStar = self._getMicParticlesStar(micList)
@@ -284,7 +286,7 @@ class ProtRelionExtractParticles(pw.em.ProtExtractParticles, ProtRelionBase):
         """ Read the particles extract for the given list of micrographs
         and update the outputParts set with new items.
         """
-        p = pw.em.Particle()
+        p = pwem.objects.Particle()
 
         # Let's create a dict with the names of the mic in Relion star files
         # and also create a set with all star files to iterate them once
@@ -293,7 +295,7 @@ class ProtRelionExtractParticles(pw.em.ProtExtractParticles, ProtRelionBase):
 
         for mic in micList:
             starSet.add(self._micCoordStarDict[mic.getObjId()])
-            micName = pw.utils.replaceBaseExt(mic.getFileName(), 'mrc')
+            micName = pwutils.replaceBaseExt(mic.getFileName(), 'mrc')
             micFile = os.path.join('extra', micName)
             micPathDict[micFile] = mic
 
@@ -425,13 +427,13 @@ class ProtRelionExtractParticles(pw.em.ProtExtractParticles, ProtRelionBase):
         # Temporarily convert the few micrographs to tmp and make sure
         # they are in 'mrc' format
         # Get basename and replace extension by 'mrc'
-        newName = pw.utils.replaceBaseExt(img.getFileName(), 'mrc')
+        newName = pwutils.replaceBaseExt(img.getFileName(), 'mrc')
         newPath = self._getExtraPath(newName)
 
         # If the micrographs are in 'mrc' format just create a link
         # if not, convert to 'mrc'
         if img.getFileName().endswith('mrc'):
-            pw.utils.createLink(img.getFileName(), newPath)
+            pwutils.createLink(img.getFileName(), newPath)
         else:
             self._ih.convert(img, newPath)
         # The command will be launched from the working dir
@@ -449,7 +451,7 @@ class ProtRelionExtractParticles(pw.em.ProtExtractParticles, ProtRelionBase):
         The filename will be located in the extra folder and with
         the given extension.
         """
-        return self._getExtraPath(pw.utils.replaceBaseExt(mic.getFileName(),ext))
+        return self._getExtraPath(pwutils.replaceBaseExt(mic.getFileName(),ext))
     
     def _useCTF(self):
         return self.ctfRelations.hasValue()
@@ -470,7 +472,7 @@ class ProtRelionExtractParticles(pw.em.ProtExtractParticles, ProtRelionBase):
 
     def _getMicPos(self, mic):
         """ Return the corresponding .pos file for a given micrograph. """
-        micBase = pw.utils.removeBaseExt(mic.getFileName())
+        micBase = pwutils.removeBaseExt(mic.getFileName())
         return self._getExtraPath(micBase + ".coords.star")
 
     def _isStreamOpen(self):

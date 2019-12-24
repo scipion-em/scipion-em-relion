@@ -26,7 +26,7 @@
 
 from collections import OrderedDict
 
-import pyworkflow.em.metadata as md
+import pwem.metadata as md
 
 
 # ----------------- Constants values --------------------------------------

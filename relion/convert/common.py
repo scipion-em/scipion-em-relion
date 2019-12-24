@@ -30,22 +30,23 @@ Common functions for conversions that will be used from both
 newer Relion3.1 routines and old ones.
 """
 
-import pyworkflow as pw
-import pyworkflow.em.metadata as md
+from pwem.convert import ImageHandler
+import pwem.metadata as md
+import pwem.constants as emcts
 
 
 def locationToRelion(index, filename):
     """ Convert an index and filename location
     to a string with @ as expected in Relion.
     """
-    if index != pw.em.NO_INDEX:
+    if index != emcts.NO_INDEX:
         return "%06d@%s" % (index, filename)
 
     return filename
 
 
 def getImageLocation(location):
-    return pw.em.ImageHandler.locationToXmipp(location)
+    return ImageHandler.locationToXmipp(location)
 
 
 def relionToLocation(filename):
@@ -55,7 +56,7 @@ def relionToLocation(filename):
         indexStr, fn = filename.split('@')
         return int(indexStr), str(fn)
     else:
-        return pw.em.NO_INDEX, str(filename)
+        return emcts.NO_INDEX, str(filename)
 
 
 def setRelionAttributes(obj, objRow, *labels):

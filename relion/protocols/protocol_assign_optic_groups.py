@@ -24,7 +24,7 @@
 # *
 # **************************************************************************
 
-import pyworkflow.em as em
+import pwem
 import pyworkflow.protocol.params as params
 
 from .protocol_base import ProtRelionBase
@@ -103,13 +103,13 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
     def createOutputStep(self, inputId):
         inputSet = self.inputSet.get()
         
-        if isinstance(inputSet, em.SetOfMovies):
+        if isinstance(inputSet, pwem.objects.SetOfMovies):
             outputSet = self._createSetOfMovies()
             outputName = 'outputMovies'
-        elif isinstance(inputSet, em.SetOfMicrographs):
+        elif isinstance(inputSet, pwem.objects.SetOfMicrographs):
             outputSet = self._createSetOfMicrographs()
             outputName = 'outputMicrographs'
-        elif isinstance(inputSet, em.SetOfParticles):
+        elif isinstance(inputSet, pwem.objects.SetOfParticles):
             outputSet = self._createSetOfParticles()
             outputName = 'outputParticles'
         else:
@@ -155,4 +155,3 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
         if getattr(self, '__firstTime', True):
             item.setAcquisition(self._outputAcquisition)
             self.__firstTime = False
-

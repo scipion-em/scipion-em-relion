@@ -24,13 +24,13 @@
 # *
 # **************************************************************************
 
-import pyworkflow as pw
+from pwem.protocols import ProtProcessParticles
 from pyworkflow.protocol.params import PointerParam
 
 from .protocol_base import ProtRelionBase
 
 
-class ProtRelionCenterAverages(pw.em.ProtProcessParticles, ProtRelionBase):
+class ProtRelionCenterAverages(ProtProcessParticles, ProtRelionBase):
     """
     Align class averages by their center of mass using *relion_image_handler*.
      (With *--shift_com* option)

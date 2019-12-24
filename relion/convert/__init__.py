@@ -26,8 +26,8 @@
 
 import relion
 
-from convert import *
-from dataimport import *
+from relion.convert.convert import *
+from relion.convert.dataimport import *
 
 if relion.Plugin.isVersion31Active():
     from .convert31 import Writer

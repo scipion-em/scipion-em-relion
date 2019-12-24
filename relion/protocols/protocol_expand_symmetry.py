@@ -25,9 +25,9 @@
 # **************************************************************************
 
 from pyworkflow.protocol.params import StringParam
-from pyworkflow.em import ALIGN_PROJ
-import pyworkflow.em.metadata as md
-from pyworkflow.em.protocol import ProtProcessParticles
+from pwem.constants import ALIGN_PROJ
+import pwem.metadata as md
+from pwem.protocols import ProtProcessParticles
 
 import relion
 import relion.convert

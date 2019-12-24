@@ -24,12 +24,11 @@
 # *
 # **************************************************************************
 
-import os
 from os.path import relpath
 
 import pyworkflow.protocol.params as params
 from pyworkflow.protocol import STEPS_SERIAL
-from pyworkflow.em.protocol import ProtParticlePickingAuto
+from pwem.protocols import ProtParticlePickingAuto
 
 import relion
 from .protocol_autopick import ProtRelionAutopickBase

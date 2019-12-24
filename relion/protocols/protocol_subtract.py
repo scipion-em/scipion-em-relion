@@ -28,11 +28,10 @@
 import os
 import sys
 
-import pyworkflow.em.metadata as md
+import pwem.metadata as md
 from pyworkflow.protocol.params import PointerParam, BooleanParam, LabelParam
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
-from pyworkflow.em.protocol import ProtOperateParticles
-from pyworkflow.em import ImageHandler
+from pwem.protocols import ProtOperateParticles
 
 import relion
 import relion.convert

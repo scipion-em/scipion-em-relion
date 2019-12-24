@@ -26,7 +26,8 @@
 # *
 # **************************************************************************
 
-import pyworkflow as pw
+import pwem
+import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 
 import relion
@@ -121,12 +122,12 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
 
     # ------------------------- STEPS functions -------------------------------
     def convertInputStep(self, protId):
-        pw.utils.makePath(self._getInputPath())
+        pwutils.makePath(self._getInputPath())
 
         protRef = self.protRefine.get()
         vol = protRef.outputVolume
         half1, half2 = vol.getHalfMaps().split(',')
-        ih = pw.em.ImageHandler()
+        ih = pwem.convert.ImageHandler()
         ih.convert(half1, self._getFileName("half1"))
         ih.convert(half2, self._getFileName("half2"))
 

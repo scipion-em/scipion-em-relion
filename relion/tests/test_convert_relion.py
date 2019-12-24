@@ -32,14 +32,14 @@ import os
 import subprocess
 import numpy as np
 
-from pyworkflow.object import Float, String, Integer
+from pyworkflow.object import Float, String
 from pyworkflow.tests import BaseTest, setupTestOutput, DataSet
-from pyworkflow.em.data import (SetOfParticles, CTFModel, Acquisition,
+from pwem.objects import (SetOfParticles, CTFModel, Acquisition,
                                 SetOfMicrographs, Coordinate, Particle,
                                 SetOfVolumes, Transform)
-from pyworkflow.em import ImageHandler
-import pyworkflow.em.metadata as md
-from pyworkflow.em.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_3D
+from pwem.convert import ImageHandler
+import pwem.metadata as md
+from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_3D
 
 import relion
 import relion.convert
@@ -175,7 +175,7 @@ class TestConversions(BaseTest):
                          [md.label2Str(l) for l in mdAll.getActiveLabels()])
 
         value = mdAll.getValue(md.getLabel("rlnNewLabel"), 1)
-        self.assertTrue(isinstance(value, basestring),
+        self.assertTrue(isinstance(value, str),
                         "undefined labels are not treated as strings")
 
         # Define new label reusing existing one
@@ -917,4 +917,3 @@ class TestRelionWriter(BaseTest):
         print(">>> Writing to micrographs: %s" % outputStar)
         starWriter = relion.convert.Writer()
         starWriter.writeSetOfMicrographs(outputMics, outputStar)
-

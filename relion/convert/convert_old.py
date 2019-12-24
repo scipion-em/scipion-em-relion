@@ -85,4 +85,3 @@ class Writer(WriterBase):
             'rlnSphericalAberration': acq.getSphericalAberration(),
             'rlnAmplitudeContrast': acq.getAmplitudeContrast()
         })
-

@@ -26,11 +26,11 @@
 
 from glob import glob
 
-import pyworkflow.em as em
-import pyworkflow.em.metadata as md
+import pwem
+import pwem.metadata as md
 from pyworkflow.utils.path import moveFile
 
-from pyworkflow.em.protocol.protocol_particles import ProtProcessParticles
+from pwem.protocols import ProtProcessParticles
 from pyworkflow.protocol.params import (PointerParam, BooleanParam,
                                         FloatParam, IntParam, Positive)
 
@@ -177,7 +177,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
     def createOutputStep(self):
         inputSet = self.inputParticles.get()
         
-        if isinstance(inputSet, em.SetOfAverages):
+        if isinstance(inputSet, pwem.objects.SetOfAverages):
             imgSet = self._createSetOfAverages()
         else:
             imgSet = self._createSetOfParticles()
@@ -221,7 +221,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
         return validateMsgs
     
     def _summary(self):
-        summary = []
+        summary = list()
         summary.append('Operations applied:')
         if self.doScale:
             summary.append(

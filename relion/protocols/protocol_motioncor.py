@@ -25,7 +25,10 @@
 # ******************************************************************************
 
 import os
-from itertools import izip
+try:
+    from itertools import izip
+except ImportError:
+    izip = zip
 from math import ceil
 import json
 
@@ -33,8 +36,8 @@ import pyworkflow.object as pwobj
 import pyworkflow.protocol.params as params
 import pyworkflow.protocol.constants as cons
 import pyworkflow.utils as pwutils
-import pyworkflow.em as em
-from pyworkflow.em.protocol import ProtAlignMovies
+import pwem
+from pwem.protocols import ProtAlignMovies
 from pyworkflow.gui.plotter import Plotter
 from pyworkflow.protocol import STEPS_SERIAL
 
@@ -350,12 +353,12 @@ class ProtRelionMotioncor(ProtAlignMovies):
         return self._getNameExt(movie, '_psd', 'jpeg', extra=True)
 
     def _setPlotInfo(self, movie, mic):
-        mic.plotGlobal = em.Image(location=self._getPlotGlobal(movie))
+        mic.plotGlobal = pwem.objects.Image(location=self._getPlotGlobal(movie))
         if self.doComputePSD:
-            mic.psdCorr = em.Image(location=self._getPsdCorr(movie))
-            mic.psdJpeg = em.Image(location=self._getPsdJpeg(movie))
+            mic.psdCorr = pwem.objects.Image(location=self._getPsdCorr(movie))
+            mic.psdJpeg = pwem.objects.Image(location=self._getPsdJpeg(movie))
         if self.doComputeMicThumbnail:
-            mic.thumbnail = em.Image(
+            mic.thumbnail = pwem.objects.Image(
                 location=self._getOutputMicThumbnail(movie))
 
     def _computeExtra(self, movie):

@@ -26,12 +26,13 @@
 # *
 # **************************************************************************
 
-import pyworkflow as pw
-import pyworkflow.em.metadata as md
+from pwem.protocols import ProtInitialVolume
+import pwem.metadata as md
+import pwem.constants as emcts
 from pyworkflow.protocol.params import (PointerParam, FloatParam,
                                         LabelParam, IntParam,
                                         EnumParam, StringParam,
-                                        BooleanParam, PathParam,
+                                        BooleanParam,
                                         LEVEL_ADVANCED)
 import relion
 import relion.convert
@@ -42,7 +43,7 @@ from .protocol_base import ProtRelionBase
 IS_V3 = relion.Plugin.isVersion3Active()
 
 
-class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
+class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
     """ This protocols creates a 3D initial model using Relion.
 
     Generate a 3D initial model _de novo_ from 2D particles using
@@ -353,7 +354,7 @@ class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
         volumes = []
 
         for i in range(1, k + 1):
-            vol = pw.em.Volume(self._getExtraPath('relion_it%03d_class%03d.mrc')
+            vol = pwem.objects.Volume(self._getExtraPath('relion_it%03d_class%03d.mrc')
                                % (lastIter, i))
             vol.setSamplingRate(pixelSize)
             volumes.append(vol)
@@ -482,5 +483,5 @@ class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
                                          sortByLabel=md.RLN_IMAGE_ID))
 
     def _createItemMatrix(self, item, row):
-        relion.convert.createItemMatrix(item, row, align=pw.em.ALIGN_PROJ)
+        relion.convert.createItemMatrix(item, row, align=emcts.ALIGN_PROJ)
 

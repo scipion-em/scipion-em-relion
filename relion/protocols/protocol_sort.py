@@ -28,10 +28,10 @@ import pyworkflow.object as pwobj
 from pyworkflow.protocol.params import (PointerParam, FloatParam, StringParam,
                                         BooleanParam, IntParam, LEVEL_ADVANCED)
 from pyworkflow.utils import removeExt
-import pyworkflow.em as em
-from pyworkflow.em.protocol import ProtParticles
-from pyworkflow.em.data import SetOfClasses3D, SetOfParticles, SetOfClasses
-import pyworkflow.em.metadata as md
+import pwem
+from pwem.protocols import ProtParticles
+from pwem.objects import SetOfParticles, SetOfClasses
+import pwem.metadata as md
 
 import relion
 import relion.convert
@@ -157,7 +157,7 @@ class ProtRelionSortParticles(ProtParticles):
         # Join in a single line all key, value pairs of the args dict
         args = {}
         self._setArgs(args)
-        params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.iteritems()])
+        params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.items()])
 
         if self.extraParams.hasValue():
             params += ' ' + self.extraParams.get()
@@ -196,8 +196,8 @@ class ProtRelionSortParticles(ProtParticles):
 
         else:
             if self.isInputAutoRefine():
-                em.ImageHandler().convert(self.referenceVolume.get(),
-                                       self._getFileName('input_refvol'))
+                pwem.convert.ImageHandler().convert(self.referenceVolume.get(),
+                                            self._getFileName('input_refvol'))
             else: # Autopicking case
                 refSet = self.referenceAverages.get()
 
@@ -273,7 +273,7 @@ class ProtRelionSortParticles(ProtParticles):
                 return particles
         else:
             if iterate:
-                return inputSet.iterItems()
+                return inputSet.items()
             else:
                 return inputSet
 

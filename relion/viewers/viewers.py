@@ -28,15 +28,15 @@ import os
 from os.path import exists
 from math import radians
 
-import pyworkflow.em as em
-import pyworkflow.em.viewers.showj as showj
-import pyworkflow.em.metadata as md
+import pwem
+import pwem.viewers.showj as showj
+import pwem.metadata as md
 from pyworkflow.utils import cleanPath
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 import pyworkflow.protocol.params as params
 from pyworkflow.viewer import (Viewer, ProtocolViewer,
                                DESKTOP_TKINTER, WEB_DJANGO)
-from pyworkflow.em.viewers import (EmPlotter, ObjectView, ChimeraView,
+from pwem.viewers import (EmPlotter, ObjectView, ChimeraView,
                                    ChimeraClientView, ClassesView,
                                    Classes3DView, FscViewer, DataView,
                                    MicrographsView)
@@ -330,7 +330,7 @@ Examples:
         views = []
         
         for it in self._iterations:
-            fn = self.protocol._getIterData(it, alignType=em.ALIGN_PROJ)
+            fn = self.protocol._getIterData(it, alignType=pwem.ALIGN_PROJ)
             if not os.path.exists(fn):
                 raise Exception("Missing data star file '%s'. \n"
                                 "Plese select a valid iteration. "
@@ -413,7 +413,7 @@ Examples:
 
             for row in md.iterRows('%s@%s' % ('model_classes', modelStar)):
                 i, fn = relion.convert.relionToLocation(row.getValue('rlnReferenceImage'))
-                if i == em.NO_INDEX: # the case for 3D classes
+                if i == pwem.NO_INDEX: # the case for 3D classes
                     # NOTE: Since there is not an proper ID value in
                     #  the clases metadata, we are assuming that class X
                     # has a filename *_classXXX.mrc (as it is in Relion)
@@ -481,12 +481,12 @@ Examples:
 #==============================================================================
     def _showChanges(self, paramName=None):
         mdIters = md.MetaData()
-        print " Computing average changes in offset, angles, and class membership"
+        print("Computing average changes in offset, angles, and class membership")
         for it in self._getAllIters():
             fn = self.protocol._getFileName('optimiser', iter=it)
             if not os.path.exists(fn):
                 continue
-            print "Computing data for iteration; %03d" % it
+            print("Computing data for iteration; %03d" % it)
             objId = mdIters.addObject()
             mdIters.setValue(md.MDL_ITER, it, objId)
             # add by ref3D
@@ -718,7 +718,7 @@ Examples:
         resolution_inv = [mdStar.getValue(md.RLN_RESOLUTION, id) for id in mdStar]
         frc = [mdStar.getValue(md.RLN_MLMODEL_FSC_HALVES_REF, id) for id in mdStar]
 
-        fsc = em.data.FSC(objLabel=label)
+        fsc = pwem.objects.FSC(objLabel=label)
         fsc.setData(resolution_inv, frc)
 
         return fsc
@@ -1068,7 +1068,7 @@ class PostprocessViewer(ProtocolViewer):
         resolution_inv = [mdStar.getValue(md.RLN_RESOLUTION, id) for id in mdStar]
         frc = [mdStar.getValue(label, id) for id in mdStar]
 
-        fsc = em.data.FSC(objLabel=legend)
+        fsc = pwem.objects.FSC(objLabel=legend)
         fsc.setData(resolution_inv, frc)
 
         return fsc
@@ -1648,7 +1648,7 @@ class RelionLocalResViewer(ProtocolViewer):
     _label = 'viewer localres'
 
     def __init__(self, *args, **kwargs):
-        ProtocolViewer.__init__(self, *args, **kwargs)
+        ProtocolViewer.__init__(self, **kwargs)
 
     def _defineParams(self, form):
         form.addSection(label='Visualization')
@@ -1695,7 +1695,7 @@ class RelionLocalResViewer(ProtocolViewer):
         xplotter = RelionPlotter(x=2, y=2, mainTitle="Local Resolution Slices "
                                                      "along %s-axis."
                                                      %self._getAxis())
-        for i in xrange(4):
+        for i in range(4):
             slice = self._getSlice(i+1, imgData)
             a = xplotter.createSubPlot("Slice %s" % slice, '', '')
             matrix = self._getSliceImage(imgData, i+1, self._getAxis())
@@ -1722,7 +1722,7 @@ class RelionLocalResViewer(ProtocolViewer):
 
     def _getImgData(self, imgFile):
         import numpy as np
-        img = em.ImageHandler().read(imgFile+":mrc")
+        img = pwem.convert.ImageHandler().read(imgFile + ":mrc")
         imgData = img.getData()
 
         maxRes = np.amax(imgData)
@@ -1752,7 +1752,10 @@ class RelionLocalResViewer(ProtocolViewer):
 
     def _createChimeraScript(self, scriptFile):
         import pyworkflow.gui.plotter as plotter
-        from itertools import izip
+        try:
+            from itertools import izip
+        except ImportError:
+            izip = zip
         fhCmd = open(scriptFile, 'w')
         imageFile = os.path.abspath(self.protocol._getFileName('resolMap'))
         
@@ -1894,7 +1897,7 @@ class ProtMotioncorrViewer(ProtocolViewer):
     def createFailedMoviesSqlite(self, path):
         inputMovies = self.protocol.inputMovies.get()
         cleanPath(path)
-        movieSet = em.SetOfMovies(filename=path)
+        movieSet = pwem.objects.SetOfMovies(filename=path)
         movieSet.copyInfo(inputMovies)
         movieSet.copyItems(inputMovies,
                            updateItemCallback=self._findFailedMovies)

@@ -26,16 +26,16 @@
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
-import pyworkflow.em as em
-import pyworkflow.em.metadata as md
-from pyworkflow.em.data import Float, Integer, String, EMObject
+import pwem.metadata as md
+from pwem.protocols import ProtParticles
+from pyworkflow.object import Float
 
 import relion
 from relion.objects import CtfRefineGlobalInfo
 from relion.convert.metadata import Table
 
 
-class ProtRelionCtfRefinement(em.ProtParticles):
+class ProtRelionCtfRefinement(ProtParticles):
     """ Wrapper protocol for the Relion's per-particle CTF refinement. """
     _label = 'ctf refinement'
 

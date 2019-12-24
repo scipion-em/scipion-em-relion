@@ -27,8 +27,8 @@
 import os
 
 import pyworkflow.tests as pwtests
-from pyworkflow.tests.em.workflows import TestWorkflow
-import pyworkflow.em as pwem
+from pwem.test.workflows import TestWorkflow
+import pwem
 
 import relion
 import relion.protocols
@@ -47,7 +47,7 @@ class Relion3TestProtocolBase(TestWorkflow):
     @classmethod
     def _importMovies(cls, **kwargs):
         protImport = cls.newProtocol(
-            pwem.ProtImportMovies,
+            pwem.protocols.ProtImportMovies,
             filesPath=cls.ds.getFile('Movies/'),
             filesPattern=kwargs.get('filesPattern','*.tiff'),
             samplingRateMode=0,
@@ -115,8 +115,3 @@ class Relion3TestMotioncor(Relion3TestProtocolBase):
     def test_2x2(self):
         protRelionMc = self._runRelionMc(self.protImport, patchX=2, patchY=2)
         self._checkOutputMovies(protRelionMc, 3)
-
-
-if __name__ == '__main__':
-    import unittest
-    unittest.main()

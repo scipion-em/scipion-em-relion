@@ -24,15 +24,15 @@
 # *
 # **************************************************************************
 
-import os
 from os.path import relpath
 
+from pyworkflow.object import Integer
 from pyworkflow.protocol.constants import STATUS_FINISHED, STEPS_SERIAL
-from pyworkflow.em.protocol import ProtExtractMovieParticles
+from pwem.protocols import ProtExtractMovieParticles
 from pyworkflow.utils.properties import Message
 import pyworkflow.protocol.params as params
-import pyworkflow.em as em
-import pyworkflow.em.metadata as md
+import pwem
+import pwem.metadata as md
 import pyworkflow.utils as pwutils
 
 import relion
@@ -187,7 +187,7 @@ class ProtRelionExtractMovieParticles(ProtExtractMovieParticles,
 
     # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self, moviesId, partsId):
-        self._ih = em.ImageHandler()  # used to convert movies
+        self._ih = pwem.convert.ImageHandler()  # used to convert movies
         inputMovies = self.getInputMovies()
         firstMovie = inputMovies.getFirstItem()
         self._linkOrConvertMovie = self._getConvertFunc(firstMovie)
@@ -245,13 +245,13 @@ class ProtRelionExtractMovieParticles(ProtExtractMovieParticles,
                     mPart.setFrameId(frameId)
                     count += 1
                     mPart.setIndex(count)
-                    mPart._rlnAverageNrOfFrames = em.Integer(avgFrames)
+                    mPart._rlnAverageNrOfFrames = Integer(avgFrames)
                     movieParticles.append(mPart)
 
             del self.partList  # free unnecessary particle list memory
             self.partList = []
 
-        for part in inputParts.iterItems(orderBy='_micId'):
+        for part in inputParts.items(orderBy='_micId'):
             micName = part.getCoordinate().getMicName()
 
             if micName != self.lastMicName:
@@ -276,7 +276,7 @@ class ProtRelionExtractMovieParticles(ProtExtractMovieParticles,
 
             # Create a movie particles based on that one and
             # store in the list of this movie
-            mPart = em.MovieParticle()
+            mPart = pwem.objects.MovieParticle()
             mPart.copy(part)  # copy all information from part
             mPart.setParticleId(part.getObjId())
 

@@ -28,13 +28,12 @@ import os
 from os.path import relpath
 
 import pyworkflow.protocol.params as params
-from pyworkflow.em.protocol import ProtParticlePickingAuto
-from pyworkflow.em.constants import RELATION_CTF, ALIGN_NONE
-from pyworkflow.em.convert import ImageHandler
 from pyworkflow.utils.properties import Message
 import pyworkflow.utils as pwutils
-import pyworkflow.em.metadata as md
-from pyworkflow.em import getSubsetByDefocus
+from pwem.protocols import ProtParticlePickingAuto
+from pwem.constants import RELATION_CTF, ALIGN_NONE
+from pwem.convert import ImageHandler, getSubsetByDefocus
+import pwem.metadata as md
 
 import relion
 import relion.convert

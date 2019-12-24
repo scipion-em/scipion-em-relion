@@ -29,14 +29,14 @@ import json
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
-import pyworkflow.em as em
-import pyworkflow.em.metadata as md
+from pwem.protocols import ProtParticles
+import pwem.metadata as md
 
 import relion
 from relion.convert.metadata import Table
 
 
-class ProtRelionBayesianPolishing(em.ProtParticles):
+class ProtRelionBayesianPolishing(ProtParticles):
     """
     Wrapper protocol for the Relion's Bayesian Polishing.
 
@@ -320,7 +320,7 @@ class ProtRelionBayesianPolishing(em.ProtParticles):
         else:
             if pwutils.exists(self._getExtraPath('opt_params.txt')):
                 f = open(self._getExtraPath('opt_params.txt'))
-                line = map(float, f.readline().split())
+                line = list(map(float, f.readline().split()))
                 summary.append('Sigma for velocity: %0.3f' % line[0])
                 summary.append('Sigma for divergence: %0.1f' % line[1])
                 summary.append('Sigma for acceleration: %0.2f' % line[2])

@@ -26,10 +26,10 @@
 
 import os
 
-import pyworkflow.em as em
+import pwem
 import pyworkflow.utils as pwutils
 
-from pyworkflow.em.protocol.protocol_particles import ProtProcessParticles
+from pwem.protocols import ProtProcessParticles
 import pyworkflow.protocol.params as params
 
 import relion
@@ -82,13 +82,13 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
         """
         imgSet = self.inputParticles.get()
         self._stackType = self.stackType.get()
-        self._ih = em.ImageHandler()
+        self._ih = pwem.convert.ImageHandler()
         self._stackDict = {}
         particlesPath = self._getPath('Particles')
         pwutils.cleanPath(particlesPath)
         pwutils.makePath(particlesPath)
 
-        alignType = imgSet.getAlignment() if self.useAlignment else em.ALIGN_NONE
+        alignType = imgSet.getAlignment() if self.useAlignment else pwem.constnts.ALIGN_NONE
         # Create links to binary files and write the relion .star file
         relion.convert.writeSetOfParticles(
             imgSet, self._getPath("particles.star"),

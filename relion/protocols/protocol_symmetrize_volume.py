@@ -25,13 +25,13 @@
 # **************************************************************************
 
 import pyworkflow.protocol.params as params
-import pyworkflow.em as em
+import pwem
+from pwem.protocols import ProtAlignVolume
 
 import relion
-from .protocol_base import ProtRelionBase
 
 
-class ProtRelionSymmetrizeVolume(em.ProtAlignVolume):
+class ProtRelionSymmetrizeVolume(ProtAlignVolume):
     """
     Symmetrize a volume using Relion programs:
         *relion_align_symmetry* and *relion_image_handler*.
@@ -68,7 +68,7 @@ class ProtRelionSymmetrizeVolume(em.ProtAlignVolume):
         alignedFn = self._getPath('volume_aligned_sym%s.mrc' % sym)
         symFn = self._getPath('volume_sym%s.mrc' % sym)
 
-        em.ImageHandler().convert(self.inputVolume.get(), inFn)
+        pwem.convert.ImageHandler().convert(self.inputVolume.get(), inFn)
 
         self.runJob("relion_align_symmetry",
                     "--i %s --o %s --sym %s" % (inFn, alignedFn, sym))
@@ -77,7 +77,7 @@ class ProtRelionSymmetrizeVolume(em.ProtAlignVolume):
                     "--i %s --o %s --sym %s" % (alignedFn, symFn, sym))
 
         def _defineOutputVol(name, fn):
-            vol = em.Volume()
+            vol = pwem.objects.Volume()
             vol.copyInfo(self.inputVolume.get())
             vol.setLocation(fn)
             self._defineOutputs(**{name: vol})

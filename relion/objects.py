@@ -27,7 +27,10 @@
 # ******************************************************************************
 
 import numpy as np
-from itertools import izip
+try:
+    from itertools import izip
+except ImportError:
+    izip = zip
 
 import pyworkflow.object as pwobj
 
@@ -62,8 +65,8 @@ class CtfRefineGlobalInfo:
             dU, dV, _ = p.getCTF().getDefocus()
             return (dU + dV) / 2.0
 
-        for p1, p2 in izip(inputParts.iterItems(orderBy=['_micId', 'id']),
-                           outputParts.iterItems(orderBy=['_micId', 'id'])):
+        for p1, p2 in izip(inputParts.items(orderBy=['_micId', 'id']),
+                           outputParts.items(orderBy=['_micId', 'id'])):
             coord = p1.getCoordinate()
             micId = coord.getMicId()
 
