@@ -330,7 +330,7 @@ Examples:
         views = []
         
         for it in self._iterations:
-            fn = self.protocol._getIterData(it, alignType=pwem.ALIGN_PROJ)
+            fn = self.protocol._getIterData(it, alignType=pwem.constants.ALIGN_PROJ)
             if not os.path.exists(fn):
                 raise Exception("Missing data star file '%s'. \n"
                                 "Plese select a valid iteration. "
@@ -413,7 +413,7 @@ Examples:
 
             for row in md.iterRows('%s@%s' % ('model_classes', modelStar)):
                 i, fn = relion.convert.relionToLocation(row.getValue('rlnReferenceImage'))
-                if i == pwem.NO_INDEX: # the case for 3D classes
+                if i == pwem.constants.NO_INDEX: # the case for 3D classes
                     # NOTE: Since there is not an proper ID value in
                     #  the clases metadata, we are assuming that class X
                     # has a filename *_classXXX.mrc (as it is in Relion)

@@ -88,7 +88,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
         pwutils.cleanPath(particlesPath)
         pwutils.makePath(particlesPath)
 
-        alignType = imgSet.getAlignment() if self.useAlignment else pwem.constnts.ALIGN_NONE
+        alignType = imgSet.getAlignment() if self.useAlignment else pwem.constants.ALIGN_NONE
         # Create links to binary files and write the relion .star file
         relion.convert.writeSetOfParticles(
             imgSet, self._getPath("particles.star"),

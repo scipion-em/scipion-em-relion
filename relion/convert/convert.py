@@ -40,7 +40,7 @@ import pwem
 import pyworkflow.utils as pwutils
 from pyworkflow.object import ObjectWrap, String, Integer
 import pwem.metadata as md
-from pwem.constants import NO_INDEX
+from pwem.constants import NO_INDEX, ALIGN_2D, ALIGN_3D, ALIGN_PROJ
 import pwem.convert.transformations as tfs
 
 from relion.constants import *
@@ -196,9 +196,9 @@ def alignmentToRow(alignment, alignmentRow, alignType):
     invTransform == True  -> for xmipp implies projection
                           -> for xmipp implies alignment
     """
-    is2D = alignType == pwem.ALIGN_2D
-    is3D = alignType == pwem.ALIGN_3D
-    inverseTransform = alignType == pwem.ALIGN_PROJ
+    is2D = alignType == ALIGN_2D
+    is3D = alignType == ALIGN_3D
+    inverseTransform = alignType == ALIGN_PROJ
     matrix = alignment.getMatrix()
     shifts, angles = geometryFromMatrix(matrix, inverseTransform)
 
@@ -232,13 +232,13 @@ def rowToAlignment(alignmentRow, alignType):
             otherwise matrix is 3D (3D volume alignment or projection)
     invTransform == True  -> for xmipp implies projection
     """
-    if alignType == pwem.ALIGN_3D:
+    if alignType == ALIGN_3D:
         raise Exception("3D alignment conversion for Relion not implemented.")
 
-    is2D = alignType == pwem.ALIGN_2D
-    inverseTransform = alignType == pwem.ALIGN_PROJ
+    is2D = alignType == ALIGN_2D
+    inverseTransform = alignType == ALIGN_PROJ
     if alignmentRow.containsAny(ALIGNMENT_DICT):
-        alignment = pwem.Transform()
+        alignment = pwem.objects.Transform()
         angles = np.zeros(3)
         shifts = np.zeros(3)
         shifts[0] = alignmentRow.getValue(md.RLN_ORIENT_ORIGIN_X, 0.)
@@ -319,7 +319,7 @@ def imageToRow(img, imgRow, imgLabel=md.RLN_IMAGE_NAME, **kwargs):
     # and detected defaults if not passed at readSetOf.. level
     alignType = kwargs.get('alignType') 
     
-    if alignType != pwem.ALIGN_NONE and img.hasTransform():
+    if alignType != ALIGN_NONE and img.hasTransform():
         alignmentToRow(img.getTransform(), imgRow, alignType)
                 
     if kwargs.get('writeAcquisition', True) and img.hasAcquisition():
@@ -388,7 +388,7 @@ def rowToParticle(partRow, particleClass=pwem.objects.Particle, **kwargs):
     # and detected defaults if not passed at readSetOf.. level
     alignType = kwargs.get('alignType') 
     
-    if alignType != pwem.ALIGN_NONE:
+    if alignType != ALIGN_NONE:
         img.setTransform(rowToAlignment(partRow, alignType))
         
     if kwargs.get('readAcquisition', True):
