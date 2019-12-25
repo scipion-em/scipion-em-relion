@@ -27,6 +27,7 @@
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 import pwem.metadata as md
+from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtParticles
 from pyworkflow.object import Float
 
@@ -147,7 +148,7 @@ class ProtRelionCtfRefinement(ProtParticles):
 
         relion.convert.writeSetOfParticles(inputParts, imgStar,
                                            self._getExtraPath(),
-                                           alignType=em.ALIGN_PROJ,
+                                           alignType=ALIGN_PROJ,
                                            fillMagnification=True,
                                            fillRandomSubset=True)
 

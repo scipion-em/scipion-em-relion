@@ -29,6 +29,7 @@
 from pwem.protocols import ProtInitialVolume
 import pwem.metadata as md
 import pwem.constants as emcts
+from pwem.objects import Volume
 from pyworkflow.protocol.params import (PointerParam, FloatParam,
                                         LabelParam, IntParam,
                                         EnumParam, StringParam,
@@ -354,8 +355,8 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         volumes = []
 
         for i in range(1, k + 1):
-            vol = pwem.objects.Volume(self._getExtraPath('relion_it%03d_class%03d.mrc')
-                               % (lastIter, i))
+            vol = Volume(self._getExtraPath('relion_it%03d_class%03d.mrc')
+                         % (lastIter, i))
             vol.setSamplingRate(pixelSize)
             volumes.append(vol)
 

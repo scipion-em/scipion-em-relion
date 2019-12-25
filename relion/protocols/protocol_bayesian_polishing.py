@@ -31,6 +31,7 @@ import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 from pwem.protocols import ProtParticles
 import pwem.metadata as md
+from pwem.constants import ALIGN_PROJ
 
 import relion
 from relion.convert.metadata import Table
@@ -258,7 +259,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
 
         relion.convert.writeSetOfParticles(inputParts, imgStar,
                                            inputPartsFolder,
-                                           alignType=em.ALIGN_PROJ,
+                                           alignType=ALIGN_PROJ,
                                            fillMagnification=True,
                                            fillRandomSubset=True)
 

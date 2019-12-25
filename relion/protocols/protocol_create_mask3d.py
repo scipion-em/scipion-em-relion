@@ -26,6 +26,7 @@
 
 import pyworkflow.protocol.params as params
 from pwem.protocols import ProtCreateMask3D
+from pwem.objects import VolumeMask
 
 import relion
 import relion.convert
@@ -154,7 +155,7 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
         return [self.maskFile]
 
     def createOutputStep(self):
-        volMask = pwem.objects.VolumeMask()
+        volMask = VolumeMask()
         volMask.setFileName(self.maskFile)
         volMask.setSamplingRate(self.inputVolume.get().getSamplingRate())
 

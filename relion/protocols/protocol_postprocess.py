@@ -32,6 +32,8 @@ import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 from pwem.protocols import ProtAnalysis3D
 import pwem.metadata as md
+from pwem.convert import ImageHandler
+from pwem.objects import Volume
 
 import relion
 
@@ -179,7 +181,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
         dim = outVol.getXDim()
         vols = outVol.getHalfMaps().split(',')
         vols.insert(0, outVol.getFileName())
-        ih = pwem.convert.ImageHandler()
+        ih = ImageHandler()
 
         relion.convert.convertMask(self.solventMask.get(),
                                    self._getFileName('mask'), newDim=dim)
@@ -198,7 +200,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
         self.runJob(program, params)
 
     def createOutputStep(self):
-        volume = pwem.objects.Volume()
+        volume = Volume()
         volume.setFileName(self._getFileName('outputVolume'))
         vol = self.protRefine.get().outputVolume
         volume.setSamplingRate(self._getOutputPixelSize())

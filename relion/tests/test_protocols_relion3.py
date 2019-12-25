@@ -27,8 +27,8 @@
 import os
 
 import pyworkflow.tests as pwtests
-from pwem.test.workflows import TestWorkflow
-import pwem
+from pwem.tests.workflows import TestWorkflow
+from pwem.protocols import ProtImportMovies
 
 import relion
 import relion.protocols
@@ -47,7 +47,7 @@ class Relion3TestProtocolBase(TestWorkflow):
     @classmethod
     def _importMovies(cls, **kwargs):
         protImport = cls.newProtocol(
-            pwem.protocols.ProtImportMovies,
+            ProtImportMovies,
             filesPath=cls.ds.getFile('Movies/'),
             filesPattern=kwargs.get('filesPattern','*.tiff'),
             samplingRateMode=0,

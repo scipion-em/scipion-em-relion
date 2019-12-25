@@ -30,6 +30,8 @@ import pyworkflow.utils as pwutils
 from pyworkflow.protocol.constants import STATUS_FINISHED
 import pyworkflow.protocol.params as params
 from pwem.protocols import ProtExtractParticles
+from pwem.convert import ImageHandler
+from pwem.objects import Particle
 import pwem.metadata as md
 import pwem.constants as emcts
 
@@ -120,7 +122,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         self._setupBasicProperties()
 
         # used to convert micrographs if not in .mrc format
-        self._ih = pwem.convert.ImageHandler()
+        self._ih = ImageHandler()
 
         # dict to map between micrographs and its coordinates file
         self._micCoordStarDict = {}
@@ -286,7 +288,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         """ Read the particles extract for the given list of micrographs
         and update the outputParts set with new items.
         """
-        p = pwem.objects.Particle()
+        p = Particle()
 
         # Let's create a dict with the names of the mic in Relion star files
         # and also create a set with all star files to iterate them once
