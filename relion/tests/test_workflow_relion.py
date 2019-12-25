@@ -36,7 +36,7 @@ from relion.protocols import *
 from relion.constants import (RUN_OPTIMIZE, REF_AVERAGES,
                               RUN_COMPUTE, REF_BLOBS)
 
-ProtCTFFind = Domain.importFromPlugin('grigoriefflab.protocols', 'ProtCTFFind')
+ProtCTFFind = Domain.importFromPlugin('cistem.protocols', 'CistemProtCTFFind')
 XmippProtPreprocessMicrographs = Domain.importFromPlugin(
     'xmipp3.protocols', 'XmippProtPreprocessMicrographs')
 

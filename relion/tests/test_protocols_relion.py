@@ -621,38 +621,38 @@ class TestRelionPostprocess(TestRelionBase):
         self.launchProtocol(postProt)
         self._validations(postProt.outputVolume, 60, 3, "Relion auto-refine")
         
-    def test_postProcess_from_frealign(self):
-        ProtFrealign = Domain.importFromPlugin(
-            'grigoriefflab.protocols', 'ProtFrealign')
-
-        protRef, protMask = self._createRef3DProtBox(
-            "frealign", ProtFrealign, storeIter=True, iterN=2)
-
-        pwutils.makePath(join(protRef._getExtraPath(), 'iter_002'))
-        protRef._createFilenameTemplates()
-        volPath = protRef._getFileName('iter_vol', iter=2).split(':')[0]
-        volHalf1 = protRef._getFileName('iter_vol1', iter=2).split(':')[0]
-        volHalf2 = protRef._getFileName('iter_vol2', iter=2).split(':')[0]
-
-        pwutils.copyFile(self.volFn, volPath)
-        pwutils.copyFile(self.half1Fn, volHalf1)
-        pwutils.copyFile(self.half2Fn, volHalf2)
-
-        protRef.outputVolume.setFileName(volPath)
-        protRef.outputVolume.setHalfMaps([volHalf1, volHalf2])
-        project = protRef.getProject()
-        project._storeProtocol(protRef)
-
-        postProt = self.newProtocol(ProtRelionPostprocess,
-                                    protRefine=protRef,
-                                    solventMask=protMask.outputMask)
-        postProt.setObjLabel('post process frealign')
-        self.launchProtocol(postProt)
-        self._validations(postProt.outputVolume, 60, 3, "Frealign")
+    # def test_postProcess_from_frealign(self):
+    #     ProtFrealign = Domain.importFromPlugin(
+    #         'grigoriefflab.protocols', 'ProtFrealign')
+    #
+    #     protRef, protMask = self._createRef3DProtBox(
+    #         "frealign", ProtFrealign, storeIter=True, iterN=2)
+    #
+    #     pwutils.makePath(join(protRef._getExtraPath(), 'iter_002'))
+    #     protRef._createFilenameTemplates()
+    #     volPath = protRef._getFileName('iter_vol', iter=2).split(':')[0]
+    #     volHalf1 = protRef._getFileName('iter_vol1', iter=2).split(':')[0]
+    #     volHalf2 = protRef._getFileName('iter_vol2', iter=2).split(':')[0]
+    #
+    #     pwutils.copyFile(self.volFn, volPath)
+    #     pwutils.copyFile(self.half1Fn, volHalf1)
+    #     pwutils.copyFile(self.half2Fn, volHalf2)
+    #
+    #     protRef.outputVolume.setFileName(volPath)
+    #     protRef.outputVolume.setHalfMaps([volHalf1, volHalf2])
+    #     project = protRef.getProject()
+    #     project._storeProtocol(protRef)
+    #
+    #     postProt = self.newProtocol(ProtRelionPostprocess,
+    #                                 protRefine=protRef,
+    #                                 solventMask=protMask.outputMask)
+    #     postProt.setObjLabel('post process frealign')
+    #     self.launchProtocol(postProt)
+    #     self._validations(postProt.outputVolume, 60, 3, "Frealign")
 
     def test_postProcess_from_projMatch(self):
         XmippProtProjMatch = Domain.importFromPlugin('xmipp3.protocols',
-                                                       'XmippProtProjMatch')
+                                                     'XmippProtProjMatch')
 
         protRef, protMask = self._createRef3DProtBox(
             "Proj Match", XmippProtProjMatch, storeIter=True, iterN=2)
