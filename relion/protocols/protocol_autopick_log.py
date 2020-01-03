@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -30,7 +30,7 @@ import pyworkflow.protocol.params as params
 from pyworkflow.protocol import STEPS_SERIAL
 from pwem.protocols import ProtParticlePickingAuto
 
-import relion
+from .. import Plugin
 from .protocol_autopick import ProtRelionAutopickBase
 
 
@@ -43,7 +43,7 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
 
     @classmethod
     def isDisabled(cls):
-        return not relion.Plugin.isVersion3Active()
+        return not Plugin.isVersion3Active()
 
     def __init__(self, **kwargs):
         ProtParticlePickingAuto.__init__(self, **kwargs)
@@ -68,7 +68,7 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
         group = form.addGroup('Laplacian of Gaussian')
 
         line = group.addLine('Diameter for LoG filter (A)',
-                            help="Min and Max of LoG filter")
+                             help="Min and Max of LoG filter")
 
         line.addParam('minDiameter', params.IntParam, default=200,
                       label='Min')
@@ -77,10 +77,10 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
                       label='Max')
 
         group.addParam('areParticlesWhite', params.BooleanParam,
-                      default=False,
-                      label='Are the particles white?',
-                      help='Set this option to No if the particles are black, '
-                           'and to Yes if the particles are white.')
+                       default=False,
+                       label='Are the particles white?',
+                       help='Set this option to No if the particles are black, '
+                            'and to Yes if the particles are white.')
 
         group.addParam('maxResolution', params.FloatParam, default=20,
                        label='Maximum resolution to consider (A)',

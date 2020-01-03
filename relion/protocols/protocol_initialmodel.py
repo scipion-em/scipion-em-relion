@@ -8,7 +8,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -35,13 +35,14 @@ from pyworkflow.protocol.params import (PointerParam, FloatParam,
                                         EnumParam, StringParam,
                                         BooleanParam,
                                         LEVEL_ADVANCED)
-import relion
-import relion.convert
-from relion.constants import V2_0, ANGULAR_SAMPLING_LIST
+
+from .. import Plugin
+import relion.convert as convert
+from ..constants import V2_0, ANGULAR_SAMPLING_LIST
 from .protocol_base import ProtRelionBase
 
 
-IS_V3 = relion.Plugin.isVersion3Active()
+IS_V3 = Plugin.isVersion3Active()
 
 
 class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
@@ -59,7 +60,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
 
     @classmethod
     def isDisabled(cls):
-        return relion.Plugin.getActiveVersion() in [V2_0]
+        return Plugin.getActiveVersion() in [V2_0]
 
     def __init__(self, **args):
         ProtRelionBase.__init__(self, **args)
@@ -428,7 +429,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         """ Should be overwritten in subclasses to
         return summary messages for CONTINUE EXECUTION.
         """
-        summary = []
+        summary = list()
         summary.append("Continue from iteration %01d" % self._getContinueIter())
         return summary
 
@@ -484,5 +485,4 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                                          sortByLabel=md.RLN_IMAGE_ID))
 
     def _createItemMatrix(self, item, row):
-        relion.convert.createItemMatrix(item, row, align=emcts.ALIGN_PROJ)
-
+        convert.createItemMatrix(item, row, align=emcts.ALIGN_PROJ)

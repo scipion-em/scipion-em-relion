@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -36,13 +36,13 @@ from pyworkflow.utils.properties import Message
 import pyworkflow.utils as pwutils
 from pwem.convert.utils import getSubsetByDefocus
 
-import relion
-import relion.convert
-from relion.constants import *
+from .. import Plugin
+import relion.convert as convert
+from ..constants import *
 from .protocol_base import ProtRelionBase
 
 
-IS_V3 = relion.Plugin.isVersion3Active()
+IS_V3 = Plugin.isVersion3Active()
 
 
 class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
@@ -154,7 +154,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         pointerClassStr = 'SetOfAverages'
         # In Relion 3 it is also possible to pass a volume as reference for
         # autopicking
-        if relion.Plugin.isVersion3Active():
+        if Plugin.isVersion3Active():
             pointerClassStr += ",Volume"
 
         group.addParam('inputReferences', params.PointerParam,
@@ -384,7 +384,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         return [convertId]
 
     def _doNothing(self, *args):
-        pass # used to avoid some streaming functions
+        pass  # used to avoid some streaming functions
 
     def _loadInputList(self):
         """ This function is re-implemented in this protocol, because it have
@@ -411,7 +411,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         # runType is passed as parameter to force a re-execute of this step
         # if there is a change in the type
 
-        self._ih = ImageHandler() # used to convert micrographs
+        self._ih = ImageHandler()  # used to convert micrographs
         # Match ctf information against the micrographs
         self.ctfDict = {}
         if self.ctfRelations.get() is not None:
@@ -419,16 +419,16 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                 self.ctfDict[ctf.getMicrograph().getMicName()] = ctf.clone()
 
         micStar = self._getPath('input_micrographs.star')
-        relion.convert.writeSetOfMicrographs(
+        convert.writeSetOfMicrographs(
             self.getMicrographList(), micStar,
             alignType=ALIGN_NONE,
             preprocessImageRow=self._preprocessMicrographRow,
             hasOptics=self._hasOptics())
 
         if self.useInputReferences():
-            relion.convert.writeReferences(self.getInputReferences(),
-                                           self._getPath('input_references'),
-                                           useBasename=True)
+            convert.writeReferences(self.getInputReferences(),
+                                    self._getPath('input_references'),
+                                    useBasename=True)
 
         # FIXME: (JMRT-20180523) The following code does not seems to work
         # here it has been worked around by changing the name of the wizard
@@ -524,7 +524,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         """
         micRow = md.Row()
         self._preprocessMicrographRow(mic, micRow)
-        relion.convert.micrographToRow(mic, micRow)
+        convert.micrographToRow(mic, micRow)
         self._postprocessMicrographRow(mic, micRow)
         self._pickMicrographsFromStar(self._getMicStarFile(mic), params,
                                       threshold, minDistance, maxStddevNoise,
@@ -535,7 +535,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                             minAvgNoise):
         micStar = self._getPath('input_micrographs_%s-%s.star' %
                                 (micList[0].strId(), micList[-1].strId()))
-        relion.convert.writeSetOfMicrographs(
+        convert.writeSetOfMicrographs(
             micList, micStar,
             alignType=ALIGN_NONE,
             preprocessImageRow=self._preprocessMicrographRow,
@@ -559,7 +559,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         template = self._getExtraPath("%s_autopick.star")
         starFiles = [template % pwutils.removeBaseExt(mic.getFileName())
                      for mic in micList]
-        relion.convert.readSetOfCoordinates(coordSet, starFiles, micList)
+        convert.readSetOfCoordinates(coordSet, starFiles, micList)
 
     # -------------------------- STEPS functions -------------------------------
     def autopickStep(self, micStarFile, params, threshold,
@@ -593,7 +593,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         template = self._getExtraPath("%s_autopick.star")
         starFiles = [template % pwutils.removeBaseExt(mic.getFileName())
                      for mic in micSet]
-        relion.convert.readSetOfCoordinates(coordSet, starFiles, micSet)
+        convert.readSetOfCoordinates(coordSet, starFiles, micSet)
 
         self._defineOutputs(**{outputCoordinatesName: coordSet})
         self._defineSourceRelation(self.getInputMicrographsPointer(),
@@ -711,7 +711,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
             boxSize = int(inputRefs.getXDim() * scale)
 
         if boxSize % 2 == 1:
-            boxSize += 1 # Use even box size for relion
+            boxSize += 1  # Use even box size for relion
 
         return boxSize
                 
@@ -751,7 +751,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         pwutils.cleanPath(coordPath)
         pwutils.makePath(coordPath)
         micPath = micSet.getFileName()
-        relion.convert.writeSetOfCoordinatesXmipp(coordPath, coordSet, ismanual=False)
+        convert.writeSetOfCoordinatesXmipp(coordPath, coordSet, ismanual=False)
         return micPath, coordPath
 
     def writeXmippOutputCoords(self):
@@ -766,7 +766,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         coordSet.setBoxSize(self.getBoxSize())
         starFiles = [self._getExtraPath(pwutils.removeBaseExt(mic.getFileName())
                                         + '_autopick.star') for mic in micSet]
-        relion.convert.readSetOfCoordinates(coordSet, starFiles)
+        convert.readSetOfCoordinates(coordSet, starFiles)
         return self._writeXmippCoords(coordSet)
 
     def _preprocessMicrographRow(self, img, imgRow):
@@ -797,4 +797,4 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         return self._getExtraPath(micBase)
 
     def _hasOptics(self):
-        return relion.Plugin.hasOpticsGroup()
+        return Plugin.hasOpticsGroup()

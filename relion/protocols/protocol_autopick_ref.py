@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -34,10 +34,9 @@ from pyworkflow.utils.properties import Message
 import pyworkflow.utils as pwutils
 from pwem.convert.utils import getSubsetByDefocus
 
-import relion
-import relion.convert
-from relion.convert.metadata import Table
-from relion.constants import *
+import relion.convert as convert
+from ..convert.metadata import Table
+from ..constants import *
 from .protocol_autopick import ProtRelionAutopickBase
 
 
@@ -315,7 +314,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         self.inputStreaming = self.getInputMicrographs().isStreamOpen()
 
         if ((self.streamingBatchSize > 0 or self.inputStreaming)
-            and not self.isRunOptimize()):
+                and not self.isRunOptimize()):
             # If the input is in streaming, follow the base class policy
             # about inserting new steps and discovery new input/output
             self.createOutputStep = self._doNothing
@@ -379,7 +378,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
 
         inputRefs = self.getInputReferences()
         if self.useInputReferences():
-            relion.convert.writeReferences(
+            convert.writeReferences(
                 inputRefs, self._getPath('reference_2d'), useBasename=True)
         else:
             ImageHandler().convert(inputRefs, self._getPath('reference_3d.mrc'))

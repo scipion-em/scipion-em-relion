@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -41,8 +41,8 @@ from pwem.protocols import ProtAlignMovies
 from pyworkflow.gui.plotter import Plotter
 from pyworkflow.protocol import STEPS_SERIAL
 
-import relion
-import relion.convert
+from .. import Plugin
+import relion.convert as convert
 import relion.convert.metadata as md
 
 
@@ -55,7 +55,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
     @classmethod
     def isDisabled(cls):
-        return not relion.Plugin.isVersion3Active()
+        return not Plugin.isVersion3Active()
 
     def __init__(self, **kwargs):
 
@@ -193,7 +193,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                  '%s_input.star' % self._getMovieRoot(movie))
         pwutils.makePath(os.path.join(movieFolder, 'output'))
 
-        writer = relion.convert.Writer()
+        writer = convert.Writer()
         # Let's use only the basename, since we will launch the command
         # from the movieFolder
         movie.setFileName(os.path.basename(movie.getFileName()))
@@ -372,7 +372,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                   outputFn=self._getOutputMicThumbnail(movie))
 
         if self.doComputePSD:
-            #fakeShiftsFn = self.writeZeroShifts(movie)
+            # fakeShiftsFn = self.writeZeroShifts(movie)
             movieFn = movie.getFileName()
             aveMicFn = os.path.join(movieFolder,
                                     pwutils.removeBaseExt(movieFn) + "_tmp.mrc")
@@ -381,8 +381,8 @@ class ProtRelionMotioncor(ProtAlignMovies):
                               dark=inputMovies.getDark(),
                               gain=inputMovies.getGain())
 
-            self.computePSDs(movie, aveMicFn, outMicFn,
-                             outputFnCorrected=self._getPsdJpeg(movie))
+            self.computePSDImages(movie, aveMicFn, outMicFn,
+                                  outputFnCorrected=self._getPsdJpeg(movie))
 
         self._saveAlignmentPlots(movie, inputMovies.getSamplingRate())
 
@@ -479,7 +479,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                            % (inputSize - outputSize)))
 
     def _isVersion31(self):
-        return relion.Plugin.isVersion31Active()
+        return Plugin.isVersion31Active()
 
     def _calcPsDose(self):
         _, dose = self._getCorrectedDose(self.inputMovies.get())

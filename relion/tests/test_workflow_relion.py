@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -31,10 +31,9 @@ from pyworkflow.tests import *
 from pyworkflow.plugin import Domain
 from pwem.tests.workflows import TestWorkflow
 
-import relion
-from relion.protocols import *
-from relion.constants import (RUN_OPTIMIZE, REF_AVERAGES,
-                              RUN_COMPUTE, REF_BLOBS)
+from ..protocols import *
+from ..constants import (RUN_OPTIMIZE, REF_AVERAGES,
+                         RUN_COMPUTE, REF_BLOBS)
 
 ProtCTFFind = Domain.importFromPlugin('cistem.protocols', 'CistemProtCTFFind')
 XmippProtPreprocessMicrographs = Domain.importFromPlugin(
@@ -70,7 +69,7 @@ class TestWorkflowRelionPick(TestWorkflow):
                                 (outputName, pickProt.getRunName()))
 
     def _runPickWorkflow(self):
-        #First, import a set of micrographs
+        # First, import a set of micrographs
         print("Importing a set of micrographs...")
         protImport = self.newProtocol(ProtImportMicrographs,
                                       filesPath=self.ds.getFile('micrographs'),
@@ -127,7 +126,6 @@ class TestWorkflowRelionPick(TestWorkflow):
 
         self.launchProtocol(protAvgs)
 
-
         # Select some good averages from the iterations mrcs a
 
         protPick1 = self.newProtocol(
@@ -158,7 +156,7 @@ class TestWorkflowRelionPick(TestWorkflow):
 
         # Launch now using the Gaussian as references
         protPick3 = self.proj.copyProtocol(protPick1)
-        if relion.Plugin.isVersion3Active():
+        if Plugin.isVersion3Active():
             print("Importing volume")
             volFn = self.ds.getFile('import/case2/volume.mrc')
             protVol = self.newProtocol(ProtImportVolumes,
@@ -181,7 +179,7 @@ class TestWorkflowRelionPick(TestWorkflow):
         self._launchPick(protPick4)
 
     def test_ribo_LoG(self):
-        if relion.Plugin.isVersion2Active():
+        if Plugin.isVersion2Active():
             print("LoG picker requires Relion 3.0 or greater. Skipping test...")
             return
 

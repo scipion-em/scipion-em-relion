@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -25,6 +25,7 @@
 # **************************************************************************
 
 import os
+from io import open
 from os.path import exists
 from math import radians
 
@@ -37,17 +38,13 @@ import pyworkflow.protocol.params as params
 from pyworkflow.viewer import (Viewer, ProtocolViewer,
                                DESKTOP_TKINTER, WEB_DJANGO)
 from pwem.viewers import (EmPlotter, ObjectView, ChimeraView,
-                                   ChimeraClientView, ClassesView,
-                                   Classes3DView, FscViewer, DataView,
-                                   MicrographsView)
+                          ChimeraClientView, ClassesView,
+                          Classes3DView, FscViewer, DataView,
+                          MicrographsView, EmProtocolViewer)
 
-import relion
-import relion.convert
-from relion.protocols import (
-    ProtRelionClassify2D, ProtRelionClassify3D, ProtRelionRefine3D,
-    ProtRelionPolish, ProtRelionPostprocess, ProtRelionSortParticles,
-    ProtRelionInitialModel, ProtRelionLocalRes, ProtRelionMotioncor)
-from relion.constants import *
+import relion.convert as convert
+from ..protocols import *
+from ..constants import *
 
 
 class RelionPlotter(EmPlotter):
@@ -65,7 +62,7 @@ class RelionPlotter(EmPlotter):
         
         self.plotAngularDistribution(title, rot, tilt, weight)
 
-    def plotMd(self, mdObj, mdLabelX, mdLabelY, color='g',**args):
+    def plotMd(self, mdObj, mdLabelX, mdLabelY, color='g', **args):
         """ plot metadata columns mdLabelX and mdLabelY
             if nbins is in args then and histogram over y data is made
         """
@@ -90,7 +87,7 @@ class RelionPlotter(EmPlotter):
             if nbins is in args then and histogram over y data is made
         """
         mdObj = md.MetaData(mdFilename)
-        self.plotMd(mdObj, mdLabelX, mdLabelY, color='g',**args)
+        self.plotMd(mdObj, mdLabelX, mdLabelY, color='g', **args)
 
 
 def protected_show(showFunc):
@@ -104,7 +101,7 @@ def protected_show(showFunc):
     return protectedShowFunc
 
 
-class RelionViewer(ProtocolViewer):
+class RelionViewer(EmProtocolViewer):
     """ Visualization of Relion results.
 
     (for protocols classify 2d/3d, 3d auto-refine and initial model)
@@ -233,11 +230,11 @@ Examples:
                       help='Visualize changes in orientation, offset and\n '
                            'number images assigned to each class')
         if self.protocol.IS_CLASSIFY:
-          form.addParam('plotClassDistribution', params.LabelParam,
-                        default=True,
-                        label='Plot class distribution over iterations',
-                        help='Plot each class distribution over iterations as '
-                             'bar plots.')
+            form.addParam('plotClassDistribution', params.LabelParam,
+                          default=True,
+                          label='Plot class distribution over iterations',
+                          help='Plot each class distribution over iterations as '
+                               'bar plots.')
                                               
     def _getVisualizeDict(self):
         self._load()
@@ -272,10 +269,9 @@ Examples:
     def _viewAll(self, *args):
         pass
 
-    
-#==============================================================================
+# =============================================================================
 # showImagesInClasses     
-#==============================================================================
+# =============================================================================
     def _getZoom(self):
         # Ensure that classes are shown at least at 128 px to 
         # properly see the rlnClassDistribution label. 
@@ -294,7 +290,7 @@ Examples:
         """
         views = []
         if (self.viewIter == ITER_LAST and
-            getattr(self.protocol, 'outputClasses', None) is not None):
+                getattr(self.protocol, 'outputClasses', None) is not None):
             fn = self.protocol.outputClasses.getFileName()
             v = self.createScipionView(fn)
             views.append(v)
@@ -322,9 +318,9 @@ Examples:
             views.append(v)
         return views        
 
-#==============================================================================
+# =============================================================================
 # showImagesAngularAssignment     
-#==============================================================================
+# =============================================================================
     @protected_show
     def _showImagesAngularAssignment(self, paramName=None):
         views = []
@@ -353,9 +349,10 @@ Examples:
             v = self.createDataView(optimiserFile)
             views.append(v)
         return views
-#==============================================================================
+
+# =============================================================================
 # showLLRelion
-#==============================================================================
+# =============================================================================
     def _showLL(self, paramName=None):
         views = []
         for it in self._iterations:
@@ -364,9 +361,9 @@ Examples:
             
         return views
 
-#==============================================================================
+# =============================================================================
 # ShowPMax
-#==============================================================================
+# =============================================================================
     def _showPMax(self, paramName=None):
         labels = [md.RLN_MLMODEL_AVE_PMAX, md.RLN_PARTICLE_PMAX]
         mdIters = md.MetaData()
@@ -412,8 +409,8 @@ Examples:
             modelStar = self.protocol._getFileName('model', iter=it)
 
             for row in md.iterRows('%s@%s' % ('model_classes', modelStar)):
-                i, fn = relion.convert.relionToLocation(row.getValue('rlnReferenceImage'))
-                if i == pwem.constants.NO_INDEX: # the case for 3D classes
+                i, fn = convert.relionToLocation(row.getValue('rlnReferenceImage'))
+                if i == pwem.constants.NO_INDEX:  # the case for 3D classes
                     # NOTE: Since there is not an proper ID value in
                     #  the clases metadata, we are assuming that class X
                     # has a filename *_classXXX.mrc (as it is in Relion)
@@ -454,7 +451,7 @@ Examples:
             import matplotlib.colors as colors
             """Returns a function that maps each index in 0, 1, ... N-1 to a distinct
             RGB color."""
-            color_norm = colors.Normalize(vmin=0, vmax=N)#-1)
+            color_norm = colors.Normalize(vmin=0, vmax=N)  # -1)
             scalar_map = cmx.ScalarMappable(norm=color_norm, cmap='hsv')
 
             def map_index_to_rgb_color(index):
@@ -476,9 +473,9 @@ Examples:
 
         return [xplotter]
     
-#==============================================================================
+# =============================================================================
 # ShowChanges    
-#==============================================================================
+# =============================================================================
     def _showChanges(self, paramName=None):
         mdIters = md.MetaData()
         print("Computing average changes in offset, angles, and class membership")
@@ -499,9 +496,9 @@ Examples:
         
         return [self.createDataView(fn)]
     
-#==============================================================================
+# =============================================================================
 # ShowVolumes
-#==============================================================================
+# =============================================================================
     @protected_show
     def _showVolumes(self, paramName=None):
         if self.displayVol == VOLUME_CHIMERA:
@@ -545,14 +542,14 @@ Examples:
             f.close()
             view = ChimeraView(cmdFile)
         else:
-            #view = CommandView('xmipp_chimera_client --input "%s" --mode projector 256 &' % volumes[0])
+            # view = CommandView('xmipp_chimera_client --input "%s" --mode projector 256 &' % volumes[0])
             view = ChimeraClientView(volumes[0])
             
         return [view]
     
-#==============================================================================
+# =============================================================================
 # showAngularDistribution
-#==============================================================================
+# =============================================================================
     @protected_show
     def _showAngularDistribution(self, paramName=None):
         views = []
@@ -613,7 +610,7 @@ Examples:
             title = 'Iteration %d' % it
         
         plotter = RelionPlotter(x=gridsize[0], y=gridsize[1], 
-                                 mainTitle=title, windowTitle="Angular Distribution")
+                                mainTitle=title, windowTitle="Angular Distribution")
         for prefix in prefixes:
             for ref3d in self._refsList:
                 dataStar = self._getDataStar(prefix, it)
@@ -636,9 +633,9 @@ Examples:
             else:
                 return
     
-#==============================================================================
+# =============================================================================
 # plotSSNR              
-#==============================================================================
+# =============================================================================
 
     def _getFigure(self):
         return None if self.figure == 0 else 'active'
@@ -678,35 +675,35 @@ Examples:
         a.plot(resolution_inv, frc, label=label)
         a.xaxis.set_major_formatter(self._plotFormatter)               
  
-#==============================================================================
+# =============================================================================
 # plotFSC            
-#==============================================================================
+# =============================================================================
     def _showFSC(self, paramName=None):
-        #self._iterations = self._getListFromRangeString(self.iterSelection.get())
-        print("_showFSC_self._iterations",self._iterations)
+        # self._iterations = self._getListFromRangeString(self.iterSelection.get())
+        print("_showFSC_self._iterations", self._iterations)
         threshold = self.resolutionThresholdFSC.get()
         prefixes = self._getPrefixes()        
         nrefs = len(self._refsList)
         n = nrefs * len(prefixes)
-        #gridsize = self._getGridSize(n)
+        # gridsize = self._getGridSize(n)
         
         md.activateMathExtensions()
         
         fscViewer = FscViewer(project=self.protocol.getProject(),
-                                 threshold=threshold,
-                                 protocol=self.protocol,
-                                 figure=self._getFigure(),
-                                 addButton=True)
+                              threshold=threshold,
+                              protocol=self.protocol,
+                              figure=self._getFigure(),
+                              addButton=True)
         fscSet = self.protocol._createSetOfFSCs()
         for prefix in prefixes:
-            for ref3d in self._refsList:#ROB: I believe len(_refsList)==1
-                #plot_title = prefix + 'class %s' % ref3d
+            for ref3d in self._refsList:  # ROB: I believe len(_refsList)==1
+                # plot_title = prefix + 'class %s' % ref3d
                 blockName = 'model_class_%d@' % ref3d
                 for it in self._iterations:
                     model_star = self._getModelStar(prefix, it)
 
                     if exists(model_star):
-                        #fnFSC = blockName + model_star
+                        # fnFSC = blockName + model_star
                         fsc = self._plotFSC(None, blockName + model_star,
                                             'iter %d' % it)
                         fscSet.append(fsc)
@@ -723,11 +720,9 @@ Examples:
 
         return fsc
 
-
-    
-#==============================================================================
+# =============================================================================
 # Utils Functions
-#==============================================================================
+# =============================================================================
     def _validate(self):
         if self.lastIter is None:
             return ['There are not iterations completed.'] 
@@ -736,20 +731,20 @@ Examples:
         return DataView(filename, env=self._env, viewParams=viewParams)
 
     def createScipionView(self, filename):
-        labels =  'enabled id _size _representative._filename '
+        labels = 'enabled id _size _representative._filename '
         labels += '_rlnclassDistribution _rlnAccuracyRotations _rlnAccuracyTranslations'
         viewParams = {showj.ORDER: labels,
                       showj.VISIBLE: labels, 
-                      showj.RENDER:'_representative._filename',
+                      showj.RENDER: '_representative._filename',
                       showj.SORT_BY: '_size desc',
                       showj.ZOOM: str(self._getZoom())
                       }
         inputParticlesId = self.protocol.inputParticles.get().strId()
         ViewClass = ClassesView if self.protocol.IS_2D else Classes3DView
         view = ViewClass(self._project,
-                          self.protocol.strId(), filename, other=inputParticlesId,
-                          env=self._env,
-                          viewParams=viewParams)
+                         self.protocol.strId(), filename, other=inputParticlesId,
+                         env=self._env,
+                         viewParams=viewParams)
 
         return view
 
@@ -757,14 +752,14 @@ Examples:
         inputParticlesId = self.protocol._getInputParticles().strId()
         
         labels = 'enabled id _size _filename _transform._matrix'
-        viewParams = {showj.ORDER:labels,
-                      showj.VISIBLE: labels, showj.RENDER:'_filename',
+        viewParams = {showj.ORDER: labels,
+                      showj.VISIBLE: labels, showj.RENDER: '_filename',
                       'labels': 'id',
                       }
         return ObjectView(self._project,
-                             self.protocol.strId(), filename, other=inputParticlesId,
-                             env=self._env,
-                             viewParams=viewParams)
+                          self.protocol.strId(), filename, other=inputParticlesId,
+                          env=self._env,
+                          viewParams=viewParams)
 
     def _getRange(self, var, label):
         """ Check if the range is not empty.
@@ -802,7 +797,7 @@ Examples:
         
         halves = getattr(self, 'showHalves', None)
         if (self.viewIter.get() == ITER_LAST or
-            (halves == 3 and not self.protocol.IS_3D_INIT)):
+                (halves == 3 and not self.protocol.IS_3D_INIT)):
             self._iterations = [self.lastIter]
         else:
             self._iterations = self._getRange(self.iterSelection, 'iterations')
@@ -891,7 +886,7 @@ Examples:
         randomSet = self._getRandomSet(prefix)
         dataStar = self._getDataStar(prefix, it)
         
-        if randomSet > 0 and  randomSet < 3:
+        if 0 < randomSet < 3:
             mdAll = md.MetaData(dataStar)
             mdTmp = md.MetaData()
             mdTmp.importObjects(mdAll,
@@ -952,47 +947,47 @@ class PostprocessViewer(ProtocolViewer):
         
         group.addParam('displayVol', params.EnumParam,
                        choices=['slices', 'chimera'],
-                      display=params.EnumParam.DISPLAY_HLIST,
+                       display=params.EnumParam.DISPLAY_HLIST,
                        default=VOLUME_SLICES,
-                      label='Display volume with',
-                      help='*slices*: display volumes as 2D slices along z axis.\n'
-                           '*chimera*: display volumes as surface with Chimera.')
+                       label='Display volume with',
+                       help='*slices*: display volumes as 2D slices along z axis.\n'
+                            '*chimera*: display volumes as surface with Chimera.')
         group.addParam('displayMaskedVol', params.EnumParam,
                        choices=['slices', 'chimera'],
-                      display=params.EnumParam.DISPLAY_HLIST,
+                       display=params.EnumParam.DISPLAY_HLIST,
                        default=VOLUME_SLICES,
-                      label='Display masked volume with',
-                      help='*slices*: display masked volume as 2D slices along z axis.\n'
-                           '*chimera*: display masked volume as surface with Chimera.')
+                       label='Display masked volume with',
+                       help='*slices*: display masked volume as 2D slices along z axis.\n'
+                            '*chimera*: display masked volume as surface with Chimera.')
         group.addParam('figure', params.EnumParam, default=0,
-                           choices=['new', 'active'],
-                           label='Figure',
+                       choices=['new', 'active'],
+                       label='Figure',
                        display=params.EnumParam.DISPLAY_HLIST,
                        help="Plot in a new window vs the last opened one")
         group.addParam('resolutionPlotsFSC', params.EnumParam,
-                      choices=['Corrected', 'Unmasked Maps', 'Masked Maps',
-                               'Phase Randomized Masked Maps', 'all'],
-                      default=FSC_CORRECTED,
+                       choices=['Corrected', 'Unmasked Maps', 'Masked Maps',
+                                'Phase Randomized Masked Maps', 'all'],
+                       default=FSC_CORRECTED,
                        display=params.EnumParam.DISPLAY_COMBO,
-                      label='Display resolution plots (FSC)')
+                       label='Display resolution plots (FSC)')
         group.addParam('resolutionThresholdFSC',
                        params.FloatParam, default=0.143,
-                      expertLevel=LEVEL_ADVANCED,
-                      label='Threshold in resolution plots')
+                       expertLevel=LEVEL_ADVANCED,
+                       label='Threshold in resolution plots')
         group.addParam('guinierPlots', params.LabelParam,
-              default=True, label='Display Guinier plots',
-              help='Guinier plots are the logarithm of the '
-                   'amplitudes of the individual-frame '
-                   'reconstructions divided by the amplitudes of '
-                   'the average reconstruction from all frames '
-                   'versus the square of the resolution. Linear '
-                   'fits through these Guinier plots (which may '
-                   'often be performed for resolution higher '
-                   'than 20 Angstroms) then yield a slope (the '
-                   'B-factor) and an intercept (a '
-                   'resolution-independent scale-factor) which '
-                   'are used to device the resolution-dependent '
-                   'weghting scheme.')
+                       default=True, label='Display Guinier plots',
+                       help='Guinier plots are the logarithm of the '
+                            'amplitudes of the individual-frame '
+                            'reconstructions divided by the amplitudes of '
+                            'the average reconstruction from all frames '
+                            'versus the square of the resolution. Linear '
+                            'fits through these Guinier plots (which may '
+                            'often be performed for resolution higher '
+                            'than 20 Angstroms) then yield a slope (the '
+                            'B-factor) and an intercept (a '
+                            'resolution-independent scale-factor) which '
+                            'are used to device the resolution-dependent '
+                            'weghting scheme.')
 
     def _getVisualizeDict(self):
         self._load()
@@ -1001,16 +996,16 @@ class PostprocessViewer(ProtocolViewer):
                 'guinierPlots': self._showGuinier,
                 'resolutionPlotsFSC': self._showFSC
                 }
-#==============================================================================
+# =============================================================================
 # ShowVolumes
-#==============================================================================
+# =============================================================================
         
     def _showVolumeShowj(self, volPath):        
         return [DataView(volPath)]
     
     def _showVolumesChimera(self, volPath):
         """ Create a chimera script to visualize selected volumes. """
-        #view = CommandView('xmipp_chimera_client --input "%s" --mode projector 256 &' % volPath)
+        # view = CommandView('xmipp_chimera_client --input "%s" --mode projector 256 &' % volPath)
         view = ChimeraClientView(volPath)
         return [view]
             
@@ -1032,9 +1027,9 @@ class PostprocessViewer(ProtocolViewer):
         elif self.displayMaskedVol == VOLUME_SLICES:
             return self._showVolumeShowj(volPath)
     
-#==============================================================================
+# =============================================================================
 # plotFSC            
-#==============================================================================
+# =============================================================================
     def _getFigure(self):
         return None if self.figure == 0 else 'active'
 
@@ -1046,10 +1041,10 @@ class PostprocessViewer(ProtocolViewer):
 
         md.activateMathExtensions()
         fscViewer = FscViewer(project=self.protocol.getProject(),
-                                 threshold=threshold,
-                                 protocol=self.protocol,
-                                 figure=self._getFigure(),
-                                 addButton=True)
+                              threshold=threshold,
+                              protocol=self.protocol,
+                              figure=self._getFigure(),
+                              addButton=True)
         fscSet = self.protocol._createSetOfFSCs()
 
         modelStar = self.protocol._getExtraPath('postprocess.star')
@@ -1062,7 +1057,7 @@ class PostprocessViewer(ProtocolViewer):
         fscViewer.visualize(fscSet)
         return [fscViewer]
 
-    #ROB this function is duplicated
+    # ROB this function is duplicated
     def _plotFSC(self, a, model_star, label, legend):
         mdStar = md.MetaData(model_star)
         resolution_inv = [mdStar.getValue(md.RLN_RESOLUTION, id) for id in mdStar]
@@ -1073,9 +1068,9 @@ class PostprocessViewer(ProtocolViewer):
 
         return fsc
 
-#==============================================================================
+# =============================================================================
 # plotGuinier
-#==============================================================================
+# =============================================================================
     def _showGuinier(self, paramName=None):
         gridsize = [1, 1]
         md.activateMathExtensions()
@@ -1107,9 +1102,9 @@ class PostprocessViewer(ProtocolViewer):
         a.plot(resolSqInv, logAmp)
         a.xaxis.set_major_formatter(self._plotFormatter)
     
-#==============================================================================
+# =============================================================================
 # Utils Functions
-#==============================================================================
+# =============================================================================
     def _load(self):
         """ Load selected iterations and classes 3D for visualization mode. """
         from matplotlib.ticker import FuncFormatter
@@ -1167,7 +1162,7 @@ class PostprocessViewer(ProtocolViewer):
             return 'log(Amplitudes) Intercept'
         
 
-class RelionPolishViewer(ProtocolViewer):
+class RelionPolishViewer(EmProtocolViewer):
     """ Visualization of Relion polishing results. """
 
     _targets = [ProtRelionPolish]
@@ -1204,8 +1199,8 @@ Examples:
 "2 5, 6-8" -> [2,5,6,7,8]                      
                            """)
         group.addParam('frameSelection', params.NumericRangeParam, 
-                       condition='showHalves<3 and viewFrame==1' ,
-                       label="Frames list", default = 1,
+                       condition='showHalves<3 and viewFrame==1',
+                       label="Frames list", default=1,
                        help="Write the frame list to visualize.")
         group.addParam('displayVol', params.EnumParam,
                        choices=['slices', 'chimera'],
@@ -1277,9 +1272,9 @@ Examples:
     def _viewAll(self, *args):
         pass
     
-#==============================================================================
+# =============================================================================
 # displayShinyParticles     
-#==============================================================================
+# =============================================================================
     def _showShinyParticles(self, paramName=None):
         partsId = self.protocol.outputParticles.strId()
         fn = self.protocol.outputParticles.getFileName()
@@ -1287,9 +1282,9 @@ Examples:
         
         return [view]
     
-#==============================================================================
+# =============================================================================
 # ShowVolumes
-#==============================================================================
+# =============================================================================
     def _showVolumes(self, paramName=None):
         if self.displayVol == VOLUME_CHIMERA:
             return self._showVolumesChimera()
@@ -1331,9 +1326,9 @@ Examples:
             
         return [view]
     
-#==============================================================================
+# =============================================================================
 # showAngularDistribution
-#==============================================================================
+# =============================================================================
     def _showAngularDistribution(self, paramName=None):
         if self.displayAngDist == ANGDIST_CHIMERA:
             view = self._createAngDistChimera()
@@ -1356,7 +1351,7 @@ Examples:
                 self.createAngDistributionSqlite(sqliteFn, nparts,
                                                  itemDataIterator=self._iterAngles(self.protocol._getFileName('shiny')))
             return ChimeraClientView(volFn, angularDistFile=sqliteFn,
-                                        spheresDistance=radius)
+                                     spheresDistance=radius)
         else:
             raise Exception("They aren't shiny particles to show it's angular distribution.")
     
@@ -1367,7 +1362,7 @@ Examples:
         gridsize = self._getGridSize(n)
         
         plotter = RelionPlotter(x=gridsize[0], y=gridsize[1], 
-                                 mainTitle="Shiny Particles",
+                                mainTitle="Shiny Particles",
                                 windowTitle="Angular Distribution")
         dataStar = self.protocol._getFileName('shiny')
         if exists(dataStar):
@@ -1381,9 +1376,9 @@ Examples:
         else:
             return
     
-#==============================================================================
+# =============================================================================
 # plotFSC            
-#==============================================================================
+# =============================================================================
     def _showFSC(self, paramName=None):
         threshold = self.resolutionThresholdFSC.get()
         n = 1
@@ -1421,9 +1416,9 @@ Examples:
         a.xaxis.set_major_formatter(self._plotFormatter)
         a.set_ylim([-0.1, 1.1])
             
-#==============================================================================
+# =============================================================================
 # plotGuinier
-#==============================================================================
+# =============================================================================
     def _showGuinier(self, paramName=None):
         gridsize = [1, 1]
         md.activateMathExtensions()
@@ -1454,9 +1449,9 @@ Examples:
         a.plot(resolSqInv, logAmp)
         a.xaxis.set_major_formatter(self._plotFormatter)
     
-#==============================================================================
+# =============================================================================
 # plotBfactors
-#==============================================================================
+# =============================================================================
     def _showBfactors(self, paramName=None):
         gridsize = self._getGridSize(2)
         md.activateMathExtensions()
@@ -1481,9 +1476,9 @@ Examples:
         bfactors = [mdStar.getValue(label, id) for id in mdStar]
         a.plot(frames, bfactors)
     
-#==============================================================================
+# =============================================================================
 # Utils Functions
-#==============================================================================
+# =============================================================================
     def _load(self):
         self.protocol._initialize()  # Load filename templates
         self._errors = []
@@ -1505,14 +1500,14 @@ Examples:
         
     def createScipionPartView(self, filename, partsId, viewParams={}):
         labels = 'enabled id _filename _transform._matrix'
-        viewParams = {showj.ORDER:labels,
-                      showj.VISIBLE: labels, showj.RENDER:'_filename',
+        viewParams = {showj.ORDER: labels,
+                      showj.VISIBLE: labels, showj.RENDER: '_filename',
                       'labels': 'id',
                       }
         return ObjectView(self._project,
-                             self.protocol.strId(), filename, other=partsId,
-                             env=self._env,
-                             viewParams=viewParams)
+                          self.protocol.strId(), filename, other=partsId,
+                          env=self._env,
+                          viewParams=viewParams)
     
     def _getPrefixes(self):
         prefixes = self.protocol.PREFIXES
@@ -1637,7 +1632,7 @@ class RelionSortViewer(Viewer):
         return views
 
 
-binaryCondition = ('(colorMap == %d) ' % (COLOR_OTHER))
+binaryCondition = ('(colorMap == %d) ' % COLOR_OTHER)
 
 
 class RelionLocalResViewer(ProtocolViewer):
@@ -1674,7 +1669,7 @@ class RelionLocalResViewer(ProtocolViewer):
                        display=params.EnumParam.DISPLAY_HLIST,
                        label='Slice axis')
         group.addParam('doShowVolumeSlices', params.LabelParam,
-                      label="Show volume slices")
+                       label="Show volume slices")
         group.addParam('doShowChimera', params.LabelParam,
                        label="Show colored map in Chimera", default=True)
 
@@ -1694,7 +1689,7 @@ class RelionLocalResViewer(ProtocolViewer):
         
         xplotter = RelionPlotter(x=2, y=2, mainTitle="Local Resolution Slices "
                                                      "along %s-axis."
-                                                     %self._getAxis())
+                                                     % self._getAxis())
         for i in range(4):
             slice = self._getSlice(i+1, imgData)
             a = xplotter.createSubPlot("Slice %s" % slice, '', '')
@@ -1769,7 +1764,7 @@ class RelionLocalResViewer(ProtocolViewer):
         fhCmd.write("background solid white\n")
         
         fhCmd.write("open %s\n" % fnVol)
-        fhCmd.write("open %s\n" %(imageFile))
+        fhCmd.write("open %s\n" % imageFile)
         
         sampRate = self.protocol.outputVolume.getSamplingRate()
         fhCmd.write("volume #0 voxelSize %s\n" % (str(sampRate)))

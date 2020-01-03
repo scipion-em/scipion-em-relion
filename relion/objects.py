@@ -8,7 +8,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -65,8 +65,8 @@ class CtfRefineGlobalInfo:
             dU, dV, _ = p.getCTF().getDefocus()
             return (dU + dV) / 2.0
 
-        for p1, p2 in izip(inputParts.items(orderBy=['_micId', 'id']),
-                           outputParts.items(orderBy=['_micId', 'id'])):
+        for p1, p2 in izip(inputParts.iterItems(orderBy=['_micId', 'id']),
+                           outputParts.iterItems(orderBy=['_micId', 'id'])):
             coord = p1.getCoordinate()
             micId = coord.getMicId()
 

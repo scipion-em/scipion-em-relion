@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -35,9 +35,9 @@ import pwem
 import pwem.metadata as md
 import pyworkflow.utils as pwutils
 
-import relion
-from relion.convert import (writeSetOfMovies, writeSetOfParticles,
-                            locationToRelion)
+from .. import Plugin
+from ..convert import (writeSetOfMovies, writeSetOfParticles,
+                       locationToRelion)
 from .protocol_base import ProtRelionBase
 
 
@@ -48,7 +48,7 @@ class ProtRelionExtractMovieParticles(ProtExtractMovieParticles,
 
     @classmethod
     def isDisabled(cls):
-        return relion.Plugin.isVersion3Active()
+        return Plugin.isVersion3Active()
 
     def __init__(self, **kwargs):
         ProtExtractMovieParticles.__init__(self, **kwargs)
@@ -251,7 +251,7 @@ class ProtRelionExtractMovieParticles(ProtExtractMovieParticles,
             del self.partList  # free unnecessary particle list memory
             self.partList = []
 
-        for part in inputParts.items(orderBy='_micId'):
+        for part in inputParts.iterItems(orderBy='_micId'):
             micName = part.getCoordinate().getMicName()
 
             if micName != self.lastMicName:

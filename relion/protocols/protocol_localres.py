@@ -8,7 +8,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -30,7 +30,7 @@ import pwem
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 
-import relion
+from .. import Plugin
 from .protocol_postprocess import ProtRelionPostprocess
 
 
@@ -66,18 +66,18 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
                            '3D half maps. Note that it is recommended that the '
                            'refinement protocol uses a gold-standard method.')
         form.addParam('mtf', params.FileParam,
-                       label='MTF-curve file',
-                       help='User-provided STAR-file with the MTF-curve '
-                            'of the detector.'
-                            'Relion param: <--mtf>')
+                      label='MTF-curve file',
+                      help='User-provided STAR-file with the MTF-curve '
+                           'of the detector.'
+                           'Relion param: <--mtf>')
         form.addParam('bfactor', params.FloatParam, default=-250,
-                       label='Provide B-factor:',
-                       help='Probably, the overall B-factor as was '
-                            'estimated in the postprocess is a useful '
-                            'value for here. Use negative values for '
-                            'sharpening. Be careful: if you over-sharpen '
-                            'your map, you may end up interpreting '
-                            'noise for signal!')
+                      label='Provide B-factor:',
+                      help='Probably, the overall B-factor as was '
+                           'estimated in the postprocess is a useful '
+                           'value for here. Use negative values for '
+                           'sharpening. Be careful: if you over-sharpen '
+                           'your map, you may end up interpreting '
+                           'noise for signal!')
         form.addParam('calibratedPixelSize', params.FloatParam, default=0,
                       label='Calibrated pixel size (A)',
                       help="Provide the final, calibrated pixel size in "
@@ -151,7 +151,7 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
         volume = self.protRefine.get().outputVolume
         # It seems that in Relion3 now the input should be the map
         # filename and not the prefix as before
-        if relion.Plugin.isVersion3Active():
+        if Plugin.isVersion3Active():
             inputFn = self._getFileName('half1')
         else:
             inputFn = self._getInputPath("relion")

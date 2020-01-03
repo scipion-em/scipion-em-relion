@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -34,8 +34,7 @@ from pwem.protocols import ProtProcessParticles
 from pyworkflow.protocol.params import (PointerParam, BooleanParam,
                                         FloatParam, IntParam, Positive)
 
-import relion
-import relion.convert
+import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
 
@@ -132,10 +131,10 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
         """
         imgSet = self.inputParticles.get()
         # Create links to binary files and write the relion .star file
-        relion.convert.writeSetOfParticles(imgSet, self._getFileName('input_star'),
-                            outputDir=self._getExtraPath(),
-                            writeAlignment=False,
-                            postprocessImageRow=self._postprocessImageRow)
+        convert.writeSetOfParticles(imgSet, self._getFileName('input_star'),
+                                    outputDir=self._getExtraPath(),
+                                    writeAlignment=False,
+                                    postprocessImageRow=self._postprocessImageRow)
     
     def processStep(self):
         # Enter here to generate the star file or to preprocess the images
@@ -193,7 +192,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
         
         imgSet.copyItems(inputSet, updateItemCallback=self._setFileName,
                          itemDataIterator=md.iterRows(outImgsFn,
-                                                   sortByLabel=md.RLN_IMAGE_ID))
+                                                      sortByLabel=md.RLN_IMAGE_ID))
         self._defineOutputs(outputParticles=imgSet)
         self._defineTransformRelation(inputSet, imgSet)
     
@@ -280,7 +279,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
         we need to modify the default image path (from project dir)
         and make them relative to run working dir.
         """
-        relion.convert.relativeFromFileName(imgRow, self._getPath())
+        convert.relativeFromFileName(imgRow, self._getPath())
     
     def _getScaleFactor(self, inputSet):
         xdim = self.inputParticles.get().getDim()[0]
@@ -295,7 +294,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
     
     def _setFileName(self, item, row):
         relionFn = row.getValue(md.RLN_IMAGE_NAME)
-        indx, fn = relion.convert.relionToLocation(relionFn)
+        indx, fn = convert.relionToLocation(relionFn)
         item.setLocation(indx, self._getPath(fn))
         
         invFactor = 1 / self._getScaleFactor(item)

@@ -10,7 +10,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -30,6 +30,7 @@
 
 import os
 from os.path import join, basename
+from io import open
 import numpy as np
 try:
     from itertools import izip
@@ -43,7 +44,7 @@ import pwem.metadata as md
 from pwem.constants import NO_INDEX, ALIGN_2D, ALIGN_3D, ALIGN_PROJ, ALIGN_NONE
 import pwem.convert.transformations as tfs
 
-from relion.constants import *
+from ..constants import *
 from .metadata import Table
 from .common import *
 
@@ -209,7 +210,7 @@ def alignmentToRow(alignment, alignmentRow, alignType):
         angle = angles[0] + angles[2]
         alignmentRow.setValue(md.RLN_ORIENT_PSI, -angle)
 
-        flip = bool(np.linalg.det(matrix[0:2,0:2]) < 0)
+        flip = bool(np.linalg.det(matrix[0:2, 0:2]) < 0)
         if flip:
             print("FLIP in 2D not implemented")
     elif is3D:
@@ -592,7 +593,7 @@ def splitInCTFGroups(imgStar, defocusRange=1000, numParticles=10):
     focusGroup = 1
     counter = 0
     oldDefocusU = mdAll.getValue(md.RLN_CTF_DEFOCUSU, mdAll.firstObject())
-    groupName = '%s_%06d_%05d'%('ctfgroup',oldDefocusU,focusGroup)
+    groupName = '%s_%06d_%05d' % ('ctfgroup', oldDefocusU, focusGroup)
     for objId in mdAll:
         counter = counter + 1
         defocusU = mdAll.getValue(md.RLN_CTF_DEFOCUSU, objId)
@@ -602,9 +603,9 @@ def splitInCTFGroups(imgStar, defocusRange=1000, numParticles=10):
             if (defocusU - oldDefocusU) > defocusRange:
                 focusGroup = focusGroup + 1
                 oldDefocusU = defocusU
-                groupName = '%s_%06d_%05d'%('ctfgroup',oldDefocusU,focusGroup)
+                groupName = '%s_%06d_%05d' % ('ctfgroup', oldDefocusU, focusGroup)
                 counter = 0
-        mdAll.setValue(md.RLN_MLMODEL_GROUP_NAME,groupName,objId)
+        mdAll.setValue(md.RLN_MLMODEL_GROUP_NAME, groupName, objId)
 
     mdAll.write(imgStar)
     mdCount = md.MetaData()
@@ -726,8 +727,8 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs'):
         print("   Root: %s -> %s" % (outputRoot, rootDir))
         mapFunc = replaceRoot
         # FIXME: There is a bug in pwutils.createLink when input is a single folder
-        #pwutils.createLink(rootDir, outputRoot)
-        #relativeOutput = os.path.join(os.path.relpath(rootDir, outputRoot), rootDir)
+        # pwutils.createLink(rootDir, outputRoot)
+        # relativeOutput = os.path.join(os.path.relpath(rootDir, outputRoot), rootDir)
         # If the rootDir is a prefix in the outputRoot (usually Runs)
         # we need to prepend that basename to make the link works
         if rootDir in outputRoot:
@@ -769,6 +770,7 @@ def convertBinaryVol(vol, outputDir):
     # This approach can be extended when
     # converting from a binary file format that
     # is not read from Relion
+
     def convertToMrc(fn):
         """ Convert from a format that is not read by Relion
         to mrc format.
@@ -891,11 +893,11 @@ def writeSetOfCoordinates(posDir, coordSet, getStarFileFunc, scale=1):
     extraLabels = coordSet.getFirstItem().hasAttribute('_rlnClassNumber')
     doScale = abs(scale - 1) > 0.001
 
-    for coord in coordSet.items(orderBy='_micId'):
+    for coord in coordSet.iterItems(orderBy='_micId'):
         micId = coord.getMicId()
 
         if micId != lastMicId:
-            if not micId in posDict:
+            if micId not in posDict:
                 print("Warning: micId %s not found" % micId)
                 continue
             # we need to close previous opened file
@@ -952,7 +954,7 @@ def writeSetOfCoordinatesXmipp(posDir, coordSet, ismanual=True, scale=1):
     lastMicId = None
     c = 0
 
-    for coord in coordSet.items(orderBy='_micId'):
+    for coord in coordSet.iterItems(orderBy='_micId'):
         micId = coord.getMicId()
 
         if micId != lastMicId:

@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -46,7 +46,7 @@ class Plugin(pyworkflow.plugin.Plugin):
     @classmethod
     def getEnviron(cls):
         """ Setup the environment variables needed to launch Relion. """
-        environ = pyworkflow.plugin.Plugin.getEnviron(os.environ)
+        environ = pwutils.Environ(os.environ)
         binPath = cls.getHome('bin')
         libPath = cls.getHome('lib') + ":" + cls.getHome('lib64')
 

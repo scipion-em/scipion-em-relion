@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -30,8 +30,7 @@ import pwem.metadata as md
 from pwem.objects import SetOfClasses2D
 from pwem.protocols import ProtClassify2D
 
-import relion
-import relion.convert
+import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
 
@@ -52,31 +51,30 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         """
         ProtRelionBase._initialize(self)
         self.ClassFnTemplate = '%(ref)03d@%(rootDir)s/relion_it%(iter)03d_classes.mrcs'
-        
 
-    #--------------------------- INSERT steps functions -----------------------
+    # --------------------------- INSERT steps functions ----------------------
     def _setSamplingArgs(self, args):
         """ Set sampling related params. """
         # Sampling stuff
         if self.doImageAlignment:
             args['--offset_range'] = self.offsetSearchRangePix.get()
-            args['--offset_step']  = self.offsetSearchStepPix.get() * self._getSamplingFactor()
+            args['--offset_step'] = self.offsetSearchStepPix.get() * self._getSamplingFactor()
             args['--psi_step'] = self.inplaneAngularSamplingDeg.get() * self._getSamplingFactor()
         else:
             args['--skip_align'] = ''
 
-    #--------------------------- STEPS functions ------------------------------
+    # --------------------------- STEPS functions -----------------------------
     def _loadClassesInfo(self, iteration):
         """ Read some information about the produced Relion 2D classes
         from the *model.star file.
         """
-        self._classesInfo = {} # store classes info, indexed by class id
+        self._classesInfo = {}  # store classes info, indexed by class id
          
         modelStar = md.MetaData('model_classes@%s' %
                                 self._getFileName('model', iter=iteration))
         
         for classNumber, row in enumerate(md.iterRows(modelStar)):
-            index, fn = relion.convert.relionToLocation(row.getValue('rlnReferenceImage'))
+            index, fn = convert.relionToLocation(row.getValue('rlnReferenceImage'))
             # Store info indexed by id, we need to store the row.clone() since
             # the same reference is used for iteration            
             self._classesInfo[classNumber+1] = (index, fn, row.clone())
@@ -99,7 +97,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         self._defineOutputs(outputClasses=classes2D)
         self._defineSourceRelation(self.inputParticles, classes2D)
         
-    #--------------------------- INFO functions -------------------------------
+    # --------------------------- INFO functions ------------------------------
     def _validateNormal(self):
         """ Should be overwritten in subclasses to
         return summary message for NORMAL EXECUTION. 
@@ -129,7 +127,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         """ Should be overwritten in subclasses to
         return summary message for NORMAL EXECUTION. 
         """
-        summary = []
+        summary = list()
         summary.append("Input Particles: %s" % self.getObjectTag('inputParticles'))
         summary.append("Classified into *%d* classes." % self.numberOfClasses)
         summary.append("Output set: %s" % self.getObjectTag('outputClasses'))
@@ -140,7 +138,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         """ Should be overwritten in subclasses to
         return summary messages for CONTINUE EXECUTION.
         """
-        summary = []
+        summary = list()
         summary.append("Continue from iteration %01d" % self._getContinueIter())
         
         return summary
@@ -157,10 +155,10 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
             methods += 'Output classes: %s' % self.getObjectTag('outputClasses')
         return [methods]
     
-    #--------------------------- UTILS functions ------------------------------
+    # --------------------------- UTILS functions -----------------------------
     def _updateParticle(self, item, row):
         item.setClassId(row.getValue(md.RLN_PARTICLE_CLASS))
-        item.setTransform(relion.convert.rowToAlignment(row, pwem.constants.ALIGN_2D))
+        item.setTransform(convert.rowToAlignment(row, pwem.constants.ALIGN_2D))
         
         item._rlnNormCorrection = Float(row.getValue('rlnNormCorrection'))
         item._rlnLogLikeliContribution = Float(row.getValue('rlnLogLikeliContribution'))

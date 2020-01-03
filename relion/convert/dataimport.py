@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -49,7 +49,7 @@ class RelionImport:
     def importParticles(self):
         """ Import particles from a metadata 'images.xmd' """
         self.ignoreIds = self.protocol.ignoreIdColumn.get()
-        self._imgDict = {} # store which images stack have been linked/copied and the new path
+        self._imgDict = {}  # store which images stack have been linked/copied and the new path
         self._findImagesPath(label=md.RLN_IMAGE_NAME)
         if self._micIdOrName:
             # If MDL_MICROGRAPH_ID or MDL_MICROGRAPH then
@@ -94,7 +94,7 @@ class RelionImport:
             item._rlnAccuracyTranslations = Float(row.getValue('rlnAccuracyTranslations'))
 
     def _createClasses(self, partSet):
-        self._classesDict = {} # store classes info, indexed by class id
+        self._classesDict = {}  # store classes info, indexed by class id
         pathDict = {}
 
         self.protocol.info('Loading classes info from: %s' % self._modelStarFile)
@@ -177,7 +177,7 @@ class RelionImport:
             self.protocol.warning("Binary data was not found from metadata: %s" % self._starFile)
 
         if (self._starFile.endswith('_data.star') and
-            self._getModelFile(self._starFile)):
+                self._getModelFile(self._starFile)):
             self._modelStarFile = self._getModelFile(self._starFile)
             modelRow = md.getFirstRow(self._modelStarFile)
             classDimensionality = modelRow.getValue('rlnReferenceDimensionality')
@@ -217,7 +217,7 @@ class RelionImport:
         # particles to keep track of the particle's micrograph
         self._micIdOrName = (row.containsLabel('rlnMicrographName') or
                              row.containsLabel('rlnMicrographId'))
-        #init dictionary. It will be used in the preprocessing
+        # init dictionary. It will be used in the preprocessing
         self.micDict = {}
 
         return row, modelRow
@@ -257,7 +257,7 @@ class RelionImport:
 
     def _postprocessImageRow(self, img, imgRow):
         if self.ignoreIds:
-            img.setObjId(None) # Force to generate a new id in Set
+            img.setObjId(None)  # Force to generate a new id in Set
 
         if self._micIdOrName:
             micId = imgRow.getValue('rlnMicrographId', None)
@@ -288,7 +288,7 @@ class RelionImport:
                 acquisitionDict['sphericalAberration'] = row.getValue('rlnSphericalAberration')
 
             if (modelRow is not None and
-                modelRow.containsLabel('rlnPixelSize')):
+                    modelRow.containsLabel('rlnPixelSize')):
                 acquisitionDict['samplingRate'] = modelRow.getValue('rlnPixelSize')
 
         except Exception as ex:

@@ -8,7 +8,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,9 @@
 """
 New conversion functions dealing with Relion3.1 new star files format.
 """
+from io import open
 
-from collections import OrderedDict
-
-from relion.constants import *
+from ..constants import *
 from .convert_base import WriterBase
 
 
@@ -64,7 +63,7 @@ class Writer(WriterBase):
         mic = next(iterMics)
         self._micToRow(mic, micRow)
 
-        opticsTable = self._createTableFromDict(self._optics.values()[0])
+        opticsTable = self._createTableFromDict(list(self._optics.values())[0])
         micsTable = self._createTableFromDict(micRow)
 
         while mic is not None:
@@ -90,7 +89,7 @@ class Writer(WriterBase):
         acq = mic.getAcquisition()
         ogName = acq.opticsGroupName.get()
 
-        if not ogName in self._optics:
+        if ogName not in self._optics:
             ogNumber = len(self._optics) + 1
             self._optics[ogName] = {
                 'rlnOpticsGroupName': ogName,

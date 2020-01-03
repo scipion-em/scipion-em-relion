@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -31,7 +31,7 @@ import pwem
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 
-import relion.convert
+import relion.convert as convert
 
 
 class ProtRelionExportCtf(pwem.protocols.EMProtocol):
@@ -76,7 +76,7 @@ class ProtRelionExportCtf(pwem.protocols.EMProtocol):
     def writeCtfStarStep(self):
         inputCTF = self.inputCTF.get()
 
-        if self.micrographSource == 0: # same as CTF estimation
+        if self.micrographSource == 0:  # same as CTF estimation
             ctfMicSet = inputCTF.getMicrographs()
         else:
             ctfMicSet = self.inputMicrographs.get()
@@ -126,7 +126,7 @@ class ProtRelionExportCtf(pwem.protocols.EMProtocol):
         mag = acq.getMagnification()
         self.detectorPixelSize = 1e-4 * self.samplingRate * mag
 
-        relion.convert.writeSetOfMicrographs(
+        convert.writeSetOfMicrographs(
             micSet, starFile,
             preprocessImageRow=self.preprocessMicrograph)
 

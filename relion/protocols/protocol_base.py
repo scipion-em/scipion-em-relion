@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -39,8 +39,8 @@ import pwem.metadata as md
 from pwem.objects import SetOfClasses3D
 from pwem.protocols import EMProtocol
 
-import relion
-import relion.convert
+from .. import Plugin
+import relion.convert as convert
 from relion.constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO
 
 
@@ -138,7 +138,7 @@ class ProtRelionBase(EMProtocol):
     # -------------------------- DEFINE param functions -----------------------
     def _defineConstants(self):
         self.IS_3D = not self.IS_2D
-        self.IS_V3 = relion.Plugin.isVersion3Active()
+        self.IS_V3 = Plugin.isVersion3Active()
 
     def _defineParams(self, form):
         self._defineConstants()
@@ -446,7 +446,7 @@ class ProtRelionBase(EMProtocol):
                                'param is set 25, the final iteration of the '
                                'protocol will be the 28th.')
 
-            version = relion.Plugin.getActiveVersion()
+            version = Plugin.getActiveVersion()
 
             if version.startswith('2.1'):  # version 2.1+ only
                 form.addParam('doSubsets', BooleanParam, default=False,
@@ -876,7 +876,7 @@ class ProtRelionBase(EMProtocol):
                              md.RLN_IMAGE_BEAMTILT_X,
                              md.RLN_IMAGE_BEAMTILT_Y]
 
-            relion.convert.writeSetOfParticles(
+            convert.writeSetOfParticles(
                 imgSet, imgStar, self._getExtraPath(),
                 alignType=alignType,
                 postprocessImageRow=self._postprocessParticleRow,
@@ -914,7 +914,7 @@ class ProtRelionBase(EMProtocol):
                 if particle is not None:
                     auxMovieParticles.append(movieParticle)
 
-            relion.convert.writeSetOfParticles(
+            convert.writeSetOfParticles(
                 auxMovieParticles, movieFn, None,
                 fillMagnification=True,
                 postprocessImageRow=self._postprocessImageRow)
@@ -956,7 +956,7 @@ class ProtRelionBase(EMProtocol):
         if self.doContinue:
             continueProtocol = self.continueRun.get()
             if (continueProtocol is not None and
-                        continueProtocol.getObjId() == self.getObjId()):
+                    continueProtocol.getObjId() == self.getObjId()):
                 errors.append('In Scipion you must create a new Relion run')
                 errors.append('and select the continue option rather than')
                 errors.append('select continue from the same run.')
@@ -1156,11 +1156,11 @@ class ProtRelionBase(EMProtocol):
             tmp = self._getTmpPath()
             newDim = self._getInputParticles().getXDim()
             if self.referenceMask.hasValue():
-                mask = relion.convert.convertMask(self.referenceMask.get(), tmp, newDim)
+                mask = convert.convertMask(self.referenceMask.get(), tmp, newDim)
                 args['--solvent_mask'] = mask
 
             if self.solventMask.hasValue():
-                solventMask = relion.convert.convertMask(self.solventMask.get(), tmp, newDim)
+                solventMask = convert.convertMask(self.solventMask.get(), tmp, newDim)
                 args['--solvent_mask2'] = solventMask
 
             if self.referenceMask.hasValue() and self.solventFscMask:
@@ -1169,7 +1169,7 @@ class ProtRelionBase(EMProtocol):
             if self.referenceMask2D.hasValue():
                 tmp = self._getTmpPath()
                 newDim = self._getInputParticles().getXDim()
-                mask = relion.convert.convertMask(self.referenceMask2D.get(), tmp, newDim)
+                mask = convert.convertMask(self.referenceMask2D.get(), tmp, newDim)
                 args['--solvent_mask'] = mask
 
     def _setSubsetArgs(self, args):
@@ -1233,7 +1233,7 @@ class ProtRelionBase(EMProtocol):
         data_sqlite = self._getFileName('data_scipion', iter=it)
 
         if not exists(data_sqlite):
-            iterImgSet = pwem.SetOfParticles(filename=data_sqlite)
+            iterImgSet = pwem.objects.SetOfParticles(filename=data_sqlite)
             iterImgSet.copyInfo(self._getInputParticles())
             self._fillDataFromIter(iterImgSet, it)
             iterImgSet.write()
@@ -1244,9 +1244,9 @@ class ProtRelionBase(EMProtocol):
     def _splitInCTFGroups(self, imgStar):
         """ Add a new column in the image star to separate the particles
         into ctf groups """
-        relion.convert.splitInCTFGroups(imgStar,
-                                        self.defocusRange.get(),
-                                        self.numParticles.get())
+        convert.splitInCTFGroups(imgStar,
+                                 self.defocusRange.get(),
+                                 self.numParticles.get())
 
     def _getContinueIter(self):
         continueRun = self.continueRun.get()
@@ -1280,9 +1280,9 @@ class ProtRelionBase(EMProtocol):
         """
         inputObj = self.referenceVolume.get()
 
-        if isinstance(inputObj, pwem.Volume):
+        if isinstance(inputObj, pwem.objects.Volume):
             return [inputObj]
-        elif isinstance(inputObj, pwem.SetOfVolumes):
+        elif isinstance(inputObj, pwem.object.SetOfVolumes):
             return [vol.clone() for vol in inputObj]
         else:
             raise Exception("Invalid input reference of class: %s"
@@ -1381,7 +1381,7 @@ class ProtRelionBase(EMProtocol):
     def _doSubsets(self):
         # Since 'doSubsets' property is only valid for 2.1+ protocols
         # we need provide a default value for backward compatibility
-        if relion.Plugin.getActiveVersion().startswith("2.1"):
+        if Plugin.getActiveVersion().startswith("2.1"):
             return self.getAttributeValue('doSubsets', False)
         return False
 

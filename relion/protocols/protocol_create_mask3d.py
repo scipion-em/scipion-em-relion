@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -28,11 +28,11 @@ import pyworkflow.protocol.params as params
 from pwem.protocols import ProtCreateMask3D
 from pwem.objects import VolumeMask
 
-import relion
-import relion.convert
-from relion.constants import MASK_AND, MASK_OR, MASK_AND_NOT, MASK_OR_NOT
+from .. import Plugin
+import relion.convert as convert
+from relion.constants import MASK_AND
 
-IS_V3 = relion.Plugin.isVersion3Active()
+IS_V3 = Plugin.isVersion3Active()
 
 
 class ProtRelionCreateMask3D(ProtCreateMask3D):
@@ -119,11 +119,11 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
     
     # --------------------------- STEPS functions -----------------------------
     def convertInputStep(self, volId):
-        self.inputVolFn = relion.convert.convertBinaryVol(
+        self.inputVolFn = convert.convertBinaryVol(
             self.inputVolume.get(), self._getTmpPath())
 
         if self.doCompare:
-            self.inputVol2Fn = relion.convert.convertBinaryVol(
+            self.inputVol2Fn = convert.convertBinaryVol(
                 self.inputVolume2.get(), self._getTmpPath())
 
     def createMaskStep(self):

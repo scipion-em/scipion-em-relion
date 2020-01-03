@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -35,9 +35,8 @@ from pwem.objects import Particle
 import pwem.metadata as md
 import pwem.constants as emcts
 
-import relion
-import relion.convert
-from relion.constants import OTHER
+import relion.convert as convert
+from ..constants import OTHER
 from .protocol_base import ProtRelionBase
 
 
@@ -137,14 +136,14 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         return []
     
     def _doNothing(self, *args):
-        pass # used to avoid some streaming functions
+        pass  # used to avoid some streaming functions
 
     # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self, micsId):
         pass
 
     def _convertCoordinates(self, mic, coordList):
-        relion.convert.writeMicCoordinates(
+        convert.writeMicCoordinates(
             mic, coordList, self._getMicPos(mic), getPosFunc=self._getPos)
 
     def _extractMicrograph(self, mic, params):
@@ -154,9 +153,9 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
 
     def _extractMicrographList(self, micList, params):
         micsStar = self._getMicsStar(micList)
-        relion.convert.writeSetOfMicrographs(micList, self._getPath(micsStar),
-                                             alignType=emcts.ALIGN_NONE,
-                                             preprocessImageRow=self._preprocessMicrographRow)
+        convert.writeSetOfMicrographs(micList, self._getPath(micsStar),
+                                      alignType=emcts.ALIGN_NONE,
+                                      preprocessImageRow=self._preprocessMicrographRow)
 
         partsStar = self._getMicParticlesStar(micList)
 
@@ -189,7 +188,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         return ['Scheres2012b']
         
     def _summary(self):
-        summary = []
+        summary = list()
         summary.append("Micrographs source: %s"
                        % self.getEnumText("downsampleType"))
         summary.append("Particle box size: %d" % self.boxSize)
@@ -334,7 +333,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                     # scale the coordinates according to particles dimension.
                     coord.scale(self.getBoxScale())
                     p.copyObjId(coord)
-                    idx, fn = relion.convert.relionToLocation(row.getValue(md.RLN_IMAGE_NAME))
+                    idx, fn = convert.relionToLocation(row.getValue(md.RLN_IMAGE_NAME))
                     p.setLocation(idx, self._getPath(fn[2:]))
                     p.setCoordinate(coord)
                     p.setMicId(mic.getObjId())
@@ -417,7 +416,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         return self._getPath('images.xmd')
 
     def createParticles(self, item, row):
-        particle = relion.convert.rowToParticle(row, readCtf=self._useCTF())
+        particle = convert.rowToParticle(row, readCtf=self._useCTF())
         coord = particle.getCoordinate()
         item.setY(coord.getY())
         item.setX(coord.getX())
@@ -453,7 +452,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         The filename will be located in the extra folder and with
         the given extension.
         """
-        return self._getExtraPath(pwutils.replaceBaseExt(mic.getFileName(),ext))
+        return self._getExtraPath(pwutils.replaceBaseExt(mic.getFileName(), ext))
     
     def _useCTF(self):
         return self.ctfRelations.hasValue()

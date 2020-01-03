@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -29,8 +29,7 @@ from pwem.protocols import ProtClassify3D
 import pwem.metadata as md
 import pwem.constants as emcts
 
-import relion
-import relion.convert
+import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
 
@@ -66,7 +65,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
         if self.doImageAlignment:
             args['--healpix_order'] = self.angularSamplingDeg.get()
             args['--offset_range'] = self.offsetSearchRangePix.get()
-            args['--offset_step']  = self.offsetSearchStepPix.get() * self._getSamplingFactor()
+            args['--offset_step'] = self.offsetSearchStepPix.get() * self._getSamplingFactor()
             if self.localAngularSearch:
                 args['--sigma_ang'] = self.localAngularSearchRange.get() / 3.
         else:
@@ -146,7 +145,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
         """ Should be overwritten in subclasses to
         return summary messages for CONTINUE EXECUTION.
         """
-        summary = []
+        summary = list()
         summary.append("Continue from iteration %01d" % self._getContinueIter())
         return summary
     
@@ -168,7 +167,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
                                 self._getFileName('model', iter=iteration))
         
         for classNumber, row in enumerate(md.iterRows(modelStar)):
-            index, fn = relion.convert.relionToLocation(row.getValue('rlnReferenceImage'))
+            index, fn = convert.relionToLocation(row.getValue('rlnReferenceImage'))
             # Store info indexed by id, we need to store the row.clone() since
             # the same reference is used for iteration            
             self._classesInfo[classNumber+1] = (index, fn, row.clone())
@@ -184,7 +183,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
     
     def _updateParticle(self, item, row):
         item.setClassId(row.getValue(md.RLN_PARTICLE_CLASS))
-        item.setTransform(relion.convert.rowToAlignment(row, emcts.ALIGN_PROJ))
+        item.setTransform(convert.rowToAlignment(row, emcts.ALIGN_PROJ))
         
         item._rlnLogLikeliContribution = Float(row.getValue('rlnLogLikeliContribution'))
         item._rlnMaxValueProbDistribution = Float(row.getValue('rlnMaxValueProbDistribution'))

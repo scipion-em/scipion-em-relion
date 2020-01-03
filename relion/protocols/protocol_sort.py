@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -33,8 +33,7 @@ from pwem.protocols import ProtParticles
 from pwem.objects import SetOfParticles, SetOfClasses
 import pwem.metadata as md
 
-import relion
-import relion.convert
+import relion.convert as convert
 
 
 class ProtRelionSortParticles(ProtParticles):
@@ -197,8 +196,8 @@ class ProtRelionSortParticles(ProtParticles):
         else:
             if self.isInputAutoRefine():
                 pwem.convert.ImageHandler().convert(self.referenceVolume.get(),
-                                            self._getFileName('input_refvol'))
-            else: # Autopicking case
+                                                    self._getFileName('input_refvol'))
+            else:  # Autopicking case
                 refSet = self.referenceAverages.get()
 
         self.classDict = {}
@@ -212,13 +211,13 @@ class ProtRelionSortParticles(ProtParticles):
             for i, c in enumerate(classList):
                 self.classDict[c] = i + 1
 
-            relion.convert.writeReferences(
+            convert.writeReferences(
                 refSet, removeExt(refStar),
                 postprocessImageRow=self._updateClasses)
 
         # Write particles star file
         allParticles = self._allParticles(iterate=False)
-        relion.convert.writeSetOfParticles(
+        convert.writeSetOfParticles(
             allParticles, imgStar, self._getPath(),
             postprocessImageRow=self._postProcessImageRow)
 
@@ -273,7 +272,7 @@ class ProtRelionSortParticles(ProtParticles):
                 return particles
         else:
             if iterate:
-                return inputSet.items()
+                return inputSet.iterItems()
             else:
                 return inputSet
 
@@ -334,7 +333,7 @@ class ProtRelionSortParticles(ProtParticles):
             classId = img.getClassId()
 
             if classId is not None:
-                if not classId in self.classDict:
+                if classId not in self.classDict:
                     raise Exception("Class Id %s from particle %s is not found"
                                     % (classId, img.getObjId()))
                 newClassId = self.classDict[classId]

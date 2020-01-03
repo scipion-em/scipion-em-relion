@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -23,7 +23,7 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-import relion
+from .. import Plugin
 
 from .protocol_create_mask3d import ProtRelionCreateMask3D
 from .protocol_classify2d import ProtRelionClassify2D
@@ -47,7 +47,7 @@ from .protocol_center_averages import ProtRelionCenterAverages
 from .protocol_export_particles import ProtRelionExportParticles
 
 # New protocol from Relion v3:
-if relion.Plugin.isVersion3Active():
+if Plugin.isVersion3Active():
     # Relion2 in the name is because of compatibility reasons
     from .protocol_autopick_ref import ProtRelion2Autopick
 else:

@@ -8,7 +8,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -31,10 +31,9 @@ New conversion functions dealing with Relion3.1 new star files format.
 
 import os
 
-import pwem
+from pwem.convert import ImageHandler
 import pyworkflow.utils as pwutils
 
-from relion.constants import *
 from .metadata import Table, Column
 
 
@@ -67,7 +66,7 @@ class WriterBase:
         self.outputDir = kwargs.get('outputDir', None)
         self.useBaseName = kwargs.get('useBaseName', False)
         self.extensions = kwargs.get('extensions', ['mrc'])
-        self._ih = pwem.convert.ImageHandler()  # used to convert images
+        self._ih = ImageHandler()  # used to convert images
 
     def _convert(self, image):
         imageFn = image.getFileName()
@@ -137,4 +136,3 @@ class WriterBase:
 
         if phaseShift is not None:
             row['rlnCtfPhaseShift'] = phaseShift
-

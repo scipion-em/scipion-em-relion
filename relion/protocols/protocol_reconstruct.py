@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -30,11 +30,11 @@ from pwem.objects import Volume
 from pwem.protocols import ProtReconstruct3D
 from pwem.constants import ALIGN_PROJ
 
-import relion
-import relion.convert
+from .. import Plugin
+import relion.convert as convert
 
 # TODO: Check if we can centralize this, and how it combines with related functions
-IS_V2 = relion.Plugin.getActiveVersion().startswith("2.")
+IS_V2 = Plugin.getActiveVersion().startswith("2.")
 
 
 class ProtRelionReconstruct(ProtReconstruct3D):
@@ -45,7 +45,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
     and used as direction projections to reconstruct.
     """
     _label = 'reconstruct'
-    ##doContinue = False
+    # doContinue = False
     
     # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
@@ -107,12 +107,12 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         line.addParam('beamTiltY', FloatParam, default='0.0', label='Y ')            
         
         form.addParallelSection(threads=1, mpi=1)
-        #TODO: Add an option to allow the user to
+        # TODO: Add an option to allow the user to
         # decide if copy binary files or not
             
     # -------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self):
-        ##self._initialize()
+        # self._initialize()
         self._createFilenameTemplates()
         self._insertFunctionStep('convertInputStep')
         self._insertReconstructStep()
@@ -138,7 +138,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         if self.numberOfThreads > 1 and IS_V2:
             params += ' --j %d' % self.numberOfThreads
 
-        #TODO Test that the CTF part is working
+        # TODO: Test that the CTF part is working
         if self.doCTF:
             params += ' --ctf'
             if self.ctfIntactFirstPeak:
@@ -147,7 +147,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
                 params += ' --only_flip_phases' 
             params += ' --beamtilt_x %0.3f' % self.beamTiltX.get()
             params += ' --beamtilt_y %0.3f' % self.beamTiltY.get()
-            #are the images phase flipped?
+            # are the images phase flipped?
             if imgSet.isPhaseFlipped():
                 params += ' --ctf_phase_flipped'
 
@@ -179,7 +179,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         imgStar = self._getFileName('input_particles.star')
 
         # Pass stack file as None to avoid write the images files
-        relion.convert.writeSetOfParticles(
+        convert.writeSetOfParticles(
             imgSet, imgStar, self._getTmpPath(), alignType=ALIGN_PROJ)
 
     def createOutputStep(self):

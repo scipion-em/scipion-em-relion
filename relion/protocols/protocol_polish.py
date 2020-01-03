@@ -10,7 +10,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -38,8 +38,8 @@ import pwem.metadata as md
 import pyworkflow.utils as pwutils
 from pwem.protocols import ProtProcessParticles
 
-import relion
-import relion.convert
+from .. import Plugin
+import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
 
@@ -58,7 +58,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
 
     @classmethod
     def isDisabled(cls):
-        return relion.Plugin.isVersion3Active()
+        return Plugin.isVersion3Active()
 
     def _initialize(self):
         """ This function is meant to be called after the
@@ -197,7 +197,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
 
         form.addParallelSection(threads=0, mpi=3)
     
-    #--------------------------- INSERT steps functions -----------------------
+    # --------------------------- INSERT steps functions ----------------------
 
     def _insertAllSteps(self): 
         self._initialize()
@@ -235,7 +235,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
 
         self._insertFunctionStep('polishStep', params)
         
-    #--------------------------- STEPS functions ------------------------------
+    # --------------------------- STEPS functions -----------------------------
     def convertInputStep(self, particlesId):
         """ Create the input file in STAR format as expected by Relion.
         If the input particles comes from Relion, just link the file.
@@ -249,10 +249,10 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         self.info("Converting set from '%s' into '%s'" %
                   (imgSet.getFileName(), imgStarTmp))
 
-        relion.convert.writeSetOfParticles(
+        convert.writeSetOfParticles(
             imgSet, imgStarTmp, self._getExtraPath(),
             alignType=imgSet.getAlignment(),
-            extraLabels=relion.convert.MOVIE_EXTRA_LABELS)
+            extraLabels=convert.MOVIE_EXTRA_LABELS)
 
         mdImg = md.MetaData(imgStarTmp)
 
@@ -260,11 +260,11 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         mdColumn = md.RLN_PARTICLE_ORI_NAME
 
         for objId in mdImg:
-            index, imgPath = relion.convert.relionToLocation(mdImg.getValue(mdColumn, objId))
+            index, imgPath = convert.relionToLocation(mdImg.getValue(mdColumn, objId))
             if not imgPath.endswith('mrcs'):
                 newName = pwutils.replaceBaseExt(os.path.basename(imgPath), 'mrcs')
                 newPath = self._getTmpPath(newName)
-                newLoc = relion.convert.locationToRelion(index, newPath)
+                newLoc = convert.locationToRelion(index, newPath)
                 if not exists(newPath):
                     pwutils.createLink(imgPath, newPath)
                 mdImg.setValue(mdColumn, newLoc, objId)
@@ -285,18 +285,18 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         oldPath = ""
 
         for objId in mdShiny:
-            index, imgPath = relion.convert.relionToLocation(mdShiny.getValue(md.RLN_IMAGE_NAME, objId))
+            index, imgPath = convert.relionToLocation(mdShiny.getValue(md.RLN_IMAGE_NAME, objId))
             newPath = pwutils.join(newDir, str(imgPath).split('/')[-1])
-            newLoc = relion.convert.locationToRelion(index, newPath)
+            newLoc = convert.locationToRelion(index, newPath)
             mdShiny.setValue(md.RLN_IMAGE_NAME, newLoc, objId)
             if oldPath != imgPath and exists(imgPath):
                 pwutils.moveFile(imgPath, newPath)
                 oldPath = imgPath
 
-            index2, imgPath2 = relion.convert.relionToLocation(mdShiny.getValue(mdColumn, objId))
+            index2, imgPath2 = convert.relionToLocation(mdShiny.getValue(mdColumn, objId))
             absPath = os.path.realpath(imgPath2)
             newPath2 = 'Runs' + str(absPath).split('Runs')[1]
-            newLoc2 = relion.convert.locationToRelion(index2, newPath2)
+            newLoc2 = convert.locationToRelion(index2, newPath2)
             mdShiny.setValue(mdColumn, newLoc2, objId)
 
         mdShiny.write(shinyStar, md.MD_OVERWRITE)
@@ -310,8 +310,8 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         shinyPartSet = self._createSetOfParticles()
         shinyPartSet.copyInfo(imgSet)
         shinyPartSet.setAlignmentProj()
-        relion.convert.readSetOfParticles(self._getFileName('shiny'), shinyPartSet,
-                                          alignType=ALIGN_PROJ)
+        convert.readSetOfParticles(self._getFileName('shiny'), shinyPartSet,
+                                   alignType=ALIGN_PROJ)
 
         self._defineOutputs(outputParticles=shinyPartSet)
         self._defineOutputs(outputVolume=vol)
@@ -319,7 +319,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         self._defineSourceRelation(imgSet, shinyPartSet)
         self._defineSourceRelation(imgSet, vol)
 
-    #--------------------------- INFO functions -------------------------------
+    # --------------------------- INFO functions ------------------------------
     def _validate(self):
         """ Should be overwritten in subclasses to
         return summary message for NORMAL EXECUTION. 
@@ -347,7 +347,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
 
         return summary
     
-    #--------------------------- UTILS functions ------------------------------
+    # --------------------------- UTILS functions -----------------------------
     def _getInputParticles(self):
         return self.inputMovieParticles.get()
 
@@ -358,4 +358,4 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         return nrOfFrames
 
     def _createItemMatrix(self, item, row):
-        relion.convert.createItemMatrix(item, row, align=ALIGN_PROJ)
+        convert.createItemMatrix(item, row, align=ALIGN_PROJ)

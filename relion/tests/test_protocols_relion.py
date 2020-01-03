@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -24,17 +24,14 @@
 # *
 # **************************************************************************
 
-from glob import glob
-
 from pyworkflow.tests import *
 from pyworkflow.plugin import Domain
 from pwem.protocols import *
 from pyworkflow.protocol.constants import STATUS_FINISHED
 
-import relion
-from relion.protocols import *
-from relion.convert import *
-from relion.constants import *
+from ..protocols import *
+from ..convert import *
+from ..constants import *
 
 
 def useGpu():
@@ -49,7 +46,7 @@ def useGpu():
         return False, 'CPU'
 
 
-IS_V3 = relion.Plugin.isVersion3Active()
+IS_V3 = Plugin.isVersion3Active()
 USE_GPU = useGpu()[0]
 ONLY_GPU = int(os.environ.get('SCIPION_TEST_RELION_ONLY_GPU', 0))
 RUN_CPU = not USE_GPU or ONLY_GPU
@@ -243,7 +240,7 @@ class TestRelionRefine(TestRelionBase):
         def _runRelionRefine(doGpu=False, label=''):
             relionRefine = self.newProtocol(ProtRelionRefine3D,
                                             doCTF=False, runMode=1,
-                                            #memoryPreThreads=1,
+                                            # memoryPreThreads=1,
                                             maskDiameterA=340,
                                             symmetryGroup="d6",
                                             numberOfMpi=3, numberOfThreads=2)
@@ -780,7 +777,7 @@ class TestRelionLocalRes(TestRelionBase):
         pwutils.copyFile(self.half1Fn, volHalf1)
         pwutils.copyFile(self.half2Fn, volHalf2)
         pwutils.copyFile(self.modelFn,
-                          protRef._getExtraPath('relion_model.star'))
+                         protRef._getExtraPath('relion_model.star'))
 
         protRef.outputVolume.setFileName(volPath)
         protRef.outputVolume.setHalfMaps([volHalf1, volHalf2])
@@ -848,7 +845,7 @@ class TestRelionCreate3dMask(TestRelionBase):
 
     def _validations(self, mask, dims, pxSize, prot):
         self.assertIsNotNone(mask, "There was a problem with mask 3d protocol, "
-                                  "using %s protocol as input" % prot)
+                                   "using %s protocol as input" % prot)
         xDim = mask.getXDim()
         sr = mask.getSamplingRate()
         self.assertEqual(xDim, dims, "The dimension of your volume is (%d)^3 "
@@ -893,7 +890,7 @@ class TestRelionExtractParticles(TestRelionBase):
         # We have two options:
         # 1) pass the SamplingRate or
         # 2) the ScannedPixelSize + microscope magnification
-        if not samplingRate is None:
+        if samplingRate is not None:
             cls.protImport = cls.newProtocol(ProtImportMicrographs,
                                              samplingRateMode=0,
                                              filesPath=pattern,
@@ -1196,8 +1193,8 @@ class TestRelionCenterAverages(TestRelionBase):
     def test_basic(self):
         """ Run an Import particles protocol. """
         protImport = self.newProtocol(ProtImportAverages,
-                                     filesPath=self.ds.getFile('averages/averages.stk'),
-                                     samplingRate=5.04)
+                                      filesPath=self.ds.getFile('averages/averages.stk'),
+                                      samplingRate=5.04)
         self.launchProtocol(protImport)
         inputAvgs = protImport.outputAverages
         protCenter = self.newProtocol(ProtRelionCenterAverages)
