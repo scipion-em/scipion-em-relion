@@ -89,7 +89,18 @@ class RelionPlotter(EmPlotter):
         """
         mdObj = md.MetaData(mdFilename)
         self.plotMd(mdObj, mdLabelX, mdLabelY, color='g',**args)
-        
+
+
+def protected_show(showFunc):
+    def protectedShowFunc(self, paramName=None):
+        try:
+            return showFunc(self, paramName=paramName)
+        except Exception as e:
+            self._errors = [str(e)]
+            return self._showErrors()
+
+    return protectedShowFunc
+
 
 class RelionViewer(ProtocolViewer):
     """ Visualization of Relion results.
@@ -150,7 +161,7 @@ Examples:
         if self.protocol.IS_3D:
             group = form.addGroup('Volumes')
             
-            if self.protocol.IS_CLASSIFY:
+            if self._hasClasses():
                 group.addParam('showClasses3D', params.EnumParam,
                                default=CLASSES_ALL,
                                choices=['all', 'selection'], 
@@ -258,6 +269,7 @@ Examples:
         
     def _viewAll(self, *args):
         pass
+
     
 #==============================================================================
 # showImagesInClasses     
@@ -311,21 +323,31 @@ Examples:
 #==============================================================================
 # showImagesAngularAssignment     
 #==============================================================================
+    @protected_show
     def _showImagesAngularAssignment(self, paramName=None):
         views = []
         
         for it in self._iterations:
             fn = self.protocol._getIterData(it, alignType=em.ALIGN_PROJ)
+            if not os.path.exists(fn):
+                raise Exception("Missing data star file '%s'. \n"
+                                "Plese select a valid iteration. "
+                                % fn)
             v = self.createScipionPartView(fn)
             views.append(v)
         
         return views
-    
+
+    @protected_show
     def _showOptimiserFile(self,  paramName=None):
         views = []
         
         for it in self._iterations:
             optimiserFile = self.protocol._getFileName('optimiser', iter=it)
+            if not os.path.exists(optimiserFile):
+                raise Exception("Missing optimiser file '%s'. \n"
+                                "Plese select a valid iteration. "
+                                % optimiserFile)
             v = self.createDataView(optimiserFile)
             views.append(v)
         return views
@@ -345,11 +367,9 @@ Examples:
 #==============================================================================
     def _showPMax(self, paramName=None):
         labels = [md.RLN_MLMODEL_AVE_PMAX, md.RLN_PARTICLE_PMAX]
-        
         mdIters = md.MetaData()
-        iterations = range(self.firstIter, self.lastIter+1)
-        
-        for it in iterations:  # range (firstIter,self._visualizeLastIteration+1):
+
+        for it in self._getAllIters():  # range (firstIter,self._visualizeLastIteration+1):
             # always list all iterations
             objId = mdIters.addObject()
             mdIters.setValue(md.MDL_ITER, it, objId)
@@ -458,17 +478,17 @@ Examples:
 # ShowChanges    
 #==============================================================================
     def _showChanges(self, paramName=None):
-        
         mdIters = md.MetaData()
-        iterations = range(self.firstIter, self.lastIter+1)
-        
         print " Computing average changes in offset, angles, and class membership"
-        for it in iterations:
+        for it in self._getAllIters():
+            fn = self.protocol._getFileName('optimiser', iter=it)
+            if not os.path.exists(fn):
+                continue
             print "Computing data for iteration; %03d" % it
             objId = mdIters.addObject()
             mdIters.setValue(md.MDL_ITER, it, objId)
             # add by ref3D
-            fn = self.protocol._getFileName('optimiser', iter=it )
+            fn = self.protocol._getFileName('optimiser', iter=it)
             mdOptimiser = md.RowMetaData(fn)
             for label in self.protocol.CHANGE_LABELS:
                 mdIters.setValue(label, mdOptimiser.getValue(label), objId)
@@ -480,6 +500,7 @@ Examples:
 #==============================================================================
 # ShowVolumes
 #==============================================================================
+    @protected_show
     def _showVolumes(self, paramName=None):
         if self.displayVol == VOLUME_CHIMERA:
             return self._showVolumesChimera()
@@ -494,8 +515,13 @@ Examples:
         files = []
         volumes = self._getVolumeNames()
         for volFn in volumes:
-            if exists(volFn.replace(':mrc', '')):
-                files.append(volFn)
+            if not exists(volFn.replace(':mrc', '')):
+                raise Exception("Missing volume file: %s\n Please select "
+                                "a valid class or iteration number."
+                                % volFn)
+            print("Adding vol: %s" % volFn)
+            files.append(volFn)
+
         self.createVolumesSqlite(files, path, samplingRate)
         return [ObjectView(self._project, self.protocol.strId(), path)]
     
@@ -525,6 +551,7 @@ Examples:
 #==============================================================================
 # showAngularDistribution
 #==============================================================================
+    @protected_show
     def _showAngularDistribution(self, paramName=None):
         views = []
 
@@ -547,25 +574,30 @@ Examples:
             radius = self.protocol.maskDiameterA.get()/2
             
         prefixes = self._getPrefixes()
-        if len(self._refsList) == 1:
-            # If just one reference we can show the angular distribution
-            ref3d = self._refsList[0]
-            volFn = self._getVolumeNames()[0]
-            if exists(volFn.replace(":mrc", "")):
-                for prefix in prefixes:
-                    sqliteFn = self.protocol._getFileName('projections',
-                                                          iter=it, ref3d=ref3d, half=prefix)
-                    if not exists(sqliteFn):
-                        self.createAngDistributionSqlite(sqliteFn, nparts,
-                                                         itemDataIterator=self._iterAngles(self._getMdOut(it, prefix, ref3d)))
-                    return ChimeraClientView(volFn,
-                                                angularDistFile=sqliteFn, spheresDistance=radius)
-            else:
-                raise Exception("This class is Empty. Please try with other class")
-        else:
-            return self.infoMessage("Please select only one class to display angular distribution",
-                                    "Input selection") 
-    
+
+        if len(self._refsList) != 1:
+            return self.infoMessage("Please select only one class to display "
+                                    "angular distribution", "Input selection")
+        # If just one reference we can show the angular distribution
+        ref3d = self._refsList[0]
+        volFn = self._getVolumeNames()[0]
+        if not exists(volFn.replace(":mrc", "")):
+            raise Exception("This class is Empty. Please try with other class")
+
+        for prefix in prefixes:
+            sqliteFn = self.protocol._getFileName('projections',
+                                                  iter=it, ref3d=ref3d,
+                                                  half=prefix)
+            if not exists(sqliteFn):
+                mdOut = self._getMdOut(it, prefix, ref3d)
+                self.createAngDistributionSqlite(
+                    sqliteFn, nparts,
+                    itemDataIterator=self._iterAngles(mdOut))
+
+            return ChimeraClientView(volFn,
+                                     angularDistFile=sqliteFn,
+                                     spheresDistance=radius)
+
     def _createAngDist2D(self, it):
         # Common variables to use
         nparts = self.protocol.inputParticles.get().getSize()
@@ -747,28 +779,47 @@ Examples:
 
         return result
 
+    def _hasClasses(self):
+        p = self.protocol
+        return p.IS_CLASSIFY or p.IS_3D_INIT
+
     def _load(self):
         """ Load selected iterations and classes 3D for visualization mode. """
         self._refsList = [1]
         self._errors = []
 
-        if self.protocol.IS_3D and self.protocol.IS_CLASSIFY:
+        if self.protocol.IS_3D and self._hasClasses():
             if self.showClasses3D == CLASSES_ALL:
                 self._refsList = range(1, self.protocol.numberOfClasses.get()+1)
             else:
                 self._refsList = self._getRange(self.class3DSelection, 'classes 3d')
-        self.protocol._initialize() # Load filename templates
+
+        self.protocol._initialize()  # Load filename templates
         self.firstIter = self.protocol._firstIter()
         self.lastIter = self.protocol._lastIter()
         
         halves = getattr(self, 'showHalves', None)
-        if self.viewIter.get() == ITER_LAST or halves == 3:
+        if (self.viewIter.get() == ITER_LAST or
+            (halves == 3 and not self.protocol.IS_3D_INIT)):
             self._iterations = [self.lastIter]
         else:
             self._iterations = self._getRange(self.iterSelection, 'iterations')
+
         from matplotlib.ticker import FuncFormatter
         self._plotFormatter = FuncFormatter(self._formatFreq) 
-        
+
+    def _getAllIters(self):
+        """ Return all the iterations.
+        For most protocols this is just the range from min to max,
+        but iteration numbers in initial volume protocol are not
+        contiguous.
+        """
+        iterations = range(self.firstIter, self.lastIter+1)
+
+        return [it for it in iterations
+                if os.path.exists(self.protocol._getFileName('optimiser',
+                                                             iter=it))]
+
     def _formatFreq(self, value, pos):
         """ Format function for Matplotlib formatter. """
         inv = 999.
@@ -820,12 +871,18 @@ Examples:
     def _getVolumeNames(self):
         vols = []
         prefixes = self._getVolumePrefixes()
+        print("self._iterations: ", self._iterations)
         for it in self._iterations:
             for ref3d in self._refsList:
                 for prefix in prefixes:
                     volFn = self.protocol._getFileName(prefix + 'volume',
                                                        iter=it, ref3d=ref3d)
-                    vols.append(volFn)
+                    if os.path.exists(volFn.replace(':mrc', '')):
+                        vols.append(volFn)
+                    else:
+                        raise Exception("Volume %s does not exists. \n"
+                                        "Please select a valid iteration "
+                                        "number. " % volFn)
         return vols
     
     def _getMdOut(self, it, prefix, ref3d):

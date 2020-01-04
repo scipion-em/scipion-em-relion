@@ -62,12 +62,12 @@ class RelionBackRadiusWizard(ParticleMaskRadiusWizard):
         
         label, value = self._getInputProtocol(self._targets, protocol)
         
-        protParams = {}
-        protParams['input']= self._getProtocolImages(protocol)
-        protParams['label']= label
-        protParams['value']= value
-        return protParams  
-    
+        return {
+            'input': self._getProtocolImages(protocol),
+            'label': label,
+            'value': value
+        }
+
     def _getProvider(self, protocol):
         _objs = self._getParameters(protocol)['input']    
         return ParticleMaskRadiusWizard._getListProvider(self, _objs)
@@ -303,18 +303,20 @@ class Relion2PartDiameter(RelionPartMaskDiameterWizard):
     _targets = [(ProtRelion2Autopick, ['particleDiameter'])]
 
     def _getProtocolImages(self, protocol):
-        return protocol.inputReferences
+        if protocol.useInputReferences():
+            return protocol.inputReferences
+        else:
+            return protocol.inputReferences3D
 
     def show(self, form):
         prot = form.protocol
-        if prot.useInputReferences():
-            if prot.getInputReferences() is None:
-                form.showWarning("Please select the input references first. ")
-            else:
-                RelionPartMaskDiameterWizard.show(self, form)
-        else: # Gaussian blobs
-            form.showWarning("This wizard only works when using input "
-                             "references, not Gaussian blobs. ")
+        if prot.getInputReferences() is None:
+            form.showWarning("Please select the input references first. ")
+        else:
+            RelionPartMaskDiameterWizard.show(self, form)
+        # else:  # Gaussian blobs
+        #     form.showWarning("This wizard only works when using input "
+        #                      "references, not Gaussian blobs. ")
 
 
 class RelionWizLogPickParams(EmWizard):

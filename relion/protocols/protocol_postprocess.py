@@ -200,8 +200,7 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
         volume = pw.em.Volume()
         volume.setFileName(self._getFileName('outputVolume'))
         vol = self.protRefine.get().outputVolume
-        pxSize = vol.getSamplingRate()
-        volume.setSamplingRate(pxSize)
+        volume.setSamplingRate(self._getOutputPixelSize())
         self._defineOutputs(outputVolume=volume)
         self._defineSourceRelation(vol, volume)
 
@@ -237,10 +236,6 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
     # -------------------------- UTILS functions ------------------------------
     def _defineParamDict(self):
         """ Define all parameters to run relion_postprocess"""
-        volume = self.protRefine.get().outputVolume
-        cps = self.calibratedPixelSize.get()
-        angpix = cps if cps > 0 else volume.getSamplingRate()
-
         # It seems that in Relion3 now the input should be the map
         # filename and not the prefix as before
         if IS_V3:
@@ -250,7 +245,7 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
 
         self.paramDict = {'--i': inputFn,
                           '--o': self._getExtraPath('postprocess'),
-                          '--angpix': angpix,
+                          '--angpix': self._getOutputPixelSize(),
                           # Expert params
                           '--filter_edge_width': self.filterEdgeWidth.get(),
                           '--randomize_at_fsc': self.randomizeAtFsc.get(),
@@ -275,3 +270,9 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
     def _getRelionMapFn(self, fn):
         return fn.split(':')[0]
 
+    def _getOutputPixelSize(self):
+        """ Return the output pixel size, using the calibrated
+        pixel size if non zero, or the input one. """
+        volume = self.protRefine.get().outputVolume
+        cps = self.calibratedPixelSize.get()
+        return cps if cps > 0 else volume.getSamplingRate()
