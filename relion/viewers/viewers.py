@@ -1800,7 +1800,7 @@ class RelionLocalResViewer(ProtocolViewer):
         return rangeList
 
 
-class ProtMotioncorrViewer(ProtocolViewer):
+class RelionMotioncorrViewer(ProtocolViewer):
     """ Visualization of relion motioncor results. """
 
     _targets = [ProtRelionMotioncor]

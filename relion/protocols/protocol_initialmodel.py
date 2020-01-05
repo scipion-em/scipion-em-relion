@@ -39,7 +39,6 @@ from ..constants import ANGULAR_SAMPLING_LIST
 from .protocol_base import ProtRelionBase
 
 
-
 class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
     """ This protocols creates a 3D initial model using Relion.
 
@@ -52,10 +51,6 @@ class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
     IS_2D = False
     CHANGE_LABELS = [md.RLN_OPTIMISER_CHANGES_OPTIMAL_ORIENTS,
                      md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS]
-
-    @classmethod
-    def isDisabled(cls):
-        return relion.Plugin.getActiveVersion() in [V2_0]
 
     def __init__(self, **args):
         ProtRelionBase.__init__(self, **args)
