@@ -41,8 +41,8 @@ from pyworkflow.em.protocol import EMProtocol
 
 import relion
 import relion.convert
-from relion.constants import (ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO,
-                              V2_0, RELION_HOME)
+from ..constants import (ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO,
+                         RELION_HOME)
 
 
 class ProtRelionBase(EMProtocol):
@@ -139,7 +139,6 @@ class ProtRelionBase(EMProtocol):
     # -------------------------- DEFINE param functions -----------------------
     def _defineConstants(self):
         self.IS_3D = not self.IS_2D
-        self.IS_V3 = relion.Plugin.isVersion3Active()
 
     def _defineParams(self, form):
         self._defineConstants()
@@ -447,63 +446,17 @@ class ProtRelionBase(EMProtocol):
                                'param is set 25, the final iteration of the '
                                'protocol will be the 28th.')
 
-            version = relion.Plugin.getActiveVersion()
-
-            if version.startswith('2.1'):  # version 2.1+ only
-                form.addParam('doSubsets', BooleanParam, default=False,
-                              condition='not doContinue',
-                              label='Use subsets for initial updates?',
-                              help='If set to True, multiple maximization updates '
-                                   '(as many as defined by the _Number of subset '
-                                   'updates_) will be performed during the first '
-                                   'iteration(s): each time after the number of '
-                                   'particles in a subset has been processed. By '
-                                   'using subsets with much fewer particles than '
-                                   'the entire data set, the initial updates '
-                                   'will be much faster, while the very low '
-                                   'resolution class averages will not be '
-                                   'notably worse than with the entire data set. '
-                                   '\nThis will greatly speed up 2D '
-                                   'classifications with very many (hundreds of '
-                                   'thousands or more) particles. A useful '
-                                   'subset size is probably in the order of ten '
-                                   'thousand particles. If the data set only '
-                                   'comprises (tens of) thousands of particles, '
-                                   'this option may be less useful.')
-                form.addParam('subsetSize', IntParam, default=10000,
-                              condition='doSubsets and not doContinue',
-                              label='Initial subset size',
-                              help='Number of individual particles after which one '
-                                   'will perform a maximization update in the first '
-                                   'iteration(s). A useful subset size is probably '
-                                   'in the order of ten thousand particles.')
-                form.addParam('subsetUpdates', IntParam, default=3,
-                              condition='doSubsets and not doContinue',
-                              label='Number of subset updates',
-                              help='This option is only used when a positive '
-                                   'number is given for the _Initial subset size_. '
-                                   'In that case, in the first iteration, '
-                                   'maximization updates are performed over '
-                                   'a smaller subset of the particles to speed '
-                                   'up calculations.Useful values are probably in '
-                                   'the range of 2-5 subset updates. Using more '
-                                   'might speed up further, but with the risk of '
-                                   'affecting the results. If the number of subsets '
-                                   'times the subset size is larger than the number '
-                                   'of particles in the data set, then more than 1 '
-                                   'iteration will be split into subsets.')
-            elif self.IS_V3:
-                form.addParam('useFastSubsets', BooleanParam, default=False,
-                              condition='not doContinue',
-                              label='Use fast subsets (for large data sets)?',
-                              help='If set to Yes, the first 5 iterations will '
-                                   'be done with random subsets of only K*100 '
-                                   'particles (K being the number of classes); '
-                                   'the next 5 with K*300 particles, the next '
-                                   '5 with 30% of the data set; and the final '
-                                   'ones with all data. This was inspired by '
-                                   'a cisTEM implementation by Niko Grigorieff'
-                                   ' et al.')
+            form.addParam('useFastSubsets', BooleanParam, default=False,
+                          condition='not doContinue',
+                          label='Use fast subsets (for large data sets)?',
+                          help='If set to Yes, the first 5 iterations will '
+                               'be done with random subsets of only K*100 '
+                               'particles (K being the number of classes); '
+                               'the next 5 with K*300 particles, the next '
+                               '5 with 30% of the data set; and the final '
+                               'ones with all data. This was inspired by '
+                               'a cisTEM implementation by Niko Grigorieff'
+                               ' et al.')
 
             form.addParam('limitResolEStep', FloatParam, default=-1,
                           label='Limit resolution E-step to (A)',
@@ -615,61 +568,6 @@ class ProtRelionBase(EMProtocol):
                                    'used from this angular sampling rate '
                                    'onwards.')
 
-                if not self.IS_V3:
-                    form.addSection("Movies")
-                    form.addParam('realignMovieFrames', BooleanParam, default=False,
-                                  label='Refine movie particles?',
-                                  help='If set to Yes, then running averages of '
-                                       'the particles from individual frames of '
-                                       'recorded movies will be aligned to the '
-                                       '3D reference.')
-
-                    group = form.addGroup('Movie frames alignment',
-                                          condition='realignMovieFrames and '
-                                                    'doContinue')
-                    group.addParam('inputMovieParticles', PointerParam,
-                                   pointerClass='SetOfMovieParticles',
-                                   allowsNull=True, important=True,
-                                   label='Input movie particles')
-                    group.addParam('movieAvgWindow', FloatParam, default=5,
-                                   label='Running average window',
-                                   help='The individual movie frames will be '
-                                        'averaged using a running average window '
-                                        'with the specified width. Use an odd '
-                                        'number. The optimal value will depend on '
-                                        'the SNR in the individual movie frames. '
-                                        'For ribosomes, we used a value of 5, '
-                                        'where each movie frame integrated '
-                                        'approximately 1 electron per squared '
-                                        'Angstrom.')
-                    group.addParam('movieStdTrans', FloatParam, default=1,
-                                   label='Stddev on the translations (px)',
-                                   help='A Gaussian prior with the specified '
-                                        'standard deviation will be centered at '
-                                        'the rotations determined for the '
-                                        'corresponding particle where all '
-                                        'movie-frames were averaged. For '
-                                        'ribosomes, we used a value of 2 pixels. ')
-                    group.addParam('movieIncludeRotSearch', BooleanParam,
-                                   default=False,
-                                   label='Also include rotational searches?',
-                                   help='If set to Yes, then running averages of '
-                                        'the individual frames of recorded movies '
-                                        'will also be aligned rotationally. \n'
-                                        'If one wants to perform particle '
-                                        'polishing, then rotational alignments of '
-                                        'the movie frames is NOT necessary and '
-                                        'will only take more computing time.')
-                    group.addParam('movieStdRot', FloatParam, default=1,
-                                   condition='movieIncludeRotSearch',
-                                   label='Stddev on the rotations (deg)',
-                                   help='A Gaussian prior with the specified '
-                                        'standard deviation will be centered at '
-                                        'the rotations determined for the '
-                                        'corresponding particle where all '
-                                        'movie-frames were averaged. For '
-                                        'ribosomes, we used a value of 1 degree')
-
         form.addSection('Compute')
         self._defineComputeParams(form)
 
@@ -743,7 +641,7 @@ class ProtRelionBase(EMProtocol):
                            'particularly metadata handling of disk '
                            'access, is a problem. It has a modest cost of '
                            'increased RAM usage.')
-        if self.IS_V3 and self.IS_3D:
+        if self.IS_3D:
             form.addParam('skipPadding', BooleanParam, default=False,
                           label='Skip padding',
                           help='If set to Yes, the calculations will not use '
@@ -1131,7 +1029,7 @@ class ProtRelionBase(EMProtocol):
                 self._setSubsetArgs(args)
 
         # Padding can be set in a normal run or in a continue
-        if self.IS_V3 and self.IS_3D:
+        if self.IS_3D:
             args['--pad'] = 1 if self.skipPadding else 2
 
         self._setSamplingArgs(args)
@@ -1380,16 +1278,10 @@ class ProtRelionBase(EMProtocol):
             partRow.setValue(md.RLN_CTF_PHASESHIFT, ctf.getPhaseShift())
 
     def _doSubsets(self):
-        # Since 'doSubsets' property is only valid for 2.1+ protocols
-        # we need provide a default value for backward compatibility
-        if relion.Plugin.getActiveVersion().startswith("2.1"):
-            return self.getAttributeValue('doSubsets', False)
         return False
 
     def _useFastSubsets(self):
-        if self.IS_V3:
-            return self.getAttributeValue('useFastSubsets', False)
-        return False
+        return self.getAttributeValue('useFastSubsets', False)
 
     def _copyAlignAsPriors(self, mdParts, alignType):
         # set priors equal to orig. values

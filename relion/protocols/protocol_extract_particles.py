@@ -33,7 +33,7 @@ import pyworkflow.em.metadata as md
 
 import relion
 import relion.convert
-from relion.constants import OTHER
+from ..constants import OTHER
 from .protocol_base import ProtRelionBase
 
 

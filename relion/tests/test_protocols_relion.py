@@ -24,15 +24,11 @@
 # *
 # **************************************************************************
 
-from glob import glob
-
-import pyworkflow as pw
 from pyworkflow.tests import *
 from pyworkflow.em.protocol import *
 from pyworkflow.protocol.constants import STATUS_FINISHED
 from pyworkflow.em.convert import ImageHandler
 
-import relion
 from relion.protocols import *
 from relion.convert import *
 from relion.constants import *
@@ -50,7 +46,6 @@ def useGpu():
         return False, 'CPU'
 
 
-IS_V3 = relion.Plugin.isVersion3Active()
 USE_GPU = useGpu()[0]
 ONLY_GPU = int(os.environ.get('SCIPION_TEST_RELION_ONLY_GPU', 0))
 RUN_CPU = not USE_GPU or ONLY_GPU
@@ -163,7 +158,7 @@ class TestRelionClassify2D(TestRelionBase):
             partsPixSize = self.protNormalize.outputParticles.getSamplingRate()
             classsesPixSize = relionProt.outputClasses.getImages().getSamplingRate()
             self.assertAlmostEquals(partsPixSize,classsesPixSize,
-                                    "There was a problem with the sampling rate "
+                                    msg="There was a problem with the sampling rate "
                                     "of the particles")
             for class2D in relionProt.outputClasses:
                 self.assertTrue(class2D.hasAlignment2D())
@@ -265,11 +260,11 @@ class TestRelionRefine(TestRelionBase):
                                  "There was a problem with Relion autorefine")
             self.assertAlmostEqual(outImgSet[1].getSamplingRate(),
                                    relNorm.outputParticles[1].getSamplingRate(),
-                                   "The sampling rate is wrong", delta=0.00001)
+                                   msg="The sampling rate is wrong", delta=0.00001)
             
             self.assertAlmostEqual(outImgSet[1].getFileName(),
                                    relNorm.outputParticles[1].getFileName(),
-                                   "The particles filenames are wrong")
+                                   msg="The particles filenames are wrong")
         
         if RUN_CPU:
             relionProt = _runRelionRefine(doGpu=False,
@@ -301,12 +296,9 @@ class TestRelionInitialModel(TestRelionBase):
                 'numberOfMpi': 3,
                 'numberOfThreads': 2
             }
-            if IS_V3:
-                kwargs.update({'numberOfIterInitial': 10,
-                               'numberOfIterInBetween': 30,
-                               'numberOfIterFinal': 10})
-            else:  # v3
-                kwargs['numberOfIterations'] = 50
+            kwargs.update({'numberOfIterInitial': 10,
+                           'numberOfIterInBetween': 30,
+                           'numberOfIterFinal': 10})
 
             relionIniModel = self.newProtocol(ProtRelionInitialModel, **kwargs)
             relionIniModel.setObjLabel(label)
@@ -324,7 +316,7 @@ class TestRelionInitialModel(TestRelionBase):
                                  "There was a problem with Relion initial model")
             self.assertAlmostEqual(outImgSet[1].getSamplingRate(),
                                    self.protImport.outputParticles[1].getSamplingRate(),
-                                   "The sampling rate is wrong", delta=0.00001)
+                                   msg="The sampling rate is wrong", delta=0.00001)
 
         relionProt = _runRelionIniModel(
             doGpu=USE_GPU, label="Relion initial model %s"

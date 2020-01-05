@@ -28,7 +28,7 @@ import os
 import pyworkflow.em
 import pyworkflow.utils as pwutils
 
-from .constants import RELION_HOME, RELION_CUDA_LIB, V2_0, V2_1, V3_0, V3_1
+from .constants import RELION_HOME, RELION_CUDA_LIB, V3_0, V3_1
 
 
 _logo = "relion_logo.png"
@@ -37,7 +37,7 @@ _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016', 'Zivanov2018']
 
 class Plugin(pyworkflow.em.Plugin):
     _homeVar = RELION_HOME
-    _supportedVersions = [V2_0, V2_1, V3_0, V3_1]
+    _supportedVersions = [V3_0, V3_1]
 
     @classmethod
     def _defineVariables(cls):
@@ -71,36 +71,15 @@ class Plugin(pyworkflow.em.Plugin):
         return environ
 
     @classmethod
-    def isVersion2Active(cls):
-        return cls.getActiveVersion().startswith('2.')
-
-    @classmethod
-    def isVersion3Active(cls):
-        return cls.getActiveVersion().startswith('3.')
-
-    @classmethod
     def isVersion31Active(cls):
         return cls.getActiveVersion().startswith('3.1')
 
     @classmethod
     def hasOpticsGroup(cls):
-        return (not cls.getActiveVersion().startswith('2.')
-                or not cls.getActiveVersion() == '3.0')
+        return not cls.getActiveVersion() == '3.0'
 
     @classmethod
     def defineBinaries(cls, env):
-        relion_commands = [('./INSTALL.sh -j %d' % env.getProcessors(),
-                            ['relion_build.log',
-                             'bin/relion_refine'])]
-
-        env.addPackage('relion', version='1.4',
-                       tar='relion-1.4.tgz',
-                       commands=relion_commands)
-
-        env.addPackage('relion', version='1.4f',
-                       tar='relion-1.4_float.tgz',
-                       commands=relion_commands)
-
         # Define FFTW3 path variables
         relion_vars = {'FFTW_LIB': env.getLibFolder(),
                        'FFTW_INCLUDE': env.getIncludeFolder()}
@@ -108,18 +87,6 @@ class Plugin(pyworkflow.em.Plugin):
         relion2_commands = [('cmake -DGUI=OFF -DCMAKE_INSTALL_PREFIX=./ .', []),
                             ('make -j %d' % env.getProcessors(),
                              ['bin/relion_refine'])]
-
-        env.addPackage('relion', version='2.0',
-                       tar='relion-2.0.4.tgz',
-                       commands=relion2_commands,
-                       updateCuda=True,
-                       vars=relion_vars)
-
-        env.addPackage('relion', version='2.1',
-                       tar='relion-2.1.tgz',
-                       commands=relion2_commands,
-                       updateCuda=True,
-                       vars=relion_vars)
 
         env.addPackage('relion', version='3.0',
                        url='https://github.com/3dem/relion/archive/3.0.tar.gz',

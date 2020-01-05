@@ -35,9 +35,6 @@ import pyworkflow.em.metadata as md
 import relion
 
 
-IS_V3 = relion.Plugin.isVersion3Active()
-
-
 class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
     """
     Relion post-processing protocol for automated masking,
@@ -238,10 +235,7 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
         """ Define all parameters to run relion_postprocess"""
         # It seems that in Relion3 now the input should be the map
         # filename and not the prefix as before
-        if IS_V3:
-            inputFn = self._getFileName('half1')
-        else:
-            inputFn = self._getInputPath("relion")
+        inputFn = self._getFileName('half1')
 
         self.paramDict = {'--i': inputFn,
                           '--o': self._getExtraPath('postprocess'),

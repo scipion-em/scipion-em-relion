@@ -33,7 +33,7 @@ import pyworkflow.em as em
 import pyworkflow.em.metadata as md
 
 import relion
-from relion.convert.metadata import Table
+from ..convert.metadata import Table
 
 
 class ProtRelionBayesianPolishing(em.ProtParticles):
@@ -60,9 +60,6 @@ class ProtRelionBayesianPolishing(em.ProtParticles):
     OP_TRAIN = 0
     OP_POLISH = 1
 
-    @classmethod
-    def isDisabled(cls):
-        return not relion.Plugin.isVersion3Active()
 
     def _defineParams(self, form):
         form.addSection(label='Input')

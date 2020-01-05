@@ -56,10 +56,6 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
     
     PREFIXES = ['half1_', 'half2_']
 
-    @classmethod
-    def isDisabled(cls):
-        return relion.Plugin.isVersion3Active()
-
     def _initialize(self):
         """ This function is meant to be called after the
         working dir for the protocol have been set.

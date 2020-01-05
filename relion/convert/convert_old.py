@@ -26,9 +26,7 @@
 # *
 # **************************************************************************
 
-import os
-
-from relion.constants import *
+from ..constants import *
 from .convert_base import WriterBase
 
 

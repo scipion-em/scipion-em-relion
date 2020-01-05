@@ -24,12 +24,11 @@
 # *
 # **************************************************************************
 
-import os
 from os.path import relpath
 
 import pyworkflow.protocol.params as params
 from pyworkflow.em.protocol import ProtParticlePickingAuto
-from pyworkflow.em.constants import RELATION_CTF, ALIGN_NONE
+from pyworkflow.em.constants import RELATION_CTF
 from pyworkflow.em.convert import ImageHandler
 from pyworkflow.utils.properties import Message
 import pyworkflow.utils as pwutils
@@ -37,8 +36,8 @@ from pyworkflow.em import getSubsetByDefocus
 
 import relion
 import relion.convert
-from relion.convert.metadata import Table
-from relion.constants import *
+from ..convert.metadata import Table
+from ..constants import *
 from .protocol_autopick import ProtRelionAutopickBase
 
 

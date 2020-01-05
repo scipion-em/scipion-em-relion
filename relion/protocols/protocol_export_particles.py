@@ -34,7 +34,7 @@ import pyworkflow.protocol.params as params
 
 import relion
 import relion.convert
-from relion.constants import STACK_NONE, STACK_MULT, STACK_ONE
+from ..constants import STACK_NONE, STACK_MULT, STACK_ONE
 from .protocol_base import ProtRelionBase
 
 

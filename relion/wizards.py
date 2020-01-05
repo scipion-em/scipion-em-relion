@@ -26,9 +26,6 @@
 # *
 # **************************************************************************
 
-import os
-from collections import OrderedDict
-
 import pyworkflow as pw
 from pyworkflow.em import *
 from pyworkflow.em.viewers import CoordinatesObjectView

@@ -30,7 +30,7 @@ from pyworkflow.protocol.params import (PointerParam, FloatParam, StringParam,
 from pyworkflow.utils import removeExt
 import pyworkflow.em as em
 from pyworkflow.em.protocol import ProtParticles
-from pyworkflow.em.data import SetOfClasses3D, SetOfParticles, SetOfClasses
+from pyworkflow.em.data import SetOfParticles, SetOfClasses
 import pyworkflow.em.metadata as md
 
 import relion

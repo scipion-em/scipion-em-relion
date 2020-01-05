@@ -39,7 +39,7 @@ import pyworkflow.em.metadata as md
 from pyworkflow.em.constants import NO_INDEX
 import pyworkflow.em.convert.transformations as tfs
 
-from relion.constants import *
+from ..constants import *
 from .metadata import Table
 from .common import *
 

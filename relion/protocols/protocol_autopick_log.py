@@ -24,14 +24,12 @@
 # *
 # **************************************************************************
 
-import os
 from os.path import relpath
 
 import pyworkflow.protocol.params as params
 from pyworkflow.protocol import STEPS_SERIAL
 from pyworkflow.em.protocol import ProtParticlePickingAuto
 
-import relion
 from .protocol_autopick import ProtRelionAutopickBase
 
 
@@ -41,10 +39,6 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
     Laplacian of Gaussian (LoG) option.
     """
     _label = 'auto-picking LoG'
-
-    @classmethod
-    def isDisabled(cls):
-        return not relion.Plugin.isVersion3Active()
 
     def __init__(self, **kwargs):
         ProtParticlePickingAuto.__init__(self, **kwargs)

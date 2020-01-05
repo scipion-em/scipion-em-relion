@@ -34,7 +34,7 @@ import os
 import pyworkflow.em as pwem
 import pyworkflow.utils as pwutils
 
-from relion.constants import *
+from ..constants import *
 from .metadata import Table, Column
 
 

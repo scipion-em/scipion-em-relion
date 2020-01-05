@@ -31,7 +31,7 @@ New conversion functions dealing with Relion3.1 new star files format.
 
 from collections import OrderedDict
 
-from relion.constants import *
+from ..constants import *
 from .convert_base import WriterBase
 
 
@@ -107,4 +107,3 @@ class Writer(WriterBase):
             ogNumber = self._optics[ogName]['rlnOpticsGroup']
 
         row['rlnOpticsGroup'] = ogNumber
-
