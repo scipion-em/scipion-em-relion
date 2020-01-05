@@ -36,6 +36,7 @@ from pyworkflow.tests import BaseTest, setupTestOutput, DataSet
 from pyworkflow.em.data import (SetOfParticles, CTFModel, Acquisition,
                                 Coordinate, Particle, SetOfVolumes, Transform)
 from pyworkflow.em import ImageHandler
+from pyworkflow.utils import cleanPath
 import pyworkflow.em.metadata as md
 from pyworkflow.em.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_3D
 
@@ -363,8 +364,8 @@ class TestConvertAnglesBase(BaseTest):
         # else:
         #     print colorText.RED + colorText.BOLD + "WARNING: Gold file '%s' missing!!!" % goldFn + colorText.END
         #
-        # if CLEAN_IMAGES:
-        #     cleanPath(outputFn)
+        if CLEAN_IMAGES:
+            cleanPath("/tmp/input")
 
 
 class TestAlignment(TestConvertAnglesBase):
