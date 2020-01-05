@@ -1217,8 +1217,11 @@ class TestRelionExportParticles(TestRelionBase):
     def setUpClass(cls):
         setupTestProject(cls)
         cls.ds = DataSet.getDataSet('xmipp_tutorial')
+        cls.ds2 = DataSet.getDataSet('relion_tutorial')
         cls.particlesFn = cls.ds.getFile('particles')
+        cls.particlesFn2 = cls.ds2.getFile('import/classify2d/extra/relion_it015_data.star')
         cls.runImportParticles(cls.particlesFn, 1.237, True)
+        cls.starImport = cls.runImportParticlesStar(cls.particlesFn2, 50000, 7.08)
 
     @classmethod
     def runImportParticles(cls, pattern, samplingRate, checkStack=False,
@@ -1269,3 +1272,10 @@ class TestRelionExportParticles(TestRelionBase):
             exportProt.inputParticles.set(inputParts)
             self.launchProtocol(exportProt)
             _checkProt(exportProt, params)
+
+    def test_extra(self):
+        """ Test export from Relion directly. """
+        exportProt = self.newProtocol(ProtRelionExportParticles,
+                                      stackType=0)
+        exportProt.inputParticles.set(self.starImport.outputParticles)
+        self.launchProtocol(exportProt)

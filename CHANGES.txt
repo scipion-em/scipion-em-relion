@@ -1,3 +1,9 @@
+1.0.8:
+    - Fixed bug when creating symbolic links from binaries with different root
+    - Fixed a few visualization issues from Relion - initial volume viewer
+    - Fixed dose-weighting bug when no dose was provided
+    - Fixed wrong pixsize in particle extraction
+    - Fixed polishing bug to ignore particles from missing movies
 1.0.7: Add missing MTF files to the pypi plugin
 1.0.6: Fix reconstruction and extract ptcls tests
 1.0.5:

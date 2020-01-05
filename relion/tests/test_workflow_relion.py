@@ -127,6 +127,8 @@ class TestWorkflowRelionPick(TestWorkflow):
                                     samplingRate=7.08)
 
         self.launchProtocol(protAvgs)
+
+
         # Select some good averages from the iterations mrcs a
 
         protPick1 = self.newProtocol(
@@ -157,7 +159,18 @@ class TestWorkflowRelionPick(TestWorkflow):
 
         # Launch now using the Gaussian as references
         protPick3 = self.proj.copyProtocol(protPick1)
-        protPick3.setObjLabel('autopick gauss (optimize)')
+        if relion.Plugin.isVersion3Active():
+            print("Importing volume")
+            volFn = self.ds.getFile('import/case2/volume.mrc')
+            protVol = self.newProtocol(ProtImportVolumes,
+                                       objLabel='ref volume',
+                                       filesPath=volFn,
+                                       samplingRate=7.08)
+            self.launchProtocol(protVol)
+            protPick3.setObjLabel('autopick ref 3D (optimize)')
+            protPick3.inputReferences3D.set(protVol.outputVolume)
+        else:
+            protPick3.setObjLabel('autopick gauss (optimize)')
         protPick3.referencesType.set(REF_BLOBS)
         protPick3.inputReferences.set(None)
         self._launchPick(protPick3)
