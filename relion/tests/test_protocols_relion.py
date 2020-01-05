@@ -24,14 +24,15 @@
 # *
 # **************************************************************************
 
+import pyworkflow as pw
 from pyworkflow.tests import *
 from pyworkflow.em.protocol import *
 from pyworkflow.protocol.constants import STATUS_FINISHED
 from pyworkflow.em.convert import ImageHandler
 
-from relion.protocols import *
-from relion.convert import *
-from relion.constants import *
+from ..protocols import *
+from ..convert import *
+from ..constants import *
 
 
 def useGpu():

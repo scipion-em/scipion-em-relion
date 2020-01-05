@@ -43,11 +43,11 @@ from pyworkflow.em.viewers import (EmPlotter, ObjectView, ChimeraView,
 
 import relion
 import relion.convert
-from relion.protocols import (
+from ..protocols import (
     ProtRelionClassify2D, ProtRelionClassify3D, ProtRelionRefine3D,
     ProtRelionPolish, ProtRelionPostprocess, ProtRelionSortParticles,
     ProtRelionInitialModel, ProtRelionLocalRes, ProtRelionMotioncor)
-from relion.constants import *
+from ..constants import *
 
 
 class RelionPlotter(EmPlotter):

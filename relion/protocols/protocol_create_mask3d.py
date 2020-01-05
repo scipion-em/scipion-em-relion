@@ -29,7 +29,7 @@ import pyworkflow.protocol.params as params
 
 import relion
 import relion.convert
-from ..constants import MASK_AND, MASK_OR, MASK_AND_NOT, MASK_OR_NOT
+from ..constants import MASK_AND
 
 
 class ProtRelionCreateMask3D(pw.em.ProtCreateMask3D):

@@ -31,7 +31,6 @@ import pyworkflow.utils as pwutils
 
 import relion
 import relion.convert
-from ..constants import *
 from .protocol_base import ProtRelionBase
 
 

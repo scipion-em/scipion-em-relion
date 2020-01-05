@@ -41,8 +41,7 @@ from pyworkflow.em.protocol import EMProtocol
 
 import relion
 import relion.convert
-from ..constants import (ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO,
-                         RELION_HOME)
+from ..constants import (ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO)
 
 
 class ProtRelionBase(EMProtocol):
