@@ -28,6 +28,7 @@ import os
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
+import pyworkflow.em.metadata as md
 from pyworkflow.em.data import Volume
 from pyworkflow.em.protocol import ProtAnalysis3D
 
@@ -63,6 +64,7 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
     def _createFilenameTemplates(self):
         """ Centralize how files are called for iterations and references. """
         myDict = {
+            'finalModel': self._getExtraPath("run_model.star"),
             'finalVolume': self._getInputPath("relion_class001.mrc"),
             'half1': self._getInputPath("relion_half1_class001_unfil.mrc"),
             'half2': self._getInputPath("relion_half2_class001_unfil.mrc"),
@@ -238,13 +240,19 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         self._runProgram('relion_flex_analyse', args)
     
     def createOutputStep(self):
-        volume = Volume()
-        volume.setFileName(self._getFileName('outputVolume'))
+        protRefine = self.protRefine.get()
+        sampling = protRefine._getInputParticles().getSamplingRate()
+
+        volumes = self._createSetOfVolumes()
+        volumes.setSamplingRate(sampling)
+
+        outputVols = self._getVolumes()
+        for vol in outputVols:
+            volumes.append(vol)
+
+        self._defineOutputs(outputVolumes=volumes)
         vol = self.protRefine.get().outputVolume
-        pxSize = vol.getSamplingRate()
-        volume.setSamplingRate(pxSize)
-        self._defineOutputs(outputVolume=volume)
-        self._defineSourceRelation(vol, volume)
+        self._defineSourceRelation(vol, volumes)
 
     # -------------------------- INFO functions --------------------------------
     def _validate(self):
@@ -281,6 +289,28 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         return summary
         
     # -------------------------- UTILS functions ------------------------------
+    def _loadClassesInfo(self):
+        """ Read some information about the produced Relion bodies
+        from the *model.star file.
+        """
+        self._classesInfo = {}  # store classes info, indexed by class id
+
+        modelStar = md.MetaData('model_bodies@' +
+                                self._getFileName('finalModel'))
+
+        for classNumber, row in enumerate(md.iterRows(modelStar)):
+            index, fn = relion.convert.relionToLocation(row.getValue('rlnReferenceImage'))
+            # Store info indexed by id, we need to store the row.clone() since
+            # the same reference is used for iteration
+            self._classesInfo[classNumber + 1] = (index, fn, row.clone())
+
+    def _getVolumes(self):
+        self._loadClassesInfo()
+
+        outputVols = glob(self._getExtraPath('run_body???.mrc'))
+        outputVols.sort()
+        return outputVols
+
     def _getRefineArgs(self):
         """ Define all parameters to run relion_refine.
         """
