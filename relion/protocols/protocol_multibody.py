@@ -29,7 +29,7 @@ import os
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 import pyworkflow.em.metadata as md
-from pyworkflow.em.data import Volume
+from pyworkflow.em.data import Volume, Float
 from pyworkflow.em.protocol import ProtAnalysis3D
 
 import relion
@@ -65,11 +65,10 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
         """ Centralize how files are called for iterations and references. """
         myDict = {
             'finalModel': self._getExtraPath("run_model.star"),
-            'finalVolume': self._getInputPath("relion_class001.mrc"),
-            'half1': self._getInputPath("relion_half1_class001_unfil.mrc"),
-            'half2': self._getInputPath("relion_half2_class001_unfil.mrc"),
-            'mask': self._getInputPath("input_mask.mrc"),
-            'outputVolume': self._getExtraPath('postprocess.mrc')
+            'input': self._getExtraPath("input_body.star"),
+            'body': self._getExtraPath("run_body%(body)03d.mrc"),
+            'half1': self._getExtraPath("run_half1_body%(body)03d_unfil.mrc"),
+            'half2': self._getExtraPath("run_half2_body%(body)03d_unfil.mrc")
         }
         self._updateFilenamesDict(myDict)
 
@@ -242,12 +241,14 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
     def createOutputStep(self):
         protRefine = self.protRefine.get()
         sampling = protRefine._getInputParticles().getSamplingRate()
-
         volumes = self._createSetOfVolumes()
         volumes.setSamplingRate(sampling)
 
-        outputVols = self._getVolumes()
-        for vol in outputVols:
+        self._loadVolsInfo()
+
+        for item in range(1, self._getNumberOfBodies() + 1):
+            vol = Volume()
+            self._updateVolume(item, vol)
             volumes.append(vol)
 
         self._defineOutputs(outputVolumes=volumes)
@@ -289,27 +290,29 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         return summary
         
     # -------------------------- UTILS functions ------------------------------
-    def _loadClassesInfo(self):
+    def _loadVolsInfo(self):
         """ Read some information about the produced Relion bodies
         from the *model.star file.
         """
-        self._classesInfo = {}  # store classes info, indexed by class id
-
+        self._volsInfo = {}
         modelStar = md.MetaData('model_bodies@' +
                                 self._getFileName('finalModel'))
 
-        for classNumber, row in enumerate(md.iterRows(modelStar)):
-            index, fn = relion.convert.relionToLocation(row.getValue('rlnReferenceImage'))
-            # Store info indexed by id, we need to store the row.clone() since
-            # the same reference is used for iteration
-            self._classesInfo[classNumber + 1] = (index, fn, row.clone())
+        for body, row in enumerate(md.iterRows(modelStar)):
+            self._volsInfo[body+1] = row.clone()
 
-    def _getVolumes(self):
-        self._loadClassesInfo()
+    def _getNumberOfBodies(self):
+        return int(md.getSize(self._getFileName('input')))
 
-        outputVols = glob(self._getExtraPath('run_body???.mrc'))
-        outputVols.sort()
-        return outputVols
+    def _updateVolume(self, bodyNum, item):
+        item.setFileName(self._getFileName('body', body=bodyNum))
+        half1 = self._getFileName('half1', body=bodyNum)
+        half2 = self._getFileName('half2', body=bodyNum)
+        item.setHalfMaps([half1, half2])
+
+        row = self._volsInfo[bodyNum]
+        item._rlnAccuracyRotations = Float(row.getValue('rlnAccuracyRotations'))
+        item._rlnAccuracyTranslations = Float(row.getValue('rlnAccuracyTranslations'))
 
     def _getRefineArgs(self):
         """ Define all parameters to run relion_refine.
