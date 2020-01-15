@@ -122,7 +122,7 @@ class Relion3TestMultiBody(Relion3TestProtocolBase):
     @classmethod
     def setUpClass(cls):
         pwtests.setupTestProject(cls)
-        cls.ds = pwtests.DataSet.getDataSet('tmp')
+        cls.ds = pwtests.DataSet.getDataSet('relion30_tutorial')
         cls.extra = cls.ds.getFile("multibody/extra")
         cls.ref3d = cls.ds.getFile("multibody/ref3d")
 
@@ -148,8 +148,8 @@ class Relion3TestMultiBody(Relion3TestProtocolBase):
                                        pooledParticles=30,
                                        skipPadding=True,
                                        doGpu=True,
-                                       gpusToUse='0,1:2,3',
-                                       numberOfThreads=15,
+                                       gpusToUse='0',
+                                       numberOfThreads=12,
                                        numberOfMpis=3)
         protRef = self._setupRefinement()
         relionMbody.protRefine.set(protRef)
