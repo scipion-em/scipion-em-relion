@@ -35,8 +35,6 @@ RELION_HOME = 'RELION_HOME'
 RELION_CUDA_LIB = 'RELION_CUDA_LIB'
 
 # Supported versions:
-V2_0 = '2.0'
-V2_1 = '2.1'
 V3_0 = '3.0'
 V3_1 = '3.1'
 

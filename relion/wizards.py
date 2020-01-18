@@ -26,9 +26,6 @@
 # *
 # **************************************************************************
 
-import os
-from collections import OrderedDict
-
 import pyworkflow as pw
 from pyworkflow.em import *
 from pyworkflow.em.viewers import CoordinatesObjectView
@@ -36,9 +33,9 @@ from pyworkflow.em.wizard import *
 import pyworkflow.em.metadata as md
 from pyworkflow.gui.browser import FileBrowserWindow
 
-from relion.constants import *
+from .constants import *
 import relion.convert
-from relion.protocols import (
+from .protocols import (
     ProtRelionClassify3D, ProtRelionRefine3D, ProtRelionClassify2D,
     ProtRelionPreprocessParticles, ProtRelionAutopickLoG,
     ProtRelion2Autopick, ProtRelionCreateMask3D,

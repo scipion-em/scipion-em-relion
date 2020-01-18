@@ -25,30 +25,18 @@
 # **************************************************************************
 
 import os
-from os.path import relpath
 
-import pyworkflow.protocol.params as params
 from pyworkflow.em.protocol import ProtParticlePickingAuto
-from pyworkflow.em.constants import RELATION_CTF, ALIGN_NONE
-from pyworkflow.em.convert import ImageHandler
-from pyworkflow.utils.properties import Message
 import pyworkflow.utils as pwutils
-import pyworkflow.em.metadata as md
-from pyworkflow.em import getSubsetByDefocus
 
 import relion
 import relion.convert
-from relion.constants import *
 from .protocol_base import ProtRelionBase
 
 
 class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
     """ Base class for auto-picking protocols in Relion.
     """
-
-    @classmethod
-    def isDisabled(cls):
-        return relion.Plugin.isVersion3Active()
 
     def _pickMicrograph(self, mic, *args):
         """ This method should be invoked only when working in streaming mode.

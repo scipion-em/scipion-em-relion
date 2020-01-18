@@ -32,8 +32,8 @@ from pyworkflow.em.data import Volume
 from pyworkflow.em.protocol import ProtAnalysis3D
 
 import relion
-from relion.convert.metadata import Table
-from relion.constants import ANGULAR_SAMPLING_LIST
+from ..convert.metadata import Table
+from ..constants import ANGULAR_SAMPLING_LIST
 from .protocol_base import ProtRelionBase
 
 
@@ -52,10 +52,6 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
     the most important motions in the data.
     """
     _label = '3D multi-body'
-
-    @classmethod
-    def isDisabled(cls):
-        return not relion.Plugin.isVersion3Active()
 
     def _getInputPath(self, *paths):
         return self._getPath('input', *paths)

@@ -37,8 +37,8 @@ from pyworkflow.em.viewers.plotter import plt, EmPlotter
 from pyworkflow.em.viewers import ObjectView, DataView
 import pyworkflow.em.viewers.showj as showj
 
-from relion.objects import CtfRefineGlobalInfo
-from relion.protocols import ProtRelionCtfRefinement
+from ..objects import CtfRefineGlobalInfo
+from ..protocols import ProtRelionCtfRefinement
 
 
 class ProtCtfRefineViewer(ProtocolViewer):

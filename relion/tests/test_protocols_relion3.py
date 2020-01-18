@@ -115,8 +115,3 @@ class Relion3TestMotioncor(Relion3TestProtocolBase):
     def test_2x2(self):
         protRelionMc = self._runRelionMc(self.protImport, patchX=2, patchY=2)
         self._checkOutputMovies(protRelionMc, 3)
-
-
-if __name__ == '__main__':
-    import unittest
-    unittest.main()

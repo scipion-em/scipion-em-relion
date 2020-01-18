@@ -24,12 +24,11 @@
 # *
 # **************************************************************************
 
-import relion
-
-from convert import *
+from convert_deprecated import *
 from dataimport import *
+from .. import Plugin
 
-if relion.Plugin.isVersion31Active():
+if Plugin.isVersion31Active():
     from .convert31 import Writer
 else:
     from .convert_old import Writer
