@@ -120,6 +120,3 @@ class Plugin(pyworkflow.plugin.Plugin):
                        updateCuda=True,
                        vars=relion_vars,
                        default=True)
-
-
-pyworkflow.plugin.Domain.registerPlugin(__name__)
