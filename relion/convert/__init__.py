@@ -25,11 +25,10 @@
 # **************************************************************************
 
 from .. import Plugin
-
-from .convert import *
+from .convert_deprecated import *
 from .dataimport import *
 
 if Plugin.isVersion31Active():
     from .convert31 import Writer
 else:
-    from .convert_old import Writer
+    from .convert30 import Writer

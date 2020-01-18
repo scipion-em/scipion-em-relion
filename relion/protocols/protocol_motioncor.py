@@ -53,10 +53,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
     _label = 'motioncor'
 
-    @classmethod
-    def isDisabled(cls):
-        return not Plugin.isVersion3Active()
-
     def __init__(self, **kwargs):
 
         ProtAlignMovies.__init__(self, **kwargs)

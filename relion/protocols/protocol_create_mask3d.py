@@ -28,11 +28,8 @@ import pyworkflow.protocol.params as params
 from pwem.protocols import ProtCreateMask3D
 from pwem.objects import VolumeMask
 
-from .. import Plugin
 import relion.convert as convert
-from relion.constants import MASK_AND
-
-IS_V3 = Plugin.isVersion3Active()
+from ..constants import MASK_AND
 
 
 class ProtRelionCreateMask3D(ProtCreateMask3D):
@@ -107,8 +104,7 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
                       label='Invert final mask',
                       help='Invert the final mask')
 
-        if IS_V3:
-            form.addParallelSection(threads=4, mpi=0)
+        form.addParallelSection(threads=4, mpi=0)
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
@@ -147,7 +143,7 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
         if self.doInvert:
             args += ' --invert'
 
-        if IS_V3 and self.numberOfThreads > 1:
+        if self.numberOfThreads > 1:
             args += ' --j %d' % self.numberOfThreads
 
         self.runJob("relion_mask_create", args)

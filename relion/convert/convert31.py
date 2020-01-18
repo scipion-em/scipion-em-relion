@@ -106,4 +106,3 @@ class Writer(WriterBase):
             ogNumber = self._optics[ogName]['rlnOpticsGroup']
 
         row['rlnOpticsGroup'] = ogNumber
-

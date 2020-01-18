@@ -40,7 +40,6 @@ except ImportError:
 import pwem
 import pyworkflow.utils as pwutils
 from pyworkflow.object import ObjectWrap, String, Integer
-import pwem.metadata as md
 from pwem.constants import NO_INDEX, ALIGN_2D, ALIGN_3D, ALIGN_PROJ, ALIGN_NONE
 import pwem.convert.transformations as tfs
 

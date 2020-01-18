@@ -46,7 +46,6 @@ def useGpu():
         return False, 'CPU'
 
 
-IS_V3 = Plugin.isVersion3Active()
 USE_GPU = useGpu()[0]
 ONLY_GPU = int(os.environ.get('SCIPION_TEST_RELION_ONLY_GPU', 0))
 RUN_CPU = not USE_GPU or ONLY_GPU
@@ -159,7 +158,9 @@ class TestRelionClassify2D(TestRelionBase):
             partsPixSize = self.protNormalize.outputParticles.getSamplingRate()
             classsesPixSize = relionProt.outputClasses.getImages().getSamplingRate()
             self.assertAlmostEquals(partsPixSize, classsesPixSize,
-                                    delta=0.001)
+                                    msg="There was a problem with the sampling rate "
+                                    "of the particles", delta=0.001)
+
             for class2D in relionProt.outputClasses:
                 self.assertTrue(class2D.hasAlignment2D())
 
@@ -296,12 +297,9 @@ class TestRelionInitialModel(TestRelionBase):
                 'numberOfMpi': 3,
                 'numberOfThreads': 2
             }
-            if IS_V3:
-                kwargs.update({'numberOfIterInitial': 10,
-                               'numberOfIterInBetween': 30,
-                               'numberOfIterFinal': 10})
-            else:  # v3
-                kwargs['numberOfIterations'] = 50
+            kwargs.update({'numberOfIterInitial': 10,
+                           'numberOfIterInBetween': 30,
+                           'numberOfIterFinal': 10})
 
             relionIniModel = self.newProtocol(ProtRelionInitialModel, **kwargs)
             relionIniModel.setObjLabel(label)
@@ -1145,43 +1143,6 @@ class TestRelionExtractParticles(TestRelionBase):
                              "There was a problem generating the output.")
         self.assertTrue(outputParts.hasCTF(), "Output does not have CTF.")
         self._checkSamplingConsistency(outputParts)
-
-
-class TestRelionExtractMovieParticles(TestRelionBase):
-    @classmethod
-    def setUpClass(cls):
-        setupTestProject(cls)
-        cls.ds = DataSet.getDataSet('relion_tutorial')
-        cls.partRef3dFn = cls.ds.getFile('import/refine3d_case2/relion_data.star')
-        cls.movies = DataSet.getDataSet('movies').getFile('ribo/*.mrcs')
-        cls.protImportMovies = cls.runImportMovies(cls.movies, 50000, 3.54, 1.0)
-        cls.protImportParts = cls.runImportParticlesStar(cls.partRef3dFn,
-                                                         50000, 3.54)
-
-    def _runExtract(self, boxsize, frame0, frameN, avgFrames, doInvert):
-        prot = self.newProtocol(ProtRelionExtractMovieParticles,
-                                boxSize=boxsize, frame0=frame0, frameN=frameN,
-                                avgFrames=avgFrames, doInvert=doInvert)
-        prot.inputMovies.set(self.protImportMovies.outputMovies)
-        prot.inputParticles.set(self.protImportParts.outputParticles)
-        self.launchProtocol(prot)
-
-        self.assertIsNotNone(prot.outputParticles,
-                             "There was a problem with extract movie particles protocol")
-        sizeIn = prot.inputParticles.get().getSize()
-        sizeOut = prot.outputParticles.getSize()
-        factor = (frameN - frame0 + 1) / avgFrames
-        if factor % avgFrames > 0:
-            factor += 1
-        self.assertEqual(sizeIn * factor, sizeOut,
-                         "Number of output movie particles is %d and must be "
-                         "%d" % (sizeOut, sizeIn * factor))
-
-    def test_extractMovieParticlesAvg1(self):
-        self._runExtract(100, 1, 16, 1, True)
-
-    def test_extractMovieParticlesAvg3(self):
-        self._runExtract(100, 1, 16, 3, True)
 
 
 class TestRelionCenterAverages(TestRelionBase):

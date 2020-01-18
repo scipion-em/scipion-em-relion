@@ -290,8 +290,6 @@ class TestConvertAnglesBase(BaseTest):
             goldFn = self.dataset.getFile(fileKey + '_Gold_output_relion.mrcs')
         else:
             outputFn = self.getOutputPath(fileKey + "_output.vol")
-            # Once version has this key in the dataset this can be uncommented (v >2.0)
-            # goldFn = self.dataset.getFile(fileKey + 'GoldRln')
             goldFn = self.dataset.getFile("reconstruction/gold/" + fileKey + '_Gold_rln_output.vol')
 
         if PRINT_FILES:
@@ -363,9 +361,7 @@ class TestConvertAnglesBase(BaseTest):
             self.assertTrue(
                 ImageHandler().compareData(goldFn, outputFn, tolerance=0.001),
                 "Different data files:\n>%s\n<%s" % (goldFn, outputFn))
-        # else:
-        #     print colorText.RED + colorText.BOLD + "WARNING: Gold file '%s' missing!!!" % goldFn + colorText.END
-        #
+
         if CLEAN_IMAGES:
             cleanPath(outputFn)
 
@@ -695,13 +691,13 @@ class TestReconstruct(TestConvertAnglesBase):
             
             self.assertTrue(np.allclose(aMatrix, b.getMatrix(), rtol=1e-2))
 
- # * newrot = rot;
- # * newtilt = tilt + 180;
- # * newpsi = -(180 + psi);
+    # * newrot = rot;
+    # * newtilt = tilt + 180;
+    # * newpsi = -(180 + psi);
 
- # * newrot = rot + 180;
- # * newtilt = -tilt;
- # * newpsi = -180 + psi;
+    # * newrot = rot + 180;
+    # * newtilt = -tilt;
+    # * newpsi = -180 + psi;
 
     def test_reconstRotOnly(self):
         """ Check that for a given alignment object,
@@ -734,7 +730,7 @@ class TestReconstruct(TestConvertAnglesBase):
                   [-0.88564873, 0.39606407, 0.24240388,  0.],
                   [0.40557978, 0.40557978, 0.81915206,  0.],
                   [0.,          0.,          0.,           1.]],
-                 [[-0.78850311, -0.24329656,-0.56486255,   0.],  # a5
+                 [[-0.78850311, -0.24329656, -0.56486255,   0.],  # a5
                   [0.22753462, -0.96866286, 0.099600501,  0.],
                   [-0.57139379, -0.049990479, 0.81915206,  0.],
                   [0.,            0.,           0.,           1.]],
@@ -781,7 +777,7 @@ class TestReconstruct(TestConvertAnglesBase):
                   [-0.88564873, 0.39606407, 0.24240388,  3.],
                   [0.40557978, 0.40557978, 0.81915206,  4.],
                   [0.,          0.,          0.,           1.]],
-                 [[-0.78850311, -0.24329656,-0.56486255,   5.],  # a5
+                 [[-0.78850311, -0.24329656, -0.56486255,   5.],  # a5
                   [0.22753462, -0.96866286, 0.099600501, -3.],
                   [-0.57139379, -0.049990479, 0.81915206, -2.],
                   [0.,            0.,           0.,           1.]],

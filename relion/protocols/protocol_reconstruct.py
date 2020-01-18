@@ -30,11 +30,9 @@ from pwem.objects import Volume
 from pwem.protocols import ProtReconstruct3D
 from pwem.constants import ALIGN_PROJ
 
-from .. import Plugin
 import relion.convert as convert
 
 # TODO: Check if we can centralize this, and how it combines with related functions
-IS_V2 = Plugin.getActiveVersion().startswith("2.")
 
 
 class ProtRelionReconstruct(ProtReconstruct3D):
@@ -135,9 +133,6 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         params += ' --maxres %0.3f' % self.maxRes.get()
         params += ' --pad %0.3f' % self.pad.get()
 
-        if self.numberOfThreads > 1 and IS_V2:
-            params += ' --j %d' % self.numberOfThreads
-
         # TODO: Test that the CTF part is working
         if self.doCTF:
             params += ' --ctf'
@@ -197,9 +192,6 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         return summary message for NORMAL EXECUTION. 
         """
         errors = []
-        if IS_V2 and self.numberOfMpi > 1:
-            errors.append('Relion version 2.x does not support MPI for '
-                          'reconstruct program!')
 
         if self.numberOfMpi > 1 and self.numberOfThreads > 1:
             errors.append('Relion reconstruct can run either with mpi or '

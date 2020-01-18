@@ -34,7 +34,6 @@ from pwem.protocols import ProtParticles
 import pwem.metadata as md
 from pwem.constants import ALIGN_PROJ
 
-from .. import Plugin
 import relion.convert as convert
 from ..convert.metadata import Table
 
@@ -62,10 +61,6 @@ class ProtRelionBayesianPolishing(ProtParticles):
 
     OP_TRAIN = 0
     OP_POLISH = 1
-
-    @classmethod
-    def isDisabled(cls):
-        return not Plugin.isVersion3Active()
 
     def _defineParams(self, form):
         form.addSection(label='Input')

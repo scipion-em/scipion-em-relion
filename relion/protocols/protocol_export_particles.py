@@ -28,7 +28,6 @@ import os
 
 import pwem
 import pyworkflow.utils as pwutils
-
 from pwem.protocols import ProtProcessParticles
 import pyworkflow.protocol.params as params
 

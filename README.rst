@@ -70,7 +70,7 @@ A complete list of tests can also be seen by executing ``scipion test --show --g
 Supported versions
 ------------------
 
-2.0.4, 2.1, 3.0
+3.0, 3.1
 
 In 2018 the plugin was updated to support the latest (at that moment) RELION: 3.0. This required a lot of code refactoring and the support of old RELION versions (1.x) had to be discontinued. Many new protocols specific to new RELION release we added. You are welcome to check them out and give us your feedback. We are still fixing few issues related to RELION 3 support, please do let us know if something does not work as expected.
 

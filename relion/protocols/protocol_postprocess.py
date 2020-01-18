@@ -35,10 +35,7 @@ import pwem.metadata as md
 from pwem.convert import ImageHandler
 from pwem.objects import Volume
 
-from .. import Plugin
 import relion.convert as convert
-
-IS_V3 = Plugin.isVersion3Active()
 
 
 class ProtRelionPostprocess(ProtAnalysis3D):
@@ -241,10 +238,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
         """ Define all parameters to run relion_postprocess"""
         # It seems that in Relion3 now the input should be the map
         # filename and not the prefix as before
-        if IS_V3:
-            inputFn = self._getFileName('half1')
-        else:
-            inputFn = self._getInputPath("relion")
+        inputFn = self._getFileName('half1')
 
         self.paramDict = {'--i': inputFn,
                           '--o': self._getExtraPath('postprocess'),

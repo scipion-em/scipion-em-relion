@@ -1,4 +1,3 @@
-from .viewers import (PostprocessViewer, RelionPolishViewer,
-                      RelionSortViewer, RelionLocalResViewer,
-                      RelionViewer)
+
+from .viewers import *
 from .viewer_ctfrefine import ProtCtfRefineViewer

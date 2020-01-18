@@ -43,7 +43,10 @@ from pwem.viewers import (EmPlotter, ObjectView, ChimeraView,
                           MicrographsView, EmProtocolViewer)
 
 import relion.convert as convert
-from ..protocols import *
+from ..protocols import (
+    ProtRelionClassify2D, ProtRelionClassify3D, ProtRelionRefine3D,
+    ProtRelionPolish, ProtRelionPostprocess, ProtRelionSortParticles,
+    ProtRelionInitialModel, ProtRelionLocalRes, ProtRelionMotioncor)
 from ..constants import *
 
 
@@ -1611,10 +1614,10 @@ class RelionSortViewer(Viewer):
             strId = particles.strId()
             fn = particles.getFileName()
             views.append(ObjectView(self._project, strId, fn,
-                                       viewParams={showj.ORDER: labels,
-                                                   showj.VISIBLE: labels,
-                                                   showj.SORT_BY: sortBy,
-                                                   showj.RENDER: '_filename'}))
+                                    viewParams={showj.ORDER: labels,
+                                                showj.VISIBLE: labels,
+                                                showj.SORT_BY: sortBy,
+                                                showj.RENDER: '_filename'}))
 
             fn = obj._getExtraPath('input_particles_sorted.star')
             mdFn = md.MetaData(fn)
@@ -1798,7 +1801,7 @@ class RelionLocalResViewer(ProtocolViewer):
         return rangeList
 
 
-class ProtMotioncorrViewer(ProtocolViewer):
+class RelionMotioncorrViewer(ProtocolViewer):
     """ Visualization of relion motioncor results. """
 
     _targets = [ProtRelionMotioncor]

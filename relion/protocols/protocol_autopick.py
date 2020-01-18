@@ -29,7 +29,6 @@ import os
 import pyworkflow.utils as pwutils
 from pwem.protocols import ProtParticlePickingAuto
 
-from .. import Plugin
 import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
@@ -37,10 +36,6 @@ from .protocol_base import ProtRelionBase
 class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
     """ Base class for auto-picking protocols in Relion.
     """
-
-    @classmethod
-    def isDisabled(cls):
-        return Plugin.isVersion3Active()
 
     def _pickMicrograph(self, mic, *args):
         """ This method should be invoked only when working in streaming mode.

@@ -223,4 +223,3 @@ class ProtRelionSubtract(ProtOperateParticles):
 
     def _getInputParticles(self):
         return self.inputParticles.get()
-

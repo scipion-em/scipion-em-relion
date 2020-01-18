@@ -28,8 +28,6 @@ import pyworkflow.protocol.params as params
 import pwem
 from pwem.protocols import ProtAlignVolume
 
-from .. import Plugin
-
 
 class ProtRelionSymmetrizeVolume(ProtAlignVolume):
     """
@@ -37,10 +35,6 @@ class ProtRelionSymmetrizeVolume(ProtAlignVolume):
         *relion_align_symmetry* and *relion_image_handler*.
     """
     _label = 'symmetrize volume'
-
-    @classmethod
-    def isDisabled(cls):
-        return not Plugin.isVersion3Active()
     
     # --------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):

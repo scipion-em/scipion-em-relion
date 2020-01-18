@@ -38,7 +38,6 @@ import pwem.metadata as md
 import pyworkflow.utils as pwutils
 from pwem.protocols import ProtProcessParticles
 
-from .. import Plugin
 import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
@@ -55,10 +54,6 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
     _label = 'particle polishing'
     
     PREFIXES = ['half1_', 'half2_']
-
-    @classmethod
-    def isDisabled(cls):
-        return Plugin.isVersion3Active()
 
     def _initialize(self):
         """ This function is meant to be called after the

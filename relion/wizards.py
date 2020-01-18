@@ -30,7 +30,6 @@ from io import open
 from pwem import *
 from pwem.viewers import CoordinatesObjectView
 from pwem.wizards.wizard import *
-import pwem.metadata as md
 from pyworkflow.gui.browser import FileBrowserWindow
 
 from .constants import *
@@ -63,7 +62,7 @@ class RelionBackRadiusWizard(ParticleMaskRadiusWizard):
         _objs = self._getParameters(protocol)['input']    
         return ParticleMaskRadiusWizard._getListProvider(self, _objs)
     
-    def show(self, form):
+    def show(self, form, *args):
         params = self._getParameters(form.protocol)
         _value = params['value']
         _label = params['label']
@@ -146,7 +145,7 @@ class RelionVolFilterWizard(FilterVolumesWizard):
     #                              unit=UNIT_ANGSTROM,
     #                              showDecay=False)
 
-    def show(self, form):
+    def show(self, form, *args):
         params = self._getParameters(form.protocol)
         protocol = form.protocol
         provider = self._getProvider(protocol)
@@ -185,7 +184,7 @@ class Relion2AutopickParams(EmWizard):
                                        'pickingThreshold',
                                        'interParticleDistance'])]
 
-    def show(self, form):
+    def show(self, form, *args):
         autopickProt = form.protocol
 
         if not autopickProt.hasAttribute('outputCoordinatesSubset'):
@@ -316,7 +315,7 @@ class RelionWizLogPickParams(EmWizard):
                                          'maxDiameter',
                                          'threshold'])]
 
-    def show(self, form):
+    def show(self, form, *args):
         autopickProt = form.protocol
         project = autopickProt.getProject()
         micSet = autopickProt.getInputMicrographs()
@@ -395,7 +394,7 @@ class RelionWizMtfSelector(EmWizard):
     _targets = [(ProtRelionPostprocess, ['mtf']),
                 (ProtRelionAssignOpticsGroup, ['mtfFile'])]
 
-    def show(self, form):
+    def show(self, form, *args):
         def setPath(fileInfo):
             prot = form.protocol
             varName = 'mtf' if hasattr(prot, 'mtf') else 'mtfFile'

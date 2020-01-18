@@ -30,7 +30,6 @@ import pwem
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 
-from .. import Plugin
 from .protocol_postprocess import ProtRelionPostprocess
 
 
@@ -151,11 +150,7 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
         volume = self.protRefine.get().outputVolume
         # It seems that in Relion3 now the input should be the map
         # filename and not the prefix as before
-        if Plugin.isVersion3Active():
-            inputFn = self._getFileName('half1')
-        else:
-            inputFn = self._getInputPath("relion")
-        
+        inputFn = self._getFileName('half1')
         cps = self.calibratedPixelSize.get()
         angpix = cps if cps > 0 else volume.getSamplingRate()
 

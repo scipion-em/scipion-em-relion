@@ -31,7 +31,6 @@ from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtParticles
 from pyworkflow.object import Float
 
-from .. import Plugin
 import relion.convert as convert
 from ..objects import CtfRefineGlobalInfo
 from ..convert.metadata import Table
@@ -40,10 +39,6 @@ from ..convert.metadata import Table
 class ProtRelionCtfRefinement(ProtParticles):
     """ Wrapper protocol for the Relion's per-particle CTF refinement. """
     _label = 'ctf refinement'
-
-    @classmethod
-    def isDisabled(cls):
-        return not Plugin.isVersion3Active()
 
     def _defineParams(self, form):
         form.addSection(label='Input')

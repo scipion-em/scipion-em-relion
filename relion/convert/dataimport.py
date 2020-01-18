@@ -34,7 +34,7 @@ from pwem.objects import Micrograph
 import pwem.metadata as md
 from pyworkflow.utils.path import findRootFrom
 
-from .convert import readSetOfParticles, relionToLocation, rowToCoordinate
+from .convert_deprecated import readSetOfParticles, relionToLocation, rowToCoordinate
 
 
 class RelionImport:
@@ -223,7 +223,7 @@ class RelionImport:
         return row, modelRow
 
     def _preprocessImageRow(self, img, imgRow):
-        from .convert import setupCTF, copyOrLinkFileName
+        from .convert_deprecated import setupCTF, copyOrLinkFileName
         if self._imgPath is not None:
             copyOrLinkFileName(imgRow, self._imgPath, self.protocol._getExtraPath())
         setupCTF(imgRow, self.protocol.samplingRate.get())

@@ -36,13 +36,9 @@ from pyworkflow.protocol.params import (PointerParam, FloatParam,
                                         BooleanParam,
                                         LEVEL_ADVANCED)
 
-from .. import Plugin
+from ..constants import ANGULAR_SAMPLING_LIST
 import relion.convert as convert
-from ..constants import V2_0, ANGULAR_SAMPLING_LIST
 from .protocol_base import ProtRelionBase
-
-
-IS_V3 = Plugin.isVersion3Active()
 
 
 class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
@@ -57,10 +53,6 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
     IS_2D = False
     CHANGE_LABELS = [md.RLN_OPTIMISER_CHANGES_OPTIMAL_ORIENTS,
                      md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS]
-
-    @classmethod
-    def isDisabled(cls):
-        return Plugin.getActiveVersion() in [V2_0]
 
     def __init__(self, **args):
         ProtRelionBase.__init__(self, **args)
@@ -164,23 +156,21 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                             'recommended.')
 
         form.addSection('Optimisation')
-        if IS_V3:
-            form.addParam('numberOfClasses', IntParam, default=1,
-                          label='Number of classes',
-                          help='The number of classes (K) for a multi-reference '
-                               'ab initio SGD refinement. These classes will be '
-                               'made in an unsupervised manner, starting from a '
-                               'single reference in the initial iterations of '
-                               'the SGD, and the references will become '
-                               'increasingly dissimilar during the in between '
-                               'iterations.')
+        form.addParam('numberOfClasses', IntParam, default=1,
+                      label='Number of classes',
+                      help='The number of classes (K) for a multi-reference '
+                           'ab initio SGD refinement. These classes will be '
+                           'made in an unsupervised manner, starting from a '
+                           'single reference in the initial iterations of '
+                           'the SGD, and the references will become '
+                           'increasingly dissimilar during the in between '
+                           'iterations.')
 
-        if IS_V3:
-            form.addParam('doFlattenSolvent', BooleanParam, default=True,
-                          label='Flatten and enforce non-negative solvent?',
-                          help='If set to Yes, the job will apply a spherical '
-                               'mask and enforce all values in the reference '
-                               'to be non-negative.')
+        form.addParam('doFlattenSolvent', BooleanParam, default=True,
+                      label='Flatten and enforce non-negative solvent?',
+                      help='If set to Yes, the job will apply a spherical '
+                           'mask and enforce all values in the reference '
+                           'to be non-negative.')
 
         form.addParam('symmetryGroup', StringParam, default='c1',
                       label="Symmetry",
@@ -217,10 +207,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                             'evaluated on a 2x coarser grid.')
 
         form.addSection(label='SGD')
-        if IS_V3:
-            self._defineSGD3(form)
-        else:
-            self._defineSGD2(form)
+        self._defineSGD3(form)
 
         form.addParam('sgdNoiseVar', IntParam, default=-1,
                       expertLevel=LEVEL_ADVANCED,
@@ -251,34 +238,6 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                            "--pad 2\n")
 
         form.addParallelSection(threads=1, mpi=3)
-
-    def _defineSGD2(self, form):
-        """ Define SGD parameters for Relion version 2. """
-        form.addParam('numberOfIterations', IntParam, default=1,
-                      label='Number of iterations',
-                      help='Number of iterations to be performed. '
-                           'Often 1 or 2 iterations with approximately '
-                           'ten thousand particles, or 5-10 iterations '
-                           'with several thousand particles is enough.')
-        form.addParam('sgdSubsetSize', IntParam, default=200,
-                      label='SGD subset size',
-                      help='How many particles will be processed for each '
-                           'SGD step. Often 200 seems to work well.')
-        form.addParam('writeSubsets', IntParam, default=10,
-                      expertLevel=LEVEL_ADVANCED,
-                      label='Write-out frequency subsets',
-                      help='Every how many subsets do you want to write the '
-                           'model to disk. Negative value means only write '
-                           'out model after entire iteration.')
-        form.addParam('sgdResLimit', IntParam, default=20,
-                      label='Limit resolution SGD to (A)',
-                      help='If set to a positive number, then the SGD will '
-                           'be done only including the Fourier components '
-                           'up to this resolution (in Angstroms). This is '
-                           'essential in SGD, as there is very little '
-                           'regularisation, i.e. overfitting will start '
-                           'to happen very quickly. Values in the range '
-                           'of 15-30 Angstroms have proven useful.')
 
     def _defineSGD3(self, form):
         """ Define SGD parameters for Relion version 3. """
@@ -448,21 +407,15 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
 
     def _setSGDArgs(self, args):
         args['--sgd'] = ''
-
-        if IS_V3:
-            args['--sgd_ini_iter'] = self.numberOfIterInitial.get()
-            args['--sgd_inbetween_iter'] = self.numberOfIterInBetween.get()
-            args['--sgd_fin_iter'] = self.numberOfIterFinal.get()
-            args['--sgd_write_iter'] = self.writeIter.get()
-            args['--sgd_ini_resol'] = self.initialRes.get()
-            args['--sgd_fin_resol'] = self.finalRes.get()
-            args['--sgd_ini_subset'] = self.initialBatch.get()
-            args['--sgd_fin_subset'] = self.finalBatch.get()
-            args['--K'] = self.numberOfClasses.get()
-        else:
-            args['--subset_size'] = self.sgdSubsetSize.get()
-            args['--strict_highres_sgd'] = self.sgdResLimit.get()
-            args['--write_subsets'] = self.writeSubsets.get()
+        args['--sgd_ini_iter'] = self.numberOfIterInitial.get()
+        args['--sgd_inbetween_iter'] = self.numberOfIterInBetween.get()
+        args['--sgd_fin_iter'] = self.numberOfIterFinal.get()
+        args['--sgd_write_iter'] = self.writeIter.get()
+        args['--sgd_ini_resol'] = self.initialRes.get()
+        args['--sgd_fin_resol'] = self.finalRes.get()
+        args['--sgd_ini_subset'] = self.initialBatch.get()
+        args['--sgd_fin_subset'] = self.finalBatch.get()
+        args['--K'] = self.numberOfClasses.get()
 
         if not self.doContinue:
             args['--denovo_3dref'] = ''

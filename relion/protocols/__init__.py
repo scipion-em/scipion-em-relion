@@ -23,7 +23,6 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-from .. import Plugin
 
 from .protocol_create_mask3d import ProtRelionCreateMask3D
 from .protocol_classify2d import ProtRelionClassify2D
@@ -38,21 +37,11 @@ from .protocol_subtract import ProtRelionSubtract
 from .protocol_expand_symmetry import ProtRelionExpandSymmetry
 from .protocol_initialmodel import ProtRelionInitialModel
 from .protocol_localres import ProtRelionLocalRes
-
 from .protocol_extract_particles import ProtRelionExtractParticles
-from .protocol_extract_particles_movies import ProtRelionExtractMovieParticles
-
 from .protocol_export_ctf import ProtRelionExportCtf
 from .protocol_center_averages import ProtRelionCenterAverages
 from .protocol_export_particles import ProtRelionExportParticles
-
-# New protocol from Relion v3:
-if Plugin.isVersion3Active():
-    # Relion2 in the name is because of compatibility reasons
-    from .protocol_autopick_ref import ProtRelion2Autopick
-else:
-    from .protocol_autopick_v2 import ProtRelion2Autopick
-
+from .protocol_autopick_ref import ProtRelion2Autopick
 from .protocol_autopick_log import ProtRelionAutopickLoG
 from .protocol_bayesian_polishing import ProtRelionBayesianPolishing
 from .protocol_ctf_refinement import ProtRelionCtfRefinement

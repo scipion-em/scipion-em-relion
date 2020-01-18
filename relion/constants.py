@@ -35,8 +35,6 @@ RELION_HOME = 'RELION_HOME'
 RELION_CUDA_LIB = 'RELION_CUDA_LIB'
 
 # Supported versions:
-V2_0 = '2.0'
-V2_1 = '2.1'
 V3_0 = '3.0'
 V3_1 = '3.1'
 
@@ -130,7 +128,7 @@ XMIPP_RELION_LABELS = {
                         md.MDL_ANGLE_ROT:         'rlnAngleRot'
                        ,md.MDL_ANGLE_TILT:        'rlnAngleTilt'
                        ,md.MDL_ANGLE_PSI:         'rlnAnglePsi'
-                       ,md.MDL_AVG_CHANGES_ORIENTATIONS:'rlnChangesOptimalOrientations'
+                       ,md.MDL_AVG_CHANGES_ORIENTATIONS: 'rlnChangesOptimalOrientations'
                        ,md.MDL_AVG_CHANGES_OFFSETS:     'rlnChangesOptimalOffsets'
                        ,md.MDL_AVG_CHANGES_CLASSES:     'rlnChangesOptimalClasses'
                        ,md.MDL_AVGPMAX:           'rlnAveragePmax'
@@ -144,7 +142,7 @@ XMIPP_RELION_LABELS = {
                        ,md.MDL_CTF_ENERGY_LOSS:   'rlnEnergyLoss'
                        ,md.MDL_CTF_LENS_STABILITY:'rlnLensStability'
                        ,md.MDL_CTF_LONGITUDINAL_DISPLACEMENT: 'rlnLongitudinalDisplacement'
-                       ,md.MDL_CTF_TRANSVERSAL_DISPLACEMENT: 'rlnTransversalDisplacement'                       
+                       ,md.MDL_CTF_TRANSVERSAL_DISPLACEMENT: 'rlnTransversalDisplacement'
                        ,md.MDL_CTF_Q0:            'rlnAmplitudeContrast'
                        ,md.MDL_CTF_SAMPLING_RATE: 'rlnDetectorPixelSize'
                        ,md.MDL_CTF_VOLTAGE:       'rlnVoltage'
