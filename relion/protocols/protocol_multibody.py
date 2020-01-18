@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@ import os
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
-from pyworkflow.em.data import Volume
-from pyworkflow.em.protocol import ProtAnalysis3D
+from pwem.objects import Volume
+from pwem.protocols import ProtAnalysis3D
 
-import relion
+import relion.convert as convert
 from ..convert.metadata import Table
 from ..constants import ANGULAR_SAMPLING_LIST
 from .protocol_base import ProtRelionBase
@@ -80,22 +80,22 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
                            'where to run the multi-body refinement. '
                            'The output volume will be used and some '
                            'parameters from the optimiser.star file. ')
-        #FIXME: Find an easy way to avoid input a file here
+        # FIXME: Find an easy way to avoid input a file here
         form.addParam('bodyStarFile', params.FileParam,
-                    label='Body STAR file',
-                    help=' Provide the STAR file with all information '
-                         'about the bodies to be used in multi-body '
-                         'refinement. An example for a three-body '
-                         'refinement would look like this:\n'
-                         'data_\n'
-                         'loop_\n'
-                         '_rlnBodyMaskName\n'
-                         '_rlnBodyRotateRelativeTo\n'
-                         '_rlnBodySigmaAngles\n'
-                         '_rlnBodySigmaOffset\n'
-                         'large_body_mask.mrc 2 10 2\n'
-                         'small_body_mask.mrc 1 10 2 \n'
-                         'head_body_mask.mrc 2 10 2 \n')
+                      label='Body STAR file',
+                      help=' Provide the STAR file with all information '
+                           'about the bodies to be used in multi-body '
+                           'refinement. An example for a three-body '
+                           'refinement would look like this:\n'
+                           'data_\n'
+                           'loop_\n'
+                           '_rlnBodyMaskName\n'
+                           '_rlnBodyRotateRelativeTo\n'
+                           '_rlnBodySigmaAngles\n'
+                           '_rlnBodySigmaOffset\n'
+                           'large_body_mask.mrc 2 10 2\n'
+                           'small_body_mask.mrc 1 10 2 \n'
+                           'head_body_mask.mrc 2 10 2 \n')
 
         """
  Where each data line represents a different body, and:
@@ -223,7 +223,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
                          self._getExtraPath('input_body.star'))
 
     def _runProgram(self, program, args):
-        params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.iteritems()])
+        params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.items()])
         prog = program + ('_mpi' if self.numberOfMpi > 1 else '')
         self.runJob(prog, params)
 
@@ -302,7 +302,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         if protRefine.referenceMask.hasValue():
             tmp = protRefine._getTmpPath()
             newDim = protRefine._getInputParticles().getXDim()
-            relion.convert.convertMask(protRefine.referenceMask.get(), tmp, newDim)
+            convert.convertMask(protRefine.referenceMask.get(), tmp, newDim)
 
         self._setComputeArgs(args)
 

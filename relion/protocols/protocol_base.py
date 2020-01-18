@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -34,14 +34,13 @@ from pyworkflow.protocol.params import (BooleanParam, PointerParam, FloatParam,
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pyworkflow.utils.path import cleanPath, replaceBaseExt, removeBaseExt
 
-import pyworkflow.em as em
-import pyworkflow.em.metadata as md
-from pyworkflow.em.data import SetOfClasses3D
-from pyworkflow.em.protocol import EMProtocol
+import pwem
+import pwem.metadata as md
+from pwem.objects import SetOfClasses3D
+from pwem.protocols import EMProtocol
 
-import relion
-import relion.convert
-from ..constants import (ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO)
+import relion.convert as convert
+from ..constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO
 
 
 class ProtRelionBase(EMProtocol):
@@ -741,7 +740,7 @@ class ProtRelionBase(EMProtocol):
 
         self._setComputeArgs(args)
 
-        params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.iteritems()])
+        params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.items()])
 
         if self.extraParams.hasValue():
             params += ' ' + self.extraParams.get()
@@ -765,8 +764,8 @@ class ProtRelionBase(EMProtocol):
 
             # Pass stack file as None to avoid write the images files
             # If copyAlignment is set to False pass alignType to ALIGN_NONE
-            alignType = imgSet.getAlignment() if copyAlignment else em.ALIGN_NONE
-            hasAlign = alignType != em.ALIGN_NONE
+            alignType = imgSet.getAlignment() if copyAlignment else pwem.ALIGN_NONE
+            hasAlign = alignType != pwem.ALIGN_NONE
             alignToPrior = hasAlign and getattr(self, 'alignmentAsPriors', False)
             fillRandomSubset = hasAlign and getattr(self, 'fillRandomSubset', False)
 
@@ -774,7 +773,7 @@ class ProtRelionBase(EMProtocol):
                              md.RLN_IMAGE_BEAMTILT_X,
                              md.RLN_IMAGE_BEAMTILT_Y]
 
-            relion.convert.writeSetOfParticles(
+            convert.writeSetOfParticles(
                 imgSet, imgStar, self._getExtraPath(),
                 alignType=alignType,
                 postprocessImageRow=self._postprocessParticleRow,
@@ -812,7 +811,7 @@ class ProtRelionBase(EMProtocol):
                 if particle is not None:
                     auxMovieParticles.append(movieParticle)
 
-            relion.convert.writeSetOfParticles(
+            convert.writeSetOfParticles(
                 auxMovieParticles, movieFn, None,
                 fillMagnification=True,
                 postprocessImageRow=self._postprocessImageRow)
@@ -823,7 +822,7 @@ class ProtRelionBase(EMProtocol):
             mdFile = continueRun._getFileName('data', iter=continueIter)
             mdParts = md.MetaData(mdFile)
 
-            self._copyAlignAsPriors(mdParts, em.ALIGN_PROJ)
+            self._copyAlignAsPriors(mdParts, pwem.ALIGN_PROJ)
             mdParts.renameColumn(md.RLN_IMAGE_NAME, md.RLN_PARTICLE_ORI_NAME)
             mdParts.removeLabel(md.RLN_MICROGRAPH_NAME)
 
@@ -854,7 +853,7 @@ class ProtRelionBase(EMProtocol):
         if self.doContinue:
             continueProtocol = self.continueRun.get()
             if (continueProtocol is not None and
-                        continueProtocol.getObjId() == self.getObjId()):
+                    continueProtocol.getObjId() == self.getObjId()):
                 errors.append('In Scipion you must create a new Relion run')
                 errors.append('and select the continue option rather than')
                 errors.append('select continue from the same run.')
@@ -1054,11 +1053,11 @@ class ProtRelionBase(EMProtocol):
             tmp = self._getTmpPath()
             newDim = self._getInputParticles().getXDim()
             if self.referenceMask.hasValue():
-                mask = relion.convert.convertMask(self.referenceMask.get(), tmp, newDim)
+                mask = convert.convertMask(self.referenceMask.get(), tmp, newDim)
                 args['--solvent_mask'] = mask
 
             if self.solventMask.hasValue():
-                solventMask = relion.convert.convertMask(self.solventMask.get(), tmp, newDim)
+                solventMask = convert.convertMask(self.solventMask.get(), tmp, newDim)
                 args['--solvent_mask2'] = solventMask
 
             if self.referenceMask.hasValue() and self.solventFscMask:
@@ -1067,7 +1066,7 @@ class ProtRelionBase(EMProtocol):
             if self.referenceMask2D.hasValue():
                 tmp = self._getTmpPath()
                 newDim = self._getInputParticles().getXDim()
-                mask = relion.convert.convertMask(self.referenceMask2D.get(), tmp, newDim)
+                mask = convert.convertMask(self.referenceMask2D.get(), tmp, newDim)
                 args['--solvent_mask'] = mask
 
     def _setSubsetArgs(self, args):
@@ -1131,7 +1130,7 @@ class ProtRelionBase(EMProtocol):
         data_sqlite = self._getFileName('data_scipion', iter=it)
 
         if not exists(data_sqlite):
-            iterImgSet = em.SetOfParticles(filename=data_sqlite)
+            iterImgSet = pwem.objects.SetOfParticles(filename=data_sqlite)
             iterImgSet.copyInfo(self._getInputParticles())
             self._fillDataFromIter(iterImgSet, it)
             iterImgSet.write()
@@ -1142,9 +1141,9 @@ class ProtRelionBase(EMProtocol):
     def _splitInCTFGroups(self, imgStar):
         """ Add a new column in the image star to separate the particles
         into ctf groups """
-        relion.convert.splitInCTFGroups(imgStar,
-                                        self.defocusRange.get(),
-                                        self.numParticles.get())
+        convert.splitInCTFGroups(imgStar,
+                                 self.defocusRange.get(),
+                                 self.numParticles.get())
 
     def _getContinueIter(self):
         continueRun = self.continueRun.get()
@@ -1178,9 +1177,9 @@ class ProtRelionBase(EMProtocol):
         """
         inputObj = self.referenceVolume.get()
 
-        if isinstance(inputObj, em.Volume):
+        if isinstance(inputObj, pwem.objects.Volume):
             return [inputObj]
-        elif isinstance(inputObj, em.SetOfVolumes):
+        elif isinstance(inputObj, pwem.objects.SetOfVolumes):
             return [vol.clone() for vol in inputObj]
         else:
             raise Exception("Invalid input reference of class: %s"
@@ -1223,7 +1222,7 @@ class ProtRelionBase(EMProtocol):
         return self._getTmpPath("input_references.star")
 
     def _convertRef(self):
-        ih = em.ImageHandler()
+        ih = pwem.convert.ImageHandler()
 
         if self.IS_3D:
             if not self.IS_3D_INIT:
@@ -1259,7 +1258,7 @@ class ProtRelionBase(EMProtocol):
         else:
             micBase = "fake_movie_%06d" % img.getCoordinate().getMicId()
 
-        imgRow.setValue(md.RLN_PARTICLE_ID, long(partId))
+        imgRow.setValue(md.RLN_PARTICLE_ID, int(partId))
         imgRow.setValue(md.RLN_MICROGRAPH_NAME,
                         "%06d@%s.mrcs" % (img.getFrameId(), micBase))
 
@@ -1288,6 +1287,6 @@ class ProtRelionBase(EMProtocol):
         mdParts.copyColumn(md.RLN_ORIENT_ORIGIN_Y_PRIOR, md.RLN_ORIENT_ORIGIN_Y)
         mdParts.copyColumn(md.RLN_ORIENT_PSI_PRIOR, md.RLN_ORIENT_PSI)
 
-        if alignType == em.ALIGN_PROJ:
+        if alignType == pwem.ALIGN_PROJ:
             mdParts.copyColumn(md.RLN_ORIENT_ROT_PRIOR, md.RLN_ORIENT_ROT)
             mdParts.copyColumn(md.RLN_ORIENT_TILT_PRIOR, md.RLN_ORIENT_TILT)

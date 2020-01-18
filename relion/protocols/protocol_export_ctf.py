@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -27,13 +27,14 @@
 import os
 from os.path import join
 
-import pyworkflow as pw
+import pwem
+import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 
-import relion.convert
+import relion.convert as convert
 
 
-class ProtRelionExportCtf(pw.em.EMProtocol):
+class ProtRelionExportCtf(pwem.protocols.EMProtocol):
     """ Export a SetOfCTF to a Relion STAR file. """
 
     _label = 'export ctf'
@@ -75,20 +76,20 @@ class ProtRelionExportCtf(pw.em.EMProtocol):
     def writeCtfStarStep(self):
         inputCTF = self.inputCTF.get()
 
-        if self.micrographSource == 0: # same as CTF estimation
+        if self.micrographSource == 0:  # same as CTF estimation
             ctfMicSet = inputCTF.getMicrographs()
         else:
             ctfMicSet = self.inputMicrographs.get()
 
-        micSet = pw.em.SetOfMicrographs(filename=':memory:')
+        micSet = pwem.objects.SetOfMicrographs(filename=':memory:')
 
         psd = inputCTF.getFirstItem().getPsdFile()
         hasPsd = psd and os.path.exists(psd)
 
         if hasPsd:
             psdPath = self._getPath('PSD')
-            pw.utils.makePath(psdPath)
-            print "Writing PSD files to %s" % psdPath
+            pwutils.makePath(psdPath)
+            print("Writing PSD files to %s" % psdPath)
 
         for ctf in inputCTF:
             # Get the corresponding micrograph
@@ -100,7 +101,7 @@ class ProtRelionExportCtf(pw.em.EMProtocol):
 
             micFn = mic.getFileName()
             if not os.path.exists(micFn):
-                print "Skipping micrograph %s, it does not exists. " % micFn
+                print("Skipping micrograph %s, it does not exists. " % micFn)
                 continue
 
             mic2 = mic.clone()
@@ -109,29 +110,29 @@ class ProtRelionExportCtf(pw.em.EMProtocol):
                 psdFile = ctf.getPsdFile()
                 newPsdFile = join(psdPath, '%s_psd.mrc' % mic.getMicName())
                 if not os.path.exists(psdFile):
-                    print "PSD file %s does not exits" % psdFile
-                    print "Skipping micrograph %s" % micFn
+                    print("PSD file %s does not exits" % psdFile)
+                    print("Skipping micrograph %s" % micFn)
                     continue
-                pw.utils.copyFile(psdFile, newPsdFile)
+                pwutils.copyFile(psdFile, newPsdFile)
                 ctf.setPsdFile(newPsdFile)
             micSet.append(mic2)
 
         starFile = self._getPath(self.CTF_STAR_FILE % self.getObjId())
-        print "Writing set: %s" % inputCTF
-        print " to: %s" % starFile
+        print("Writing set: %s" % inputCTF)
+        print(" to: %s" % starFile)
 
         acq = ctfMicSet.getAcquisition()
         self.samplingRate = ctfMicSet.getSamplingRate()
         mag = acq.getMagnification()
         self.detectorPixelSize = 1e-4 * self.samplingRate * mag
 
-        relion.convert.writeSetOfMicrographs(
+        convert.writeSetOfMicrographs(
             micSet, starFile,
             preprocessImageRow=self.preprocessMicrograph)
 
         # Let's create a link from the project roots to facilitate the import
         # of the star file into a Relion project
-        pw.utils.createLink(starFile, os.path.basename(starFile))
+        pwutils.createLink(starFile, os.path.basename(starFile))
 
     # -------------------------- INFO functions -------------------------------
 

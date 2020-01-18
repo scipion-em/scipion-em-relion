@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -26,16 +26,17 @@
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
-import pyworkflow.em as em
-import pyworkflow.em.metadata as md
-from pyworkflow.em.data import Float
+import pwem.metadata as md
+from pwem.constants import ALIGN_PROJ
+from pwem.protocols import ProtParticles
+from pyworkflow.object import Float
 
-import relion
+import relion.convert as convert
 from ..objects import CtfRefineGlobalInfo
 from ..convert.metadata import Table
 
 
-class ProtRelionCtfRefinement(em.ProtParticles):
+class ProtRelionCtfRefinement(ProtParticles):
     """ Wrapper protocol for the Relion's per-particle CTF refinement. """
     _label = 'ctf refinement'
 
@@ -141,11 +142,11 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         self.info("Converting set from '%s' into '%s'" %
                   (inputParts.getFileName(), imgStar))
 
-        relion.convert.writeSetOfParticles(inputParts, imgStar,
-                                           self._getExtraPath(),
-                                           alignType=em.ALIGN_PROJ,
-                                           fillMagnification=True,
-                                           fillRandomSubset=True)
+        convert.writeSetOfParticles(inputParts, imgStar,
+                                    self._getExtraPath(),
+                                    alignType=ALIGN_PROJ,
+                                    fillMagnification=True,
+                                    fillRandomSubset=True)
 
     def _getInputVolumes(self, postStar):
         """ Parse the input volumes: halves and mask
@@ -161,7 +162,7 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         args += "--o %s " % self._getExtraPath()
         inputProt = self.inputPostprocess.get()
         postStar = inputProt._getExtraPath('postprocess.star')
-        postVols = relion.convert.getVolumesFromPostprocess(postStar)
+        postVols = convert.getVolumesFromPostprocess(postStar)
         args += "--f %s " % postStar
         args += "--m1 %s --m2 %s --mask %s " % postVols
         args += "--kmin_tilt %0.3f " % self.minResolution
@@ -211,7 +212,7 @@ class ProtRelionCtfRefinement(em.ProtParticles):
         self.createGlobalInfo(self.fileWithAnalyzeInfo())
 
     def _updateItemCtfBeamTilt(self, particle, row):
-        particle.setCTF(relion.convert.rowToCtfModel(row))
+        particle.setCTF(convert.rowToCtfModel(row))
         # TODO: Add other field from the .star file when other options?
         # check if beamtilt is available and save it
         if row.hasLabel('rlnBeamTiltX'):

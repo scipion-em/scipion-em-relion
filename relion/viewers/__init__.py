@@ -1,2 +1,3 @@
-from viewers import *
-from viewer_ctfrefine import ProtCtfRefineViewer
+
+from .viewers import *
+from .viewer_ctfrefine import ProtCtfRefineViewer

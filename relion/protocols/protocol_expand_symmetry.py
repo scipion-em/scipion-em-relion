@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -25,12 +25,11 @@
 # **************************************************************************
 
 from pyworkflow.protocol.params import StringParam
-from pyworkflow.em import ALIGN_PROJ
-import pyworkflow.em.metadata as md
-from pyworkflow.em.protocol import ProtProcessParticles
+from pwem.constants import ALIGN_PROJ
+import pwem.metadata as md
+from pwem.protocols import ProtProcessParticles
 
-import relion
-import relion.convert
+import relion.convert as convert
 
  
 class ProtRelionExpandSymmetry(ProtProcessParticles):
@@ -63,7 +62,7 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
 
     def convertInputStep(self, outputFn):
         """ Create a metadata with the images and geometrical information. """
-        relion.convert.writeSetOfParticles(
+        convert.writeSetOfParticles(
             self.inputParticles.get(), outputFn, self._getPath())
 
     def expandSymmetryStep(self, imgsFn):
@@ -82,7 +81,7 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
         mdOut.removeLabel(md.RLN_IMAGE_ID)  # remove repeating rlnImageId in mdOut
         mdOut.write(outImagesMd, md.MD_OVERWRITE)
 
-        relion.convert.readSetOfParticles(
+        convert.readSetOfParticles(
             outImagesMd, partSet,
             alignType=ALIGN_PROJ,
             postprocessImageRow=self._postprocessImageRow)
@@ -118,5 +117,5 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
 
     # -------------------------- Utils functions ------------------------------
     def _postprocessImageRow(self, img, imgRow):
-        relion.convert.setRelionAttributes(
+        convert.setRelionAttributes(
             img, imgRow, md.RLN_MLMODEL_GROUP_NAME)

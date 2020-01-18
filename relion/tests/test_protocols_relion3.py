@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -27,11 +27,10 @@
 import os
 
 import pyworkflow.tests as pwtests
-from pyworkflow.tests.em.workflows import TestWorkflow
-import pyworkflow.em as pwem
+from pwem.tests.workflows import TestWorkflow
+from pwem.protocols import ProtImportMovies
 
-import relion
-import relion.protocols
+from ..protocols import ProtRelionMotioncor
 
 
 CPUS = os.environ.get('SCIPION_TEST_CPUS', 4)
@@ -47,9 +46,9 @@ class Relion3TestProtocolBase(TestWorkflow):
     @classmethod
     def _importMovies(cls, **kwargs):
         protImport = cls.newProtocol(
-            pwem.ProtImportMovies,
+            ProtImportMovies,
             filesPath=cls.ds.getFile('Movies/'),
-            filesPattern=kwargs.get('filesPattern','*.tiff'),
+            filesPattern=kwargs.get('filesPattern', '*.tiff'),
             samplingRateMode=0,
             samplingRate=0.885,
             magnification=50000,
@@ -67,12 +66,11 @@ class Relion3TestProtocolBase(TestWorkflow):
                                  'group\n(Osaka University, Japan)')
         protImport = cls.launchProtocol(protImport)
 
-
         return protImport
 
     def _runRelionMc(self, protImport, patchX=5, patchY=5):
         protRelionMc = self.newProtocol(
-            relion.protocols.ProtRelionMotioncor,
+            ProtRelionMotioncor,
             objLabel='relion - motioncor',
             patchX=patchX, patchY=patchY,
             numberOfThreads=CPUS,

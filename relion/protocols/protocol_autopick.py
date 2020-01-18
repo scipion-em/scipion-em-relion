@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -26,11 +26,10 @@
 
 import os
 
-from pyworkflow.em.protocol import ProtParticlePickingAuto
 import pyworkflow.utils as pwutils
+from pwem.protocols import ProtParticlePickingAuto
 
-import relion
-import relion.convert
+import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
 
@@ -49,10 +48,10 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
 
         micsDir = self._createTmpMicsDir(micList)
         micStar = os.path.join(micsDir, 'input_micrographs.star')
-        writer = relion.convert.Writer(rootDir=micsDir,
-                                       outputDir=micsDir)
+        writer = convert.Writer(rootDir=micsDir,
+                                outputDir=micsDir)
         writer.writeSetOfMicrographs(micList, micStar)
-        self._pickMicrographsFromStar(micStar, micsDir, *args)
+        self._pickMicrographsFromStar(micStar, micsDir, *args)  # undefined func
         # Move coordinates files to tmp
         os.system('mv %s/*autopick.star %s/' % (micsDir, self._getTmpPath()))
         if self.isRunOptimize():
@@ -70,7 +69,7 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
         """
         template = self._getTmpPath("mic_%06d_autopick.star")
         starFiles = [template % mic.getObjId() for mic in micList]
-        relion.convert.readSetOfCoordinates(coordSet, starFiles, micList)
+        convert.readSetOfCoordinates(coordSet, starFiles, micList)
 
     def getBoxSize(self):
         """ Return a reasonable box-size in pixels. """
@@ -101,7 +100,7 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
         pwutils.cleanPath(coordPath)
         pwutils.makePath(coordPath)
         micPath = micSet.getFileName()
-        relion.convert.writeSetOfCoordinatesXmipp(coordPath, coordSet, ismanual=False)
+        convert.writeSetOfCoordinatesXmipp(coordPath, coordSet, ismanual=False)
         return micPath, coordPath
 
     def writeXmippOutputCoords(self):
@@ -116,7 +115,7 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
         coordSet.setBoxSize(self.getBoxSize())
         starFiles = [self._getExtraPath(pwutils.removeBaseExt(mic.getFileName())
                                         + '_autopick.star') for mic in micSet]
-        relion.convert.readSetOfCoordinates(coordSet, starFiles)
+        convert.readSetOfCoordinates(coordSet, starFiles)
         return self._writeXmippCoords(coordSet)
 
     def __getMicListPrefix(self, micList):

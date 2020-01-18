@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -25,10 +25,11 @@
 # **************************************************************************
 
 import pyworkflow.protocol.params as params
-import pyworkflow.em as em
+import pwem
+from pwem.protocols import ProtAlignVolume
 
 
-class ProtRelionSymmetrizeVolume(em.ProtAlignVolume):
+class ProtRelionSymmetrizeVolume(ProtAlignVolume):
     """
     Symmetrize a volume using Relion programs:
         *relion_align_symmetry* and *relion_image_handler*.
@@ -61,7 +62,7 @@ class ProtRelionSymmetrizeVolume(em.ProtAlignVolume):
         alignedFn = self._getPath('volume_aligned_sym%s.mrc' % sym)
         symFn = self._getPath('volume_sym%s.mrc' % sym)
 
-        em.ImageHandler().convert(self.inputVolume.get(), inFn)
+        pwem.convert.ImageHandler().convert(self.inputVolume.get(), inFn)
 
         self.runJob("relion_align_symmetry",
                     "--i %s --o %s --sym %s" % (inFn, alignedFn, sym))
@@ -70,7 +71,7 @@ class ProtRelionSymmetrizeVolume(em.ProtAlignVolume):
                     "--i %s --o %s --sym %s" % (alignedFn, symFn, sym))
 
         def _defineOutputVol(name, fn):
-            vol = em.Volume()
+            vol = pwem.objects.Volume()
             vol.copyInfo(self.inputVolume.get())
             vol.setLocation(fn)
             self._defineOutputs(**{name: vol})

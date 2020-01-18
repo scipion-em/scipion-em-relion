@@ -8,7 +8,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -25,27 +25,21 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+from io import open
 
-import pyworkflow as pw
-from pyworkflow.em import *
-from pyworkflow.em.viewers import CoordinatesObjectView
-from pyworkflow.em.wizard import *
-import pyworkflow.em.metadata as md
+from pwem import *
+from pwem.viewers import CoordinatesObjectView
+from pwem.wizards.wizard import *
 from pyworkflow.gui.browser import FileBrowserWindow
 
 from .constants import *
-import relion.convert
-from .protocols import (
-    ProtRelionClassify3D, ProtRelionRefine3D, ProtRelionClassify2D,
-    ProtRelionPreprocessParticles, ProtRelionAutopickLoG,
-    ProtRelion2Autopick, ProtRelionCreateMask3D,
-    ProtRelionSortParticles, ProtRelionInitialModel, ProtRelionPostprocess,
-    ProtRelionAssignOpticsGroup)
+import relion.convert as convert
+from .protocols import *
 
 
-#===============================================================================
+# =============================================================================
 # MASKS
-#===============================================================================
+# =============================================================================
 
 class RelionBackRadiusWizard(ParticleMaskRadiusWizard):
     _targets = [(ProtRelionPreprocessParticles, ['backRadius'])]
@@ -68,7 +62,7 @@ class RelionBackRadiusWizard(ParticleMaskRadiusWizard):
         _objs = self._getParameters(protocol)['input']    
         return ParticleMaskRadiusWizard._getListProvider(self, _objs)
     
-    def show(self, form):
+    def show(self, form, *args):
         params = self._getParameters(form.protocol)
         _value = params['value']
         _label = params['label']
@@ -110,12 +104,12 @@ class RelionSortMaskWizard(RelionPartMaskDiameterWizard):
 
     def _getProtocolImages(self, protocol):
         return None
-        #return protocol._allParticles(iterate=True)
+        # return protocol._allParticles(iterate=True)
 
 
-#===============================================================================
+# =============================================================================
 # FILTER
-#===============================================================================
+# =============================================================================
 
 class RelionVolFilterWizard(FilterVolumesWizard):
     _targets = [(ProtRelionClassify3D, ['initialLowPassFilterA']),
@@ -151,7 +145,7 @@ class RelionVolFilterWizard(FilterVolumesWizard):
     #                              unit=UNIT_ANGSTROM,
     #                              showDecay=False)
 
-    def show(self, form):
+    def show(self, form, *args):
         params = self._getParameters(form.protocol)
         protocol = form.protocol
         provider = self._getProvider(protocol)
@@ -174,9 +168,9 @@ class RelionVolFilterWizard(FilterVolumesWizard):
             dialog.showWarning("Input volumes", "Select volumes first", form.root)
             
 
-#===============================================================================
+# =============================================================================
 # PICKING
-#===============================================================================
+# =============================================================================
 
 # class RelionPartDiameter(RelionPartMaskDiameterWizard):
 #     _targets = [(ProtRelionAutopickFom, ['particleDiameter'])]
@@ -190,20 +184,20 @@ class Relion2AutopickParams(EmWizard):
                                        'pickingThreshold',
                                        'interParticleDistance'])]
 
-    def show(self, form):
+    def show(self, form, *args):
         autopickProt = form.protocol
 
         if not autopickProt.hasAttribute('outputCoordinatesSubset'):
             form.showWarning("You should run the procotol in 'Optimize' mode "
-                               "at least once before opening the wizard.")
+                             "at least once before opening the wizard.")
             return
 
         project = autopickProt.getProject()
         micSet = autopickProt.outputMicrographsSubset
         micfn = micSet.getFileName()
         coordsDir = project.getTmpPath(micSet.getName())
-        pw.utils.cleanPath(coordsDir)
-        pw.utils.makePath(coordsDir)
+        pwutils.cleanPath(coordsDir)
+        pwutils.makePath(coordsDir)
 
         micStarFn = os.path.join(coordsDir, 'micrographs.xmd')
 
@@ -215,18 +209,18 @@ class Relion2AutopickParams(EmWizard):
         def _preprocessMic(mic, micRow):
             mic.setCTF(micDict[mic.getMicName()].getCTF())
 
-        relion.convert.writeSetOfMicrographs(micSet, micStarFn,
-                                             preprocessImageRow=_preprocessMic)
+        convert.writeSetOfMicrographs(micSet, micStarFn,
+                                      preprocessImageRow=_preprocessMic)
 
         # Create a folder in extra to backup the original autopick star files
         backupDir = autopickProt._getExtraPath('wizard-backup')
-        pw.utils.cleanPath(backupDir)
-        pw.utils.makePath(backupDir)
-        pw.utils.copyPattern(autopickProt._getExtraPath("*autopick.star"),
+        pwutils.cleanPath(backupDir)
+        pwutils.makePath(backupDir)
+        pwutils.copyPattern(autopickProt._getExtraPath("*autopick.star"),
                             backupDir)
 
         cmd = '%s relion_autopick ' % pw.getScipionScript()
-        #cmd += '--i extra/%(micrographName).star '
+        # cmd += '--i extra/%(micrographName).star '
         cmd += '--i input_micrographs.star '
         cmd += '--threshold %(threshold) --min_distance %(ipd) '
         cmd += ' --max_stddev_noise %(maxStddevNoise) '
@@ -277,7 +271,7 @@ class Relion2AutopickParams(EmWizard):
                                         mode=CoordinatesObjectView.MODE_AUTOMATIC,
                                         pickerProps=pickerProps).show()
         process.wait()
-        myprops = pw.utils.readProperties(pickerProps)
+        myprops = pwutils.readProperties(pickerProps)
 
         # Check if the wizard changes were accepted or just canceled
         if myprops.get('applyChanges', 'false') == 'true':
@@ -292,7 +286,7 @@ class Relion2AutopickParams(EmWizard):
         else:
             # If the wizard was not execute, we should restore the original
             # autopick star files in case their were modified by the wizard
-            pw.utils.copyPattern(os.path.join(backupDir, "*autopick.star"),
+            pwutils.copyPattern(os.path.join(backupDir, "*autopick.star"),
                                 autopickProt._getExtraPath())
 
 
@@ -321,7 +315,7 @@ class RelionWizLogPickParams(EmWizard):
                                          'maxDiameter',
                                          'threshold'])]
 
-    def show(self, form):
+    def show(self, form, *args):
         autopickProt = form.protocol
         project = autopickProt.getProject()
         micSet = autopickProt.getInputMicrographs()
@@ -330,23 +324,23 @@ class RelionWizLogPickParams(EmWizard):
         print("coordsDir: ", coordsDir)
         params, minDiameter, maxDiameter, threshold = autopickProt._getPickArgs()
 
-        pw.utils.cleanPath(coordsDir)
-        pw.utils.makePath(coordsDir, 'extra')
+        pwutils.cleanPath(coordsDir)
+        pwutils.makePath(coordsDir, 'extra')
         pickerProps = os.path.join(coordsDir, 'picker.conf')
         micStarFn = os.path.join(coordsDir, 'input_micrographs.star')
 
         def _postprocessMic(mic, micRow):
             micFn = mic.getFileName()
             micBase = os.path.basename(micFn)
-            pw.utils.createLink(micFn, os.path.join(coordsDir, micBase))
+            pwutils.createLink(micFn, os.path.join(coordsDir, micBase))
             micRow.setValue(md.RLN_MICROGRAPH_NAME, micBase)
 
-        relion.convert.writeSetOfMicrographs(micSet, micStarFn,
-                                             postprocessImageRow=_postprocessMic)
+        convert.writeSetOfMicrographs(micSet, micStarFn,
+                                      postprocessImageRow=_postprocessMic)
 
         f = open(pickerProps, "w")
 
-        #params = params.replace('--odir ""', '--odir extra')
+        # params = params.replace('--odir ""', '--odir extra')
         autopickCmd = "%s relion_autopick " % pw.getScipionScript()
         autopickCmd += ' --i input_micrographs.star '
         autopickCmd += params
@@ -361,7 +355,7 @@ class RelionWizLogPickParams(EmWizard):
             "minDiameter": minDiameter,
             "maxDiameter": maxDiameter,
             "threshold": threshold,
-            'projDir': project.getPath(), #autopickProt.getWorkingDir(),
+            'projDir': project.getPath(),  # autopickProt.getWorkingDir(),
             "autopickCmd": autopickCmd
         }
 
@@ -386,7 +380,7 @@ class RelionWizLogPickParams(EmWizard):
         process = CoordinatesObjectView(autopickProt.getProject(), micfn, coordsDir, autopickProt,
                                         pickerProps=pickerProps).show()
         process.wait()
-        myprops = pw.utils.readProperties(pickerProps)
+        myprops = pwutils.readProperties(pickerProps)
 
         if myprops['applyChanges'] == 'true':
             form.setVar('minDiameter', myprops['mind.value'])
@@ -400,13 +394,12 @@ class RelionWizMtfSelector(EmWizard):
     _targets = [(ProtRelionPostprocess, ['mtf']),
                 (ProtRelionAssignOpticsGroup, ['mtfFile'])]
 
-    def show(self, form):
+    def show(self, form, *args):
         def setPath(fileInfo):
             prot = form.protocol
             varName = 'mtf' if hasattr(prot, 'mtf') else 'mtfFile'
             form.setVar(varName, fileInfo.getPath())
-        mtfDir = os.path.join(os.path.dirname(relion.convert.__file__), 'mtfs')
+        mtfDir = os.path.join(os.path.dirname(convert.__file__), 'mtfs')
         browser = FileBrowserWindow("Select the one of the predefined MTF files",
                                     form, mtfDir, onSelect=setPath)
         browser.show()
-

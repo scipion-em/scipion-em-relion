@@ -9,7 +9,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -34,16 +34,16 @@ import numpy as np
 
 from pyworkflow.object import Float, String
 from pyworkflow.tests import BaseTest, setupTestOutput, DataSet
-from pyworkflow.em.data import (SetOfParticles, CTFModel, Acquisition,
-                                SetOfMicrographs, Coordinate, Particle,
-                                SetOfVolumes, Transform)
-from pyworkflow.em import ImageHandler
 from pyworkflow.utils import cleanPath
-import pyworkflow.em.metadata as md
-from pyworkflow.em.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_3D
+from pwem.objects import (SetOfParticles, CTFModel, Acquisition,
+                          SetOfMicrographs, Coordinate, Particle,
+                          SetOfVolumes, Transform)
+from pwem.convert import ImageHandler
+import pwem.metadata as md
+from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_3D
 
-import relion
-import relion.convert
+from .. import Plugin
+import relion.convert as convert
 
 
 class TestConversions(BaseTest):
@@ -70,7 +70,7 @@ class TestConversions(BaseTest):
         for i in range(n):
             p = Particle()
             p.setLocation(i+1, fn)
-            ctf = ctfs[i%2]
+            ctf = ctfs[i % 2]
             p.setCTF(ctf)
             p.setAcquisition(acquisition)
             p._xmipp_zScore = Float(i)
@@ -82,8 +82,8 @@ class TestConversions(BaseTest):
         fnStar = self.getOutputPath('particles.star')
         fnStk = self.getOutputPath('particles.stk')
         
-        print (">>> Writing to file: %s" % fnStar)
-        relion.convert.writeSetOfParticles(imgSet, fnStar, fnStk)
+        print(">>> Writing to file: %s" % fnStar)
+        convert.writeSetOfParticles(imgSet, fnStar, fnStk)
         
         mdAll = md.MetaData(fnStar)
         self.assertTrue(mdAll.containsLabel(md.RLN_IMAGE_COORD_X))
@@ -122,8 +122,8 @@ class TestConversions(BaseTest):
         fnStar = self.getOutputPath('particles_ph_sh.star')
         fnStk = self.getOutputPath('particles.stk')
 
-        print (">>> Writing to file: %s" % fnStar)
-        relion.convert.writeSetOfParticles(imgSet, fnStar, fnStk)
+        print(">>> Writing to file: %s" % fnStar)
+        convert.writeSetOfParticles(imgSet, fnStar, fnStk)
 
         mdAll = md.MetaData(fnStar)
         self.assertTrue(mdAll.containsLabel(md.RLN_IMAGE_COORD_X))
@@ -135,7 +135,7 @@ class TestConversions(BaseTest):
         """ Read a set of particles from an .star file.  """
         fnStar = self.getFile('relion_it020_data')
         
-        print (">>> Reading star file: ", fnStar)
+        print(">>> Reading star file: ", fnStar)
         mdAll = md.MetaData(fnStar)
         goldLabels = ['rlnVoltage', 'rlnDefocusU', 'rlnDefocusV', 
                       'rlnDefocusAngle', 'rlnSphericalAberration', 
@@ -176,7 +176,7 @@ class TestConversions(BaseTest):
                          [md.label2Str(l) for l in mdAll.getActiveLabels()])
 
         value = mdAll.getValue(md.getLabel("rlnNewLabel"), 1)
-        self.assertTrue(isinstance(value, basestring),
+        self.assertTrue(isinstance(value, str),
                         "undefined labels are not treated as strings")
 
         # Define new label reusing existing one
@@ -217,11 +217,11 @@ class TestConvertBinaryFiles(BaseTest):
             
         outputDir = self.getOutputPath()
         
-        filesDict = relion.convert.convertBinaryFiles(partSet, outputDir)
+        filesDict = convert.convertBinaryFiles(partSet, outputDir)
         
         partSet.close()
         
-        print (filesDict)
+        print(filesDict)
         
     def test_mrcsLink(self):
         """ In this case just a link with .mrcs extension 
@@ -237,20 +237,20 @@ class TestConvertBinaryFiles(BaseTest):
             
         outputDir = self.getOutputPath()
         
-        filesDict = relion.convert.convertBinaryFiles(partSet, outputDir)
+        filesDict = convert.convertBinaryFiles(partSet, outputDir)
         
-        print (filesDict)
+        print(filesDict)
 
 
-SHOW_IMAGES  = False # Launch xmipp_showj to open intermediate results
-CLEAN_IMAGES = True # Remove the output temporary files
+SHOW_IMAGES = False  # Launch xmipp_showj to open intermediate results
+CLEAN_IMAGES = True  # Remove the output temporary files
 PRINT_MATRIX = True
-PRINT_FILES  = True
+PRINT_FILES = True
 
 
 def runRelionProgram(cmd):
-    print (">>>", cmd)
-    p = subprocess.Popen(cmd, shell=True, env=relion.Plugin.getEnviron())
+    print(">>>", cmd)
+    p = subprocess.Popen(cmd, shell=True, env=Plugin.getEnviron())
     return p.wait()
 
 
@@ -272,10 +272,10 @@ class TestConvertAnglesBase(BaseTest):
             mList: the matrix list of transformations
                 (should be the same length of the stack of images)
         """
-        print ("\n")
-        print ("*" * 80)
-        print ("* Launching test: ", fileKey)
-        print ("*" * 80)
+        print("\n")
+        print("*" * 80)
+        print("* Launching test: ", fileKey)
+        print("*" * 80)
 
         is2D = alignType == ALIGN_2D
 
@@ -319,24 +319,24 @@ class TestConvertAnglesBase(BaseTest):
             p.setTransform(Transform(a))
             partSet.append(p)
         # Write out the .sqlite file and check that are correctly aligned
-        print ("Parset", partFn1)
+        print("Parset", partFn1)
         partSet.printAll()
         partSet.write()
         # Convert to a Xmipp metadata and also check that the images are
         # aligned correctly
         if alignType == ALIGN_2D or alignType == ALIGN_PROJ:
-            relion.convert.writeSetOfParticles(partSet, mdFn,"/tmp", alignType=alignType)
+            convert.writeSetOfParticles(partSet, mdFn, "/tmp", alignType=alignType)
             partSet2 = SetOfParticles(filename=partFn2)
         else:
-            relion.convert.writeSetOfVolumes(partSet, mdFn, alignType=alignType)
+            convert.writeSetOfVolumes(partSet, mdFn, alignType=alignType)
             partSet2 = SetOfVolumes(filename=partFn2)
         # Let's create now another SetOfImages reading back the written
         # Xmipp metadata and check one more time.
         partSet2.copyInfo(partSet)
         if alignType == ALIGN_2D or alignType == ALIGN_PROJ:
-            relion.convert.readSetOfParticles(mdFn, partSet2, alignType=alignType)
+            convert.readSetOfParticles(mdFn, partSet2, alignType=alignType)
         else:
-            relion.convert.readSetOfVolumes(mdFn, partSet2, alignType=alignType)
+            convert.readSetOfVolumes(mdFn, partSet2, alignType=alignType)
 
         partSet2.write()
 
@@ -344,11 +344,11 @@ class TestConvertAnglesBase(BaseTest):
             for i, img in enumerate(partSet2):
                 m1 = aList[i]
                 m2 = img.getTransform().getMatrix()
-                print ("-" * 5)
-                print (img.getFileName(), img.getIndex())
-                print ('m1:\n', m1, relion.convert.geometryFromMatrix(m1, False))
+                print("-" * 5)
+                print(img.getFileName(), img.getIndex())
+                print('m1:\n', m1, convert.geometryFromMatrix(m1, False))
 
-                print ('m2:\n', m2, relion.convert.geometryFromMatrix(m2, False))
+                print('m2:\n', m2, convert.geometryFromMatrix(m2, False))
                 # self.assertTrue(np.allclose(m1, m2, rtol=1e-2))
 
         # Launch apply transformation and check result images
@@ -361,9 +361,7 @@ class TestConvertAnglesBase(BaseTest):
             self.assertTrue(
                 ImageHandler().compareData(goldFn, outputFn, tolerance=0.001),
                 "Different data files:\n>%s\n<%s" % (goldFn, outputFn))
-        # else:
-        #     print colorText.RED + colorText.BOLD + "WARNING: Gold file '%s' missing!!!" % goldFn + colorText.END
-        #
+
         if CLEAN_IMAGES:
             cleanPath(outputFn)
 
@@ -372,7 +370,6 @@ class TestAlignment(TestConvertAnglesBase):
     IS_ALIGNMENT = True
     CMD = "relion_stack_create  --i %(mdFn)s --o %(outputFnRelion)s --apply_transformation"
 
-    
     def test_isInverse(self):
         """Consistency between fordwards and backwards geometrical
         transformations"""
@@ -381,14 +378,14 @@ class TestAlignment(TestConvertAnglesBase):
             a = Transform(matrix)
 
             row1 = md.Row()
-            relion.convert.alignmentToRow(a, row1, alignType=ALIGN_2D)
+            convert.alignmentToRow(a, row1, alignType=ALIGN_2D)
 
             # row2 = md.Row()
-            # relion.convert.alignmentToRow(a, row2, alignType=ALIGN_3D)
+            # convert.alignmentToRow(a, row2, alignType=ALIGN_3D)
             row2 = None
             
             row3 = md.Row()
-            relion.convert.alignmentToRow(a, row3, alignType=ALIGN_PROJ)
+            convert.alignmentToRow(a, row3, alignType=ALIGN_PROJ)
 
             return row1, row2, row3
 
@@ -467,7 +464,7 @@ class TestAlignment(TestConvertAnglesBase):
         self.launchTest('alignShiftRotExp', mList, alignType=ALIGN_2D)
 
     def aatest_alignShiftRot3D(self):
-        #TODO: 3D alignment not tested since we need a program in Relion
+        # TODO: 3D alignment not tested since we need a program in Relion
         # apply transformation.
         
         """ Check that for a given alignment object,
@@ -490,7 +487,7 @@ class TestAlignment(TestConvertAnglesBase):
                   [0.0, 0.0, 0.0, 1.0]]]
 
         self.launchTest('alignShiftRot3D', mList, alignType=ALIGN_3D)
-    #
+
     def test_alignRotOnly(self):
         """ Check that for a given alignment object,
         the corresponding Xmipp metadata row is generated properly.
@@ -515,7 +512,7 @@ class TestAlignment(TestConvertAnglesBase):
         self.launchTest('alignRotOnly', mList, alignType=ALIGN_2D)
 
     def aatest_alignRotOnly3D(self):
-        #TODO: 3D alignment not tested since we need a program in Relion
+        # TODO: 3D alignment not tested since we need a program in Relion
         """ Check that for a given alignment object,
         the corresponding Xmipp metadata row is generated properly.
         Goal: 3D alignment
@@ -564,7 +561,7 @@ class TestAlignment(TestConvertAnglesBase):
         self.launchTest('alignShiftOnly', mList, alignType=ALIGN_2D)
 
     def aatest_alignShiftOnly3D(self):
-        #TODO: 3D alignment not tested since we need a program in Relion
+        # TODO: 3D alignment not tested since we need a program in Relion
         """ Check that for a given alignment object,
         the corresponding Xmipp metadata row is generated properly.
         Goal: 3D alignment
@@ -628,35 +625,35 @@ class TestReconstruct(TestConvertAnglesBase):
     def test_forward_backwards(self):
         """convert transformation matrixt to xmipp and back"""
 
-        mList = [[[0.71461016, 0.63371837, -0.29619813,  1.],#a1
+        mList = [[[0.71461016, 0.63371837, -0.29619813,  1.],  # a1
                   [-0.61309201, 0.77128059, 0.17101008,  2.],
                   [0.33682409, 0.059391174, 0.93969262,  3.],
                   [0,          0,          0,            1.]],
-                 [[0., 0., -1., 0.],#a2
+                 [[0., 0., -1., 0.],  # a2
                   [0., 1., 0., 0.],
                   [1., 0., 0., 0.],
                   [0., 0., 0., 1.]],
-                 [[0., 1., 0., 0.],#a3
+                 [[0., 1., 0., 0.],  # a3
                   [0., 0., 1., 0.],
                   [1., 0., 0., 0.],
                   [0., 0., 0., 1.]],
-                 [[ 0.22612257, 0.82379508, -0.51983678, 0.],#a4
+                 [[0.22612257, 0.82379508, -0.51983678, 0.],  # a4
                   [-0.88564873, 0.39606407, 0.24240388,  0.],
-                  [ 0.40557978, 0.40557978, 0.81915206,  0.],
-                  [ 0.,          0.,          0.,           1.]],
-                 [[-0.78850311, -0.24329656,-0.56486255,   0.],#a5
-                  [ 0.22753462, -0.96866286, 0.099600501,  0.],
+                  [0.40557978, 0.40557978, 0.81915206,  0.],
+                  [0.,          0.,          0.,           1.]],
+                 [[-0.78850311, -0.24329656,-0.56486255,   0.],  # a5
+                  [0.22753462, -0.96866286, 0.099600501,  0.],
                   [-0.57139379, -0.049990479, 0.81915206,  0.],
                   [0.,            0.,           0.,           1.]],
-                 [[ 1.0, 0.0, 0.0, 0.0],#a6
-                  [ 0.0, 1.0, 0.0, 0.0],
-                  [ 0.0, 0.0, 1.0, 0.0],
-                  [ 0.0, 0.0, 0.0, 1.0]],
-                 [[0., 0., -1., 0.],#a7
+                 [[1.0, 0.0, 0.0, 0.0],  # a6
+                  [0.0, 1.0, 0.0, 0.0],
+                  [0.0, 0.0, 1.0, 0.0],
+                  [0.0, 0.0, 0.0, 1.0]],
+                 [[0., 0., -1., 0.],  # a7
                   [-1., 0., 0.,  0.],
                   [0., 1., 0.,  0.],
                   [0., 0., 0., 1.]]
-                ]
+                 ]
 
         aList = [np.array(m) for m in mList]
         rowa = md.Row()
@@ -664,44 +661,43 @@ class TestReconstruct(TestConvertAnglesBase):
         rowb1 = md.Row()
         rowb2 = md.Row()
         rowb3 = md.Row()
-        labelList=[md.RLN_ORIENT_ROT
-                  ,md.RLN_ORIENT_TILT
-                  ,md.RLN_ORIENT_PSI
-                  ,md.RLN_ORIENT_ORIGIN_X
-                  ,md.RLN_ORIENT_ORIGIN_Y
-                  ,md.RLN_ORIENT_ORIGIN_Z
-                  ]
+        labelList = [md.RLN_ORIENT_ROT,
+                     md.RLN_ORIENT_TILT,
+                     md.RLN_ORIENT_PSI,
+                     md.RLN_ORIENT_ORIGIN_X,
+                     md.RLN_ORIENT_ORIGIN_Y,
+                     md.RLN_ORIENT_ORIGIN_Z]
+
         for i, a in enumerate(aList):
             a = Transform(aList[i])
-            relion.convert.alignmentToRow(a, rowa, ALIGN_PROJ)
-            b = relion.convert.rowToAlignment(rowa, ALIGN_PROJ)
-            relion.convert.alignmentToRow(b, rowb, ALIGN_PROJ)
-            #same two matrices
+            convert.alignmentToRow(a, rowa, ALIGN_PROJ)
+            b = convert.rowToAlignment(rowa, ALIGN_PROJ)
+            convert.alignmentToRow(b, rowb, ALIGN_PROJ)
+            # same two matrices
             self.assertTrue(np.allclose(a.getMatrix(), b.getMatrix(),
-                                           rtol=1e-2))
+                                        rtol=1e-2))
             for label in labelList:
                 auxBtilt = rowb.getValue(label)
                 auxAtilt = rowa.getValue(label)
-                #same two rows
-                self.assertAlmostEqual(auxBtilt, auxAtilt, places=3, msg=None, delta=None)
+                # same two rows
+                self.assertAlmostEqual(auxBtilt, auxAtilt, places=3, msg=None, delta=0.)
 
-            b = relion.convert.rowToAlignment(rowa, ALIGN_PROJ)
-            relion.convert.alignmentToRow(b, rowb, ALIGN_PROJ)
+            b = convert.rowToAlignment(rowa, ALIGN_PROJ)
+            convert.alignmentToRow(b, rowb, ALIGN_PROJ)
             aMatrix = a.getMatrix()
             # aMatrix[0,:] *= -1; aMatrix[2,:] *= -1;
-            #same two matrices with flip
-            print ("aMatrix: \n", aMatrix, "bMatrix: \n", b.getMatrix())
+            # same two matrices with flip
+            print("aMatrix: \n", aMatrix, "bMatrix: \n", b.getMatrix())
             
             self.assertTrue(np.allclose(aMatrix, b.getMatrix(), rtol=1e-2))
 
- #* newrot = rot;
- #* newtilt = tilt + 180;
- #* newpsi = -(180 + psi);
+    # * newrot = rot;
+    # * newtilt = tilt + 180;
+    # * newpsi = -(180 + psi);
 
- #* newrot = rot + 180;
- #* newtilt = -tilt;
- #* newpsi = -180 + psi;
-
+    # * newrot = rot + 180;
+    # * newtilt = -tilt;
+    # * newpsi = -180 + psi;
 
     def test_reconstRotOnly(self):
         """ Check that for a given alignment object,
@@ -718,35 +714,35 @@ class TestReconstruct(TestConvertAnglesBase):
         mList[5] * (4    8   16)   -> (4,8,16)
         mList[6] * (-8   16   -4)  -> (4,8,16)
         """
-        mList = [[[0.71461016, 0.63371837, -0.29619813,  0.],#a1
+        mList = [[[0.71461016, 0.63371837, -0.29619813,  0.],  # a1
                   [-0.61309201, 0.77128059, 0.17101008,  0.],
                   [0.33682409, 0.059391174, 0.93969262,  0.],
                   [0,          0,          0,            1.]],
-                 [[0., 0., -1., 0.],#a2
+                 [[0., 0., -1., 0.],  # a2
                   [0., 1., 0., 0.],
                   [1., 0., 0., 0.],
                   [0., 0., 0., 1.]],
-                 [[0., 1., 0., 0.],#a3
+                 [[0., 1., 0., 0.],  # a3
                   [0., 0., 1., 0.],
                   [1., 0., 0., 0.],
                   [0., 0., 0., 1.]],
-                 [[ 0.22612257, 0.82379508, -0.51983678, 0.],#a4
+                 [[0.22612257, 0.82379508, -0.51983678, 0.],  # a4
                   [-0.88564873, 0.39606407, 0.24240388,  0.],
-                  [ 0.40557978, 0.40557978, 0.81915206,  0.],
-                  [ 0.,          0.,          0.,           1.]],
-                 [[-0.78850311, -0.24329656,-0.56486255,   0.],#a5
-                  [ 0.22753462, -0.96866286, 0.099600501,  0.],
+                  [0.40557978, 0.40557978, 0.81915206,  0.],
+                  [0.,          0.,          0.,           1.]],
+                 [[-0.78850311, -0.24329656, -0.56486255,   0.],  # a5
+                  [0.22753462, -0.96866286, 0.099600501,  0.],
                   [-0.57139379, -0.049990479, 0.81915206,  0.],
                   [0.,            0.,           0.,           1.]],
-                 [[ 1.0, 0.0, 0.0, 0.0],#a6
-                  [ 0.0, 1.0, 0.0, 0.0],
-                  [ 0.0, 0.0, 1.0, 0.0],
-                  [ 0.0, 0.0, 0.0, 1.0]],
-                 [[0., 0., -1., 0.],#a7
+                 [[1.0, 0.0, 0.0, 0.0],  # a6
+                  [0.0, 1.0, 0.0, 0.0],
+                  [0.0, 0.0, 1.0, 0.0],
+                  [0.0, 0.0, 0.0, 1.0]],
+                 [[0., 0., -1., 0.],  # a7
                   [-1., 0., 0.,  0.],
                   [0., 1., 0.,  0.],
                   [0., 0., 0., 1.]]
-                ]
+                 ]
 
         self.launchTest('reconstRotOnly', mList, alignType=ALIGN_PROJ)
 
@@ -765,35 +761,35 @@ class TestReconstruct(TestConvertAnglesBase):
         mList[5] * 64*(4    8   16)   -> (4,8,16)
         mList[6] * 64*(-0.125000   0.250000  -0.062500)  -> (4,8,16)
         """
-        mList = [[[0.71461016, 0.63371837, -0.29619813,  4.],#a1
+        mList = [[[0.71461016, 0.63371837, -0.29619813,  4.],  # a1
                   [-0.61309201, 0.77128059, 0.17101008,  8.],
                   [0.33682409, 0.059391174, 0.93969262, 12.],
                   [0,          0,          0,            1.]],
-                 [[0., 0., -1., 0.],#a2
+                 [[0., 0., -1., 0.],  # a2
                   [0., 1., 0., 0.],
                   [1., 0., 0., 0.],
                   [0., 0., 0., 1.]],
-                 [[0., 1., 0., 0.],#a3
+                 [[0., 1., 0., 0.],  # a3
                   [0., 0., 1., 4.],
                   [1., 0., 0., 2.],
                   [0., 0., 0., 1.]],
-                 [[ 0.22612257, 0.82379508, -0.51983678, 7.],#a4
+                 [[0.22612257, 0.82379508, -0.51983678, 7.],  # a4
                   [-0.88564873, 0.39606407, 0.24240388,  3.],
-                  [ 0.40557978, 0.40557978, 0.81915206,  4.],
-                  [ 0.,          0.,          0.,           1.]],
-                 [[-0.78850311, -0.24329656,-0.56486255,   5.],#a5
-                  [ 0.22753462, -0.96866286, 0.099600501, -3.],
+                  [0.40557978, 0.40557978, 0.81915206,  4.],
+                  [0.,          0.,          0.,           1.]],
+                 [[-0.78850311, -0.24329656, -0.56486255,   5.],  # a5
+                  [0.22753462, -0.96866286, 0.099600501, -3.],
                   [-0.57139379, -0.049990479, 0.81915206, -2.],
                   [0.,            0.,           0.,           1.]],
-                 [[ 1.0, 0.0, 0.0, 0.0],#a6
-                  [ 0.0, 1.0, 0.0, 0.0],
-                  [ 0.0, 0.0, 1.0, 0.0],
-                  [ 0.0, 0.0, 0.0, 1.0]],
-                 [[0., 0., -1., 0.],#a7
+                 [[1.0, 0.0, 0.0, 0.0],  # a6
+                  [0.0, 1.0, 0.0, 0.0],
+                  [0.0, 0.0, 1.0, 0.0],
+                  [0.0, 0.0, 0.0, 1.0]],
+                 [[0., 0., -1., 0.],  # a7
                   [-1., 0., 0.,  0.],
                   [0., 1., 0.,  0.],
                   [0., 0., 0., 1.]]
-                ]
+                 ]
 
         self.launchTest('reconstRotandShift', mList, alignType=ALIGN_PROJ)
         
@@ -806,14 +802,14 @@ class TestReconstruct(TestConvertAnglesBase):
         """
         # in practice this is irrelevant since no converson with |mat|==-1
         mList = [
-                 [[1., 0., 0., 0.],#a1
+                 [[1., 0., 0., 0.],  # a1
                   [0., 1., 0., 0.],
                   [0., 0., 1., 0.],
                   [0., 0., 0., 1.]],
-                 [[  0.04341204, -0.82959837,  0.5566704,   7.42774284],#-50, -40,-30
-                  [  0.90961589,  0.26325835,  0.3213938, -20.82490128],
-                  [ -0.41317591,  0.49240388,  0.76604444,  3.33947946],
-                  [  0.,          0.,          0.,          1.        ]],
+                 [[0.04341204, -0.82959837,  0.5566704,   7.42774284],  # -50, -40,-30
+                  [0.90961589,  0.26325835,  0.3213938, -20.82490128],
+                  [0.41317591,  0.49240388,  0.76604444,  3.33947946],
+                  [0.,          0.,          0.,          1.]],
                  [[0.04341203,   0.82959837, - 0.5566704, - 7.42774315],
                   [0.90961589, - 0.26325834, - 0.3213938,   20.8249012],
                   [-0.4131759, - 0.49240388, - 0.76604444, - 3.33947923],
@@ -914,6 +910,5 @@ class TestRelionWriter(BaseTest):
         # fnStk = self.getOutputPath('particles.stk')
 
         print(">>> Writing to micrographs: %s" % outputStar)
-        starWriter = relion.convert.Writer()
+        starWriter = convert.Writer()
         starWriter.writeSetOfMicrographs(outputMics, outputStar)
-

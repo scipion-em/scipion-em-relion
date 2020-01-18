@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -26,17 +26,19 @@
 
 import os
 import json
+from io import open
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
-import pyworkflow.em as em
-import pyworkflow.em.metadata as md
+from pwem.protocols import ProtParticles
+import pwem.metadata as md
+from pwem.constants import ALIGN_PROJ
 
-import relion
+import relion.convert as convert
 from ..convert.metadata import Table
 
 
-class ProtRelionBayesianPolishing(em.ProtParticles):
+class ProtRelionBayesianPolishing(ProtParticles):
     """
     Wrapper protocol for the Relion's Bayesian Polishing.
 
@@ -59,7 +61,6 @@ class ProtRelionBayesianPolishing(em.ProtParticles):
 
     OP_TRAIN = 0
     OP_POLISH = 1
-
 
     def _defineParams(self, form):
         form.addSection(label='Input')
@@ -253,18 +254,18 @@ class ProtRelionBayesianPolishing(em.ProtParticles):
         with open(self._getPath('input_corrected_micrographs.star'), 'w') as f:
             tableMovies.writeStar(f)
 
-        relion.convert.writeSetOfParticles(inputParts, imgStar,
-                                           inputPartsFolder,
-                                           alignType=em.ALIGN_PROJ,
-                                           fillMagnification=True,
-                                           fillRandomSubset=True)
+        convert.writeSetOfParticles(inputParts, imgStar,
+                                    inputPartsFolder,
+                                    alignType=ALIGN_PROJ,
+                                    fillMagnification=True,
+                                    fillRandomSubset=True)
 
     def trainOrPolishStep(self, operation):
         args = "--i %s " % self._getPath('input_particles.star')
         args += "--o %s " % self._getExtraPath()
         postStar = self.inputPostprocess.get()._getExtraPath('postprocess.star')
         args += "--f %s " % postStar
-        postprocessTuple = relion.convert.getVolumesFromPostprocess(postStar)
+        postprocessTuple = convert.getVolumesFromPostprocess(postStar)
         args += "--m1 %s --m2 %s --mask %s " % postprocessTuple
         args += "--corr_mic %s " % self._getPath('input_corrected_micrographs.star')
         args += "--first_frame %d --last_frame %d " % (self.frame0, self.frameN)
@@ -303,7 +304,7 @@ class ProtRelionBayesianPolishing(em.ProtParticles):
         self._defineTransformRelation(self.inputParticles, outImgSet)
 
     def _updateItem(self, particle, row):
-        newLoc = relion.convert.relionToLocation(row.getValue('rlnImageName'))
+        newLoc = convert.relionToLocation(row.getValue('rlnImageName'))
         particle.setLocation(newLoc)
 
     # --------------------------- INFO functions ------------------------------
@@ -317,7 +318,7 @@ class ProtRelionBayesianPolishing(em.ProtParticles):
         else:
             if pwutils.exists(self._getExtraPath('opt_params.txt')):
                 f = open(self._getExtraPath('opt_params.txt'))
-                line = map(float, f.readline().split())
+                line = list(map(float, f.readline().split()))
                 summary.append('Sigma for velocity: %0.3f' % line[0])
                 summary.append('Sigma for divergence: %0.1f' % line[1])
                 summary.append('Sigma for acceleration: %0.2f' % line[2])

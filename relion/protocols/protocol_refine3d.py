@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -24,13 +24,13 @@
 # *
 # **************************************************************************
 
-import pyworkflow.em as em
-import pyworkflow.em.metadata as md
-from pyworkflow.em.data import Volume, FSC
-from pyworkflow.em.protocol import ProtRefine3D
-from pyworkflow.em import ALIGN_PROJ
+import pwem.metadata as md
+from pyworkflow.object import String
+from pwem.objects import Volume, FSC
+from pwem.protocols import ProtRefine3D
+from pwem.constants import ALIGN_PROJ
 
-import relion
+import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
 
@@ -78,7 +78,7 @@ leads to objective and high-quality results.
             args['--split_random_halves'] = ''
             
             joinHalves = "--low_resol_join_halves"
-            if not joinHalves in self.extraParams.get():
+            if joinHalves not in self.extraParams.get():
                 args['--low_resol_join_halves'] = 40
 
     # -------------------------- STEPS functions ------------------------------
@@ -185,10 +185,10 @@ leads to objective and high-quality results.
                                                       sortByLabel=md.RLN_IMAGE_ID))
     
     def _createItemMatrix(self, particle, row):
-        relion.convert.createItemMatrix(particle, row,
-                                        align=ALIGN_PROJ)
-        relion.convert.setRelionAttributes(particle, row,
-                                           md.RLN_PARTICLE_RANDOM_SUBSET)
+        convert.createItemMatrix(particle, row,
+                                 align=ALIGN_PROJ)
+        convert.setRelionAttributes(particle, row,
+                                    md.RLN_PARTICLE_RANDOM_SUBSET)
 
     def _updateParticle(self, particle, row):
-        particle._coordinate._micName = em.String(row.getValue('rlnMicrographName'))
+        particle._coordinate._micName = String(row.getValue('rlnMicrographName'))

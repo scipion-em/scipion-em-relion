@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -27,15 +27,14 @@
 from os.path import relpath
 
 import pyworkflow.protocol.params as params
-from pyworkflow.em.protocol import ProtParticlePickingAuto
-from pyworkflow.em.constants import RELATION_CTF
-from pyworkflow.em.convert import ImageHandler
+from pwem.protocols import ProtParticlePickingAuto
+from pwem.constants import RELATION_CTF
+from pwem.convert import ImageHandler
 from pyworkflow.utils.properties import Message
 import pyworkflow.utils as pwutils
-from pyworkflow.em import getSubsetByDefocus
+from pwem.convert.utils import getSubsetByDefocus
 
-import relion
-import relion.convert
+import relion.convert as convert
 from ..convert.metadata import Table
 from ..constants import *
 from .protocol_autopick import ProtRelionAutopickBase
@@ -315,7 +314,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         self.inputStreaming = self.getInputMicrographs().isStreamOpen()
 
         if ((self.streamingBatchSize > 0 or self.inputStreaming)
-            and not self.isRunOptimize()):
+                and not self.isRunOptimize()):
             # If the input is in streaming, follow the base class policy
             # about inserting new steps and discovery new input/output
             self.createOutputStep = self._doNothing
@@ -362,7 +361,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
 
         # Remove the micrographs that have not CTF
         # and set the CTF property for those who have it
-        for micKey, mic in micDict.iteritems():
+        for micKey, mic in micDict.items():
             if micKey in ctfDict:
                 mic.setCTF(ctfDict[micKey])
             else:
@@ -379,7 +378,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
 
         inputRefs = self.getInputReferences()
         if self.useInputReferences():
-            relion.convert.writeReferences(
+            convert.writeReferences(
                 inputRefs, self._getPath('reference_2d'), useBasename=True)
         else:
             ImageHandler().convert(inputRefs, self._getPath('reference_3d.mrc'))

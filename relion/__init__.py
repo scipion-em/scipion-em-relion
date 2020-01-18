@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -25,7 +25,7 @@
 # **************************************************************************
 
 import os
-import pyworkflow.em
+import pyworkflow.plugin
 import pyworkflow.utils as pwutils
 
 from .constants import RELION_HOME, RELION_CUDA_LIB, V3_0, V3_1
@@ -35,7 +35,7 @@ _logo = "relion_logo.png"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016', 'Zivanov2018']
 
 
-class Plugin(pyworkflow.em.Plugin):
+class Plugin(pyworkflow.plugin.Plugin):
     _homeVar = RELION_HOME
     _supportedVersions = [V3_0, V3_1]
 
@@ -46,7 +46,6 @@ class Plugin(pyworkflow.em.Plugin):
     @classmethod
     def getEnviron(cls):
         """ Setup the environment variables needed to launch Relion. """
-
         environ = pwutils.Environ(os.environ)
         binPath = cls.getHome('bin')
         libPath = cls.getHome('lib') + ":" + cls.getHome('lib64')
@@ -84,22 +83,19 @@ class Plugin(pyworkflow.em.Plugin):
         relion_vars = {'FFTW_LIB': env.getLibFolder(),
                        'FFTW_INCLUDE': env.getIncludeFolder()}
 
-        relion2_commands = [('cmake -DGUI=OFF -DCMAKE_INSTALL_PREFIX=./ .', []),
-                            ('make -j %d' % env.getProcessors(),
-                             ['bin/relion_refine'])]
+        relion_commands = [('cmake -DGUI=OFF -DCMAKE_INSTALL_PREFIX=./ .', []),
+                           ('make -j %d' % env.getProcessors(),
+                            ['bin/relion_refine'])]
 
         env.addPackage('relion', version='3.0',
                        url='https://github.com/3dem/relion/archive/3.0.tar.gz',
-                       commands=relion2_commands,
+                       commands=relion_commands,
                        updateCuda=True,
                        vars=relion_vars)
 
         env.addPackage('relion', version='3.1',
                        url='https://github.com/3dem/relion/archive/3.1.tar.gz',
-                       commands=relion2_commands,
+                       commands=relion_commands,
                        updateCuda=True,
                        vars=relion_vars,
                        default=True)
-
-
-pyworkflow.em.Domain.registerPlugin(__name__)

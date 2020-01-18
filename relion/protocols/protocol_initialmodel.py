@@ -8,7 +8,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -26,20 +26,22 @@
 # *
 # **************************************************************************
 
-import pyworkflow as pw
-import pyworkflow.em.metadata as md
+from pwem.protocols import ProtInitialVolume
+import pwem.metadata as md
+import pwem.constants as emcts
+from pwem.objects import Volume
 from pyworkflow.protocol.params import (PointerParam, FloatParam,
                                         LabelParam, IntParam,
                                         EnumParam, StringParam,
                                         BooleanParam,
                                         LEVEL_ADVANCED)
-import relion
-import relion.convert
+
 from ..constants import ANGULAR_SAMPLING_LIST
+import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
 
-class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
+class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
     """ This protocols creates a 3D initial model using Relion.
 
     Generate a 3D initial model _de novo_ from 2D particles using
@@ -313,8 +315,8 @@ class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
         volumes = []
 
         for i in range(1, k + 1):
-            vol = pw.em.Volume(self._getExtraPath('relion_it%03d_class%03d.mrc')
-                               % (lastIter, i))
+            vol = Volume(self._getExtraPath('relion_it%03d_class%03d.mrc')
+                         % (lastIter, i))
             vol.setSamplingRate(pixelSize)
             volumes.append(vol)
 
@@ -386,7 +388,7 @@ class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
         """ Should be overwritten in subclasses to
         return summary messages for CONTINUE EXECUTION.
         """
-        summary = []
+        summary = list()
         summary.append("Continue from iteration %01d" % self._getContinueIter())
         return summary
 
@@ -436,5 +438,4 @@ class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
                                          sortByLabel=md.RLN_IMAGE_ID))
 
     def _createItemMatrix(self, item, row):
-        relion.convert.createItemMatrix(item, row, align=pw.em.ALIGN_PROJ)
-
+        convert.createItemMatrix(item, row, align=emcts.ALIGN_PROJ)

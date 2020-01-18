@@ -4,7 +4,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -26,6 +26,7 @@ __author__ = 'Jose Miguel de la Rosa Trevin'
 import os
 import sys
 import argparse
+from io import open
 from collections import OrderedDict, namedtuple
 
 
@@ -126,7 +127,7 @@ class Table:
             m = max([len(c) for c in self._columns.keys()]) + 5
             lineFormat = "_{:<%d} {:>10}\n" % m
             row = self._rows[0]
-            for col, value in row._asdict().iteritems():
+            for col, value in row._asdict().items():
                 outputFile.write(lineFormat.format(col, value))
             outputFile.write('\n\n')
             return
@@ -261,7 +262,7 @@ if __name__ == '__main__':
     add("-l", "--limit", type=int, default=0,
         help="Limit the number of rows processed, useful for testing. ")
 
-    #add("-v", "--verbosity", action="count", default=0)
+    # add("-v", "--verbosity", action="count", default=0)
 
     args = parser.parse_args()
 
@@ -281,7 +282,7 @@ if __name__ == '__main__':
     limit = args.limit
 
     for i, row in enumerate(tableIn):
-        if limit > 0 and i == limit:
+        if 0 < limit == i:
             break
 
         tableOut.addRow(*row)

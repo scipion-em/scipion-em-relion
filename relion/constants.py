@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -26,7 +26,7 @@
 
 from collections import OrderedDict
 
-import pyworkflow.em.metadata as md
+import pwem.metadata as md
 
 
 # ----------------- Constants values --------------------------------------
@@ -128,7 +128,7 @@ XMIPP_RELION_LABELS = {
                         md.MDL_ANGLE_ROT:         'rlnAngleRot'
                        ,md.MDL_ANGLE_TILT:        'rlnAngleTilt'
                        ,md.MDL_ANGLE_PSI:         'rlnAnglePsi'
-                       ,md.MDL_AVG_CHANGES_ORIENTATIONS:'rlnChangesOptimalOrientations'
+                       ,md.MDL_AVG_CHANGES_ORIENTATIONS: 'rlnChangesOptimalOrientations'
                        ,md.MDL_AVG_CHANGES_OFFSETS:     'rlnChangesOptimalOffsets'
                        ,md.MDL_AVG_CHANGES_CLASSES:     'rlnChangesOptimalClasses'
                        ,md.MDL_AVGPMAX:           'rlnAveragePmax'
@@ -142,7 +142,7 @@ XMIPP_RELION_LABELS = {
                        ,md.MDL_CTF_ENERGY_LOSS:   'rlnEnergyLoss'
                        ,md.MDL_CTF_LENS_STABILITY:'rlnLensStability'
                        ,md.MDL_CTF_LONGITUDINAL_DISPLACEMENT: 'rlnLongitudinalDisplacement'
-                       ,md.MDL_CTF_TRANSVERSAL_DISPLACEMENT: 'rlnTransversalDisplacement'                       
+                       ,md.MDL_CTF_TRANSVERSAL_DISPLACEMENT: 'rlnTransversalDisplacement'
                        ,md.MDL_CTF_Q0:            'rlnAmplitudeContrast'
                        ,md.MDL_CTF_SAMPLING_RATE: 'rlnDetectorPixelSize'
                        ,md.MDL_CTF_VOLTAGE:       'rlnVoltage'

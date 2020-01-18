@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -25,7 +25,10 @@
 # ******************************************************************************
 
 import os
-from itertools import izip
+try:
+    from itertools import izip
+except ImportError:
+    izip = zip
 from math import ceil
 import json
 
@@ -33,13 +36,13 @@ import pyworkflow.object as pwobj
 import pyworkflow.protocol.params as params
 import pyworkflow.protocol.constants as cons
 import pyworkflow.utils as pwutils
-import pyworkflow.em as em
-from pyworkflow.em.protocol import ProtAlignMovies
+import pwem
+from pwem.protocols import ProtAlignMovies
 from pyworkflow.gui.plotter import Plotter
 from pyworkflow.protocol import STEPS_SERIAL
 
-import relion
-import relion.convert
+from .. import Plugin
+import relion.convert as convert
 import relion.convert.metadata as md
 
 
@@ -186,7 +189,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                  '%s_input.star' % self._getMovieRoot(movie))
         pwutils.makePath(os.path.join(movieFolder, 'output'))
 
-        writer = relion.convert.Writer()
+        writer = convert.Writer()
         # Let's use only the basename, since we will launch the command
         # from the movieFolder
         movie.setFileName(os.path.basename(movie.getFileName()))
@@ -346,12 +349,12 @@ class ProtRelionMotioncor(ProtAlignMovies):
         return self._getNameExt(movie, '_psd', 'jpeg', extra=True)
 
     def _setPlotInfo(self, movie, mic):
-        mic.plotGlobal = em.Image(location=self._getPlotGlobal(movie))
+        mic.plotGlobal = pwem.objects.Image(location=self._getPlotGlobal(movie))
         if self.doComputePSD:
-            mic.psdCorr = em.Image(location=self._getPsdCorr(movie))
-            mic.psdJpeg = em.Image(location=self._getPsdJpeg(movie))
+            mic.psdCorr = pwem.objects.Image(location=self._getPsdCorr(movie))
+            mic.psdJpeg = pwem.objects.Image(location=self._getPsdJpeg(movie))
         if self.doComputeMicThumbnail:
-            mic.thumbnail = em.Image(
+            mic.thumbnail = pwem.objects.Image(
                 location=self._getOutputMicThumbnail(movie))
 
     def _computeExtra(self, movie):
@@ -365,7 +368,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                   outputFn=self._getOutputMicThumbnail(movie))
 
         if self.doComputePSD:
-            #fakeShiftsFn = self.writeZeroShifts(movie)
+            # fakeShiftsFn = self.writeZeroShifts(movie)
             movieFn = movie.getFileName()
             aveMicFn = os.path.join(movieFolder,
                                     pwutils.removeBaseExt(movieFn) + "_tmp.mrc")
@@ -374,8 +377,8 @@ class ProtRelionMotioncor(ProtAlignMovies):
                               dark=inputMovies.getDark(),
                               gain=inputMovies.getGain())
 
-            self.computePSDs(movie, aveMicFn, outMicFn,
-                             outputFnCorrected=self._getPsdJpeg(movie))
+            self.computePSDImages(movie, aveMicFn, outMicFn,
+                                  outputFnCorrected=self._getPsdJpeg(movie))
 
         self._saveAlignmentPlots(movie, inputMovies.getSamplingRate())
 
@@ -472,7 +475,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                            % (inputSize - outputSize)))
 
     def _isVersion31(self):
-        return relion.Plugin.isVersion31Active()
+        return Plugin.isVersion31Active()
 
     def _calcPsDose(self):
         _, dose = self._getCorrectedDose(self.inputMovies.get())

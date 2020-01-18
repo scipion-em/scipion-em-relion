@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -26,14 +26,12 @@
 
 import os
 
-import pyworkflow.em as em
+import pwem
 import pyworkflow.utils as pwutils
-
-from pyworkflow.em.protocol.protocol_particles import ProtProcessParticles
+from pwem.protocols import ProtProcessParticles
 import pyworkflow.protocol.params as params
 
-import relion
-import relion.convert
+import relion.convert as convert
 from ..constants import STACK_NONE, STACK_MULT, STACK_ONE
 from .protocol_base import ProtRelionBase
 
@@ -82,15 +80,15 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
         """
         imgSet = self.inputParticles.get()
         self._stackType = self.stackType.get()
-        self._ih = em.ImageHandler()
+        self._ih = pwem.convert.ImageHandler()
         self._stackDict = {}
         particlesPath = self._getPath('Particles')
         pwutils.cleanPath(particlesPath)
         pwutils.makePath(particlesPath)
 
-        alignType = imgSet.getAlignment() if self.useAlignment else em.ALIGN_NONE
+        alignType = imgSet.getAlignment() if self.useAlignment else pwem.constants.ALIGN_NONE
         # Create links to binary files and write the relion .star file
-        relion.convert.writeSetOfParticles(
+        convert.writeSetOfParticles(
             imgSet, self._getPath("particles.star"),
             outputDir=self._getExtraPath(),
             alignType=alignType,
@@ -127,7 +125,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
                 self._count = getattr(self, '_count', 1)
                 index, stackName = (self._count, 'particles.mrcs')
                 self._count += 1
-            else: # STACK_MULT
+            else:  # STACK_MULT
                 baseName = pwutils.removeBaseExt(img.getFileName())
                 if baseName not in self._stackDict:
                     self._stackDict[baseName] = 0
@@ -141,4 +139,4 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
             # Store relative path in the star file
             relStackFn = os.path.relpath(stackFn, self._getPath())
             row.setValue('rlnImageName',
-                         relion.convert.locationToRelion(index, relStackFn))
+                         convert.locationToRelion(index, relStackFn))

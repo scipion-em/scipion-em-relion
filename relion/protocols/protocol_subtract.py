@@ -7,7 +7,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -28,13 +28,12 @@
 import os
 import sys
 
-import pyworkflow.em.metadata as md
+import pwem.metadata as md
 from pyworkflow.protocol.params import PointerParam, BooleanParam, LabelParam
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
-from pyworkflow.em.protocol import ProtOperateParticles
+from pwem.protocols import ProtOperateParticles
 
-import relion
-import relion.convert
+import relion.convert as convert
 
 
 class ProtRelionSubtract(ProtOperateParticles):
@@ -135,20 +134,20 @@ class ProtRelionSubtract(ProtOperateParticles):
     def convertInputStep(self, particlesId):
         """ Write the input images as a Relion star file. """
         imgSet = self.inputParticles.get()
-        relion.convert.writeSetOfParticles(
+        convert.writeSetOfParticles(
             imgSet, self._getFileName('input_star'), self._getExtraPath())
     
     def subtractStep(self):
         volume = self.inputVolume.get()
-        volFn = relion.convert.convertBinaryVol(volume,
-                                                self._getExtraPath())
+        volFn = convert.convertBinaryVol(volume,
+                                         self._getExtraPath())
         params = ' --i %s --subtract_exp --angpix %0.3f' % (volFn,
                                                             volume.getSamplingRate())
 
         if self.refMask.hasValue():
             tmp = self._getTmpPath()
             newDim = self._getInputParticles().getXDim()
-            maskFn = relion.convert.convertMask(self.refMask.get(), tmp, newDim)
+            maskFn = convert.convertMask(self.refMask.get(), tmp, newDim)
             params += ' --mask %s' % maskFn
         
         if self._getInputParticles().isPhaseFlipped():
@@ -219,9 +218,8 @@ class ProtRelionSubtract(ProtOperateParticles):
     # -------------------------- UTILS functions ------------------------------
     def _updateItem(self, item, row):
         newFn = row.getValue(md.RLN_IMAGE_NAME)
-        newLoc = relion.convert.relionToLocation(newFn)
+        newLoc = convert.relionToLocation(newFn)
         item.setLocation(newLoc)
 
     def _getInputParticles(self):
         return self.inputParticles.get()
-

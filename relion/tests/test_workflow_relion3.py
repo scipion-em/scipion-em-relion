@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -27,12 +27,11 @@
 import os
 
 import pyworkflow.tests as pwtests
-from pyworkflow.tests.em.workflows import TestWorkflow
-from pyworkflow.utils import importFromPlugin
-import pyworkflow.em as pwem
+from pwem.tests.workflows import TestWorkflow
+from pwem.protocols import ProtImportMovies
+from pyworkflow.plugin import Domain
 
-import relion
-import relion.protocols
+from ..protocols import *
 
 
 CPUS = os.environ.get('SCIPION_TEST_CPUS', 4)
@@ -47,7 +46,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
 
     def _importMovies(self):
         protImport = self.newProtocol(
-            pwem.ProtImportMovies,
+            ProtImportMovies,
             filesPath=self.ds.getFile('Movies/'),
             filesPattern='*.tiff',
             samplingRateMode=0,
@@ -78,7 +77,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
 
     def _runRelionMc(self, protImport):
         protRelionMc = self.newProtocol(
-            relion.protocols.ProtRelionMotioncor,
+            ProtRelionMotioncor,
             objLabel='relion - motioncor',
             patchX=5, patchY=5,
             numberOfThreads=CPUS,
@@ -91,7 +90,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
 
     def _runRelionLog(self, protRelionMc):
         protRelionLog = self.newProtocol(
-            relion.protocols.ProtRelionAutopickLoG,
+            ProtRelionAutopickLoG,
             objLabel='relion - autopick log',
             boxSize=250,
             minDiameter=150, maxDiameter=180,
@@ -105,7 +104,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         return protRelionLog
 
     def _runGctf(self, protMc):
-        ProtGctf = importFromPlugin('gctf.protocols', 'ProtGctf')
+        ProtGctf = Domain.importFromPlugin('gctf.protocols', 'ProtGctf')
 
         protGctf = self.newProtocol(
             ProtGctf,
@@ -123,7 +122,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
 
     def _runRelionExtract(self, protPicking, protCtf):
         protRelionExtract = self.newProtocol(
-            relion.protocols.ProtRelionExtractParticles,
+            ProtRelionExtractParticles,
             objLabel='relion - extract',
             boxSize=256, doRescale=True, rescaledSize=64,
             doInvert=True, doNormalize=True,
@@ -140,7 +139,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
 
     def _runRelion2D(self, protExtract):
         protRelion2D = self.newProtocol(
-            relion.protocols.ProtRelionClassify2D,
+            ProtRelionClassify2D,
             objLabel='relion - 2d',
             maskDiameterA=200,
             numberOfClasses=100,
@@ -152,13 +151,15 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
             allParticlesRam=True
         )
 
+        return protRelion2D
+
     def _runInitModel(self, protRelion2D):
-        relionIniModel = self.newProtocol(relion.protocols.ProtRelionInitialModel,
-                                          doCTF = False, doGpu = True,
-                                          maskDiameterA = 200,
-                                          numberOfIterations = 5,
-                                          symmetryGroup = 'd2',
-                                          numberOfMpi = 3, numberOfThreads = 2)
+        relionIniModel = self.newProtocol(ProtRelionInitialModel,
+                                          doCTF=False, doGpu=True,
+                                          maskDiameterA=200,
+                                          numberOfIterations=5,
+                                          symmetryGroup='d2',
+                                          numberOfMpi=3, numberOfThreads=2)
         relionIniModel.inputParticles.set(protRelion2D.outputParticles)
         protInitModel = self.launchProtocol(relionIniModel)
         return protInitModel
@@ -171,8 +172,3 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         protRelionExtract = self._runRelionExtract(protRelionLog, protGctf)
         protRelion2D = self._runRelion2D(protRelionExtract)
         protInitModel = self._runRelion2D(protRelion2D)
-
-
-if __name__ == '__main__':
-    import unittest
-    unittest.main()
