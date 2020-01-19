@@ -61,7 +61,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                            'Note that the re-scaled size below will be in '
                            'the down-scaled images.')
 
-        form.addParam('rescaledSize', params.IntParam,
+        form.addParam('rescaledSize', params.IntParam, default=128,
                       validators=[params.Positive],
                       condition='doRescale',
                       label='Re-scaled size (px)',
