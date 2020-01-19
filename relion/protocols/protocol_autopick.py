@@ -51,7 +51,7 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
         writer = convert.Writer(rootDir=micsDir,
                                 outputDir=micsDir)
         writer.writeSetOfMicrographs(micList, micStar)
-        self._pickMicrographsFromStar(micStar, micsDir, *args)  # undefined func
+        self._pickMicrographsFromStar(micStar, micsDir, *args)
         # Move coordinates files to tmp
         os.system('mv %s/*autopick.star %s/' % (micsDir, self._getTmpPath()))
         if self.isRunOptimize():
@@ -70,6 +70,10 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
         template = self._getTmpPath("mic_%06d_autopick.star")
         starFiles = [template % mic.getObjId() for mic in micList]
         convert.readSetOfCoordinates(coordSet, starFiles, micList)
+
+    def _pickMicrographsFromStar(self, micStar, micsDir, *args):
+        """ Should be defined in subclasses. """
+        pass
 
     def getBoxSize(self):
         """ Return a reasonable box-size in pixels. """

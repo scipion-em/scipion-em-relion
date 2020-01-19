@@ -33,6 +33,7 @@ from pyworkflow.protocol.params import PointerParam, BooleanParam, LabelParam
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pwem.protocols import ProtOperateParticles
 
+from .. import Plugin
 import relion.convert as convert
 
 
@@ -44,6 +45,7 @@ class ProtRelionSubtract(ProtOperateParticles):
     properly generate volume projections.
     """
     _label = 'subtract projection'
+    IS_V31 = Plugin.isVersion31Active()
 
     def _initialize(self):
         self._createFilenameTemplates()
@@ -65,57 +67,59 @@ class ProtRelionSubtract(ProtOperateParticles):
                       pointerCondition='hasAlignmentProj',
                       label="Input particles", important=True,
                       help='Select the experimental particles.')
-        form.addParam('inputVolume', PointerParam, pointerClass='Volume',
-                      label="Input map to be projected",
-                      important=True,
-                      help='Provide the input volume that will be used to '
-                           'calculate projections, which will be subtracted '
-                           'from the experimental particles. Make sure this '
-                           'map was calculated by RELION from the same '
-                           'particles as above, and preferably with those '
-                           'orientations, as it is crucial that the absolute '
-                           'greyscale is the same as in the experimental '
-                           'particles.')
-        form.addParam('refMask', PointerParam, pointerClass='VolumeMask',
-                      label='Mask to be applied to this map',
-                      allowsNull=True,
-                      help="Provide a soft mask where the protein density "
-                           "you wish to subtract from the experimental "
-                           "particles is white (1) and the rest of the "
-                           "protein and the solvent is black (0). "
-                           "That is: *the mask should INCLUDE the part of the "
-                           "volume that you wish to SUBTRACT.*")
-        form.addSection(label='CTF')
-        form.addParam('doCTF', BooleanParam, default=True,
-                      label='Do CTF-correction?',
-                      help='If set to Yes, CTFs will be corrected inside the '
-                           'MAP refinement. The resulting algorithm '
-                           'intrinsically implements the optimal linear, or '
-                           'Wiener filter. Note that input particles should '
-                           'contains CTF parameters.')
-        form.addParam('haveDataBeenPhaseFlipped', LabelParam,
-                      label='Have data been phase-flipped?      '
-                            '(Don\'t answer, see help)',
-                      help='The phase-flip status is recorded and managed by '
-                           'Scipion. \n In other words, when you import or '
-                           'extract particles, \nScipion will record whether '
-                           'or not phase flipping has been done.\n\n'
-                           'Note that CTF-phase flipping is NOT a necessary '
-                           'pre-processing step \nfor MAP-refinement in '
-                           'RELION, as this can be done inside the internal\n'
-                           'CTF-correction. However, if the phases have been '
-                           'flipped, the program will handle it.')
-        form.addParam('ignoreCTFUntilFirstPeak', BooleanParam, default=False,
-                      expertLevel=LEVEL_ADVANCED,
-                      label='Ignore CTFs until first peak?',
-                      help='If set to Yes, then CTF-amplitude correction will '
-                           'only be performed from the first peak '
-                           'of each CTF onward. This can be useful if the CTF '
-                           'model is inadequate at the lowest resolution. '
-                           'Still, in general using higher amplitude contrast '
-                           'on the CTFs (e.g. 10-20%) often yields better '
-                           'results. Therefore, this option is not generally '
-                           'recommended.')
+
+        if not self.IS_V31:
+            form.addParam('inputVolume', PointerParam, pointerClass='Volume',
+                          label="Input map to be projected",
+                          important=True,
+                          help='Provide the input volume that will be used to '
+                               'calculate projections, which will be subtracted '
+                               'from the experimental particles. Make sure this '
+                               'map was calculated by RELION from the same '
+                               'particles as above, and preferably with those '
+                               'orientations, as it is crucial that the absolute '
+                               'greyscale is the same as in the experimental '
+                               'particles.')
+            form.addParam('refMask', PointerParam, pointerClass='VolumeMask',
+                          label='Mask to be applied to this map',
+                          allowsNull=True,
+                          help="Provide a soft mask where the protein density "
+                               "you wish to subtract from the experimental "
+                               "particles is white (1) and the rest of the "
+                               "protein and the solvent is black (0). "
+                               "That is: *the mask should INCLUDE the part of the "
+                               "volume that you wish to SUBTRACT.*")
+            form.addSection(label='CTF')
+            form.addParam('doCTF', BooleanParam, default=True,
+                          label='Do CTF-correction?',
+                          help='If set to Yes, CTFs will be corrected inside the '
+                               'MAP refinement. The resulting algorithm '
+                               'intrinsically implements the optimal linear, or '
+                               'Wiener filter. Note that input particles should '
+                               'contains CTF parameters.')
+            form.addParam('haveDataBeenPhaseFlipped', LabelParam,
+                          label='Have data been phase-flipped?      '
+                                '(Don\'t answer, see help)',
+                          help='The phase-flip status is recorded and managed by '
+                               'Scipion. \n In other words, when you import or '
+                               'extract particles, \nScipion will record whether '
+                               'or not phase flipping has been done.\n\n'
+                               'Note that CTF-phase flipping is NOT a necessary '
+                               'pre-processing step \nfor MAP-refinement in '
+                               'RELION, as this can be done inside the internal\n'
+                               'CTF-correction. However, if the phases have been '
+                               'flipped, the program will handle it.')
+            form.addParam('ignoreCTFUntilFirstPeak', BooleanParam, default=False,
+                          expertLevel=LEVEL_ADVANCED,
+                          label='Ignore CTFs until first peak?',
+                          help='If set to Yes, then CTF-amplitude correction will '
+                               'only be performed from the first peak '
+                               'of each CTF onward. This can be useful if the CTF '
+                               'model is inadequate at the lowest resolution. '
+                               'Still, in general using higher amplitude contrast '
+                               'on the CTFs (e.g. 10-20%) often yields better '
+                               'results. Therefore, this option is not generally '
+                               'recommended.')
         
         form.addParallelSection(threads=0, mpi=0)
     

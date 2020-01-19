@@ -69,7 +69,7 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
                       help='User-provided STAR-file with the MTF-curve '
                            'of the detector.'
                            'Relion param: <--mtf>')
-        form.addParam('bfactor', params.FloatParam, default=-250,
+        form.addParam('bfactor', params.FloatParam, default=-100.,
                       label='Provide B-factor:',
                       help='Probably, the overall B-factor as was '
                            'estimated in the postprocess is a useful '
@@ -77,7 +77,7 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
                            'sharpening. Be careful: if you over-sharpen '
                            'your map, you may end up interpreting '
                            'noise for signal!')
-        form.addParam('calibratedPixelSize', params.FloatParam, default=0,
+        form.addParam('calibratedPixelSize', params.FloatParam, default=0.,
                       label='Calibrated pixel size (A)',
                       help="Provide the final, calibrated pixel size in "
                            "Angstroms. If 0, the input pixel size will be used. "
