@@ -1033,6 +1033,10 @@ class ProtRelionBase(EMProtocol):
         self._setSamplingArgs(args)
         self._setMaskArgs(args)
 
+    def _setSamplingArgs(self, args):
+        """ Should be implemented in subclasses. """
+        pass
+
     def _setCTFArgs(self, args):
         # CTF stuff
         if self.doCTF:
@@ -1125,6 +1129,10 @@ class ProtRelionBase(EMProtocol):
 
         return data_classes
 
+    def _fillClassesFromIter(self, clsSet, iteration):
+        """ Should be implemented in subclasses. """
+        pass
+
     def _getIterData(self, it, **kwargs):
         """ Sort the it??.data.star file by the maximum likelihood. """
         data_sqlite = self._getFileName('data_scipion', iter=it)
@@ -1137,6 +1145,10 @@ class ProtRelionBase(EMProtocol):
             iterImgSet.close()
 
         return data_sqlite
+
+    def _fillDataFromIter(self, imgSet, iteration):
+        """ Should be implemented in subclasses. """
+        pass
 
     def _splitInCTFGroups(self, imgStar):
         """ Add a new column in the image star to separate the particles
