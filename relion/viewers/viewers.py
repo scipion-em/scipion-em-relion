@@ -1645,14 +1645,14 @@ class RelionLocalResViewer(ProtocolViewer):
     _targets = [ProtRelionLocalRes]
     _label = 'viewer localres'
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         ProtocolViewer.__init__(self, **kwargs)
 
     def _defineParams(self, form):
         form.addSection(label='Visualization')
         group = form.addGroup('Colored resolution')
         group.addParam('colorMap', params.EnumParam,
-                       choices=COLOR_CHOICES.values(),
+                       choices=list(COLOR_CHOICES.values()),
                        default=COLOR_JET,
                        label='Color map',
                        help='Select the color map to apply to the resolution '
