@@ -682,7 +682,7 @@ class TestReconstruct(TestConvertAnglesBase):
                 auxBtilt = rowb.getValue(label)
                 auxAtilt = rowa.getValue(label)
                 # same two rows
-                self.assertAlmostEqual(auxBtilt, auxAtilt, places=3, msg=None, delta=0.)
+                self.assertAlmostEqual(auxBtilt, auxAtilt, places=3, msg=None)
 
             b = convert.rowToAlignment(rowa, ALIGN_PROJ)
             convert.alignmentToRow(b, rowb, ALIGN_PROJ)
