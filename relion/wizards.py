@@ -219,7 +219,7 @@ class Relion2AutopickParams(EmWizard):
         pwutils.copyPattern(autopickProt._getExtraPath("*autopick.star"),
                             backupDir)
 
-        cmd = '%s relion_autopick ' % pw.getScipionScript()
+        cmd = '%s relion_autopick ' % os.path.join(pw.Config.SCIPION_HOME, 'scipion')
         # cmd += '--i extra/%(micrographName).star '
         cmd += '--i input_micrographs.star '
         cmd += '--threshold %(threshold) --min_distance %(ipd) '
@@ -341,7 +341,7 @@ class RelionWizLogPickParams(EmWizard):
         f = open(pickerProps, "w")
 
         # params = params.replace('--odir ""', '--odir extra')
-        autopickCmd = "%s relion_autopick " % pw.getScipionScript()
+        autopickCmd = "%s relion_autopick " % os.path.join(pw.Config.SCIPION_HOME, 'scipion')
         autopickCmd += ' --i input_micrographs.star '
         autopickCmd += params
         autopickCmd += ' --LoG_diam_min %(mind) '
