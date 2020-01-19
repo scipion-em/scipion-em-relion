@@ -142,7 +142,7 @@ class Table:
 
         widths = [len(str(v)) for v in self._rows[0]]
         # Check middle and last row, just in case ;)
-        for index in [len(self)/2, -1]:
+        for index in [len(self)//2, -1]:
             for i, v in enumerate(self._rows[index]):
                 w = len(str(v))
                 if w > widths[i]:
