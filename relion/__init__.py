@@ -25,8 +25,8 @@
 # **************************************************************************
 
 import os
-import pyworkflow.plugin
 import pyworkflow.utils as pwutils
+import pwem
 
 from .constants import RELION_HOME, RELION_CUDA_LIB, V3_0, V3_1
 
@@ -35,7 +35,7 @@ _logo = "relion_logo.png"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016', 'Zivanov2018']
 
 
-class Plugin(pyworkflow.plugin.Plugin):
+class Plugin(pwem.Plugin):
     _homeVar = RELION_HOME
     _supportedVersions = [V3_0, V3_1]
 
