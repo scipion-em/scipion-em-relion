@@ -336,7 +336,9 @@ class TestConvertAnglesBase(BaseTest):
         if alignType == ALIGN_2D or alignType == ALIGN_PROJ:
             convert.readSetOfParticles(mdFn, partSet2, alignType=alignType)
         else:
-            convert.readSetOfVolumes(mdFn, partSet2, alignType=alignType)
+            convert.readSetOfParticles(mdFn, partSet2,
+                                       rowToFunc=convert.rowToVolume,
+                                       alignType=alignType)
 
         partSet2.write()
 
@@ -641,7 +643,7 @@ class TestReconstruct(TestConvertAnglesBase):
                   [-0.88564873, 0.39606407, 0.24240388,  0.],
                   [0.40557978, 0.40557978, 0.81915206,  0.],
                   [0.,          0.,          0.,           1.]],
-                 [[-0.78850311, -0.24329656,-0.56486255,   0.],  # a5
+                 [[-0.78850311, -0.24329656, -0.56486255,   0.],  # a5
                   [0.22753462, -0.96866286, 0.099600501,  0.],
                   [-0.57139379, -0.049990479, 0.81915206,  0.],
                   [0.,            0.,           0.,           1.]],

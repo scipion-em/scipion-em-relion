@@ -336,6 +336,16 @@ def imageToRow(img, imgRow, imgLabel=md.RLN_IMAGE_NAME, **kwargs):
         postprocessImageRow(img, imgRow)
 
 
+def volumeToRow(vol, volRow, **kwargs):
+    """ Set labels values from Micrograph mic to md row. """
+    imageToRow(vol, volRow, writeAcquisition=False, **kwargs)
+
+
+def rowToVolume(volRow, **kwargs):
+    """ Create a Volume object from a row of metadata. """
+    return rowToParticle(volRow, particleClass=pwem.objects.Volume, **kwargs)
+
+
 def particleToRow(part, partRow, **kwargs):
     """ Set labels values from Particle to md row. """
     coord = part.getCoordinate()
@@ -420,7 +430,7 @@ def rowToParticle(partRow, particleClass=pwem.objects.Particle, **kwargs):
     return img
 
 
-def readSetOfParticles(filename, partSet, **kwargs):
+def readSetOfParticles(filename, imgSet, rowToFunc=rowToParticle, **kwargs):
     """read from Relion image meta
         filename: The metadata filename where the image are.
         imgSet: the SetOfParticles that will be populated.
@@ -433,15 +443,17 @@ def readSetOfParticles(filename, partSet, **kwargs):
         imgMd.removeDisabled()
     
     for imgRow in md.iterRows(imgMd):
-        img = rowToParticle(imgRow, **kwargs)
-        partSet.append(img)
+        img = rowToFunc(imgRow, **kwargs)
+        imgSet.append(img)
         
-    partSet.setHasCTF(img.hasCTF())
-    partSet.setAlignment(kwargs['alignType'])
+    imgSet.setHasCTF(img.hasCTF())
+    imgSet.setAlignment(kwargs['alignType'])
 
 
 def readSetOfMovieParticles(filename, partSet, **kwargs):
-    readSetOfParticles(filename, partSet, particleClass=pwem.objects.MovieParticle, **kwargs)
+    readSetOfParticles(filename, partSet,
+                       particleClass=pwem.objects.MovieParticle,
+                       **kwargs)
     
 
 def setOfImagesToMd(imgSet, imgMd, imgToFunc, **kwargs):
@@ -461,6 +473,22 @@ def setOfImagesToMd(imgSet, imgMd, imgToFunc, **kwargs):
         imgRow = md.Row()
         imgToFunc(img, imgRow, **kwargs)
         imgRow.writeToMd(imgMd, objId)
+
+
+def writeSetOfImages(imgSet, filename, imgToFunc,
+                     blockName='Images', **kwargs):
+    """ This function will write a SetOfImages as metadata.
+    Params:
+        imgSet: the set of images to be written (particles,
+        micrographs or volumes)
+        filename: the filename where to write the metadata.
+        rowFunc: this function can be used to setup the row before
+            adding to metadata.
+    """
+    mdFn = md.MetaData()
+
+    setOfImagesToMd(imgSet, mdFn, imgToFunc, **kwargs)
+    mdFn.write('%s@%s' % (blockName, filename))
 
 
 def writeSetOfParticles(imgSet, starFile,
@@ -492,6 +520,10 @@ def writeSetOfParticles(imgSet, starFile,
 
     blockName = kwargs.get('blockName', 'Particles')
     partMd.write('%s@%s' % (blockName, starFile))
+
+
+def writeSetOfVolumes(volSet, filename, blockName='Volumes', **kwargs):
+    writeSetOfImages(volSet, filename, volumeToRow, blockName, **kwargs)
 
     
 def writeReferences(inputSet, outputRoot, useBasename=False, **kwargs):
