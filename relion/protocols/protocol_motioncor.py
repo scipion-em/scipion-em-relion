@@ -286,7 +286,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
     def _preprocessOutputMicrograph(self, mic, movie):
         self._setPlotInfo(movie, mic)
         self._setMotionValues(movie, mic)
-        self._updatePSSampling(mic)
         if self._savePsSum():
             outPs = self._getExtraPath(self._getOutputMicPsName(movie))
             mic._powerSpectra = Image(location=outPs)
