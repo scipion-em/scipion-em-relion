@@ -87,14 +87,14 @@ class Writer(WriterBase):
 
         # Add now the new Optics Group stuff
         acq = mic.getAcquisition()
-        ogName = acq.opticsGroupName.get()
+        ogName = acq.opticsGroupName.get() or 'DefaultOpticsGroup'
 
         if ogName not in self._optics:
             ogNumber = len(self._optics) + 1
             self._optics[ogName] = {
                 'rlnOpticsGroupName': ogName,
                 'rlnOpticsGroup': ogNumber,
-                'rlnMtfFileName': acq.mtfFile.get(),
+                'rlnMtfFileName': acq.mtfFile.get() or 'No-MTF',
                 # FIXME: Check when we need to update the following
                 'rlnMicrographOriginalPixelSize': mic.getSamplingRate(),
                 'rlnVoltage': acq.getVoltage(),

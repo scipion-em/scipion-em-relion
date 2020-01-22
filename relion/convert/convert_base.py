@@ -74,8 +74,7 @@ class WriterBase:
         if self.outputDir is None:
             return imageFn
 
-        ext = pwutils.getExt(imageFn)
-
+        ext = pwutils.getExt(imageFn)[1:]
         if ext in self.extensions:
             finalExt = ext
             convertFunc = pwutils.createLink
@@ -129,8 +128,8 @@ class WriterBase:
         # FIXME Check how astigmatism is defined in Relion
         row['rlnCtfAstigmatism'] = dU / dV
         row['rlnDefocusAngle'] = dAngle
-        row['rlnCtfFigureOfMerit'] = ctf.getFitQuality()
-        row['rlnCtfMaxResolution'] = ctf.getResolution()
+        row['rlnCtfFigureOfMerit'] = ctf.getFitQuality() or 0
+        row['rlnCtfMaxResolution'] = ctf.getResolution() or 0
 
         phaseShift = ctf.getPhaseShift()
 
