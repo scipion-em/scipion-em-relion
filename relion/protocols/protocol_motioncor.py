@@ -182,6 +182,8 @@ class ProtRelionMotioncor(ProtAlignMovies):
         self.info("Relion version:")
         self.runJob("relion_run_motioncorr --version", "", numberOfMpi=1)
 
+        self.info("Detected version from config: %s" % relion.Plugin.getActiveVersion())
+
         ProtAlignMovies._convertInputStep(self)
 
     def _processMovie(self, movie):
@@ -255,11 +257,23 @@ class ProtRelionMotioncor(ProtAlignMovies):
         # Check base validation before the specific ones for Motioncor
         errors = ProtAlignMovies._validate(self)
 
+        if not relion.Plugin.getActiveVersion():
+            errors.append("Could not detect the current Relion version. \n"
+                          "RELION_HOME='%s'" % relion.Plugin.getHome())
+
+        acq = self.inputMovies.get().getAcquisition()
         if self.doDW:
-            dose = self.inputMovies.get().getAcquisition().getDosePerFrame()
+            dose = acq.getDosePerFrame()
             if dose is None or dose < 0.001:
                 errors.append("Input movies do not contain the dose per frame, "
                               "dose-weighting can not be performed. ")
+
+        if relion.IS_GT30:
+            # We require to have opticsGroup information in acquisition
+            if not acq.getAttributeValue('opticsGroupName', None):
+                errors.append("In Relion > 3.1, you need to run the "
+                              "*relion - assign optics group* to set optics "
+                              "group information. ")
 
         return errors
 
