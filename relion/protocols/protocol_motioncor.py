@@ -496,7 +496,8 @@ class ProtRelionMotioncor(ProtAlignMovies):
     def _calcPSSampling(self):
         """ Copied from relion 3.1 code. """
         target_pixel_size = 1.4  # from CTFFIND 4.1
-        ps_angpix = self.inputMovies.get().getSamplingRate() * self.binFactor
+        ps = self.inputMovies.get().getSamplingRate()
+        ps_angpix = ps * self.binFactor.get()
         if ps_angpix < target_pixel_size:
             nx_needed = ceil(512 * ps_angpix / target_pixel_size)
             nx_needed += nx_needed % 2
