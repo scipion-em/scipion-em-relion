@@ -1,8 +1,10 @@
 # **************************************************************************
 # *
-# * Authors:     J.M. De la Rosa Trevin (delarosatrevin@scilifelab.se) [1]
+# * Authors:     J.M. de la Rosa Trevin (delarosatrevin@scilifelab.se) [1]
+# *              Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk) [2]
 # *
 # * [1] SciLifeLab, Stockholm University
+# * [2] MRC Laboratory of Molecular Biology, MRC-LMB
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -23,11 +25,51 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+"""
+Utility functions for conversions that will be used from both
+newer Relion3.1 routines and old ones.
+"""
 
 import os
 
 import pyworkflow.utils as pwutils
 import pwem
+
+
+def locationToRelion(index, filename):
+    """ Convert an index and filename location
+    to a string with @ as expected in Relion.
+    """
+    if index != pwem.NO_INDEX:
+        return "%06d@%s" % (index, filename)
+
+    return filename
+
+
+def getImageLocation(location):
+    return pwem.convert.ImageHandler.locationToXmipp(location)
+
+
+def relionToLocation(filename):
+    """ Return a location (index, filename) given
+    a Relion filename with the index@filename structure. """
+    if '@' in filename:
+        indexStr, fn = filename.split('@')
+        return int(indexStr), str(fn)
+    else:
+        return pwem.NO_INDEX, str(filename)
+
+
+def setRelionAttributes(obj, objRow, *labels):
+    """ Set an attribute to obj from a label that is not
+    basic ones. The new attribute will be named _rlnLabelName
+    and the datatype will be set correctly.
+    """
+    # FIXME: Remove dependency from md (and thus from Xmipp)
+    import pwem.metadata as md
+    for label in labels:
+        setattr(obj, '_%s' % md.label2Str(label),
+                objRow.getValueAsObject(label))
 
 
 def convertBinaryFiles(imgSet, outputDir, extension='mrcs'):

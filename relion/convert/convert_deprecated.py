@@ -39,9 +39,9 @@ from pyworkflow.object import ObjectWrap, String, Integer
 from pwem.constants import NO_INDEX, ALIGN_2D, ALIGN_3D, ALIGN_PROJ, ALIGN_NONE
 import pwem.convert.transformations as tfs
 
-from ..constants import *
+from relion.constants import *
 from .metadata import Table
-from .common import *
+from .convert_utils import *
 
 
 def objectToRow(obj, row, attrDict, extraLabels=[]):
