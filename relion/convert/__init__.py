@@ -25,9 +25,13 @@
 # **************************************************************************
 
 import relion
+from .convert_utils import convertBinaryFiles
 from .convert_deprecated import *
 from .dataimport import *
 
+# Writing of star files will be handle by the Writer class
+# We have a new implementation of it for Relion > 3.1 since
+# the star file format has changed in 3.1
 if relion.IS_GT30:
     from .convert31 import Writer
 else:
