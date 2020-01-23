@@ -39,7 +39,7 @@ import pwem.metadata as md
 from pwem.objects import SetOfClasses3D
 from pwem.protocols import EMProtocol
 
-import relion.convert as convert
+import relion.convert
 from ..constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO
 
 
@@ -773,7 +773,7 @@ class ProtRelionBase(EMProtocol):
                              md.RLN_IMAGE_BEAMTILT_X,
                              md.RLN_IMAGE_BEAMTILT_Y]
 
-            convert.writeSetOfParticles(
+            relion.convert.writeSetOfParticles(
                 imgSet, imgStar, self._getExtraPath(),
                 alignType=alignType,
                 postprocessImageRow=self._postprocessParticleRow,
@@ -811,7 +811,7 @@ class ProtRelionBase(EMProtocol):
                 if particle is not None:
                     auxMovieParticles.append(movieParticle)
 
-            convert.writeSetOfParticles(
+            relion.convert.writeSetOfParticles(
                 auxMovieParticles, movieFn, None,
                 fillMagnification=True,
                 postprocessImageRow=self._postprocessImageRow)
@@ -1057,11 +1057,11 @@ class ProtRelionBase(EMProtocol):
             tmp = self._getTmpPath()
             newDim = self._getInputParticles().getXDim()
             if self.referenceMask.hasValue():
-                mask = convert.convertMask(self.referenceMask.get(), tmp, newDim)
+                mask = relion.convert.convertMask(self.referenceMask.get(), tmp, newDim)
                 args['--solvent_mask'] = mask
 
             if self.solventMask.hasValue():
-                solventMask = convert.convertMask(self.solventMask.get(), tmp, newDim)
+                solventMask = relion.convert.convertMask(self.solventMask.get(), tmp, newDim)
                 args['--solvent_mask2'] = solventMask
 
             if self.referenceMask.hasValue() and self.solventFscMask:
@@ -1070,7 +1070,7 @@ class ProtRelionBase(EMProtocol):
             if self.referenceMask2D.hasValue():
                 tmp = self._getTmpPath()
                 newDim = self._getInputParticles().getXDim()
-                mask = convert.convertMask(self.referenceMask2D.get(), tmp, newDim)
+                mask = relion.convert.convertMask(self.referenceMask2D.get(), tmp, newDim)
                 args['--solvent_mask'] = mask
 
     def _setSubsetArgs(self, args):
@@ -1153,7 +1153,7 @@ class ProtRelionBase(EMProtocol):
     def _splitInCTFGroups(self, imgStar):
         """ Add a new column in the image star to separate the particles
         into ctf groups """
-        convert.splitInCTFGroups(imgStar,
+        relion.convert.splitInCTFGroups(imgStar,
                                  self.defocusRange.get(),
                                  self.numParticles.get())
 
