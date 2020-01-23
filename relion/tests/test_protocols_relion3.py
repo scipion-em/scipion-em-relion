@@ -180,15 +180,20 @@ class Relion3TestMotioncor(Relion3TestProtocolBase):
                 self.assertTrue(os.path.exists(m.getFileName()))
 
     def test_1x1(self):
-        protRelionMc = self._runRelionMc(self.protImport, patchX=1, patchY=1)
+        protRelionMc = self._runRelionMc(self.protImport, objLabel='relion - mc 1x1',
+                                         patchX=1, patchY=1)
         self._checkOutputMovies(protRelionMc, 3)
 
     def test_1x1_PS(self):
-        protRelionMc = self._runRelionMc(self.protImport,
-                                         patchX=1, patchY=1,
-                                         )
-        self._checkOutputMovies(protRelionMc, 3)
+        if relion.IS_GT30:
+            protRelionMc = self._runRelionMc(self.protImport, objLabel='relion - mc PS',
+                                             patchX=1, patchY=1,
+                                             savePSsum=True)
+            self._checkOutputMovies(protRelionMc, 3)
+        else:
+            print("Cannot test motioncorr with PS saving - it's only available for Relion 3.1+")
 
-    def test_2x2(self):
-        protRelionMc = self._runRelionMc(self.protImport, patchX=2, patchY=2)
+    def test_3x3_DW(self):
+        protRelionMc = self._runRelionMc(self.protImport, objLabel='relion - mc 3x3 DW',
+                                         patchX=3, patchY=3, doDW=True)
         self._checkOutputMovies(protRelionMc, 3)
