@@ -1750,10 +1750,6 @@ class RelionLocalResViewer(ProtocolViewer):
 
     def _createChimeraScript(self, scriptFile):
         import pyworkflow.gui.plotter as plotter
-        try:
-            from itertools import izip
-        except ImportError:
-            izip = zip
         fhCmd = open(scriptFile, 'w')
         imageFile = os.path.abspath(self.protocol._getFileName('resolMap'))
         
@@ -1775,14 +1771,14 @@ class RelionLocalResViewer(ProtocolViewer):
         fhCmd.write("volume #1 hide\n")
 
         scolorStr = ''
-        for step, color in izip(stepColors, colorList):
+        for step, color in zip(stepColors, colorList):
             scolorStr += '%s,%s:' % (step, color)
         scolorStr = scolorStr[:-1]
         line = ("scolor #0 volume #1 perPixel false cmap " + scolorStr + "\n")
         fhCmd.write(line)
 
         scolorStr2 = ''
-        for step, color in izip(stepColors, colorList):
+        for step, color in zip(stepColors, colorList):
             indx = stepColors.index(step)
             if (indx % 4) != 0:
                 scolorStr2 += '" " %s ' % color
