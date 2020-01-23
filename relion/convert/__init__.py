@@ -36,3 +36,24 @@ if relion.IS_GT30:
     from .convert31 import Writer
 else:
     from .convert30 import Writer
+
+
+def writeSetOfParticles(imgSet, starFile, outputDir, **kwargs):
+    """ Convenience function to a SetOfImages as Relion metadata using a Writer.
+
+    Params:
+        imgSet: the SetOfImages instance.
+        starFile: the filename where to write the meta
+        outputDir: where binary files will be converted or linked.
+        filesMapping: this dict will help when there is need to replace images names
+
+    Keyword Arguments:
+        blockName: The name of the data block (default particles)
+        fillMagnification: If True set magnification values (default False)
+        alignType:
+        fillRandomSubset:
+        extraLabels:
+        postprocessImageRow:
+    """
+    writer = Writer(outputDir=outputDir)
+    return writer.writeSetOfParticles(imgSet, starFile, **kwargs)

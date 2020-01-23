@@ -68,6 +68,30 @@ class WriterBase:
         self.extensions = kwargs.get('extensions', ['mrc'])
         self._ih = ImageHandler()  # used to convert images
 
+    def writeSetOfMovies(self, moviesIterable, starFile):
+        pass
+
+    def writeSetOfMicrographs(self, micsIterable, starFile):
+        pass
+
+    def _writeSetOfMoviesOrMics(self, imgIterable,
+                                starFile, tableName, imgLabelName):
+        pass
+
+    def writeSetOfParticles(self, partsSet, starFile, **kwargs):
+        """ Convert a set of particles into a star file and maybe binary files.
+
+        Params:
+            partsSet: input particles set
+            starFile: the filename of the star file that will be written.
+
+        Keyword Arguments:
+            blockName: The name of the data block (default particles)
+            fillMagnification: If True set magnification values (default False)
+
+        """
+        pass
+
     def _convert(self, image):
         imageFn = image.getFileName()
 
@@ -95,16 +119,6 @@ class WriterBase:
             newPath = os.path.relpath(newPath, self.rootDir)
 
         return newPath
-
-    def writeSetOfMovies(self, moviesIterable, starFile):
-        pass
-
-    def writeSetOfMicrographs(self, micsIterable, starFile):
-        pass
-
-    def _writeSetOfMoviesOrMics(self, imgIterable,
-                                starFile, tableName, imgLabelName):
-        pass
 
     def _createTableFromDict(self, rowDict):
         """ Helper function to create a Table instance from

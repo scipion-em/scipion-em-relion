@@ -487,7 +487,7 @@ def writeSetOfImages(imgSet, filename, imgToFunc,
     mdFn.write('%s@%s' % (blockName, filename))
 
 
-def writeSetOfParticles(imgSet, starFile,
+def _writeSetOfParticles(imgSet, starFile,
                         outputDir, **kwargs):
     """ This function will write a SetOfImages as Relion meta
     Params:
