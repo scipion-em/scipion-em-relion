@@ -150,7 +150,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
     def _setOpticsGroupName(self, item, row):
         # Take advantage of the fact that the 'item' object is the
         # used during the iteration in the copyItems, this can be a wrong
-        # assumtion of the implementation changes, but I will take the risk
+        # assumption if the implementation changes, but I will take the risk
         # now for the sake of performance and only set the value once
         if getattr(self, '__firstTime', True):
             item.setAcquisition(self._outputAcquisition)

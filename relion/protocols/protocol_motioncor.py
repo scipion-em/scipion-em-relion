@@ -38,10 +38,11 @@ import pyworkflow.protocol.constants as cons
 import pyworkflow.utils as pwutils
 import pwem
 from pwem.protocols import ProtAlignMovies
+from pwem.objects import Image
 from pyworkflow.gui.plotter import Plotter
 from pyworkflow.protocol import STEPS_SERIAL
 
-from .. import Plugin
+import relion
 import relion.convert as convert
 import relion.convert.metadata as md
 
@@ -92,7 +93,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
                            'the choice, CTF refinement job is always done on '
                            'dose-weighted particles.')
 
-        if self._isVersion31():
+        if relion.IS_GT30:
             form.addParam('savePSsum', params.BooleanParam, default=False,
                           label='Save sum of power spectra?',
                           help='Sum of non-dose weighted power spectra '
@@ -181,6 +182,8 @@ class ProtRelionMotioncor(ProtAlignMovies):
         self.info("Relion version:")
         self.runJob("relion_run_motioncorr --version", "", numberOfMpi=1)
 
+        self.info("Detected version from config: %s" % relion.Plugin.getActiveVersion())
+
         ProtAlignMovies._convertInputStep(self)
 
     def _processMovie(self, movie):
@@ -212,12 +215,14 @@ class ProtRelionMotioncor(ProtAlignMovies):
             args += ' --gain_rot %d ' % self.gainRot
             args += ' --gain_flip %d ' % self.gainFlip
 
-        if self._isVersion31():
+        if relion.IS_GT30:
             acq = inputMovies.getAcquisition()
             defectFile = acq.getAttributeValue('defectFile', None)
+
             if defectFile:
                 args += ' --defect_file "%s" ' % defectFile
-            if self._createOutputPSMicrographs():
+
+            if self._savePsSum():
                 args += ' --grouping_for_ps %d ' % self._calcPsDose()
 
         if self.doDW:
@@ -252,11 +257,23 @@ class ProtRelionMotioncor(ProtAlignMovies):
         # Check base validation before the specific ones for Motioncor
         errors = ProtAlignMovies._validate(self)
 
+        if not relion.Plugin.getActiveVersion():
+            errors.append("Could not detect the current Relion version. \n"
+                          "RELION_HOME='%s'" % relion.Plugin.getHome())
+
+        acq = self.inputMovies.get().getAcquisition()
         if self.doDW:
-            dose = self.inputMovies.get().getAcquisition().getDosePerFrame()
+            dose = acq.getDosePerFrame()
             if dose is None or dose < 0.001:
                 errors.append("Input movies do not contain the dose per frame, "
                               "dose-weighting can not be performed. ")
+
+        if relion.IS_GT30:
+            # We require to have opticsGroup information in acquisition
+            if not acq.getAttributeValue('opticsGroupName', None):
+                errors.append("In Relion > 3.1, you need to run the "
+                              "*relion - assign optics group* to set optics "
+                              "group information. ")
 
         return errors
 
@@ -277,25 +294,22 @@ class ProtRelionMotioncor(ProtAlignMovies):
     def _createOutputWeightedMicrographs(self):
         return bool(self.doDW)
 
-    def _createOutputPSMicrographs(self):
+    def _savePsSum(self):
         return self.getAttributeValue('savePSsum', False)
 
     def _preprocessOutputMicrograph(self, mic, movie):
         self._setPlotInfo(movie, mic)
         self._setMotionValues(movie, mic)
-        self._updatePSSampling(mic)
-
-    def _updatePSSampling(self, mic):
-        """ Update sampling rate for output power spectra. """
-        if self._createOutputPSMicrographs():
-            if mic.getFileName().endswith('_aligned_mic_PS.mrc'):
-                mic.setSamplingRate(self._calcPSSampling())
+        if self._savePsSum():
+            outPs = self._getExtraPath(self._getOutputMicPsName(movie))
+            mic._powerSpectra = Image(location=outPs)
+            mic._powerSpectra.setSamplingRate(self._calcPSSampling())
 
     def _setMotionValues(self, movie, mic):
         """ Parse motion values from the 'corrected_micrographs.star' file
         generated for each movie. """
         fn = self._getMovieExtraFn(movie, 'corrected_micrographs.star')
-        micsTableName = 'micrographs' if self._isVersion31() else ''
+        micsTableName = 'micrographs' if relion.IS_GT30 else ''
         table = md.Table(fileName=fn, tableName=micsTableName)
         row = table[0]
         mic._rlnAccumMotionTotal = pwobj.Float(row.rlnAccumMotionTotal)
@@ -394,7 +408,8 @@ class ProtRelionMotioncor(ProtAlignMovies):
         else:
             pwutils.moveFile(self._getMovieOutFn(movie, '.mrc'),
                              self._getExtraPath(self._getOutputMicName(movie)))
-        if self._createOutputPSMicrographs():
+
+        if self._savePsSum():
             pwutils.moveFile(self._getMovieOutFn(movie, '_PS.mrc'),
                              self._getExtraPath(self._getOutputMicPsName(movie)))
 
@@ -430,7 +445,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
     def _saveAlignmentPlots(self, movie, pixSize):
         # Create plots and save as an image
         shiftsX, shiftsY = self._getMovieShifts(movie, self._getMovieOutFn(movie, '.star'))
-        first, _ = self._getFrameRange(movie.getNumberOfFrames(), 'align')
+        first, _ = self._getFrameRange(movie.getNumberOfFrames(), 'sum')
         plotter = createGlobalAlignmentPlot(shiftsX, shiftsY, first, pixSize)
         plotter.savefig(self._getPlotGlobal(movie))
         plotter.close()
@@ -458,8 +473,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
             output = self.outputMicrographs
         elif self._createOutputWeightedMicrographs():
             output = self.outputMicrographsDoseWeighted
-        elif self._createOutputPSMicrographs():
-            output = self.outputMicrographsPS
         else:
             raise Exception("It does not seem like any output is produced!")
 
@@ -474,9 +487,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
             self.warning(pwutils.yellowStr("WARNING - Failed to align %d movies."
                                            % (inputSize - outputSize)))
 
-    def _isVersion31(self):
-        return Plugin.isVersion31Active()
-
     def _calcPsDose(self):
         _, dose = self._getCorrectedDose(self.inputMovies.get())
         dose_for_ps = round(self.dosePSsum.get() / dose)
@@ -486,12 +496,24 @@ class ProtRelionMotioncor(ProtAlignMovies):
     def _calcPSSampling(self):
         """ Copied from relion 3.1 code. """
         target_pixel_size = 1.4  # from CTFFIND 4.1
-        ps_angpix = self.inputMovies.get().getSamplingRate() * self.binFactor
+        ps = self.inputMovies.get().getSamplingRate()
+        ps_angpix = ps * self.binFactor.get()
         if ps_angpix < target_pixel_size:
             nx_needed = ceil(512 * ps_angpix / target_pixel_size)
             nx_needed += nx_needed % 2
             ps_angpix = 512 * ps_angpix / nx_needed
         return ps_angpix
+
+    def _getOutputMicPsName(self, movie):
+        """ Returns the name of the output PS
+        (relative to micFolder)
+        """
+        return self._getMovieRoot(movie) + '_aligned_mic_PS.mrc'
+
+    def _getFrameRange(self, n, prefix):
+        # Reimplement this method to ignore prefix (called from base class)
+        # and always use 'sum' as prefix
+        return ProtAlignMovies._getFrameRange(self, n, 'sum')
 
 
 def createGlobalAlignmentPlot(meanX, meanY, first, pixSize):

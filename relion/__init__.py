@@ -70,12 +70,12 @@ class Plugin(pwem.Plugin):
         return environ
 
     @classmethod
-    def isVersion31Active(cls):
-        return cls.getActiveVersion().startswith('3.1')
+    def isVersion30Active(cls):
+        return cls.getActiveVersion().startswith('3.0')
 
     @classmethod
-    def hasOpticsGroup(cls):
-        return not cls.getActiveVersion() == '3.0'
+    def isVersion31Active(cls):
+        return cls.getActiveVersion().startswith('3.1')
 
     @classmethod
     def defineBinaries(cls, env):
@@ -99,3 +99,13 @@ class Plugin(pwem.Plugin):
                        updateCuda=True,
                        vars=relion_vars,
                        default=True)
+
+
+pwem.Domain.registerPlugin(__name__)
+
+# Convenience constants to check what version of the binary is active
+IS_30 = Plugin.isVersion30Active()
+# Greater than 3.0?
+IS_GT30 = not IS_30  # Now 2.x is deprecated
+IS_31 = Plugin.isVersion31Active()
+
