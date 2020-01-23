@@ -30,7 +30,6 @@ import pyworkflow.tests as pwtests
 from pyworkflow.tests.em.workflows import TestWorkflow
 import pyworkflow.em as pwem
 from pyworkflow.utils import copyTree
-from pyworkflow.em.protocol import ProtImportParticles
 
 import relion
 import relion.protocols
@@ -127,28 +126,12 @@ class Relion3TestMultiBody(Relion3TestProtocolBase):
         cls.extra = cls.ds.getFile("multibody/extra")
         cls.ref3d = cls.ds.getFile("multibody/ref3d")
         cls.ptcls = cls.ds.getFile("multibody/ref3d/relion_it017_data.star")
-        cls.starImport = cls.runImportParticlesStar(cls.ptcls, 50000, 0.885)
-
-    @classmethod
-    def runImportParticlesStar(cls, partStar, mag, samplingRate):
-        """ Import particles from Relion star file. """
-        protImport = cls.newProtocol(ProtImportParticles,
-                                     objLabel='fake ptcls import',
-                                     importFrom=ProtImportParticles.IMPORT_FROM_RELION,
-                                     starFile=partStar,
-                                     magnification=mag,
-                                     samplingRate=samplingRate,
-                                     haveDataBeenPhaseFlipped=True
-                                     )
-        cls.launchProtocol(protImport)
-        return protImport
 
     def _setupRefinement(self):
         from pyworkflow.protocol.constants import STATUS_FINISHED
         relionRefine = self.newProtocol(relion.protocols.ProtRelionRefine3D,
                                         objLabel='fake 3D refinement',
                                         referenceMask=None)
-        relionRefine.inputParticles.set(self.starImport.outputParticles)
         self.saveProtocol(relionRefine)
         relionRefine.setStatus(STATUS_FINISHED)
 
