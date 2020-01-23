@@ -29,6 +29,8 @@ import os
 import pyworkflow.tests as pwtests
 from pyworkflow.tests.em.workflows import TestWorkflow
 import pyworkflow.em as pwem
+from pyworkflow.utils import copyTree
+from pyworkflow.em.protocol import ProtImportParticles
 
 import relion
 import relion.protocols
@@ -117,6 +119,69 @@ class Relion3TestMotioncor(Relion3TestProtocolBase):
         self._checkOutputMovies(protRelionMc, 3)
 
 
-if __name__ == '__main__':
-    import unittest
-    unittest.main()
+class Relion3TestMultiBody(Relion3TestProtocolBase):
+    @classmethod
+    def setUpClass(cls):
+        pwtests.setupTestProject(cls)
+        cls.ds = pwtests.DataSet.getDataSet('relion30_tutorial')
+        cls.extra = cls.ds.getFile("multibody/extra")
+        cls.ref3d = cls.ds.getFile("multibody/ref3d")
+        cls.ptcls = cls.ds.getFile("multibody/ref3d/relion_it017_data.star")
+        cls.starImport = cls.runImportParticlesStar(cls.ptcls, 50000, 0.885)
+
+    @classmethod
+    def runImportParticlesStar(cls, partStar, mag, samplingRate):
+        """ Import particles from Relion star file. """
+        protImport = cls.newProtocol(ProtImportParticles,
+                                     objLabel='fake ptcls import',
+                                     importFrom=ProtImportParticles.IMPORT_FROM_RELION,
+                                     starFile=partStar,
+                                     magnification=mag,
+                                     samplingRate=samplingRate,
+                                     haveDataBeenPhaseFlipped=True
+                                     )
+        cls.launchProtocol(protImport)
+        return protImport
+
+    def _setupRefinement(self):
+        from pyworkflow.protocol.constants import STATUS_FINISHED
+        relionRefine = self.newProtocol(relion.protocols.ProtRelionRefine3D,
+                                        objLabel='fake 3D refinement',
+                                        referenceMask=None)
+        relionRefine.inputParticles.set(self.starImport.outputParticles)
+        self.saveProtocol(relionRefine)
+        relionRefine.setStatus(STATUS_FINISHED)
+
+        # copy ref3d files into protocol dir
+        currDir2 = os.path.join(self.proj.getPath(), relionRefine._getExtraPath())
+        print("Copying files from %s to %s" % (self.ref3d, currDir2))
+        copyTree(self.ref3d, currDir2)
+
+        return relionRefine
+
+    def testMultibody(self):
+        relionMbody = self.newProtocol(relion.protocols.ProtRelionMultiBody,
+                                       initialOffsetRange=2.0,
+                                       initialOffsetStep=0.5,
+                                       runFlexAnalysis=False,
+                                       pooledParticles=30,
+                                       skipPadding=True,
+                                       doGpu=True,
+                                       gpusToUse='0,1:2,3',
+                                       numberOfThreads=12,
+                                       numberOfMpis=3)
+        protRef = self._setupRefinement()
+        relionMbody.protRefine.set(protRef)
+
+        # copy m-body files into protocol dir
+        currDir1 = os.path.join(self.proj.getPath(), relionMbody._getPath("Uploads"))
+        print("Copying files from %s to %s" % (self.extra, currDir1))
+        copyTree(self.extra, currDir1)
+
+        bodyFn = os.path.join(self.proj.getPath(), relionMbody._getPath('Uploads/2-bodies.star'))
+        relionMbody.bodyStarFile.set(bodyFn)
+
+        self.saveProtocol(relionMbody)
+        self.launchProtocol(relionMbody)
+        self.assertIsNotNone(relionMbody.outputVolumes,
+                             "There was a problem with Relion multi-body")
