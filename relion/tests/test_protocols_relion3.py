@@ -30,6 +30,7 @@ import pyworkflow.tests as pwtests
 from pwem.tests.workflows import TestWorkflow
 from pwem.protocols import ProtImportMovies
 from pwem.objects import SetOfMovies
+from pyworkflow.utils import copyTree
 
 import relion
 from relion.protocols import ProtRelionMotioncor, ProtRelionAssignOpticsGroup
@@ -180,15 +181,72 @@ class Relion3TestMotioncor(Relion3TestProtocolBase):
                 self.assertTrue(os.path.exists(m.getFileName()))
 
     def test_1x1(self):
-        protRelionMc = self._runRelionMc(self.protImport, patchX=1, patchY=1)
+        protRelionMc = self._runRelionMc(self.protImport, objLabel='relion - mc 1x1',
+                                         patchX=1, patchY=1)
         self._checkOutputMovies(protRelionMc, 3)
 
     def test_1x1_PS(self):
-        protRelionMc = self._runRelionMc(self.protImport,
-                                         patchX=1, patchY=1,
-                                         )
+        if relion.IS_GT30:
+            protRelionMc = self._runRelionMc(self.protImport, objLabel='relion - mc PS',
+                                             patchX=1, patchY=1,
+                                             savePSsum=True)
+            self._checkOutputMovies(protRelionMc, 3)
+        else:
+            print("Cannot test motioncorr with PS saving - it's only available for Relion 3.1+")
+
+    def test_3x3_DW(self):
+        protRelionMc = self._runRelionMc(self.protImport, objLabel='relion - mc 3x3 DW',
+                                         patchX=3, patchY=3, doDW=True)
         self._checkOutputMovies(protRelionMc, 3)
 
-    def test_2x2(self):
-        protRelionMc = self._runRelionMc(self.protImport, patchX=2, patchY=2)
-        self._checkOutputMovies(protRelionMc, 3)
+
+class Relion3TestMultiBody(Relion3TestProtocolBase):
+    @classmethod
+    def setUpClass(cls):
+        pwtests.setupTestProject(cls)
+        cls.ds = pwtests.DataSet.getDataSet('relion30_tutorial')
+        cls.extra = cls.ds.getFile("multibody/extra")
+        cls.ref3d = cls.ds.getFile("multibody/ref3d")
+        cls.ptcls = cls.ds.getFile("multibody/ref3d/relion_it017_data.star")
+
+    def _setupRefinement(self):
+        from pyworkflow.protocol.constants import STATUS_FINISHED
+        relionRefine = self.newProtocol(relion.protocols.ProtRelionRefine3D,
+                                        objLabel='fake 3D refinement',
+                                        referenceMask=None)
+        self.saveProtocol(relionRefine)
+        relionRefine.setStatus(STATUS_FINISHED)
+
+        # copy ref3d files into protocol dir
+        currDir2 = os.path.join(self.proj.getPath(), relionRefine._getExtraPath())
+        print("Copying files from %s to %s" % (self.ref3d, currDir2))
+        copyTree(self.ref3d, currDir2)
+
+        return relionRefine
+
+    def testMultibody(self):
+        relionMbody = self.newProtocol(relion.protocols.ProtRelionMultiBody,
+                                       initialOffsetRange=2.0,
+                                       initialOffsetStep=0.5,
+                                       runFlexAnalysis=False,
+                                       pooledParticles=30,
+                                       skipPadding=True,
+                                       doGpu=True,
+                                       gpusToUse='0,1:2,3',
+                                       numberOfThreads=12,
+                                       numberOfMpis=3)
+        protRef = self._setupRefinement()
+        relionMbody.protRefine.set(protRef)
+
+        # copy m-body files into protocol dir
+        currDir1 = os.path.join(self.proj.getPath(), relionMbody._getPath("Uploads"))
+        print("Copying files from %s to %s" % (self.extra, currDir1))
+        copyTree(self.extra, currDir1)
+
+        bodyFn = os.path.join(self.proj.getPath(), relionMbody._getPath('Uploads/2-bodies.star'))
+        relionMbody.bodyStarFile.set(bodyFn)
+
+        self.saveProtocol(relionMbody)
+        self.launchProtocol(relionMbody)
+        self.assertIsNotNone(relionMbody.outputVolumes,
+                             "There was a problem with Relion multi-body")
