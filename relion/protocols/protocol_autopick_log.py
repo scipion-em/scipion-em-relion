@@ -147,7 +147,7 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
         return args
 
     def _pickMicrographsFromStar(self, micStarFile, cwd, params,
-                                 minDiameter, maxDiameter, threshold, threshold2):
+                                 minDiameter, maxDiameter, threshold, threshold2=None):
         """ Launch the 'relion_autopick' for micrographs in the inputStarFile.
          If the input set of complete, the star file will contain all the
          micrographs. If working in streaming, it will be only one micrograph.
