@@ -114,6 +114,8 @@ class Writer(WriterBase):
                 'rlnAmplitudeContrast': acq.getAmplitudeContrast(),
                 'rlnBeamTiltX': acq.beamTiltX.get() or 0.,
                 'rlnBeamTiltY': acq.beamTiltY.get() or 0.,
+                'rlnImageDimensionality': self._dimensionality,
+                'rlnImageSize': self._imageSize,
             }
         else:
             ogNumber = self._optics[ogName]['rlnOpticsGroup']
@@ -225,14 +227,13 @@ class Writer(WriterBase):
         else:
             raise Exception("Invalid value for alignType: %s" % alignType)
 
-        doAlign = (alignType != pwem.ALIGN_NONE and firstPart.hasTransform())
         self._extraLabels = kwargs.get('extraLabels', [])
         self._extraLabels.extend(['rlnParticleSelectZScore',
                                   'rlnMovieFrameNumber'])
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
+        self._imageSize = firstPart.getXDim()
         self._partToRow(firstPart, partRow)
-
         opticsTable = self._createTableFromDict(list(self._optics.values())[0])
         partsTable = self._createTableFromDict(partRow)
         partsTable.addRow(**partRow)

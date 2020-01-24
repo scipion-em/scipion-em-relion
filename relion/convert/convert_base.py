@@ -68,6 +68,7 @@ class WriterBase:
         self.extensions = kwargs.get('extensions', ['mrc'])
         self._ih = ImageHandler()  # used to convert images
         self._filesDict = {}  # used to map file names (converted or linked)
+        self._dimensionality = 2
 
     def writeSetOfMovies(self, moviesIterable, starFile):
         pass
