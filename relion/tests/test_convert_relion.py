@@ -825,13 +825,13 @@ class TestRelionWriter(BaseTest):
     @classmethod
     def setUpClass(cls):
         setupTestOutput(cls)
-        cls.ds = DataSet.getDataSet('xmipp_tutorial')
+        cls.ds = DataSet.getDataSet('relion_tutorial')
 
     def _createSetOfMics(self, n=10, nOptics=2):
         micName = 'BPV_13%02d.mrc'
         psdName = 'BPV_13%02d_PSD.ctf:mrc'
         ogName = 'opticsGroup%d'
-        mtfFile = 'mtfFile%d.psd'
+        mtfFile = 'mtfFile%d.star'
 
         outputMics = SetOfMicrographs(filename=self.getOutputPath('micrographs.sqlite'))
         outputMics.setSamplingRate(1.234)
@@ -867,50 +867,55 @@ class TestRelionWriter(BaseTest):
 
         return outputMics
 
+    def _createSetOfParts(self, nMics=10, nOptics=2, partsPerMic=10):
+        micSet = self._createSetOfMics(nMics, nOptics)
+        outputSqlite = self.getOutputPath('particles.sqlite')
+        print(">>> Writing to particles db: %s" % outputSqlite)
+        outputParts = SetOfParticles(filename=outputSqlite)
+        outputParts.setSamplingRate(1.234)
+
+        part = SetOfParticles.ITEM_TYPE()
+        coord = Coordinate()
+
+        for mic in micSet:
+            for i in range(1, partsPerMic+1):
+                part.setLocation(i, mic.getFileName().replace('mrc', 'mrcs'))
+                coord.setPosition(x=np.random.randint(0, 1000),
+                                  y=np.random.randint(0, 1000))
+                coord.setMicrograph(mic)
+                part.setObjId(None)
+                part.setCoordinate(coord)
+                part.setAcquisition(mic.getAcquisition())
+                outputParts.append(part)
+
+        outputParts.write()
+
+        return outputParts
+
     def test_micrographsToStar(self):
         """ Write a SetOfParticles to Relion star input file. """
-        # micSet = SetOfMicrographs(filename=self.ds.getFile('micrographs/micrographs.sqlite'))
-        #
-        # outputMics = SetOfMicrographs(filename=self.getOutputPath('micrographs.sqlite'))
-        #
-        # def updateMic(mic, row=None):
-        #     acq = mic.getAcquisition()
-        #     acq.opticsGroupName = String('opticsGroup1')
-        #     acq.mtfFile = String('mtfFile1.star')
-        #
-        #     mic.setCTF(ctf)
-        #
-        # outputMics.copyInfo(micSet)
-        # outputMics.copyItems(micSet, updateItemCallback=updateMic)
-        # outputMics.write()
         outputStar = self.getOutputPath("micrographs.star")
-
         outputMics = self._createSetOfMics(10)
-
-        # fn = self.getFile('particles_binary')
-        # ctfs = [CTFModel(defocusU=10000, defocusV=15000, defocusAngle=15),
-        #         CTFModel(defocusU=20000, defocusV=25000, defocusAngle=25)]
-        # acquisition = Acquisition(magnification=60000, voltage=300,
-        #                           sphericalAberration=2., amplitudeContrast=0.07)
-        # imgSet.setAcquisition(acquisition)
-        # coord = Coordinate()
-        # coord.setMicId(1)
-
-        # for i in range(n):
-        #     p = Particle()
-        #     p.setLocation(i + 1, fn)
-        #     ctf = ctfs[i % 2]
-        #     p.setCTF(ctf)
-        #     p.setAcquisition(acquisition)
-        #     p._xmipp_zScore = Float(i)
-        #     coord.setX(i * 10)
-        #     coord.setY(i * 10)
-        #     p.setCoordinate(coord)
-        #     imgSet.append(p)
-        #
-        # fnStar = self.getOutputPath('particles.star')
-        # fnStk = self.getOutputPath('particles.stk')
-
         print(">>> Writing to micrographs: %s" % outputStar)
         starWriter = convert.Writer()
         starWriter.writeSetOfMicrographs(outputMics, outputStar)
+
+    def test_particlesToStar(self):
+        """ Write a SetOfParticles to Relion star input file. """
+        outputStar = self.getOutputPath("particles.star")
+        outputParts = self._createSetOfParts(10, 2, 10)
+        print(">>> Writing to particles star: %s" % outputStar)
+        starWriter = convert.Writer()
+        starWriter.writeSetOfParticles(outputParts, outputStar)
+
+    def test_particlesImportToStar(self):
+        sqliteFn = self.ds.getFile("import/case2/particles.sqlite")
+        partsSet = SetOfParticles(filename=sqliteFn)
+        partsSet.loadAllProperties()
+        outputStar = self.getOutputPath("particles.star")
+        print(">>> Writing to particles star: %s" % outputStar)
+        starWriter = convert.Writer()
+        starWriter.writeSetOfParticles(partsSet, outputStar)
+
+
+

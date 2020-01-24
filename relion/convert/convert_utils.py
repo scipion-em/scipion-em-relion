@@ -35,6 +35,8 @@ import os
 import pyworkflow.utils as pwutils
 import pwem
 
+import relion
+
 
 def locationToRelion(index, filename):
     """ Convert an index and filename location

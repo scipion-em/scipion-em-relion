@@ -29,9 +29,15 @@
 New conversion functions dealing with Relion3.1 new star files format.
 """
 from io import open
+import numpy as np
+from collections import OrderedDict
 
-from ..constants import *
+import pwem
+import pwem.convert.transformations as tfs
+
+import relion
 from .convert_base import WriterBase
+from .convert_utils import convertBinaryFiles, locationToRelion
 
 
 class Writer(WriterBase):
@@ -55,6 +61,8 @@ class Writer(WriterBase):
         # Process the first item and create the table based
         # on the generated columns
         self._imgLabelName = imgLabelName
+        self._imgLabelPixelSize = 'rlnMicrographPixelSize'
+
         self._prefix = tableName[:3]
         self._optics = OrderedDict()
         micRow = OrderedDict()
@@ -82,12 +90,15 @@ class Writer(WriterBase):
             f.write("# version 30001\n")
             micsTable.writeStar(f, tableName=tableName)
 
-    def _micToRow(self, mic, row):
-        WriterBase._micToRow(self, mic, row)
-
+    def _getOpticsGroupNumber(self, img):
+        """ Get the optics group number based on acquisition.
+        Params:
+            img: input image, movie, micrograph or particle
+        """
         # Add now the new Optics Group stuff
-        acq = mic.getAcquisition()
+        acq = img.getAcquisition()
         ogName = acq.opticsGroupName.get() or 'DefaultOpticsGroup'
+        ps = img.getSamplingRate()
 
         if ogName not in self._optics:
             ogNumber = len(self._optics) + 1
@@ -96,13 +107,149 @@ class Writer(WriterBase):
                 'rlnOpticsGroup': ogNumber,
                 'rlnMtfFileName': acq.mtfFile.get() or 'No-MTF',
                 # FIXME: Check when we need to update the following
-                'rlnMicrographOriginalPixelSize': mic.getSamplingRate(),
+                'rlnMicrographOriginalPixelSize': ps,
+                self._imgLabelPixelSize: ps,
                 'rlnVoltage': acq.getVoltage(),
                 'rlnSphericalAberration': acq.getSphericalAberration(),
                 'rlnAmplitudeContrast': acq.getAmplitudeContrast(),
-                'rlnMicrographPixelSize': mic.getSamplingRate()
+                'rlnBeamTiltX': acq.beamTiltX.get() or 0.,
+                'rlnBeamTiltY': acq.beamTiltY.get() or 0.,
             }
         else:
             ogNumber = self._optics[ogName]['rlnOpticsGroup']
 
-        row['rlnOpticsGroup'] = ogNumber
+        return ogNumber
+
+    def _setAttributes(self, obj, row, attributes):
+        for attr in attributes:
+            attrLabel = '_%s' % attributes
+            if hasattr(obj, attrLabel):
+                row[attr] = obj.getAttributeValue(attrLabel)
+
+    def _micToRow(self, mic, row):
+        WriterBase._micToRow(self, mic, row)
+        row['rlnOpticsGroup'] = self._getOpticsGroupNumber(mic)
+
+    def _align2DToRow(self, alignment, row):
+        matrix = alignment.getMatrix()
+        shifts = tfs.translation_from_matrix(matrix)
+        angles = -np.rad2deg(tfs.euler_from_matrix(matrix, axes='szyz'))
+        row['rlnOriginX'], row['rlnOriginY'] = shifts[:2]
+        row['rlnAnglePsi'] = -(angles[0] + angles[2])
+
+    def _alignProjToRow(self, alignment, row):
+        matrix = np.linalg.inv(alignment.getMatrix())
+        shifts = -tfs.translation_from_matrix(matrix)
+        angles = -np.rad2deg(tfs.euler_from_matrix(matrix, axes='szyz'))
+        row['rlnOriginX'], row['rlnOriginY'], row['rlnOriginZ'] = shifts
+        row['rlnAngleRot'], row['rlnAngleTilt'], row['rlnAnglePsi'] = angles
+
+    def _partToRow(self, part, row):
+        row['rlnImageId'] = part.getObjId()
+
+        # Add coordinate information
+        coord = part.getCoordinate()
+        if coord is not None:
+            x, y = coord.getPosition()
+            row['rlnCoordinateX'] = x
+            row['rlnCoordinateY'] = y
+            # Add some specify coordinate attributes
+            self._setAttributes(coord, row, ['rlnClassNumber',
+                                             'rlnAutopickFigureOfMerit',
+                                             'rlnAnglePsi'])
+            micName = coord.getMicName()
+            if micName:
+                row['rlnMicrographName'] = str(micName.replace(" ", ""))
+            else:
+                if coord.getMicId():
+                    row['rlnMicrographName'] = str(coord.getMicId())
+
+        index, fn = part.getLocation()
+        if self.outputDir is not None:
+            fn = self._filesDict[fn]
+
+        row['rlnImageName'] = locationToRelion(index, fn)
+
+        if self._setRandomSubset:
+            row['rlnRandomSubset'] = part._rlnRandomSubset.get()
+
+        # Set CTF values
+        if self._setCtf:
+            self._ctfToRow(part.getCTF(), row)
+
+        # Set alignment if necessary
+        if self._setAlign:
+            self._setAlign(part.getTransform(), row)
+
+        # Set additional labels if present
+        self._setAttributes(part, row, self._extraLabels)
+
+        # Add now the new Optics Group stuff
+        row['rlnOpticsGroup'] = self._getOpticsGroupNumber(part)
+
+    def writeSetOfParticles(self, partsSet, starFile, **kwargs):
+        # Process the first item and create the table based
+        # on the generated columns
+        self._imgLabelPixelSize = 'rlnImagePixelSize'
+        self._optics = OrderedDict()
+        partRow = OrderedDict()
+        firstPart = partsSet.getFirstItem()
+
+        # Convert binaries if required
+        if self.outputDir is not None:
+            self._filesDict = convertBinaryFiles(partsSet, self.outputDir)
+
+        # Compute some flags from the first particle...
+        # when flags are True, some operations will be applied to all particles
+        self._preprocessImageRow = kwargs.get('preprocessImageRow', None)
+        self._setRandomSubset = (kwargs.get('fillRandomSubset') and
+                                 firstPart.hasAttribute('_rlnRandomSubset'))
+
+        self._setCtf = kwargs.get('writeCtf', True) and firstPart.hasCTF()
+
+        alignType = kwargs.get('alignType', partsSet.getAlignment())
+
+        if alignType == pwem.ALIGN_2D:
+            self._setAlign = self._align2DToRow
+        elif alignType == pwem.ALIGN_PROJ:
+            self._setAlign = self._alignProjToRow
+        elif alignType == pwem.ALIGN_3D:
+            raise Exception(
+                "3D alignment conversion for Relion not implemented. "
+                "It seems the particles were generated with an incorrect "
+                "alignment type. You may either re-launch the protocol that "
+                "generates the particles with angles or set 'Consider previous"
+                " alignment?' to No")
+        elif alignType == pwem.ALIGN_NONE:
+            self._setAlign = None
+        else:
+            raise Exception("Invalid value for alignType: %s" % alignType)
+
+        doAlign = (alignType != pwem.ALIGN_NONE and firstPart.hasTransform())
+        self._extraLabels = kwargs.get('extraLabels', [])
+        self._extraLabels.extend(['rlnParticleSelectZScore',
+                                  'rlnMovieFrameNumber'])
+        self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
+
+        self._partToRow(firstPart, partRow)
+
+        opticsTable = self._createTableFromDict(list(self._optics.values())[0])
+        partsTable = self._createTableFromDict(partRow)
+        partsTable.addRow(**partRow)
+
+        with open(starFile, 'w') as f:
+            # Write particles table
+            f.write("# Star file generated with Scipion\n")
+            f.write("# version 30001\n")
+            # Write header first
+            partsTable.writeStar(f, tableName='particles', writeRows=False)
+            # Write all rows
+            for part in partsSet:
+                self._partToRow(part, partRow)
+                partsTable.writeStarLine(f, partRow.values())
+
+            # Write Optics at the end
+            for opticsDict in self._optics.values():
+                opticsTable.addRow(**opticsDict)
+            f.write("\n# version 30001\n")
+            opticsTable.writeStar(f, tableName='optics')

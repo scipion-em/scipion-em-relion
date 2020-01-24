@@ -67,6 +67,7 @@ class WriterBase:
         self.useBaseName = kwargs.get('useBaseName', False)
         self.extensions = kwargs.get('extensions', ['mrc'])
         self._ih = ImageHandler()  # used to convert images
+        self._filesDict = {}  # used to map file names (converted or linked)
 
     def writeSetOfMovies(self, moviesIterable, starFile):
         pass
@@ -135,7 +136,9 @@ class WriterBase:
             self._ctfToRow(mic.getCTF(), row)
 
     def _ctfToRow(self, ctf, row):
-        row['rlnCtfImage'] = ctf.getPsdFile()
+        psd = ctf.getPsdFile()
+        if psd:
+            row['rlnCtfImage'] = psd
         dU, dV, dAngle = ctf.getDefocus()
         row['rlnDefocusU'] = dU
         row['rlnDefocusV'] = dV
