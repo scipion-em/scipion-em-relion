@@ -35,6 +35,7 @@ from pyworkflow.gui.browser import FileBrowserWindow
 from .constants import *
 import relion.convert as convert
 from .protocols import *
+from . import IS_GT30
 
 
 # =============================================================================
@@ -311,9 +312,14 @@ class Relion2PartDiameter(RelionPartMaskDiameterWizard):
 
 
 class RelionWizLogPickParams(EmWizard):
-    _targets = [(ProtRelionAutopickLoG, ['minDiameter',
-                                         'maxDiameter',
-                                         'threshold'])]
+    params = ['minDiameter',
+              'maxDiameter',
+              'threshold']
+
+    if IS_GT30:
+        params.append('threshold2')
+
+    _targets = [(ProtRelionAutopickLoG, params)]
 
     def show(self, form, *args):
         autopickProt = form.protocol
@@ -322,7 +328,11 @@ class RelionWizLogPickParams(EmWizard):
         micfn = micSet.getFileName()
         coordsDir = project.getTmpPath(micSet.getName())
         print("coordsDir: ", coordsDir)
-        params, minDiameter, maxDiameter, threshold = autopickProt._getPickArgs()
+
+        if IS_GT30:
+            params, minDiameter, maxDiameter, threshold, threshold2 = autopickProt._getPickArgs()
+        else:
+            params, minDiameter, maxDiameter, threshold = autopickProt._getPickArgs()
 
         pwutils.cleanPath(coordsDir)
         pwutils.makePath(coordsDir, 'extra')
@@ -333,15 +343,14 @@ class RelionWizLogPickParams(EmWizard):
             micFn = mic.getFileName()
             micBase = os.path.basename(micFn)
             pwutils.createLink(micFn, os.path.join(coordsDir, micBase))
-            micRow.setValue(md.RLN_MICROGRAPH_NAME, micBase)
+            micRow.setValue(md.RLN_MICROGRAPH_NAME, micBase)  # FIXME: remove md
 
         convert.writeSetOfMicrographs(micSet, micStarFn,
                                       postprocessImageRow=_postprocessMic)
 
         f = open(pickerProps, "w")
 
-        # params = params.replace('--odir ""', '--odir extra')
-        autopickCmd = "%s relion_autopick " % os.path.join(pw.Config.SCIPION_HOME, 'scipion')
+        autopickCmd = "scipion relion_autopick "
         autopickCmd += ' --i input_micrographs.star '
         autopickCmd += params
         autopickCmd += ' --LoG_diam_min %(mind) '
@@ -355,17 +364,17 @@ class RelionWizLogPickParams(EmWizard):
             "minDiameter": minDiameter,
             "maxDiameter": maxDiameter,
             "threshold": threshold,
-            'projDir': project.getPath(),  # autopickProt.getWorkingDir(),
+            'projDir': project.getPath(),
             "autopickCmd": autopickCmd
         }
 
         f.write("""
         parameters = mind,maxd,threshold
         mind.value = %(minDiameter)s
-        mind.label = Min. Diameter (A)
+        mind.label = Min. Diam. (A)
         mind.help = The smallest allowed diameter for the blob-detection algorithm. This should correspond to the smallest size of your particles in Angstroms.
         maxd.value = %(maxDiameter)s
-        maxd.label = Max. Diameter (A)
+        maxd.label = Max. Diam. (A)
         maxd.help = The largest allowed diameter for the blob-detection algorithm. This should correspond to the largest size of your particles in Angstroms.
         threshold.value =  %(threshold)s
         threshold.label = Threshold

@@ -72,7 +72,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
         line.addParam('beamTiltY', params.FloatParam, default=0.,
                       label='Y')
 
-        form.addParam('defectFile', params.FileParam,
+        form.addParam('defectFile', params.FileParam, allowsNull=True,
                       label='Defects file',
                       help='Location of a UCSF MotionCor2-style '
                       'defect text file or a defect map that '
@@ -138,7 +138,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
         """
         validateMsgs = []
 
-        if not exists(self.defectFile.get()):
+        if self.defectFile.hasValue() and not exists(self.defectFile.get()):
             validateMsgs.append("Defect file not found:\n%s" % self.defectFile.get())
 
         return validateMsgs

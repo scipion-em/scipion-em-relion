@@ -31,6 +31,7 @@ from pyworkflow.protocol import STEPS_SERIAL
 from pwem.protocols import ProtParticlePickingAuto
 
 from .protocol_autopick import ProtRelionAutopickBase
+from .. import IS_GT30
 
 
 class ProtRelionAutopickLoG(ProtRelionAutopickBase):
@@ -90,6 +91,20 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
                             'threshold) particles compared to the default '
                             'setting.')
 
+        if IS_GT30:
+            group.addParam('threshold2', params.FloatParam, default=999,
+                           label='Upper threshold (stddev)',
+                           help='Use this to discard picks with LoG thresholds '
+                                'that are this many standard deviations above '
+                                'the average, e.g. to avoid high contrast '
+                                'contamination like ice and ethane droplets. '
+                                'Good values depend on the contrast of '
+                                'micrographs and need to be interactively '
+                                'explored; for low contrast micrographs, '
+                                'values of ~ 1.5 may be reasonable, but the '
+                                'same value will be too low for high-contrast '
+                                'micrographs.')
+
         form.addParam('extraParams', params.StringParam, default='',
                       label='Additional arguments:',
                       help='In this box command-line arguments may be provided '
@@ -119,15 +134,20 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
         """ This method is used by base class to provide the arguments to
         new inserted steps.
         """
-        return [
-            self.getAutopickParams(),
-            self.minDiameter.get(),
-            self.maxDiameter.get(),
-            self.threshold.get()
-        ]
+        args = [
+                self.getAutopickParams(),
+                self.minDiameter.get(),
+                self.maxDiameter.get(),
+                self.threshold.get()
+            ]
+
+        if IS_GT30:
+            args.append(self.threshold2.get())
+
+        return args
 
     def _pickMicrographsFromStar(self, micStarFile, cwd, params,
-                                 minDiameter, maxDiameter, threshold):
+                                 minDiameter, maxDiameter, threshold, threshold2):
         """ Launch the 'relion_autopick' for micrographs in the inputStarFile.
          If the input set of complete, the star file will contain all the
          micrographs. If working in streaming, it will be only one micrograph.
@@ -136,6 +156,9 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
         params += ' --LoG_diam_min %0.3f' % minDiameter
         params += ' --LoG_diam_max %0.3f' % maxDiameter
         params += ' --LoG_adjust_threshold %0.3f' % threshold
+
+        if IS_GT30:
+            params += ' --LoG_upper_threshold %0.3f' % threshold2
 
         program = self._getProgram('relion_autopick')
 
