@@ -28,8 +28,8 @@ import re
 from glob import glob
 from os.path import exists
 
-from pyworkflow.protocol.params import (BooleanParam, PointerParam, FloatParam, 
-                                        IntParam, EnumParam, StringParam, 
+from pyworkflow.protocol.params import (BooleanParam, PointerParam, FloatParam,
+                                        IntParam, EnumParam, StringParam,
                                         LabelParam, PathParam)
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pyworkflow.utils.path import cleanPath, replaceBaseExt, removeBaseExt
@@ -769,16 +769,11 @@ class ProtRelionBase(EMProtocol):
             alignToPrior = hasAlign and getattr(self, 'alignmentAsPriors', False)
             fillRandomSubset = hasAlign and getattr(self, 'fillRandomSubset', False)
 
-            relion3Labels = [md.RLN_PARTICLE_RANDOM_SUBSET,
-                             md.RLN_IMAGE_BEAMTILT_X,
-                             md.RLN_IMAGE_BEAMTILT_Y]
-
             relion.convert.writeSetOfParticles(
                 imgSet, imgStar, self._getExtraPath(),
                 alignType=alignType,
                 postprocessImageRow=self._postprocessParticleRow,
-                fillRandomSubset=fillRandomSubset,
-                extraLabels=relion3Labels)
+                fillRandomSubset=fillRandomSubset)
 
             if alignToPrior:
                 mdParts = md.MetaData(imgStar)
@@ -1275,17 +1270,13 @@ class ProtRelionBase(EMProtocol):
                         "%06d@%s.mrcs" % (img.getFrameId(), micBase))
 
     def _postprocessParticleRow(self, part, partRow):
-        if part.hasAttribute('_rlnGroupName'):
-            partRow.setValue(md.RLN_MLMODEL_GROUP_NAME,
-                             '%s' % part.getAttributeValue('_rlnGroupName'))
-        else:
-            partRow.setValue(md.RLN_MLMODEL_GROUP_NAME,
-                             '%s' % part.getMicId())
-
-        ctf = part.getCTF()
-
-        if ctf is not None and ctf.getPhaseShift():
-            partRow.setValue(md.RLN_CTF_PHASESHIFT, ctf.getPhaseShift())
+        pass
+        # if part.hasAttribute('_rlnGroupName'):
+        #     partRow.setValue(md.RLN_MLMODEL_GROUP_NAME,
+        #                      '%s' % part.getAttributeValue('_rlnGroupName'))
+        # else:
+        #     partRow.setValue(md.RLN_MLMODEL_GROUP_NAME,
+        #                      '%s' % part.getMicId())
 
     def _doSubsets(self):
         return False
