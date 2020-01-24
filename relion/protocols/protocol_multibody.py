@@ -210,6 +210,8 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
     
     # -------------------------- INSERT steps functions ------------------------
     def _insertAllSteps(self):
+        self._createFilenameTemplates()
+
         objId = self.protRefine.get().getObjId()
         self._insertFunctionStep('convertInputStep', objId)
         self._insertFunctionStep('multibodyRefineStep',
