@@ -335,18 +335,13 @@ class RelionWizLogPickParams(EmWizard):
             params, minDiameter, maxDiameter, threshold = autopickProt._getPickArgs()
 
         pwutils.cleanPath(coordsDir)
-        pwutils.makePath(coordsDir, 'extra')
+        pwutils.makePath(coordsDir)
         pickerProps = os.path.join(coordsDir, 'picker.conf')
         micStarFn = os.path.join(coordsDir, 'input_micrographs.star')
 
-        def _postprocessMic(mic, micRow):
-            micFn = mic.getFileName()
-            micBase = os.path.basename(micFn)
-            pwutils.createLink(micFn, os.path.join(coordsDir, micBase))
-            micRow.setValue(md.RLN_MICROGRAPH_NAME, micBase)  # FIXME: remove md
-
-        convert.writeSetOfMicrographs(micSet, micStarFn,
-                                      postprocessImageRow=_postprocessMic)
+        writer = convert.Writer(rootDir=coordsDir,
+                                outputDir=coordsDir)
+        writer.writeSetOfMicrographs(micSet, micStarFn)
 
         f = open(pickerProps, "w")
 
@@ -358,7 +353,7 @@ class RelionWizLogPickParams(EmWizard):
         autopickCmd += ' --LoG_adjust_threshold %(threshold) '
 
         args = {
-            "convert": pw.join('apps', 'pw_convert.py'),
+            "convert": pwem.join('cmd', 'convert.py'),
             'coordsDir': coordsDir,
             'micsSqlite': micSet.getFileName(),
             "minDiameter": minDiameter,
@@ -371,22 +366,24 @@ class RelionWizLogPickParams(EmWizard):
         f.write("""
         parameters = mind,maxd,threshold
         mind.value = %(minDiameter)s
-        mind.label = Min. Diam. (A)
+        mind.label = Min diam.(A)
         mind.help = The smallest allowed diameter for the blob-detection algorithm. This should correspond to the smallest size of your particles in Angstroms.
         maxd.value = %(maxDiameter)s
-        maxd.label = Max. Diam. (A)
+        maxd.label = Max diam.(A)
         maxd.help = The largest allowed diameter for the blob-detection algorithm. This should correspond to the largest size of your particles in Angstroms.
         threshold.value =  %(threshold)s
         threshold.label = Threshold
         threshold.help = Lower threshold -> more particles
         runDir = %(coordsDir)s
         autopickCommand = %(autopickCmd)s
-        convertCommand = %(convert)s --coordinates --from relion --to xmipp --input  %(micsSqlite)s --output %(coordsDir)s --extra %(coordsDir)s/
+        convertCommand = %(convert)s --coordinates --from relion --to xmipp --input %(micsSqlite)s --output %(coordsDir)s --extra %(coordsDir)s/
         hasInitialCoordinates = false
         doPickAll = true
         """ % args)
         f.close()
-        process = CoordinatesObjectView(autopickProt.getProject(), micfn, coordsDir, autopickProt,
+        process = CoordinatesObjectView(autopickProt.getProject(), micfn,
+                                        coordsDir, autopickProt,
+                                        mode=CoordinatesObjectView.MODE_AUTOMATIC,
                                         pickerProps=pickerProps).show()
         process.wait()
         myprops = pwutils.readProperties(pickerProps)
