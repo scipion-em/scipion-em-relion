@@ -53,7 +53,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                            'optics characteristics for CTF refinement '
                            'should have a unique name.')
 
-        form.addParam('mtfFile', params.FileParam,
+        form.addParam('mtfFile', params.FileParam, allowsNull=True,
                       label='MTF-curve file',
                       help='User-provided STAR-file with the MTF-curve '
                            'of the detector. Use the wizard to load one '
@@ -140,6 +140,8 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
 
         if self.defectFile.hasValue() and not exists(self.defectFile.get()):
             validateMsgs.append("Defect file not found:\n%s" % self.defectFile.get())
+        if self.mtfFile.hasValue() and not exists(self.mtfFile.get()):
+            validateMsgs.append("MTF file not found:\n%s" % self.mtfFile.get())
 
         return validateMsgs
     

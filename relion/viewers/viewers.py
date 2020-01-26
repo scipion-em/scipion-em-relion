@@ -1846,6 +1846,13 @@ class RelionMotioncorrViewer(EmProtocolViewer):
                          showj.VISIBLE: labelsDef,
                          showj.RENDER: None
                          }
+
+        labelsPs = 'enabled id _powerSpectra._filename _powerSpectra._samplingRate _filename'
+        viewParamsPs = {showj.MODE: showj.MODE_MD,
+                        showj.ORDER: labelsPs,
+                        showj.VISIBLE: labelsPs,
+                        showj.RENDER: '_powerSpectra._filename'
+                        }
         if param == 'doShowMics':
             if getattr(self.protocol, 'outputMicrographs', None) is not None:
                 return [MicrographsView(self.getProject(),
@@ -1863,9 +1870,12 @@ class RelionMotioncorrViewer(EmProtocolViewer):
                                           title="Visualization error")]
 
         elif param == 'doShowMicsPS':
-            if getattr(self.protocol, 'outputMicrographsPS', None) is not None:
-                return [MicrographsView(self.getProject(),
-                                        self.protocol.outputMicrographsPS)]
+            if getattr(self.protocol, '_savePsSum', False):
+                if getattr(self.protocol, 'outputMicrographs', None) is not None:
+                    output = self.protocol.outputMicrographs
+                else:
+                    output = self.protocol.outputMicrographsDoseWeighted
+                return [self.objectView(output, viewParams=viewParamsPs)]
             else:
                 return [self.errorMessage('No output power spectra found!',
                                           title="Visualization error")]
