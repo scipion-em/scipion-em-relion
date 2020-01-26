@@ -220,15 +220,14 @@ class Relion2AutopickParams(EmWizard):
         pwutils.copyPattern(autopickProt._getExtraPath("*autopick.star"),
                             backupDir)
 
-        cmd = '%s relion_autopick ' % os.path.join(pw.Config.SCIPION_HOME, 'scipion')
-        # cmd += '--i extra/%(micrographName).star '
+        cmd = 'scipion relion_autopick '
         cmd += '--i input_micrographs.star '
         cmd += '--threshold %(threshold) --min_distance %(ipd) '
         cmd += ' --max_stddev_noise %(maxStddevNoise) '
         cmd += ' --read_fom_maps'
         cmd += autopickProt.getAutopickParams()
 
-        convertCmd = pw.join('apps', 'pw_convert.py')
+        convertCmd = pwem.join('cmd', 'convert.py')
         convertCmd += ' --coordinates --from relion --to xmipp '
         convertCmd += ' --input %s' % micSet.getFileName()
         convertCmd += ' --output %s' % coordsDir

@@ -402,7 +402,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         return self._getPath('images.xmd')
 
     def createParticles(self, item, row):
-        particle = convert.rowToParticle(row, readCtf=self._useCTF())
+        particle = relion.convert.rowToParticle(row, readCtf=self._useCTF())
         coord = particle.getCoordinate()
         item.setY(coord.getY())
         item.setX(coord.getX())
