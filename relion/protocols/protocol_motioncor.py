@@ -561,7 +561,7 @@ def createGlobalAlignmentPlot(meanX, meanY, first, pixSize):
     ax_px.plot(sumMeanX, sumMeanY, color='b')
     ax_px.plot(sumMeanX, sumMeanY, 'yo')
     ax_px.plot(sumMeanX[0], sumMeanY[0], 'ro', markersize=10, linewidth=0.5)
-    # ax_ang2.set_title('Full-frame alignment')
+    ax_px.set_title('Global frame alignment')
 
     plotter.tightLayout()
 
