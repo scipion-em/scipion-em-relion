@@ -24,11 +24,36 @@
 # *
 # **************************************************************************
 
-from .. import Plugin
+import relion
+from .convert_utils import convertBinaryFiles
 from .convert_deprecated import *
 from .dataimport import *
 
-if Plugin.isVersion31Active():
+# Writing of star files will be handle by the Writer class
+# We have a new implementation of it for Relion > 3.1 since
+# the star file format has changed in 3.1
+if relion.IS_GT30:
     from .convert31 import Writer
 else:
     from .convert30 import Writer
+
+
+def writeSetOfParticles(imgSet, starFile, outputDir, **kwargs):
+    """ Convenience function to a SetOfImages as Relion metadata using a Writer.
+
+    Params:
+        imgSet: the SetOfImages instance.
+        starFile: the filename where to write the meta
+        outputDir: where binary files will be converted or linked.
+        filesMapping: this dict will help when there is need to replace images names
+
+    Keyword Arguments:
+        blockName: The name of the data block (default particles)
+        fillMagnification: If True set magnification values (default False)
+        alignType:
+        fillRandomSubset:
+        extraLabels:
+        postprocessImageRow:
+    """
+    writer = Writer(outputDir=outputDir)
+    return writer.writeSetOfParticles(imgSet, starFile, **kwargs)

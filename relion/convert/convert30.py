@@ -45,9 +45,14 @@ class Writer(WriterBase):
         self._writeSetOfMoviesOrMics(micsIterable, starFile,
                                      'micrographs', 'rlnMicrographName')
 
+    def writeSetOfParticles(self, partsSet, starFile, **kwargs):
+        # FIXME: Remove deprecated import
+        from .convert_deprecated import _writeSetOfParticles
+        _writeSetOfParticles(partsSet, starFile, self.outputDir, **kwargs)
+
     def _writeSetOfMoviesOrMics(self, imgIterable,
                                 starFile, tableName, imgLabelName):
-        """ This function can be used to write either movies or micrographs
+        """ Internal function to write either movies or micrographs
         star files. Input can be any iterable of these type of images (e.g
         set, list, etc).
         """

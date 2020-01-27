@@ -28,8 +28,8 @@ import re
 from glob import glob
 from os.path import exists
 
-from pyworkflow.protocol.params import (BooleanParam, PointerParam, FloatParam, 
-                                        IntParam, EnumParam, StringParam, 
+from pyworkflow.protocol.params import (BooleanParam, PointerParam, FloatParam,
+                                        IntParam, EnumParam, StringParam,
                                         LabelParam, PathParam)
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pyworkflow.utils.path import cleanPath, replaceBaseExt, removeBaseExt
@@ -39,7 +39,7 @@ import pwem.metadata as md
 from pwem.objects import SetOfClasses3D
 from pwem.protocols import EMProtocol
 
-import relion.convert as convert
+import relion.convert
 from ..constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO
 
 
@@ -769,16 +769,11 @@ class ProtRelionBase(EMProtocol):
             alignToPrior = hasAlign and getattr(self, 'alignmentAsPriors', False)
             fillRandomSubset = hasAlign and getattr(self, 'fillRandomSubset', False)
 
-            relion3Labels = [md.RLN_PARTICLE_RANDOM_SUBSET,
-                             md.RLN_IMAGE_BEAMTILT_X,
-                             md.RLN_IMAGE_BEAMTILT_Y]
-
-            convert.writeSetOfParticles(
+            relion.convert.writeSetOfParticles(
                 imgSet, imgStar, self._getExtraPath(),
                 alignType=alignType,
                 postprocessImageRow=self._postprocessParticleRow,
-                fillRandomSubset=fillRandomSubset,
-                extraLabels=relion3Labels)
+                fillRandomSubset=fillRandomSubset)
 
             if alignToPrior:
                 mdParts = md.MetaData(imgStar)
@@ -811,7 +806,7 @@ class ProtRelionBase(EMProtocol):
                 if particle is not None:
                     auxMovieParticles.append(movieParticle)
 
-            convert.writeSetOfParticles(
+            relion.convert.writeSetOfParticles(
                 auxMovieParticles, movieFn, None,
                 fillMagnification=True,
                 postprocessImageRow=self._postprocessImageRow)
@@ -1057,11 +1052,11 @@ class ProtRelionBase(EMProtocol):
             tmp = self._getTmpPath()
             newDim = self._getInputParticles().getXDim()
             if self.referenceMask.hasValue():
-                mask = convert.convertMask(self.referenceMask.get(), tmp, newDim)
+                mask = relion.convert.convertMask(self.referenceMask.get(), tmp, newDim)
                 args['--solvent_mask'] = mask
 
             if self.solventMask.hasValue():
-                solventMask = convert.convertMask(self.solventMask.get(), tmp, newDim)
+                solventMask = relion.convert.convertMask(self.solventMask.get(), tmp, newDim)
                 args['--solvent_mask2'] = solventMask
 
             if self.referenceMask.hasValue() and self.solventFscMask:
@@ -1070,7 +1065,7 @@ class ProtRelionBase(EMProtocol):
             if self.referenceMask2D.hasValue():
                 tmp = self._getTmpPath()
                 newDim = self._getInputParticles().getXDim()
-                mask = convert.convertMask(self.referenceMask2D.get(), tmp, newDim)
+                mask = relion.convert.convertMask(self.referenceMask2D.get(), tmp, newDim)
                 args['--solvent_mask'] = mask
 
     def _setSubsetArgs(self, args):
@@ -1153,7 +1148,7 @@ class ProtRelionBase(EMProtocol):
     def _splitInCTFGroups(self, imgStar):
         """ Add a new column in the image star to separate the particles
         into ctf groups """
-        convert.splitInCTFGroups(imgStar,
+        relion.convert.splitInCTFGroups(imgStar,
                                  self.defocusRange.get(),
                                  self.numParticles.get())
 
@@ -1275,17 +1270,13 @@ class ProtRelionBase(EMProtocol):
                         "%06d@%s.mrcs" % (img.getFrameId(), micBase))
 
     def _postprocessParticleRow(self, part, partRow):
-        if part.hasAttribute('_rlnGroupName'):
-            partRow.setValue(md.RLN_MLMODEL_GROUP_NAME,
-                             '%s' % part.getAttributeValue('_rlnGroupName'))
-        else:
-            partRow.setValue(md.RLN_MLMODEL_GROUP_NAME,
-                             '%s' % part.getMicId())
-
-        ctf = part.getCTF()
-
-        if ctf is not None and ctf.getPhaseShift():
-            partRow.setValue(md.RLN_CTF_PHASESHIFT, ctf.getPhaseShift())
+        pass
+        # if part.hasAttribute('_rlnGroupName'):
+        #     partRow.setValue(md.RLN_MLMODEL_GROUP_NAME,
+        #                      '%s' % part.getAttributeValue('_rlnGroupName'))
+        # else:
+        #     partRow.setValue(md.RLN_MLMODEL_GROUP_NAME,
+        #                      '%s' % part.getMicId())
 
     def _doSubsets(self):
         return False

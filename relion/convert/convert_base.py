@@ -67,6 +67,33 @@ class WriterBase:
         self.useBaseName = kwargs.get('useBaseName', False)
         self.extensions = kwargs.get('extensions', ['mrc'])
         self._ih = ImageHandler()  # used to convert images
+        self._filesDict = {}  # used to map file names (converted or linked)
+        self._dimensionality = 2
+        self._imageSize = None
+
+    def writeSetOfMovies(self, moviesIterable, starFile):
+        pass
+
+    def writeSetOfMicrographs(self, micsIterable, starFile):
+        pass
+
+    def _writeSetOfMoviesOrMics(self, imgIterable,
+                                starFile, tableName, imgLabelName):
+        pass
+
+    def writeSetOfParticles(self, partsSet, starFile, **kwargs):
+        """ Convert a set of particles into a star file and maybe binary files.
+
+        Params:
+            partsSet: input particles set
+            starFile: the filename of the star file that will be written.
+
+        Keyword Arguments:
+            blockName: The name of the data block (default particles)
+            fillMagnification: If True set magnification values (default False)
+
+        """
+        pass
 
     def _convert(self, image):
         imageFn = image.getFileName()
@@ -74,8 +101,7 @@ class WriterBase:
         if self.outputDir is None:
             return imageFn
 
-        ext = pwutils.getExt(imageFn)
-
+        ext = pwutils.getExt(imageFn)[1:]
         if ext in self.extensions:
             finalExt = ext
             convertFunc = pwutils.createLink
@@ -97,16 +123,6 @@ class WriterBase:
 
         return newPath
 
-    def writeSetOfMovies(self, moviesIterable, starFile):
-        pass
-
-    def writeSetOfMicrographs(self, micsIterable, starFile):
-        pass
-
-    def _writeSetOfMoviesOrMics(self, imgIterable,
-                                starFile, tableName, imgLabelName):
-        pass
-
     def _createTableFromDict(self, rowDict):
         """ Helper function to create a Table instance from
         an input dict with keys as columns names and type
@@ -122,15 +138,17 @@ class WriterBase:
             self._ctfToRow(mic.getCTF(), row)
 
     def _ctfToRow(self, ctf, row):
-        row['rlnCtfImage'] = ctf.getPsdFile()
+        psd = ctf.getPsdFile()
+        if psd:
+            row['rlnCtfImage'] = psd
         dU, dV, dAngle = ctf.getDefocus()
         row['rlnDefocusU'] = dU
         row['rlnDefocusV'] = dV
         # FIXME Check how astigmatism is defined in Relion
         row['rlnCtfAstigmatism'] = dU / dV
         row['rlnDefocusAngle'] = dAngle
-        row['rlnCtfFigureOfMerit'] = ctf.getFitQuality()
-        row['rlnCtfMaxResolution'] = ctf.getResolution()
+        row['rlnCtfFigureOfMerit'] = ctf.getFitQuality() or 0
+        row['rlnCtfMaxResolution'] = ctf.getResolution() or 0
 
         phaseShift = ctf.getPhaseShift()
 

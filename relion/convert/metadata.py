@@ -19,7 +19,7 @@
 # *
 # **************************************************************************
 
-__version__ = '0.0.4'
+__version__ = '0.0.5'
 __author__ = 'Jose Miguel de la Rosa Trevin'
 
 
@@ -110,7 +110,22 @@ class Table:
         with open(fileName) as f:
             self.readStar(f, tableName)
 
-    def writeStar(self, outputFile, tableName=None, singleRow=False):
+    def _formatValue(self, v):
+        return '%0.6f' % v if isinstance(v, float) else str(v)
+
+    def _getFormatStr(self, v):
+        return '.6f' if isinstance(v, float) else ''
+
+    def writeStarLine(self, outputFile, values):
+        """ Function to write a single row into the star file.
+        The function writeStar should have been called first with
+        writeRows=False.
+        """
+        outputFile.write(self.__lineFormat.format(*values))
+        outputFile.write('\n')
+
+    def writeStar(self, outputFile, tableName=None,
+                  singleRow=False, writeRows=True):
         """
         Write a Table in Star format to the given file.
         :param outputFile: File handler that should be already opened and
@@ -139,23 +154,26 @@ class Table:
             outputFile.write("_%s \n" % col)
 
         # Take a hint for the columns width from the first row
+        widths = [len(self._formatValue(v)) for v in self._rows[0]]
+        formats = [self._getFormatStr(v) for v in self._rows[0]]
 
-        widths = [len(str(v)) for v in self._rows[0]]
-        # Check middle and last row, just in case ;)
-        for index in [len(self)//2, -1]:
-            for i, v in enumerate(self._rows[index]):
-                w = len(str(v))
-                if w > widths[i]:
-                    widths[i] = w
+        n = len(self)
+        if n > 1:
+            # Check middle and last row, just in case ;)
+            for index in [n//2, -1]:
+                for i, v in enumerate(self._rows[index]):
+                    w = len(self._formatValue(v))
+                    if w > widths[i]:
+                        widths[i] = w
 
-        lineFormat = " ".join("{:>%d} " % (w + 1) for w in widths)
+        self.__lineFormat = " ".join("{:>%d%s} " % (w+1, f) for w, f in zip(widths, formats))
 
-        # Write data rows
-        for row in self._rows:
-            outputFile.write(lineFormat.format(*row))
+        if writeRows:
+            # Write data rows
+            for row in self._rows:
+                self.writeStarLine(outputFile, row)
+
             outputFile.write('\n')
-
-        outputFile.write('\n')
 
     def write(self, output_star, tableName=None):
         with open(output_star, 'w') as output_file:

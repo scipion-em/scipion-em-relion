@@ -34,7 +34,7 @@ from pyworkflow.utils.properties import Message
 import pyworkflow.utils as pwutils
 from pwem.convert.utils import getSubsetByDefocus
 
-import relion.convert as convert
+import relion.convert
 from ..convert.metadata import Table
 from ..constants import *
 from .protocol_autopick import ProtRelionAutopickBase
@@ -378,7 +378,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
 
         inputRefs = self.getInputReferences()
         if self.useInputReferences():
-            convert.writeReferences(
+            relion.convert.writeReferences(
                 inputRefs, self._getPath('reference_2d'), useBasename=True)
         else:
             ImageHandler().convert(inputRefs, self._getPath('reference_3d.mrc'))

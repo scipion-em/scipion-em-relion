@@ -31,6 +31,7 @@ from pwem.tests.workflows import TestWorkflow
 from pwem.protocols import ProtImportMovies
 from pyworkflow.plugin import Domain
 
+import relion
 from ..protocols import *
 
 
@@ -73,7 +74,14 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         self.assertEqual((3710, 3838, 24), dims)
         self.assertEqual(24, movies.getSize())
 
-        return protImport
+        if relion.IS_30:
+            return protImport
+        else:
+            protAssign = self.newProtocol(ProtRelionAssignOpticsGroup,
+                                          objLabel='assign optics',
+                                          opticsGroupName='OpticsGroup1')
+            protAssign.inputSet.set(protImport.outputMovies)
+            return self.launchProtocol(protAssign)
 
     def _runRelionMc(self, protImport):
         protRelionMc = self.newProtocol(
@@ -151,7 +159,8 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
             allParticlesRam=True
         )
 
-        return protRelion2D
+        protRelion2D.inputParticles.set(protExtract.outputParticles)
+        return self.launchProtocol(protRelion2D)
 
     def _runInitModel(self, protRelion2D):
         relionIniModel = self.newProtocol(ProtRelionInitialModel,
@@ -171,4 +180,4 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         protRelionLog = self._runRelionLog(protRelionMc)
         protRelionExtract = self._runRelionExtract(protRelionLog, protGctf)
         protRelion2D = self._runRelion2D(protRelionExtract)
-        protInitModel = self._runRelion2D(protRelion2D)
+        #protInitModel = self._runRelion2D(protRelion2D)

@@ -28,7 +28,7 @@ import os
 import pyworkflow.utils as pwutils
 import pwem
 
-from .constants import RELION_HOME, RELION_CUDA_LIB, V3_0, V3_1
+from .constants import *
 
 
 _logo = "relion_logo.png"
