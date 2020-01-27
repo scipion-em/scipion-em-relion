@@ -61,7 +61,7 @@ class WriterBase:
         """
         self._optics = None
         # Not used now
-        # self.convertPolicy = kwargs.get('convertPolicy', CONVERT_IF_NEEDED)
+        #self.convertPolicy = kwargs.get('convertPolicy', self.CONVERT_IF_NEEDED)
         self.rootDir = kwargs.get('rootDir', None)
         self.outputDir = kwargs.get('outputDir', None)
         self.useBaseName = kwargs.get('useBaseName', False)
@@ -91,6 +91,9 @@ class WriterBase:
         Keyword Arguments:
             blockName: The name of the data block (default particles)
             fillMagnification: If True set magnification values (default False)
+
+            outputStack: A file name to write all particles. If this option is
+                passed, then the outputDir will be ignored.
 
         """
         pass
