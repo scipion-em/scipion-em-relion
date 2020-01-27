@@ -23,7 +23,8 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-from pyworkflow.utils import exists
+import os
+
 import pwem
 import pyworkflow.protocol.params as params
 
@@ -138,7 +139,8 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
         """
         validateMsgs = []
 
-        if not exists(self.defectFile.get()):
+        defectFile = self.defectFile.get()
+        if defectFile is not None and not os.path.exists(defectFile):
             validateMsgs.append("Defect file not found:\n%s" % self.defectFile.get())
 
         return validateMsgs

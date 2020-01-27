@@ -69,6 +69,7 @@ class Writer(WriterBase):
         micRow[imgLabelName] = ''  # Just to add label, proper value later
         iterMics = iter(imgIterable)
         mic = next(iterMics)
+        self._imageSize = mic.getXDim()
         self._micToRow(mic, micRow)
 
         opticsTable = self._createTableFromDict(list(self._optics.values())[0])
