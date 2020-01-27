@@ -31,6 +31,7 @@ import pyworkflow.utils as pwutils
 from pwem.protocols import ProtProcessParticles
 import pyworkflow.protocol.params as params
 
+import relion
 import relion.convert as convert
 from ..constants import STACK_NONE, STACK_MULT, STACK_ONE
 from .protocol_base import ProtRelionBase
@@ -82,21 +83,35 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
         self._stackType = self.stackType.get()
         self._ih = pwem.convert.ImageHandler()
         self._stackDict = {}
-        particlesPath = self._getPath('Particles')
+        particlesPath = self._particlesPath()
         pwutils.cleanPath(particlesPath)
         pwutils.makePath(particlesPath)
 
-        alignType = imgSet.getAlignment() if self.useAlignment else pwem.constants.ALIGN_NONE
+        alignType = imgSet.getAlignment() if self.useAlignment else pwem.ALIGN_NONE
+        outputDir = None
+        outputStack = None
+        postprocessImageRow = None
+
+        if self._stackType == STACK_ONE:
+            outputStack = self._particlesPath('particles.mrcs')
+        elif self._stackType == STACK_MULT:
+            outputDir = particlesPath
+
+        # We still need to maintain some old code for Relion 3.0
+        if relion.IS_30:
+            outputDir = self._getExtraPath()
+            postprocessImageRow = self._postprocessImageRow
+
         # Create links to binary files and write the relion .star file
         convert.writeSetOfParticles(
-            imgSet, self._getPath("particles.star"),
-            outputDir=self._getExtraPath(),
+            imgSet, self._particlesPath("particles.star"),
+            outputDir=outputDir,
+            outputStack=outputStack,
             alignType=alignType,
-            postprocessImageRow=self._postprocessImageRow,
-            fillMagnification=True)
+            postprocessImageRow=postprocessImageRow,
+            fillMagnification=True,
+            forceConvert=True)
 
-        pwutils.prettyDict(self._stackDict)
-    
     # --------------------------- INFO functions ------------------------------
     def _validate(self):
         validateMsgs = []
@@ -112,6 +127,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
         return summary
     
     # --------------------------- UTILS functions -----------------------------
+    # TODO: Remove this function when support for 3.0 is dropped
     def _postprocessImageRow(self, img, row):
         """ Write the binary image to the final stack
         and update the row imageName. """
@@ -133,10 +149,13 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
                 stackName = baseName + '.mrcs'
                 self._stackDict[baseName] = index
 
-            stackFn = self._getPath('Particles', stackName)
+            stackFn = self._particlesPath(stackName)
 
             self._ih.convert(img, (index, stackFn))
             # Store relative path in the star file
             relStackFn = os.path.relpath(stackFn, self._getPath())
             row.setValue('rlnImageName',
                          convert.locationToRelion(index, relStackFn))
+
+    def _particlesPath(self, *paths):
+        return self._getPath('Particles', *paths)
