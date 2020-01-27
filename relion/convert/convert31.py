@@ -106,7 +106,7 @@ class Writer(WriterBase):
             self._optics[ogName] = {
                 'rlnOpticsGroupName': ogName,
                 'rlnOpticsGroup': ogNumber,
-                'rlnMtfFileName': acq.mtfFile.get() or 'No-MTF',
+                #'rlnMtfFileName': acq.mtfFile.get() or 'No-MTF',
                 # FIXME: Check when we need to update the following
                 'rlnMicrographOriginalPixelSize': ps,
                 self._imgLabelPixelSize: ps,
@@ -118,6 +118,9 @@ class Writer(WriterBase):
                 'rlnImageDimensionality': self._dimensionality,
                 'rlnImageSize': self._imageSize,
             }
+            mtfFile = acq.mtfFile.get()
+            if mtfFile is not None:
+                self._optics[ogName]['rlnMtfFileName'] = mtfFile
         else:
             ogNumber = self._optics[ogName]['rlnOpticsGroup']
 
