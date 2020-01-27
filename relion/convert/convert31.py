@@ -179,7 +179,7 @@ class Writer(WriterBase):
                 self._ih.convert(part, (index, self.outputStack))
         else:
             if self.outputDir is not None:
-                fn = self._filesDict[fn]
+                fn = self._filesDict.get(fn, fn)
 
         row['rlnImageName'] = locationToRelion(index, fn)
 

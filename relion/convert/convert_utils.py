@@ -172,3 +172,10 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
             filesDict[fn] = newFn  # map new filename
 
     return filesDict
+
+
+def relativeFromFileName(imgRow, prefixPath):
+    """ Remove some prefix from filename in row. """
+    index, imgPath = relionToLocation(imgRow['rlnImageName'])
+    newImgPath = os.path.relpath(imgPath, prefixPath)
+    imgRow['rlnImageName'] = locationToRelion(index, newImgPath)
