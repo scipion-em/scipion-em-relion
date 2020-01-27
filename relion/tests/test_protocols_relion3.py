@@ -30,9 +30,10 @@ import pyworkflow.tests as pwtests
 from pwem.tests.workflows import TestWorkflow
 from pwem.protocols import ProtImportMovies
 from pwem.objects import SetOfMovies
-from pyworkflow.utils import copyTree
+from pyworkflow.utils import copyTree, join
 
 import relion
+import relion.convert
 from relion.protocols import ProtRelionMotioncor, ProtRelionAssignOpticsGroup
 
 CPUS = os.environ.get('SCIPION_TEST_CPUS', 4)
@@ -41,7 +42,8 @@ GPUS = os.environ.get('SCIPION_TEST_GPUS', 2)
 
 class Relion3TestProtocolBase(TestWorkflow):
     GROUP_NAME = "opticsGroupTest"
-    MTF_FILE = "/test/mtf.star"
+    MTF_FILE = join(os.path.dirname(relion.convert.__file__), 'mtfs',
+                    'mtf_k3_standard_200kV.star')
 
     @classmethod
     def setUpClass(cls):

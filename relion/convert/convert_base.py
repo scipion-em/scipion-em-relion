@@ -69,6 +69,7 @@ class WriterBase:
         self._ih = ImageHandler()  # used to convert images
         self._filesDict = {}  # used to map file names (converted or linked)
         self._dimensionality = 2
+        self._imageSize = 128
 
     def writeSetOfMovies(self, moviesIterable, starFile):
         pass
