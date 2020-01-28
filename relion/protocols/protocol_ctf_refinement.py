@@ -26,7 +26,7 @@
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
-import pwem.metadata as md
+import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtParticles
 from pyworkflow.object import Float

@@ -68,7 +68,7 @@ def setRelionAttributes(obj, objRow, *labels):
     and the datatype will be set correctly.
     """
     # FIXME: Remove dependency from md (and thus from Xmipp)
-    import pwem.metadata as md
+    import pwem.emlib.metadata as md
     for label in labels:
         setattr(obj, '_%s' % md.label2Str(label),
                 objRow.getValueAsObject(label))

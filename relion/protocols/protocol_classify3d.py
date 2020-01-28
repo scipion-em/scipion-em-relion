@@ -26,7 +26,7 @@
 
 from pyworkflow.object import String, Float
 from pwem.protocols import ProtClassify3D
-import pwem.metadata as md
+import pwem.emlib.metadata as md
 import pwem.constants as emcts
 
 import relion.convert as convert

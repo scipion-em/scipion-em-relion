@@ -30,7 +30,7 @@ import pyworkflow.utils as pwutils
 from pyworkflow.protocol.constants import STATUS_FINISHED
 import pyworkflow.protocol.params as params
 from pwem.protocols import ProtExtractParticles
-from pwem.convert import ImageHandler
+from pwem.emlib.image import ImageHandler
 from pwem.objects import Particle
 
 import relion.convert

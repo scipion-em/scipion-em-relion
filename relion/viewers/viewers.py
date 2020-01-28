@@ -31,7 +31,7 @@ from math import radians
 
 import pwem
 import pwem.viewers.showj as showj
-import pwem.metadata as md
+import pwem.emlib.metadata as md
 from pyworkflow.utils import cleanPath
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 import pyworkflow.protocol.params as params

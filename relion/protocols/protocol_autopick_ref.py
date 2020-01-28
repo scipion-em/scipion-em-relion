@@ -29,7 +29,7 @@ from os.path import relpath
 import pyworkflow.protocol.params as params
 from pwem.protocols import ProtParticlePickingAuto
 from pwem.constants import RELATION_CTF
-from pwem.convert import ImageHandler
+from pwem.emlib.image import ImageHandler
 from pyworkflow.utils.properties import Message
 import pyworkflow.utils as pwutils
 from pwem.convert.utils import getSubsetByDefocus

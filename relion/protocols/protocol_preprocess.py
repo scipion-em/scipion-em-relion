@@ -27,7 +27,7 @@
 from glob import glob
 
 import pwem
-import pwem.metadata as md
+import pwem.emlib.metadata as md
 from pyworkflow.utils.path import moveFile
 
 from pwem.protocols import ProtProcessParticles

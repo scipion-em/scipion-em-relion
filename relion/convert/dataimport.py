@@ -31,7 +31,7 @@ from collections import OrderedDict
 from pyworkflow.object import Float
 from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_NONE
 from pwem.objects import Micrograph
-import pwem.metadata as md
+import pwem.emlib.metadata as md
 from pyworkflow.utils.path import findRootFrom
 
 from .convert_deprecated import readSetOfParticles, relionToLocation, rowToCoordinate

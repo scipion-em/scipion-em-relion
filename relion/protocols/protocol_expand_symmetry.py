@@ -26,7 +26,7 @@
 
 from pyworkflow.protocol.params import StringParam
 from pwem.constants import ALIGN_PROJ
-import pwem.metadata as md
+import pwem.emlib.metadata as md
 from pwem.protocols import ProtProcessParticles
 
 import relion.convert as convert

@@ -31,7 +31,7 @@ New conversion functions dealing with Relion3.1 new star files format.
 
 import os
 
-from pwem.convert import ImageHandler
+from pwem.emlib.image import ImageHandler
 import pyworkflow.utils as pwutils
 
 from .metadata import Table, Column

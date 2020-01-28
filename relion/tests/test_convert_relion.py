@@ -38,8 +38,8 @@ from pyworkflow.utils import cleanPath
 from pwem.objects import (SetOfParticles, CTFModel, Acquisition,
                           SetOfMicrographs, Coordinate, Particle,
                           SetOfVolumes, Transform)
-from pwem.convert import ImageHandler
-import pwem.metadata as md
+from pwem.emlib.image import ImageHandler
+import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_3D
 
 from .. import Plugin
