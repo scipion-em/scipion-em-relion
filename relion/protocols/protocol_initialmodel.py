@@ -36,7 +36,7 @@ from pyworkflow.protocol.params import (PointerParam, FloatParam,
                                         BooleanParam,
                                         LEVEL_ADVANCED)
 
-from ..constants import ANGULAR_SAMPLING_LIST
+import relion
 import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
@@ -182,7 +182,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
 
         group = form.addGroup('Sampling')
         group.addParam('angularSamplingDeg', EnumParam, default=1,
-                       choices=ANGULAR_SAMPLING_LIST,
+                       choices=relion.ANGULAR_SAMPLING_LIST,
                        label='Angular sampling interval (deg)',
                        help='There are only a few discrete angular samplings'
                             ' possible because we use the HealPix library to'
@@ -429,12 +429,13 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
             args['--offset_step'] = self.offsetSearchStepPix.get() * 2
 
     def _fillDataFromIter(self, imgSet, iteration):
+        tableName = '' if relion.IS_30 else 'particles@'
         outImgsFn = self._getFileName('data', iter=iteration)
         imgSet.setAlignmentProj()
         imgSet.copyItems(
             self._getInputParticles(),
             updateItemCallback=self._createItemMatrix,
-            itemDataIterator=md.iterRows(outImgsFn,
+            itemDataIterator=md.iterRows(tableName + outImgsFn,
                                          sortByLabel=md.RLN_IMAGE_ID))
 
     def _createItemMatrix(self, item, row):
