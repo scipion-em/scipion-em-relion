@@ -1182,7 +1182,6 @@ class TestRelionExportParticles(TestRelionBase):
 
         def _checkProt(prot, params):
             stackFiles = glob(prot._getPath('Particles', '*mrcs'))
-            print("Stack files: ", stackFiles)
 
             n = len(stackFiles)
             if params['stackType'] == 0:
