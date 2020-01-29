@@ -647,13 +647,6 @@ def prependToFileName(imgRow, prefixPath):
     newLoc = locationToRelion(index, os.path.join(prefixPath, imgPath))
     imgRow.setValue(md.RLN_IMAGE_NAME, newLoc)
 
-
-def relativeFromFileName(imgRow, prefixPath):
-    """ Remove some prefix from filename in row. """
-    index, imgPath = relionToLocation(imgRow.getValue(md.RLN_IMAGE_NAME))
-    newImgPath = os.path.relpath(imgPath, prefixPath)
-    newLoc = locationToRelion(index, newImgPath)
-    imgRow.setValue(md.RLN_IMAGE_NAME, newLoc)
     
     
 def copyOrLinkFileName(imgRow, prefixDir, outputDir, copyFiles=False):

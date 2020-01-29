@@ -29,6 +29,7 @@ from pwem.protocols import ProtClassify3D
 import pwem.metadata as md
 import pwem.constants as emcts
 
+import relion
 import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
@@ -175,10 +176,11 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
     def _fillClassesFromIter(self, clsSet, iteration):
         """ Create the SetOfClasses3D from a given iteration. """
         self._loadClassesInfo(iteration)
+        tableName = '' if relion.IS_30 else 'particles@'
         dataStar = self._getFileName('data', iter=iteration)
         clsSet.classifyItems(updateItemCallback=self._updateParticle,
                              updateClassCallback=self._updateClass,
-                             itemDataIterator=md.iterRows(dataStar,
+                             itemDataIterator=md.iterRows(tableName + dataStar,
                                                           sortByLabel=md.RLN_IMAGE_ID))
     
     def _updateParticle(self, item, row):

@@ -74,20 +74,22 @@ def setRelionAttributes(obj, objRow, *labels):
                 objRow.getValueAsObject(label))
 
 
-def convertBinaryFiles(imgSet, outputDir, extension='mrcs'):
+def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
     """ Convert binary images files to a format read by Relion.
     Or create links if there is no need to convert the binary files.
 
     Params:
         imgSet: input image set to be converted.
         outputDir: where to put the converted file(s)
+        extension: extension accepted by the program
+        forceConvert: if True, the files will be converted and no root will be used
     Return:
         A dictionary with old-file as key and new-file as value
         If empty, not conversion was done.
     """
     filesDict = {}
     ih = pwem.convert.ImageHandler()
-    outputRoot = os.path.join(outputDir, 'input')
+    outputRoot = outputDir if forceConvert else os.path.join(outputDir, 'input')
     # Get the extension without the dot
     stackFiles = imgSet.getFiles()
     ext = pwutils.getExt(next(iter(stackFiles)))[1:]
@@ -124,7 +126,7 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs'):
         """ Convert from a format that is not read by Relion
         to an spider stack.
         """
-        newFn = getUniqueFileName(fn, 'stk')
+        newFn = getUniqueFileName(fn, 'mrcs')
         ih.convertStack(fn, newFn)
         print("   %s -> %s" % (newFn, fn))
         return newFn
@@ -135,7 +137,9 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs'):
         """
         return fn.replace(rootDir, outputRoot)
 
-    if ext == extension:
+    if forceConvert:
+        mapFunc = convertStack
+    elif ext == extension:
         print("convertBinaryFiles: creating soft links.")
         print("   Root: %s -> %s" % (outputRoot, rootDir))
         mapFunc = replaceRoot
@@ -168,3 +172,10 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs'):
             filesDict[fn] = newFn  # map new filename
 
     return filesDict
+
+
+def relativeFromFileName(imgRow, prefixPath):
+    """ Remove some prefix from filename in row. """
+    index, imgPath = relionToLocation(imgRow['rlnImageName'])
+    newImgPath = os.path.relpath(imgPath, prefixPath)
+    imgRow['rlnImageName'] = locationToRelion(index, newImgPath)

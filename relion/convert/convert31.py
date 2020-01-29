@@ -28,6 +28,7 @@
 """
 New conversion functions dealing with Relion3.1 new star files format.
 """
+import os
 from io import open
 import numpy as np
 from collections import OrderedDict
@@ -171,8 +172,14 @@ class Writer(WriterBase):
                     row['rlnMicrographName'] = str(coord.getMicId())
 
         index, fn = part.getLocation()
-        if self.outputDir is not None:
-            fn = self._filesDict[fn]
+        if self.outputStack:
+            row['rlnOriginalParticleName'] = locationToRelion(index, fn)
+            index, fn = self._counter, self._relOutputStack
+            if self._counter > 0:
+                self._ih.convert(part, (index, self.outputStack))
+        else:
+            if self.outputDir is not None:
+                fn = self._filesDict.get(fn, fn)
 
         row['rlnImageName'] = locationToRelion(index, fn)
 
@@ -193,6 +200,8 @@ class Writer(WriterBase):
         # Add now the new Optics Group stuff
         row['rlnOpticsGroup'] = self._getOpticsGroupNumber(part)
 
+        self._counter += 1
+
     def writeSetOfParticles(self, partsSet, starFile, **kwargs):
         # Process the first item and create the table based
         # on the generated columns
@@ -202,8 +211,14 @@ class Writer(WriterBase):
         firstPart = partsSet.getFirstItem()
 
         # Convert binaries if required
+        self.outputStack = kwargs.get('outputStack', None)
+        if self.outputStack:
+            self._relOutputStack = os.path.relpath(self.outputStack,
+                                                   os.path.dirname(starFile))
         if self.outputDir is not None:
-            self._filesDict = convertBinaryFiles(partsSet, self.outputDir)
+            forceConvert = kwargs.get('forceConvert', False)
+            self._filesDict = convertBinaryFiles(partsSet, self.outputDir,
+                                                 forceConvert=forceConvert)
 
         # Compute some flags from the first particle...
         # when flags are True, some operations will be applied to all particles
@@ -237,6 +252,7 @@ class Writer(WriterBase):
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
         self._imageSize = firstPart.getXDim()
+        self._counter = 0  # Mark first conversion as special one
         self._partToRow(firstPart, partRow)
         opticsTable = self._createTableFromDict(list(self._optics.values())[0])
         partsTable = self._createTableFromDict(partRow)

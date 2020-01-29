@@ -25,7 +25,7 @@
 # **************************************************************************
 
 import relion
-from .convert_utils import convertBinaryFiles
+from .convert_utils import *
 from .convert_deprecated import *
 from .dataimport import *
 
