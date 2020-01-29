@@ -35,7 +35,7 @@ from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pyworkflow.utils.path import cleanPath, replaceBaseExt, removeBaseExt
 
 import pwem
-import pwem.metadata as md
+import pwem.emlib.metadata as md
 from pwem.objects import SetOfClasses3D
 from pwem.protocols import EMProtocol
 

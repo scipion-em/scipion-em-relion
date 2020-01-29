@@ -26,7 +26,7 @@
 
 from pyworkflow.object import String, Float
 import pwem
-import pwem.metadata as md
+import pwem.emlib.metadata as md
 from pwem.objects import SetOfClasses2D
 from pwem.protocols import ProtClassify2D
 

@@ -31,7 +31,7 @@ from pyworkflow.utils import removeExt
 import pwem
 from pwem.protocols import ProtParticles
 from pwem.objects import SetOfParticles, SetOfClasses
-import pwem.metadata as md
+import pwem.emlib.metadata as md
 
 import relion.convert as convert
 

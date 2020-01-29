@@ -24,7 +24,7 @@
 # *
 # **************************************************************************
 
-import pwem.metadata as md
+import pwem.emlib.metadata as md
 from pyworkflow.object import String
 from pwem.objects import Volume, FSC
 from pwem.protocols import ProtRefine3D

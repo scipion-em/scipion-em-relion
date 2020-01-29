@@ -31,8 +31,8 @@ from os.path import exists
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 from pwem.protocols import ProtAnalysis3D
-import pwem.metadata as md
-from pwem.convert import ImageHandler
+import pwem.emlib.metadata as md
+from pwem.emlib.image import ImageHandler
 from pwem.objects import Volume
 
 import relion.convert as convert

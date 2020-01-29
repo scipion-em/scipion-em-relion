@@ -34,7 +34,7 @@ from pyworkflow.protocol.params import (PointerParam, FloatParam, StringParam,
                                         IntParam, BooleanParam, LEVEL_ADVANCED)
 from pwem.objects import Volume
 from pwem.constants import ALIGN_PROJ
-import pwem.metadata as md
+import pwem.emlib.metadata as md
 import pyworkflow.utils as pwutils
 from pwem.protocols import ProtProcessParticles
 

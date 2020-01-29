@@ -28,7 +28,7 @@
 import os
 import sys
 
-import pwem.metadata as md
+import pwem.emlib.metadata as md
 from pyworkflow.protocol.params import PointerParam, BooleanParam, LabelParam
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pwem.protocols import ProtOperateParticles

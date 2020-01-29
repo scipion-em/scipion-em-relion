@@ -26,7 +26,7 @@
 
 from collections import OrderedDict
 
-import pwem.metadata as md
+import pwem.emlib.metadata as md
 
 # ----------------- Constants values ------------------------------------------
 

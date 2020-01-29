@@ -27,7 +27,7 @@
 # **************************************************************************
 
 from pwem.protocols import ProtInitialVolume
-import pwem.metadata as md
+import pwem.emlib.metadata as md
 import pwem.constants as emcts
 from pwem.objects import Volume
 from pyworkflow.protocol.params import (PointerParam, FloatParam,

@@ -28,7 +28,7 @@ import os
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
-import pwem.metadata as md
+import pwem.emlib.metadata as md
 from pwem.objects import Volume, Float
 from pwem.protocols import ProtAnalysis3D
 

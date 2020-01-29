@@ -31,7 +31,7 @@ from io import open
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 from pwem.protocols import ProtParticles
-import pwem.metadata as md
+import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ
 
 import relion.convert as convert
