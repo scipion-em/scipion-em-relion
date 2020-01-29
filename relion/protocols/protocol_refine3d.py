@@ -30,6 +30,7 @@ from pwem.objects import Volume, FSC
 from pwem.protocols import ProtRefine3D
 from pwem.constants import ALIGN_PROJ
 
+import relion
 import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
@@ -177,11 +178,12 @@ leads to objective and high-quality results.
 
     # -------------------------- UTILS functions ------------------------------
     def _fillDataFromIter(self, imgSet, iteration):
+        tableName = '' if relion.IS_30 else 'particles@'
         outImgsFn = self._getFileName('data', iter=iteration)
         imgSet.setAlignmentProj()
         imgSet.copyItems(self._getInputParticles(),
                          updateItemCallback=self._createItemMatrix,
-                         itemDataIterator=md.iterRows(outImgsFn,
+                         itemDataIterator=md.iterRows(tableName + outImgsFn,
                                                       sortByLabel=md.RLN_IMAGE_ID))
     
     def _createItemMatrix(self, particle, row):

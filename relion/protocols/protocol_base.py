@@ -935,15 +935,20 @@ class ProtRelionBase(EMProtocol):
 
     # -------------------------- UTILS functions ------------------------------
     def _setNormalArgs(self, args):
+        inputParts = self._getInputParticles()
+        ps = inputParts.getSamplingRate()
+
         maskDiameter = self.maskDiameterA.get()
         if maskDiameter <= 0:
-            x, _, _ = self._getInputParticles().getDim()
-            maskDiameter = self._getInputParticles().getSamplingRate() * x
+            maskDiameter = ps * inputParts.getXDim()
 
         args.update({'--i': self._getFileName('input_star'),
-                     '--particle_diameter': maskDiameter,
-                     '--angpix': self._getInputParticles().getSamplingRate(),
-                     })
+                     '--particle_diameter': maskDiameter})
+
+        # Since Relion 3.1 --angpix is not longer a valid argument
+        if relion.IS_30:
+            args['--angpix'] = ps
+
         self._setCTFArgs(args)
 
         if self.maskZero == MASK_FILL_ZERO:
@@ -960,6 +965,10 @@ class ProtRelionBase(EMProtocol):
                     args['--firstiter_cc'] = ''
                 args['--ini_high'] = self.initialLowPassFilterA.get()
                 args['--sym'] = self.symmetryGroup.get()
+                if relion.IS_GT30:
+                    # We use the same pixel size as input particles, since
+                    # we convert anyway the input volume to match same size
+                    args['--ref_angpix'] = ps
 
         refArg = self._getRefArg()
         if refArg:
@@ -1052,11 +1061,13 @@ class ProtRelionBase(EMProtocol):
             tmp = self._getTmpPath()
             newDim = self._getInputParticles().getXDim()
             if self.referenceMask.hasValue():
-                mask = relion.convert.convertMask(self.referenceMask.get(), tmp, newDim)
+                mask = relion.convert.convertMask(self.referenceMask.get(),
+                                                  tmp, newDim)
                 args['--solvent_mask'] = mask
 
             if self.solventMask.hasValue():
-                solventMask = relion.convert.convertMask(self.solventMask.get(), tmp, newDim)
+                solventMask = relion.convert.convertMask(self.solventMask.get(),
+                                                         tmp, newDim)
                 args['--solvent_mask2'] = solventMask
 
             if self.referenceMask.hasValue() and self.solventFscMask:
@@ -1065,7 +1076,8 @@ class ProtRelionBase(EMProtocol):
             if self.referenceMask2D.hasValue():
                 tmp = self._getTmpPath()
                 newDim = self._getInputParticles().getXDim()
-                mask = relion.convert.convertMask(self.referenceMask2D.get(), tmp, newDim)
+                mask = relion.convert.convertMask(self.referenceMask2D.get(),
+                                                  tmp, newDim)
                 args['--solvent_mask'] = mask
 
     def _setSubsetArgs(self, args):
