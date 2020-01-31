@@ -31,7 +31,7 @@ from math import radians
 
 import pwem
 import pwem.viewers.showj as showj
-import pwem.emlib.metadata as md
+from pwem.emlib.image import ImageHandler
 from pyworkflow.utils import cleanPath
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 import pyworkflow.protocol.params as params
@@ -1550,9 +1550,6 @@ Examples:
     
     def _getGridSize(self, n=None):
         """ Figure out the layout of the plots given the number of references. """
-        if n is None:
-            n = len(self._refsList)
-        
         if n == 1:
             gridsize = [1, 1]
         elif n == 2:
@@ -1720,7 +1717,7 @@ class RelionLocalResViewer(ProtocolViewer):
 
     def _getImgData(self, imgFile):
         import numpy as np
-        img = pwem.convert.ImageHandler().read(imgFile + ":mrc")
+        img = ImageHandler().read(imgFile + ":mrc")
         imgData = img.getData()
 
         maxRes = np.amax(imgData)

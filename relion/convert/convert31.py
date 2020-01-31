@@ -36,7 +36,6 @@ from collections import OrderedDict
 import pwem
 import pwem.convert.transformations as tfs
 
-import relion
 from .convert_base import WriterBase
 from .convert_utils import convertBinaryFiles, locationToRelion
 

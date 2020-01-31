@@ -36,6 +36,7 @@ from pyworkflow.utils.path import cleanPath, replaceBaseExt, removeBaseExt
 
 import pwem
 import pwem.emlib.metadata as md
+from pwem.emlib.image import ImageHandler
 from pwem.objects import SetOfClasses3D
 from pwem.protocols import EMProtocol
 
@@ -1241,7 +1242,7 @@ class ProtRelionBase(EMProtocol):
         return self._getTmpPath("input_references.star")
 
     def _convertRef(self):
-        ih = pwem.convert.ImageHandler()
+        ih = ImageHandler()
 
         if self.IS_3D:
             if not self.IS_3D_INIT:

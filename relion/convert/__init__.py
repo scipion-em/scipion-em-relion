@@ -24,10 +24,10 @@
 # *
 # **************************************************************************
 
-import relion
 from .convert_utils import *
 from .convert_deprecated import *
 from .dataimport import *
+import relion
 
 # Writing of star files will be handle by the Writer class
 # We have a new implementation of it for Relion > 3.1 since

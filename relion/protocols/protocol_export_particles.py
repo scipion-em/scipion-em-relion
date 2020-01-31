@@ -26,10 +26,11 @@
 
 import os
 
-import pwem
-import pyworkflow.utils as pwutils
-from pwem.protocols import ProtProcessParticles
 import pyworkflow.protocol.params as params
+import pyworkflow.utils as pwutils
+import pwem
+from pwem.emlib.image import ImageHandler
+from pwem.protocols import ProtProcessParticles
 
 import relion
 import relion.convert as convert
@@ -81,7 +82,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
         """
         imgSet = self.inputParticles.get()
         self._stackType = self.stackType.get()
-        self._ih = pwem.convert.ImageHandler()
+        self._ih = ImageHandler()
         self._stackDict = {}
         particlesPath = self._particlesPath()
         pwutils.cleanPath(particlesPath)
