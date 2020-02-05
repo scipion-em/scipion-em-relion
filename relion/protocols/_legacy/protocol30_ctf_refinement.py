@@ -31,10 +31,9 @@ from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtParticles
 from pyworkflow.object import Float
 
-import relion
 import relion.convert as convert
-from ..objects import CtfRefineGlobalInfo
-from ..convert.metadata import Table
+from relion.objects import CtfRefineGlobalInfo
+from relion.convert.metadata import Table
 
 
 class ProtRelionCtfRefinement(ProtParticles):
@@ -70,83 +69,62 @@ class ProtRelionCtfRefinement(ProtParticles):
                            'as otherwise there may not be enough signal. ')
 
         form.addSection(label='Fit')
-        form.addParam('estimateAnisoMag', params.BooleanParam,
-                      default=False,
-                      label='Estimate (anisotropic) magnification?',
-                      help="If set to Yes, then relion_ctf_refine will also "
-                           "estimate the (anisotropic) magnification per optics"
-                           " group. This option cannot be done simultaneously "
-                           "with higher-order aberration estimation. It's "
-                           "probably best to estimate the one that is most off "
-                           "first, and the other one second. It might be worth "
-                           "repeating the estimation if both are off.")
-
-        form.addParam('doCtfFitting', params.BooleanParam, default=True,
-                      condition='not estimateAnisoMag',
-                      label='Perform CTF parameter fitting?',
-                      help='If set to Yes, then relion_ctf_refine will be '
-                           'used to estimate the selected parameters below.')
-
-        form.addParam('fitDefocus', params.EnumParam, default=relion.FIT_NO,
-                      condition='doCtfFitting',
-                      choices=['no', 'per-micrograph', 'per-particle'],
-                      display=params.EnumParam.DISPLAY_HLIST,
-                      label='Fit defocus?',
-                      help='If set to per-particle or per-micrograph, then '
-                           'relion_ctf_refine will estimate a defocus values.')
-
-        form.addParam('fitAstig', params.EnumParam, default=relion.FIT_NO,
-                      condition='doCtfFitting',
-                      choices=['no', 'per-micrograph', 'per-particle'],
-                      display=params.EnumParam.DISPLAY_HLIST,
-                      label='Fit astigmatism? ',
-                      help="If set to per-particle or per-micrograph, then "
-                           "relion_ctf_refine will estimate astigmatism.")
-
-        form.addParam('fitBfactor', params.EnumParam, default=relion.FIT_NO,
-                      condition='doCtfFitting',
-                      choices=['no', 'per-micrograph', 'per-particle'],
-                      display=params.EnumParam.DISPLAY_HLIST,
-                      label='Fit B-factor?',
-                      help='If set to per-particle or per-micrograph, then '
-                           'relion_ctf_refine will estimate B-factors that '
-                           'describe the signal falloff.')
-
-        form.addParam('fitPhaseShift', params.EnumParam, default=relion.FIT_NO,
-                      condition='doCtfFitting',
-                      choices=['no', 'per-micrograph', 'per-particle'],
-                      display=params.EnumParam.DISPLAY_HLIST,
-                      label='Fit phase-shift? ',
-                      help="If set to per-particle or per-micrograph, then "
-                           "relion_ctf_refine will estimate astigmatism.")
-
-        form.addParam('doBeamtiltEstimation', params.BooleanParam, default=True,
-                      label='Estimate beamtilt?',
-                      help='If set to Yes, then relion_ctf_refine will '
-                           'also estimate the beamtilt per optics group. '
-                           'This option is only recommended for data sets '
-                           'that extend beyond 4.5 Angstrom resolution.')
-        form.addParam('doEstimateTrefoil', params.BooleanParam, default=False,
-                      condition='doBeamtiltEstimation',
-                      label='Also estimate trefoil?',
-                      help='If set to Yes, then relion_ctf_refine will also '
-                           'estimate the trefoil (3-fold astigmatism) per '
-                           'optics group. This option is only recommended for '
-                           'data sets that extend beyond 3.5 Angstrom '
-                           'resolution.')
-
-        form.addParam('doEstimate4thOrder', params.BooleanParam, default=False,
-                      label='Estimate 4th order aberrations?',
-                      help='If set to Yes, then relion_ctf_refine will also '
-                           'estimate the Cs and the tetrafoil (4-fold '
-                           'astigmatism) per optics group. This option is only '
-                           'recommended for data sets that extend beyond 3 '
-                           'Angstrom resolution.')
-
         form.addParam('minResolution', params.FloatParam, default=30,
                       label='Minimum resolution for fits (A)',
                       help="The minimum spatial frequency (in Angstrom) used "
-                           "in the beamtilt fit.")
+                           "in the beamtilt fit. (Default value "
+                           "is usually correct)")
+        form.addParam('doCtfFitting', params.BooleanParam, default=True,
+                      label='Perform CTF parameter fitting?',
+                      help='If set to Yes, then relion_ctf_refine will be '
+                           'used to estimate the selected parameters below.'
+                           ' (We are interested in re-estimating the defocus'
+                           ' of each particle. This will account for '
+                           'non-horizontal'
+                           ' ice layers, and particles at the top or bottom of'
+                           ' the ice layer.)')
+        form.addParam('fitPartDefocus', params.BooleanParam, default=True,
+                      condition='doCtfFitting',
+                      label='Fit per-particle defocus?',
+                      help='If set to Yes, then relion_ctf_refine will '
+                           'estimate a per-particle defocus.')
+        form.addParam('rangeDefocusFit', params.IntParam, default=2000,
+                      condition='doCtfFitting and fitPartDefocus',
+                      label='Range for defocus fit (A)',
+                      help='The range in (Angstrom) for the defocus fit of '
+                           'each particle. (Usually, the default '
+                           'value works fine.)')
+        form.addParam('fitAstig', params.EnumParam, default=0,
+                      choices=['no', 'per-micrograph', 'per-particle'],
+                      display=params.EnumParam.DISPLAY_HLIST,
+                      label='Fit astigmatism? ',
+                      help="If *per-micrograph*, ctf_refine will try to "
+                           "refine "
+                           "astigmatism on a per-micrograph basis. This will "
+                           "require many particles and good signal-to-noise "
+                           "ratios per micrograph.\n\n"
+                           "If *per-particle*, astigmatism will be estimated "
+                           "on a per-particle basis. This requires very "
+                           "strong "
+                           "data, i.e. very large particles with excellent "
+                           "signal-to-noise ratios.")
+        form.addParam('fitMicPhaseShift', params.BooleanParam, default=False,
+                      condition='doCtfFitting',
+                      label='Fit per-micrograph phase-shift?',
+                      help='If set to Yes, ctf_refine will try to refine a '
+                           'phase-shift (amplitude contrast) on a per-'
+                           'micrograph basis. This may be useful for Volta-'
+                           'phase plate data, but will require many particles '
+                           'and good signal-to-noise ratios per micrograph.')
+        form.addParam('doBeamtiltEstimation', params.BooleanParam,
+                      default=False,
+                      label='Perform beamtilt estimation?',
+                      help='If set to Yes, then relion_ctf_refine will also '
+                           'estimate the beamtilt over the entire data set. '
+                           'This option is only recommended for '
+                           'high-resolution '
+                           'data sets, i.e. significantly beyond 3 Angstrom '
+                           'resolution.')
 
         form.addParallelSection(threads=1, mpi=1)
 
@@ -184,38 +162,26 @@ class ProtRelionCtfRefinement(ProtParticles):
         args += "--o %s " % self._getExtraPath()
         inputProt = self.inputPostprocess.get()
         postStar = inputProt._getExtraPath('postprocess.star')
+        postVols = convert.getVolumesFromPostprocess(postStar)
         args += "--f %s " % postStar
-        args += "--angpix_ref %0.3f " % inputProt.solventMask.get().getSamplingRate()
+        args += "--m1 %s --m2 %s --mask %s " % postVols
+        args += "--kmin_tilt %0.3f " % self.minResolution
+        args += "--angpix %0.3f " % self.inputParticles.get().getSamplingRate()
 
-        # TODO: Check why we were using -m1 and -m2 options here
-        # Maybe not needed in R3.1???
-        #postVols = convert.getVolumesFromPostprocess(postStar)
-        #args += "--m1 %s --m2 %s --mask %s " % postVols
-        minRes = '%0.3f' % self.minResolution
+        if self.doCtfFitting:
+            args += "--fit_defocus "
 
-        # New command line string taken from here:
-        # https://github.com/3dem/relion/blob/a5d691e8a9507c1efcce2810ba74f5fac6d2a098/src/pipeline_jobs.cpp#L5050
-        if self.estimateAnisoMag:
-            args += " --fit_aniso --kmin_mag %s" % minRes
-        else:
-            if self.doCtfFitting:
-                def _letter(option):
-                    options = ['f', 'm', 'p']
-                    return options[self.getAttributeValue(option)]
+        fitAstig = self.fitAstig.get()
+        if fitAstig == 1:
+            args += "--glob_astig "
+        elif fitAstig == 2:
+            args += "--astig "
 
-                args += "--fit_defocus --kmin_defocus %s " % minRes
-                args += "--fit_mode %s%s%sf%s " % (_letter('fitPhaseShift'),
-                                                   _letter('fitDefocus'),
-                                                   _letter('fitAstig'),
-                                                   _letter('fitBfactor'))
+        if self.fitMicPhaseShift:
+            args += "--fit_phase "
 
-            if self.doBeamtiltEstimation:
-                args += "--fit_beamtilt --kmin_tilt %s " % minRes
-                if self.doEstimateTrefoil:
-                    args += " --odd_aberr_max_n 3 "
-
-            if self.doEstimate4thOrder:
-                args += '--fit_aberr '
+        if self.doBeamtiltEstimation:
+            args += "--fit_beamtilt "
 
         args += "--j %d " % self.numberOfThreads
         prog = "relion_ctf_refine" + ("_mpi" if self.numberOfMpi > 1 else "")
@@ -227,7 +193,7 @@ class ProtRelionCtfRefinement(ProtParticles):
         outImgSet.copyInfo(imgSet)
         outImgsFn = self.fileWithRefinedCTFName()
         imgSet.setAlignmentProj()
-        rowIterator = md.iterRows('particles@' + outImgsFn,
+        rowIterator = md.iterRows(outImgsFn,
                                   sortByLabel=md.RLN_IMAGE_ID)
         outImgSet.copyItems(imgSet,
                             updateItemCallback=self._updateItemCtfBeamTilt,

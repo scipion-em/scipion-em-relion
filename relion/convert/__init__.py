@@ -33,9 +33,9 @@ import relion
 # We have a new implementation of it for Relion > 3.1 since
 # the star file format has changed in 3.1
 if relion.IS_GT30:
-    from .convert31 import Writer
+    from .convert31 import Writer, Reader
 else:
-    from .convert30 import Writer
+    from .convert30 import Writer, Reader
 
 
 def writeSetOfParticles(imgSet, starFile, outputDir, **kwargs):
