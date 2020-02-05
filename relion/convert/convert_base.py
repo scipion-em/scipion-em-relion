@@ -31,6 +31,7 @@ New conversion functions dealing with Relion3.1 new star files format.
 
 import os
 
+import pwem
 from pwem.emlib.image import ImageHandler
 import pyworkflow.utils as pwutils
 
@@ -157,3 +158,18 @@ class WriterBase:
 
         if phaseShift is not None:
             row['rlnCtfPhaseShift'] = phaseShift
+
+
+class ReaderBase:
+    """ Helper class to grab information from star file rows
+     and fill the required values in Scipion objects
+     (e.g particiels, micrographs, etc)
+    """
+    def __init__(self, **kwargs):
+        """
+        """
+        self._alignType = kwargs.get('alignType', pwem.ALIGN_NONE)
+
+    def setParticleTransform(self, particle, row):
+        """ Set the transform values from the row. """
+        pass

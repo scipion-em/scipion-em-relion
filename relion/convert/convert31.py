@@ -36,7 +36,7 @@ from collections import OrderedDict
 import pwem
 import pwem.convert.transformations as tfs
 
-from .convert_base import WriterBase
+from .convert_base import WriterBase, ReaderBase
 from .convert_utils import convertBinaryFiles, locationToRelion
 
 
@@ -139,15 +139,17 @@ class Writer(WriterBase):
     def _align2DToRow(self, alignment, row):
         matrix = alignment.getMatrix()
         shifts = tfs.translation_from_matrix(matrix)
+        shifts *= self._pixelSize
         angles = -np.rad2deg(tfs.euler_from_matrix(matrix, axes='szyz'))
-        row['rlnOriginX'], row['rlnOriginY'] = shifts[:2]
+        row['rlnOriginXAngst'], row['rlnOriginYAngst'] = shifts[:2]
         row['rlnAnglePsi'] = -(angles[0] + angles[2])
 
     def _alignProjToRow(self, alignment, row):
         matrix = np.linalg.inv(alignment.getMatrix())
         shifts = -tfs.translation_from_matrix(matrix)
+        shifts *= self._pixelSize
         angles = -np.rad2deg(tfs.euler_from_matrix(matrix, axes='szyz'))
-        row['rlnOriginX'], row['rlnOriginY'], row['rlnOriginZ'] = shifts
+        row['rlnOriginXAngst'], row['rlnOriginYAngst'], row['rlnOriginZAngst'] = shifts
         row['rlnAngleRot'], row['rlnAngleTilt'], row['rlnAnglePsi'] = angles
 
     def _partToRow(self, part, row):
@@ -205,6 +207,7 @@ class Writer(WriterBase):
         # Process the first item and create the table based
         # on the generated columns
         self._imgLabelPixelSize = 'rlnImagePixelSize'
+
         self._optics = OrderedDict()
         partRow = OrderedDict()
         firstPart = partsSet.getFirstItem()
@@ -251,6 +254,8 @@ class Writer(WriterBase):
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
         self._imageSize = firstPart.getXDim()
+        self._pixelSize = firstPart.getSamplingRate()
+
         self._counter = 0  # Mark first conversion as special one
         self._partToRow(firstPart, partRow)
         opticsTable = self._createTableFromDict(list(self._optics.values())[0])
@@ -273,3 +278,97 @@ class Writer(WriterBase):
                 opticsTable.addRow(**opticsDict)
             f.write("\n# version 30001\n")
             opticsTable.writeStar(f, tableName='optics')
+
+
+class Reader(ReaderBase):
+
+    ALIGNMENT_LABELS = [
+        "rlnOriginXAngst",
+        "rlnOriginYAngst",
+        "rlnOriginZAngst",
+        "rlnAngleRot",
+        "rlnAngleTilt",
+        "rlnAnglePsi",
+    ]
+
+    def __init__(self, **kwargs):
+        """
+        """
+        ReaderBase.__init__(self, **kwargs)
+        self._first = False
+
+    def setParticleTransform(self, particle, row):
+        """ Set the transform values from the row. """
+        print("   reader.setParticleTransform")
+        print("   reader.alignType: ", self._alignType)
+        print("   reader: containsAny: ", row.containsAny(self.ALIGNMENT_LABELS))
+
+        self._pixelSize = particle.getSamplingRate()
+        self._invPixelSize = 1. / self._pixelSize
+
+        if (self._alignType == pwem.ALIGN_NONE or
+            not row.containsAny(self.ALIGNMENT_LABELS)):
+            print("     transform None")
+            self.setParticleTransform = self.__setParticleTransformNone
+        else:
+            # Ensure the Transform object exists
+            self._angles = np.zeros(3)
+            self._shifts = np.zeros(3)
+
+            particle.setTransform(pwem.objects.Transform())
+
+            if self._alignType == pwem.ALIGN_2D:
+                self.setParticleTransform = self.__setParticleTransform2D
+                print("     transform 2D")
+            elif self._alignType == pwem.ALIGN_PROJ:
+                self.setParticleTransform = self.__setParticleTransformProj
+                print("     transform Proj")
+            else:
+                raise Exception("Unexpected alignment type: %s"
+                                % self._alignType)
+
+        # Call again the modified function
+        self.setParticleTransform(particle, row)
+
+    def __setParticleTransformNone(self, particle, row):
+        particle.setTransform(None)
+
+    def __setParticleTransform2D(self, particle, row):
+        angles = self._angles
+        shifts = self._shifts
+        ips = self._invPixelSize
+
+        def _get(label):
+            return float(row.getValue(label, 0.))
+
+        shifts[0] = _get('rlnOriginXAngst') * ips
+        shifts[1] = _get('rlnOriginYAngst') * ips
+        angles[2] = _get('rlnAnglePsi')
+        radAngles = -np.rad2deg(angles)
+        M = tfs.euler_matrix(radAngles[0], radAngles[1], radAngles[2], 'szyz')
+        M[:3, 3] = shifts[:3]
+        particle.getTransform().setMatrix(M)
+
+    def __setParticleTransformProj(self, particle, row):
+        angles = self._angles
+        shifts = self._shifts
+        ips = self._invPixelSize
+
+        def _get(label):
+            return float(row.getValue(label, 0.))
+
+        shifts[0] = _get('rlnOriginXAngst') * ips
+        shifts[1] = _get('rlnOriginYAngst') * ips
+        shifts[2] = _get('rlnOriginZAngst') * ips
+
+        angles[0] = _get('rlnAngleRot')
+        angles[1] = _get('rlnAngleTilt')
+        angles[2] = _get('rlnAnglePsi')
+
+        radAngles = -np.deg2rad(angles)
+        # TODO: jmrt: Maybe we should test performance and consider if keeping
+        # TODO: the matrix and not creating one everytime will make things faster
+        M = tfs.euler_matrix(radAngles[0], radAngles[1], radAngles[2], 'szyz')
+        M[:3, 3] = -shifts[:3]
+        M = np.linalg.inv(M)
+        particle.getTransform().setMatrix(M)
