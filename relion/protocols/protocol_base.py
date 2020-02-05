@@ -728,7 +728,7 @@ class ProtRelionBase(EMProtocol):
                                  self._getInputParticles().getObjId(),
                                  self.copyAlignment.get())
         self._insertRelionStep()
-        self._insertFunctionStep('createOutputStep', 3)
+        self._insertFunctionStep('createOutputStep')
 
     def _insertRelionStep(self):
         """ Prepare the command line arguments before calling Relion. """

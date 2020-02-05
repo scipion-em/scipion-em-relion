@@ -84,7 +84,7 @@ leads to objective and high-quality results.
                 args['--low_resol_join_halves'] = 40
 
     # -------------------------- STEPS functions ------------------------------
-    def createOutputStep(self, x):
+    def createOutputStep(self):
         imgSet = self._getInputParticles()
         vol = Volume()
         vol.setFileName(self._getExtraPath('relion_class001.mrc'))
