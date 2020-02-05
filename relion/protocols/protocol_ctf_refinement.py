@@ -180,65 +180,6 @@ class ProtRelionCtfRefinement(ProtParticles):
                 row.rlnMaskName)
 
     def refineCtfStep(self):
-        """
-        `which relion_ctf_refine` --i particles.star --f postprocess.star --o CtfRefine/job001/
-
-        --fit_beamtilt --kmin_tilt 30 --j 1
-        --fit_beamtilt --kmin_tilt 30 --odd_aberr_max_n 3 --j 1
-        --fit_beamtilt --kmin_tilt 30 --odd_aberr_max_n 3 --fit_aberr
-        --fit_beamtilt --kmin_tilt 3
-
-        --fit_aniso --kmin_mag 30 --j 1
-
-        --fit_defocus --kmin_defocus 30 --fit_mode fmfff --j 4
-        --fit_defocus --kmin_defocus 30 --fit_mode fpfff --j 4
-        --fit_defocus --kmin_defocus 30 --fit_mode ffmff --j 4
-        --fit_defocus --kmin_defocus 30 --fit_mode ffpff --j 4
-
-        --fit_defocus --kmin_defocus 30 --fit_mode pppfp --j 4  --pipeline_control CtfRefine/job001/
-        --fit_defocus --kmin_defocus 30 --fit_mode mppfp --j 4  --pipeline_control CtfRefine/job001/
-
-        	// Always either do anisotropic magnification, or CTF,tilt-odd,even
-        if (joboptions["do_aniso_mag"].getBoolean())
-        {
-            command += " --fit_aniso";
-            command += " --kmin_mag " + joboptions["minres"].getString();
-        }
-        else
-        {
-            if (joboptions["do_ctf"].getBoolean())
-            {
-                command += " --fit_defocus --kmin_defocus " + joboptions["minres"].getString();
-                std::string fit_options = "";
-
-                fit_options += getStringFitOption(joboptions["do_phase"].getString());
-                fit_options += getStringFitOption(joboptions["do_defocus"].getString());
-                fit_options += getStringFitOption(joboptions["do_astig"].getString());
-                fit_options += "f"; // always have Cs refinement switched off
-                fit_options += getStringFitOption(joboptions["do_bfactor"].getString());
-
-                command += " --fit_mode " + fit_options;
-            }
-
-            // do not allow anisotropic magnification to be done simultaneously with higher-order aberrations
-            if (joboptions["do_tilt"].getBoolean())
-            {
-                command += " --fit_beamtilt";
-                command += " --kmin_tilt " + joboptions["minres"].getString();
-
-                if (joboptions["do_trefoil"].getBoolean())
-                {
-                    command += " --odd_aberr_max_n 3";
-                }
-            }
-
-            if (joboptions["do_4thorder"].getBoolean())
-            {
-                command += " --fit_aberr";
-            }
-        }
-        """
-
         args = "--i %s " % self._getPath('input_particles.star')
         args += "--o %s " % self._getExtraPath()
         inputProt = self.inputPostprocess.get()
@@ -250,8 +191,6 @@ class ProtRelionCtfRefinement(ProtParticles):
         # Maybe not needed in R3.1???
         #postVols = convert.getVolumesFromPostprocess(postStar)
         #args += "--m1 %s --m2 %s --mask %s " % postVols
-
-
         minRes = '%0.3f' % self.minResolution
 
         # New command line string taken from here:
