@@ -24,15 +24,16 @@
 # *
 # **************************************************************************
 
+import os
 import re
 from glob import glob
-from os.path import exists
+from collections import OrderedDict
 
+import pyworkflow.utils as pwutils
 from pyworkflow.protocol.params import (BooleanParam, PointerParam, FloatParam,
                                         IntParam, EnumParam, StringParam,
                                         LabelParam, PathParam)
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
-from pyworkflow.utils.path import cleanPath, replaceBaseExt, removeBaseExt
 
 import pwem
 import pwem.emlib.metadata as md
@@ -725,14 +726,14 @@ class ProtRelionBase(EMProtocol):
         self._initialize()
         self._insertFunctionStep('convertInputStep',
                                  self._getInputParticles().getObjId(),
-                                 self.copyAlignment)
+                                 self.copyAlignment.get())
         self._insertRelionStep()
-        self._insertFunctionStep('createOutputStep')
+        self._insertFunctionStep('createOutputStep', 3)
 
     def _insertRelionStep(self):
         """ Prepare the command line arguments before calling Relion. """
         # Join in a single line all key, value pairs of the args dict
-        args = {}
+        args = OrderedDict()
 
         if self.doContinue:
             self._setContinueArgs(args)
@@ -832,7 +833,7 @@ class ProtRelionBase(EMProtocol):
             mdAux.fillConstant(md.RLN_PARTICLE_NR_FRAMES_AVG, 1)
 
             mdAux.write(movieFn, md.MD_OVERWRITE)
-            cleanPath(auxMovieParticles.getFileName())
+            pwutils.cleanPath(auxMovieParticles.getFileName())
 
     def runRelionStep(self, params):
         """ Execute the relion steps with the give params. """
@@ -943,8 +944,8 @@ class ProtRelionBase(EMProtocol):
         if maskDiameter <= 0:
             maskDiameter = ps * inputParts.getXDim()
 
-        args.update({'--i': self._getFileName('input_star'),
-                     '--particle_diameter': maskDiameter})
+        args['--i'] = self._getFileName('input_star')
+        args['--particle_diameter'] = maskDiameter
 
         # Since Relion 3.1 --angpix is not longer a valid argument
         if relion.IS_30:
@@ -1017,12 +1018,11 @@ class ProtRelionBase(EMProtocol):
 
     def _setBasicArgs(self, args):
         """ Return a dictionary with basic arguments. """
-        args.update({'--flatten_solvent': '',
-                     '--norm': '',
-                     '--scale': '',
-                     '--o': self._getExtraPath('relion'),
-                     '--oversampling': self.oversampling.get()
-                     })
+        args['--flatten_solvent'] = ''
+        args['--norm'] = ''
+        args['--scale'] = ''
+        args['--o'] = self._getExtraPath('relion')
+        args['--oversampling'] = self.oversampling.get()
 
         if self.IS_CLASSIFY:
             args['--tau2_fudge'] = self.regularisationParamT.get()
@@ -1126,9 +1126,9 @@ class ProtRelionBase(EMProtocol):
         data_classes = self._getFileName('classes_scipion', iter=it)
 
         if clean:
-            cleanPath(data_classes)
+            pwutils.cleanPath(data_classes)
 
-        if not exists(data_classes):
+        if not os.path.exists(data_classes):
             clsSet = self.OUTPUT_TYPE(filename=data_classes)
             clsSet.setImages(self.inputParticles.get())
             self._fillClassesFromIter(clsSet, it)
@@ -1145,7 +1145,7 @@ class ProtRelionBase(EMProtocol):
         """ Sort the it??.data.star file by the maximum likelihood. """
         data_sqlite = self._getFileName('data_scipion', iter=it)
 
-        if not exists(data_sqlite):
+        if not os.path.exists(data_sqlite):
             iterImgSet = pwem.objects.SetOfParticles(filename=data_sqlite)
             iterImgSet.copyInfo(self._getInputParticles())
             self._fillDataFromIter(iterImgSet, it)
@@ -1225,7 +1225,7 @@ class ProtRelionBase(EMProtocol):
     def _convertVolFn(self, inputVol):
         """ Return a new name if the inputFn is not .mrc """
         index, fn = inputVol.getLocation()
-        return self._getTmpPath(replaceBaseExt(fn, '%02d.mrc' % index))
+        return self._getTmpPath(pwutils.replaceBaseExt(fn, '%02d.mrc' % index))
 
     def _convertVol(self, ih, inputVol):
         outputFn = self._convertVolFn(inputVol)
@@ -1274,7 +1274,7 @@ class ProtRelionBase(EMProtocol):
         partId = img.getParticleId()
         hasMicName = img.getCoordinate().getMicName() is not None
         if hasMicName:
-            micBase = removeBaseExt(img.getCoordinate().getMicName())
+            micBase = pwutils.removeBaseExt(img.getCoordinate().getMicName())
         else:
             micBase = "fake_movie_%06d" % img.getCoordinate().getMicId()
 
