@@ -23,6 +23,7 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+import relion
 
 from .protocol_create_mask3d import ProtRelionCreateMask3D
 from .protocol_classify2d import ProtRelionClassify2D
@@ -44,10 +45,15 @@ from .protocol_export_particles import ProtRelionExportParticles
 from .protocol_autopick_ref import ProtRelion2Autopick
 from .protocol_autopick_log import ProtRelionAutopickLoG
 from .protocol_bayesian_polishing import ProtRelionBayesianPolishing
-from .protocol_ctf_refinement import ProtRelionCtfRefinement
+
 from .protocol_motioncor import ProtRelionMotioncor
 from .protocol_multibody import ProtRelionMultiBody
 from .protocol_symmetrize_volume import ProtRelionSymmetrizeVolume
 
-# New protocol from Relion v3.1:
-from .protocol_assign_optic_groups import ProtRelionAssignOpticsGroup
+if relion.IS_30:
+    from ._legacy.protocol30_ctf_refinement import ProtRelionCtfRefinement
+else:
+    from .protocol_ctf_refinement import ProtRelionCtfRefinement
+
+    # New protocol from Relion v3.1:
+    from .protocol_assign_optic_groups import ProtRelionAssignOpticsGroup
