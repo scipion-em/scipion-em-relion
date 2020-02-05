@@ -299,16 +299,11 @@ class Reader(ReaderBase):
 
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
-        print("   reader.setParticleTransform")
-        print("   reader.alignType: ", self._alignType)
-        print("   reader: containsAny: ", row.containsAny(self.ALIGNMENT_LABELS))
-
         self._pixelSize = particle.getSamplingRate()
         self._invPixelSize = 1. / self._pixelSize
 
         if (self._alignType == pwem.ALIGN_NONE or
             not row.containsAny(self.ALIGNMENT_LABELS)):
-            print("     transform None")
             self.setParticleTransform = self.__setParticleTransformNone
         else:
             # Ensure the Transform object exists
@@ -319,10 +314,8 @@ class Reader(ReaderBase):
 
             if self._alignType == pwem.ALIGN_2D:
                 self.setParticleTransform = self.__setParticleTransform2D
-                print("     transform 2D")
             elif self._alignType == pwem.ALIGN_PROJ:
                 self.setParticleTransform = self.__setParticleTransformProj
-                print("     transform Proj")
             else:
                 raise Exception("Unexpected alignment type: %s"
                                 % self._alignType)
@@ -366,6 +359,7 @@ class Reader(ReaderBase):
         angles[2] = _get('rlnAnglePsi')
 
         radAngles = -np.deg2rad(angles)
+
         # TODO: jmrt: Maybe we should test performance and consider if keeping
         # TODO: the matrix and not creating one everytime will make things faster
         M = tfs.euler_matrix(radAngles[0], radAngles[1], radAngles[2], 'szyz')
