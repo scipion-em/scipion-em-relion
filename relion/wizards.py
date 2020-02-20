@@ -31,6 +31,7 @@ from pwem import *
 from pwem.viewers import CoordinatesObjectView
 from pwem.wizards.wizard import *
 from pyworkflow.gui.browser import FileBrowserWindow
+from scipion.constants import SCIPION_EP
 
 from .constants import *
 import relion.convert as convert
@@ -220,7 +221,8 @@ class Relion2AutopickParams(EmWizard):
         pwutils.copyPattern(autopickProt._getExtraPath("*autopick.star"),
                             backupDir)
 
-        cmd = 'scipion relion_autopick '
+        cmd = 'python -m %s relion_autopick ' % SCIPION_EP
+        # cmd += '--i extra/%(micrographName).star '
         cmd += '--i input_micrographs.star '
         cmd += '--threshold %(threshold) --min_distance %(ipd) '
         cmd += ' --max_stddev_noise %(maxStddevNoise) '
@@ -344,7 +346,8 @@ class RelionWizLogPickParams(EmWizard):
 
         f = open(pickerProps, "w")
 
-        autopickCmd = "scipion relion_autopick "
+        # params = params.replace('--odir ""', '--odir extra')
+        autopickCmd = "python -m %s relion_autopick " % SCIPION_EP
         autopickCmd += ' --i input_micrographs.star '
         autopickCmd += params
         autopickCmd += ' --LoG_diam_min %(mind) '
