@@ -301,7 +301,7 @@ class Relion2PartDiameter(RelionPartMaskDiameterWizard):
         else:
             return protocol.inputReferences3D
 
-    def show(self, form):
+    def show(self, form, *args):
         prot = form.protocol
         if prot.getInputReferences() is None:
             form.showWarning("Please select the input references first. ")

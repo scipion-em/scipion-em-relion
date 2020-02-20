@@ -28,13 +28,10 @@
 # *
 # **************************************************************************
 
-import os
 from os.path import join, basename
 from io import open
 import numpy as np
 
-import pwem
-import pyworkflow.utils as pwutils
 from pyworkflow.object import ObjectWrap, String, Integer
 from pwem.constants import NO_INDEX, ALIGN_2D, ALIGN_3D, ALIGN_PROJ, ALIGN_NONE
 import pwem.convert.transformations as tfs
@@ -534,7 +531,7 @@ def writeReferences(inputSet, outputRoot, useBasename=False, **kwargs):
     stackFile = outputRoot + '.stk'
     stackName = basename(stackFile) if useBasename else stackFile
     starFile = outputRoot + '.star'
-    ih = pwem.convert.ImageHandler()
+    ih = ImageHandler()
     row = md.Row()
 
     def _convert(item, i, convertFunc):
@@ -692,7 +689,7 @@ def convertBinaryVol(vol, outputDir):
         new file name of the volume (converted or not).
     """
     
-    ih = pwem.convert.ImageHandler()
+    ih = ImageHandler()
     # This approach can be extended when
     # converting from a binary file format that
     # is not read from Relion
@@ -728,7 +725,7 @@ def convertMask(img, outputPath, newDim=None):
         new file name of the mask.
     """
     
-    ih = pwem.convert.ImageHandler()
+    ih = ImageHandler()
     imgFn = getImageLocation(img.getLocation())
 
     if os.path.isdir(outputPath):

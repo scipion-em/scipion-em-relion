@@ -34,8 +34,7 @@ import os
 
 import pyworkflow.utils as pwutils
 import pwem
-
-import relion
+from pwem.emlib.image import ImageHandler
 
 
 def locationToRelion(index, filename):
@@ -49,7 +48,7 @@ def locationToRelion(index, filename):
 
 
 def getImageLocation(location):
-    return pwem.convert.ImageHandler.locationToXmipp(location)
+    return ImageHandler.locationToXmipp(location)
 
 
 def relionToLocation(filename):
@@ -88,7 +87,7 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
         If empty, not conversion was done.
     """
     filesDict = {}
-    ih = pwem.convert.ImageHandler()
+    ih = ImageHandler()
     outputRoot = outputDir if forceConvert else os.path.join(outputDir, 'input')
     # Get the extension without the dot
     stackFiles = imgSet.getFiles()

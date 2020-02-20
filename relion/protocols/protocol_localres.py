@@ -26,7 +26,7 @@
 # *
 # **************************************************************************
 
-import pwem
+from pwem.emlib.image import ImageHandler
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 
@@ -126,7 +126,7 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
         protRef = self.protRefine.get()
         vol = protRef.outputVolume
         half1, half2 = vol.getHalfMaps().split(',')
-        ih = pwem.convert.ImageHandler()
+        ih = ImageHandler()
         ih.convert(half1, self._getFileName("half1"))
         ih.convert(half2, self._getFileName("half2"))
 

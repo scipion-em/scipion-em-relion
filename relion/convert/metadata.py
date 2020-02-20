@@ -77,6 +77,7 @@ class Table:
         :param inputFile: Provide the input file from where to read the data.
             The file pointer will be moved until the last data line of the
             requested table.
+        :param tableName: star table name
         :return:
         """
         self.clear()
@@ -132,6 +133,7 @@ class Table:
             in the position to write.
         :param tableName: The name of the table to write.
         :param singleRow: If True, don't write loop_, just label - value pairs.
+        :param writeRows: write data rows
         """
         outputFile.write("\ndata_%s\n\n" % (tableName or ''))
 

@@ -56,6 +56,12 @@ RUN_COMPUTE = 1  # Run the picking for all micrographs after optimize
 MICS_AUTO = 0
 MICS_SUBSET = 1
 
+# Used in ctf-refinment
+FIT_NO = 0
+FIT_MICS = 1
+FIT_PARTS = 2
+
+
 # Protocol create mask 3d
 MASK_AND = 0
 MASK_OR = 1

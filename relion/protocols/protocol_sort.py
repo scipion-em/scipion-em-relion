@@ -32,6 +32,7 @@ import pwem
 from pwem.protocols import ProtParticles
 from pwem.objects import SetOfParticles, SetOfClasses
 import pwem.emlib.metadata as md
+from pwem.emlib.image import ImageHandler
 
 import relion.convert as convert
 
@@ -195,8 +196,8 @@ class ProtRelionSortParticles(ProtParticles):
 
         else:
             if self.isInputAutoRefine():
-                pwem.convert.ImageHandler().convert(self.referenceVolume.get(),
-                                                    self._getFileName('input_refvol'))
+                ImageHandler().convert(self.referenceVolume.get(),
+                                       self._getFileName('input_refvol'))
             else:  # Autopicking case
                 refSet = self.referenceAverages.get()
 

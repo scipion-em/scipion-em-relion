@@ -142,7 +142,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
         defectFile = self.defectFile.get()
         if defectFile is not None and not os.path.exists(defectFile):
             validateMsgs.append("Defect file not found:\n%s" % self.defectFile.get())
-        if self.mtfFile.hasValue() and not exists(self.mtfFile.get()):
+        if self.mtfFile.hasValue() and not os.path.exists(self.mtfFile.get()):
             validateMsgs.append("MTF file not found:\n%s" % self.mtfFile.get())
 
         return validateMsgs

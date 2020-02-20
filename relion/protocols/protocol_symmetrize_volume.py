@@ -26,6 +26,7 @@
 
 import pyworkflow.protocol.params as params
 import pwem
+from pwem.emlib.image import ImageHandler
 from pwem.protocols import ProtAlignVolume
 
 
@@ -62,7 +63,7 @@ class ProtRelionSymmetrizeVolume(ProtAlignVolume):
         alignedFn = self._getPath('volume_aligned_sym%s.mrc' % sym)
         symFn = self._getPath('volume_sym%s.mrc' % sym)
 
-        pwem.convert.ImageHandler().convert(self.inputVolume.get(), inFn)
+        ImageHandler().convert(self.inputVolume.get(), inFn)
 
         self.runJob("relion_align_symmetry",
                     "--i %s --o %s --sym %s" % (inFn, alignedFn, sym))

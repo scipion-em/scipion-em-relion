@@ -24,11 +24,12 @@
 # *
 # **************************************************************************
 
-import pwem.emlib.metadata as md
 from pyworkflow.object import String
+
+import pwem
+import pwem.emlib.metadata as md
 from pwem.objects import Volume, FSC
 from pwem.protocols import ProtRefine3D
-from pwem.constants import ALIGN_PROJ
 
 import relion
 import relion.convert as convert
@@ -73,8 +74,8 @@ leads to objective and high-quality results.
         if not self.doContinue:
             args['--healpix_order'] = self.angularSamplingDeg.get()
             args['--offset_range'] = self.offsetSearchRangePix.get()
-
-            args['--offset_step'] = self.offsetSearchStepPix.get() * self._getSamplingFactor()
+            f = self._getSamplingFactor()
+            args['--offset_step'] = self.offsetSearchStepPix.get() * f
             args['--auto_refine'] = ''
             args['--split_random_halves'] = ''
             
@@ -181,14 +182,14 @@ leads to objective and high-quality results.
         tableName = '' if relion.IS_30 else 'particles@'
         outImgsFn = self._getFileName('data', iter=iteration)
         imgSet.setAlignmentProj()
-        imgSet.copyItems(self._getInputParticles(),
+        self.reader = convert.Reader(alignType=pwem.ALIGN_PROJ)
+        mdIter = md.iterRows(tableName + outImgsFn, sortByLabel=md.RLN_IMAGE_ID)
+        imgSet.copyItems(self._getInputParticles(), doClone=False,
                          updateItemCallback=self._createItemMatrix,
-                         itemDataIterator=md.iterRows(tableName + outImgsFn,
-                                                      sortByLabel=md.RLN_IMAGE_ID))
-    
+                         itemDataIterator=mdIter)
+
     def _createItemMatrix(self, particle, row):
-        convert.createItemMatrix(particle, row,
-                                 align=ALIGN_PROJ)
+        self.reader.setParticleTransform(particle, row)
         convert.setRelionAttributes(particle, row,
                                     md.RLN_PARTICLE_RANDOM_SUBSET)
 

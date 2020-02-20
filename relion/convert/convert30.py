@@ -28,7 +28,8 @@
 from io import open
 
 from ..constants import *
-from .convert_base import WriterBase
+from .convert_base import WriterBase, ReaderBase
+from .convert_deprecated import rowToAlignment
 
 
 class Writer(WriterBase):
@@ -89,3 +90,9 @@ class Writer(WriterBase):
             'rlnSphericalAberration': acq.getSphericalAberration(),
             'rlnAmplitudeContrast': acq.getAmplitudeContrast()
         })
+
+
+class Reader(ReaderBase):
+    def setParticleTransform(self, particle, row):
+        """ Set the transform values from the row. """
+        particle.setTransform(rowToAlignment(row, self._alignType))
