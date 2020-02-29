@@ -382,8 +382,6 @@ class TestAlignment(TestConvertAnglesBase):
             row1 = md.Row()
             convert.alignmentToRow(a, row1, alignType=ALIGN_2D)
 
-            # row2 = md.Row()
-            # convert.alignmentToRow(a, row2, alignType=ALIGN_3D)
             row2 = None
             
             row3 = md.Row()
@@ -400,13 +398,6 @@ class TestAlignment(TestConvertAnglesBase):
         self.assertAlmostEqual(row1.getValue(md.RLN_ORIENT_ORIGIN_Y), 0., 4)
         self.assertAlmostEqual(row1.getValue(md.RLN_ORIENT_PSI), 0., 4)
 
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_ORIGIN_X), 20., 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_ORIGIN_Y), 0., 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_ORIGIN_Z), 0., 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_ROT), 0., 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_TILT), 0., 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_PSI), 0., 4)
-
         self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_ORIGIN_X), 20., 4)
         self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_ORIGIN_Y), 0., 4)
         self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_ORIGIN_Z), 0., 4)
@@ -421,13 +412,6 @@ class TestAlignment(TestConvertAnglesBase):
         self.assertAlmostEqual(row1.getValue(md.RLN_ORIENT_ORIGIN_X), -6.8404, 4)
         self.assertAlmostEqual(row1.getValue(md.RLN_ORIENT_ORIGIN_Y), 18.7939, 4)
         self.assertAlmostEqual(row1.getValue(md.RLN_ORIENT_PSI), -20., 4)
-
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_ORIGIN_X), -6.8404, 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_ORIGIN_Y), 18.7939, 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_ORIGIN_Z), 0., 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_ROT), -20., 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_TILT), 0., 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_PSI), 0., 4)
 
         self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_ORIGIN_X), -12.8558097352, 4)
         self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_ORIGIN_Y), 15.3209632479, 4)
@@ -660,9 +644,6 @@ class TestReconstruct(TestConvertAnglesBase):
         aList = [np.array(m) for m in mList]
         rowa = md.Row()
         rowb = md.Row()
-        rowb1 = md.Row()
-        rowb2 = md.Row()
-        rowb3 = md.Row()
         labelList = [md.RLN_ORIENT_ROT,
                      md.RLN_ORIENT_TILT,
                      md.RLN_ORIENT_PSI,
@@ -692,14 +673,6 @@ class TestReconstruct(TestConvertAnglesBase):
             print("aMatrix: \n", aMatrix, "bMatrix: \n", b.getMatrix())
             
             self.assertTrue(np.allclose(aMatrix, b.getMatrix(), rtol=1e-2))
-
-    # * newrot = rot;
-    # * newtilt = tilt + 180;
-    # * newpsi = -(180 + psi);
-
-    # * newrot = rot + 180;
-    # * newtilt = -tilt;
-    # * newpsi = -180 + psi;
 
     def test_reconstRotOnly(self):
         """ Check that for a given alignment object,

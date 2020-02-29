@@ -122,8 +122,6 @@ class Relion3TestAssignOptics(Relion3TestProtocolBase):
         # # Validate output movies
         movies = getattr(prot, 'outputMovies', None)
         self.assertIsNotNone(movies, "No movies were generated")
-        # dims = movies.getDim()
-        # cls.assertEqual((3710, 3838, 24), dims)
         self.assertEqual(size, movies.getSize())
 
         if hasAlignment:

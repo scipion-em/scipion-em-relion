@@ -377,7 +377,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                   outputFn=self._getOutputMicThumbnail(movie))
 
         if self.doComputePSD:
-            # fakeShiftsFn = self.writeZeroShifts(movie)
             movieFn = movie.getFileName()
             aveMicFn = os.path.join(movieFolder,
                                     pwutils.removeBaseExt(movieFn) + "_tmp.mrc")

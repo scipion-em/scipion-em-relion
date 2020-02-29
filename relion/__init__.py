@@ -57,7 +57,7 @@ class Plugin(pwem.Plugin):
                             }, position=pwutils.Environ.BEGIN)
 
         # Take Scipion CUDA library path
-        cudaLib = environ.getFirst((RELION_CUDA_LIB, 'CUDA_LIB'))
+        cudaLib = environ.get(RELION_CUDA_LIB, pwem.Config.CUDA_LIB)
         environ.addLibrary(cudaLib)
 
         if 'RELION_MPI_LIB' in os.environ:

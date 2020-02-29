@@ -38,7 +38,7 @@ def useGpu():
     """ Helper function to determine if GPU can be used.
     Return a boolean and a label to be used in protocol's label. """
     environ = pwutils.Environ(os.environ)
-    cudaPath = environ.getFirst(('RELION_CUDA_LIB', 'CUDA_LIB'))
+    cudaPath = environ.get('RELION_CUDA_LIB', pwem.Config.CUDA_LIB)
 
     if cudaPath and pwutils.existsVariablePaths(cudaPath):
         return True, 'GPU'
@@ -241,7 +241,6 @@ class TestRelionRefine(TestRelionBase):
         def _runRelionRefine(doGpu=False, label=''):
             relionRefine = self.newProtocol(ProtRelionRefine3D,
                                             doCTF=False, runMode=1,
-                                            # memoryPreThreads=1,
                                             maskDiameterA=340,
                                             symmetryGroup="d6",
                                             numberOfMpi=3, numberOfThreads=2)
@@ -1168,8 +1167,6 @@ class TestRelionExportParticles(TestRelionBase):
         """ Run an Import particles protocol. """
 
         inputParts = self.protImport.outputParticles
-
-        stackNames = set(pwutils.removeBaseExt(p.getFileName()) for p in inputParts)
 
         paramsList = [
             {'stackType': 0, 'useAlignment': True},

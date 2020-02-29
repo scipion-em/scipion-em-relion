@@ -234,12 +234,10 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         # Set sampling rate (before and after doDownsample) and inputMics
         # according to micsSource type
         inputCoords = self.getCoords()
-        mics = inputCoords.getMicrographs()
         self.samplingInput = inputCoords.getMicrographs().getSamplingRate()
         self.samplingMics = self.getInputMicrographs().getSamplingRate()
         self.samplingFactor = float(self.samplingMics / self.samplingInput)
 
-        # scale = self.getBoxScale()
         scale = self.getScaleFactor()
         self.debug("Scale: %f" % scale)
         if self.notOne(scale):

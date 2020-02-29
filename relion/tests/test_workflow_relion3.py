@@ -180,4 +180,4 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         protRelionLog = self._runRelionLog(protRelionMc)
         protRelionExtract = self._runRelionExtract(protRelionLog, protGctf)
         protRelion2D = self._runRelion2D(protRelionExtract)
-        #protInitModel = self._runRelion2D(protRelion2D)
+        # protInitModel = self._runRelion2D(protRelion2D)

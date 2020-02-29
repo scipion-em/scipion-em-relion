@@ -545,7 +545,6 @@ Examples:
             f.close()
             view = ChimeraView(cmdFile)
         else:
-            # view = CommandView('xmipp_chimera_client --input "%s" --mode projector 256 &' % volumes[0])
             view = ChimeraClientView(volumes[0])
             
         return [view]
@@ -616,7 +615,6 @@ Examples:
                                 mainTitle=title, windowTitle="Angular Distribution")
         for prefix in prefixes:
             for ref3d in self._refsList:
-                dataStar = self._getDataStar(prefix, it)
                 randomSet = self._getRandomSet(prefix)
                 if randomSet > 0:
                     title = '%s class %d' % (prefix, ref3d)
@@ -682,14 +680,10 @@ Examples:
 # plotFSC            
 # =============================================================================
     def _showFSC(self, paramName=None):
-        # self._iterations = self._getListFromRangeString(self.iterSelection.get())
         print("_showFSC_self._iterations", self._iterations)
         threshold = self.resolutionThresholdFSC.get()
         prefixes = self._getPrefixes()        
-        nrefs = len(self._refsList)
-        n = nrefs * len(prefixes)
-        # gridsize = self._getGridSize(n)
-        
+
         md.activateMathExtensions()
         
         fscViewer = FscViewer(project=self.protocol.getProject(),
@@ -700,13 +694,11 @@ Examples:
         fscSet = self.protocol._createSetOfFSCs()
         for prefix in prefixes:
             for ref3d in self._refsList:  # ROB: I believe len(_refsList)==1
-                # plot_title = prefix + 'class %s' % ref3d
                 blockName = 'model_class_%d@' % ref3d
                 for it in self._iterations:
                     model_star = self._getModelStar(prefix, it)
 
                     if exists(model_star):
-                        # fnFSC = blockName + model_star
                         fsc = self._plotFSC(None, blockName + model_star,
                                             'iter %d' % it)
                         fscSet.append(fsc)
@@ -751,7 +743,7 @@ Examples:
 
         return view
 
-    def createScipionPartView(self, filename, viewParams={}):
+    def createScipionPartView(self, filename):
         inputParticlesId = self.protocol._getInputParticles().strId()
         
         labels = 'enabled id _size _filename _transform._matrix'
@@ -1008,7 +1000,6 @@ class PostprocessViewer(ProtocolViewer):
     
     def _showVolumesChimera(self, volPath):
         """ Create a chimera script to visualize selected volumes. """
-        # view = CommandView('xmipp_chimera_client --input "%s" --mode projector 256 &' % volPath)
         view = ChimeraClientView(volPath)
         return [view]
             
@@ -1038,9 +1029,6 @@ class PostprocessViewer(ProtocolViewer):
 
     def _showFSC(self, paramName=None):
         threshold = self.resolutionThresholdFSC.get()
-
-        n = 1
-        gridsize = [1, 1]
 
         md.activateMathExtensions()
         fscViewer = FscViewer(project=self.protocol.getProject(),
@@ -1384,7 +1372,6 @@ Examples:
 # =============================================================================
     def _showFSC(self, paramName=None):
         threshold = self.resolutionThresholdFSC.get()
-        n = 1
         gridsize = [1, 1]
         
         md.activateMathExtensions()
