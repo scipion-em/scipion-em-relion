@@ -28,6 +28,7 @@ from pyworkflow.tests import *
 from pyworkflow.plugin import Domain
 from pwem.protocols import *
 from pyworkflow.protocol.constants import STATUS_FINISHED
+from pyworkflow.utils import magentaStr
 
 from ..protocols import *
 from ..convert import *
@@ -71,20 +72,21 @@ class TestRelionBase(BaseTest):
     @classmethod
     def runImportParticles(cls, pattern, samplingRate, checkStack=False):
         """ Run an Import particles protocol. """
+        print(magentaStr("\n==> Importing data - particles from files:"))
         protImport = cls.newProtocol(ProtImportParticles, 
                                      filesPath=pattern,
                                      samplingRate=samplingRate,
                                      checkStack=checkStack)
         cls.launchProtocol(protImport)
-        # check that input images have been imported (a better way to do this?)
-        if protImport.outputParticles is None:
-            raise Exception('Import of images: %s, failed. outputParticles '
-                            'is None.' % pattern)
+        cls.assertIsNotNone(protImport.outputParticles,
+                            "SetOfParticles has not been produced.")
+
         return protImport
 
     @classmethod
     def runImportParticlesStar(cls, partStar, mag, samplingRate):
         """ Import particles from Relion star file. """
+        print(magentaStr("\n==> Importing data - particles from star:"))
         protImport = cls.newProtocol(ProtImportParticles,
                                      importFrom=ProtImportParticles.IMPORT_FROM_RELION,
                                      starFile=partStar,
@@ -93,15 +95,15 @@ class TestRelionBase(BaseTest):
                                      haveDataBeenPhaseFlipped=True
                                      )
         cls.launchProtocol(protImport)
-        # check that input images have been imported (a better way to do this?)
-        if protImport.outputParticles is None:
-            raise Exception('Import of images: %s, failed. outputParticles '
-                            'is None.' % partStar)
+        cls.assertIsNotNone(protImport.outputParticles,
+                            "SetOfParticles has not been produced.")
+
         return protImport
 
     @classmethod
     def runNormalizeParticles(cls, particles):
         """ Run normalize particles protocol """
+        print(magentaStr("\n==> Running relion - preprocess particles:"))
         protPreproc = cls.newProtocol(ProtRelionPreprocessParticles,
                                       doNormalize=True)
         protPreproc.inputParticles.set(particles)
@@ -111,6 +113,7 @@ class TestRelionBase(BaseTest):
     @classmethod
     def runImportVolumes(cls, pattern, samplingRate):
         """ Run an Import particles protocol. """
+        print(magentaStr("\n==> Importing data - volumes:"))
         protImport = cls.newProtocol(ProtImportVolumes, 
                                      filesPath=pattern,
                                      samplingRate=samplingRate)
@@ -120,6 +123,7 @@ class TestRelionBase(BaseTest):
     @classmethod
     def runImportMovies(cls, pattern, mag, samplingRate, dose):
         """ Run an Import movies protocol. """
+        print(magentaStr("\n==> Importing data - movies:"))
         protImport = cls.newProtocol(ProtImportMovies,
                                      filesPath=pattern,
                                      magnification=mag,
@@ -139,6 +143,7 @@ class TestRelionClassify2D(TestRelionBase):
     
     def testRelion2D(self):
         def _runRelionClassify2D(doGpu=False, label=''):
+            print(magentaStr("\n==> Testing relion - classify 2d:"))
             prot2D = self.newProtocol(ProtRelionClassify2D,
                                       doCTF=False, maskDiameterA=340,
                                       numberOfMpi=4, numberOfThreads=1)
@@ -190,7 +195,6 @@ class TestRelionClassify3D(TestRelionBase):
         self.launchProtocol(relionNormalize)
 
         def _runRelionClassify3D(doGpu=False, label=''):
-            print(label)
             relion3DClass = self.newProtocol(ProtRelionClassify3D,
                                              numberOfClasses=3,
                                              numberOfIterations=4,
@@ -214,11 +218,13 @@ class TestRelionClassify3D(TestRelionBase):
                 self.assertTrue(class3D.hasAlignmentProj())
 
         if RUN_CPU:
+            print(magentaStr("\n==> Testing relion - classify 3d on CPU:"))
             relionProt = _runRelionClassify3D(doGpu=False,
                                               label="Run Relion classify3D CPU")
             _checkAsserts(relionProt)
 
         if USE_GPU:
+            print(magentaStr("\n==> Testing relion - classify 3d on GPU:"))
             relionGpu = _runRelionClassify3D(doGpu=True,
                                              label="Relion classify3D GPU")
             _checkAsserts(relionGpu)
@@ -267,11 +273,13 @@ class TestRelionRefine(TestRelionBase):
                                    msg="The particles filenames are wrong")
         
         if RUN_CPU:
+            print(magentaStr("\n==> Testing relion - refine 3d on CPU:"))
             relionProt = _runRelionRefine(doGpu=False,
                                           label="Run Relion auto-refine CPU")
             _checkAsserts(relionProt)
 
         if USE_GPU:
+            print(magentaStr("\n==> Testing relion - refine 3d on GPU:"))
             relionGpu = _runRelionRefine(doGpu=True,
                                          label="Run Relion auto-refine GPU")
             _checkAsserts(relionGpu)
@@ -300,6 +308,7 @@ class TestRelionInitialModel(TestRelionBase):
                            'numberOfIterInBetween': 30,
                            'numberOfIterFinal': 10})
 
+            print(magentaStr("\n==> Testing relion - initial model:"))
             relionIniModel = self.newProtocol(ProtRelionInitialModel, **kwargs)
             relionIniModel.setObjLabel(label)
             relionIniModel.inputParticles.set(self.protImport.outputParticles)
@@ -346,9 +355,7 @@ class TestRelionPreprocess(TestRelionBase):
                                " must be %0.2f" % (sr, pxSize))
 
     def test_NormalizeAndDust(self):
-        """ Normalize particles.
-        """
-        # Test now a normalization after the imported particles
+        print(magentaStr("\n==> Testing relion - preprocess particles (norm, remove dust):"))
         protocol = self.newProtocol(ProtRelionPreprocessParticles,
                                     doNormalize=True, backRadius=40,
                                     doRemoveDust=True, whiteDust=4, blackDust=8)
@@ -359,9 +366,7 @@ class TestRelionPreprocess(TestRelionBase):
         self._validations(protocol.outputParticles, 100, 3.5)
         
     def test_ScaleAndInvert(self):
-        """ Test all options at once.
-        """
-        # Test now a normalization after the imported particles   
+        print(magentaStr("\n==> Testing relion - preprocess particles (scale, invert):"))
         protocol = self.newProtocol(ProtRelionPreprocessParticles,
                                     doNormalize=False,
                                     doScale=True, scaleSize=50,
@@ -396,7 +401,8 @@ class TestRelionSubtract(TestRelionBase):
                                    samplingRate=7.08)
         self.launchProtocol(protVol)
         self.assertEqual(60, protVol.outputVolume.getDim()[0])
-        
+
+        print(magentaStr("\n==> Testing relion - subtract projection:"))
         protSubtract = self.newProtocol(ProtRelionSubtract)
         protSubtract.inputParticles.set(protParts.outputParticles)
         protSubtract.inputVolume.set(protVol.outputVolume)
@@ -468,6 +474,7 @@ class TestRelionSortParticles(TestRelionBase):
         return protVol
 
     def test_afterCl2D(self):
+        print(magentaStr("\n==> Testing relion - sort particles after class 2d:"))
         partCl2dFn = self.ds.getFile(
             'import/classify2d/extra/relion_it015_data.star')
         importRun = self.importParticles(partCl2dFn)
@@ -478,6 +485,7 @@ class TestRelionSortParticles(TestRelionBase):
         self.launchProtocol(prot)
 
     def test_afterCl3D(self):
+        print(magentaStr("\n==> Testing relion - sort particles after class 3d:"))
         prot = self.newProtocol(ProtRelionSortParticles)
         prot.setObjLabel('relion - sort after cl3d')
         partCl3dFn = self.ds.getFile(
@@ -487,6 +495,7 @@ class TestRelionSortParticles(TestRelionBase):
         self.launchProtocol(prot)
 
     def test_after3DRefinement(self):
+        print(magentaStr("\n==> Testing relion - sort particles after refine 3d:"))
         prot = self.newProtocol(ProtRelionSortParticles)
         prot.setObjLabel('relion - sort after ref3d')
         partRef3dFn = self.ds.getFile('import/refine3d/extra/relion_data.star')
@@ -496,6 +505,7 @@ class TestRelionSortParticles(TestRelionBase):
         self.launchProtocol(prot)
 
     def test_afterPicking(self):
+        print(magentaStr("\n==> Testing relion - sort particles after auto-picking:"))
         prot = self.newProtocol(ProtRelionSortParticles)
         prot.setObjLabel('relion - sort after picking')
         prot.inputSet.set(self.importParticlesFromScipion().outputParticles)
@@ -589,6 +599,7 @@ class TestRelionPostprocess(TestRelionBase):
                                " must be %0.2f" % (sr, pxSize))
 
     def test_postProcess_from_autorefine(self):
+        print(magentaStr("\n==> Testing relion - postprocess after refine 3d:"))
         protRef, protMask = self._createRef3DProtBox("auto-refine",
                                                      ProtRelionRefine3D)
         protRef._createFilenameTemplates()
@@ -614,6 +625,7 @@ class TestRelionPostprocess(TestRelionBase):
         self._validations(postProt.outputVolume, 60, 3, "Relion auto-refine")
 
     def test_postProcess_from_projMatch(self):
+        print(magentaStr("\n==> Testing relion - postprocess after xmipp proj. match.:"))
         XmippProtProjMatch = Domain.importFromPlugin('xmipp3.protocols',
                                                      'XmippProtProjMatch')
 
@@ -647,6 +659,7 @@ class TestRelionPostprocess(TestRelionBase):
         self._validations(postProt.outputVolume, 60, 3, "Projection Matching")
     
     def test_postProcess_from_eman_refineEasy(self):
+        print(magentaStr("\n==> Testing relion - postprocess after eman2 refine easy:"))
         EmanProtRefine = Domain.importFromPlugin('eman2.protocols', 'EmanProtRefine')
         convertImage = Domain.importFromPlugin('eman2.convert', 'convertImage')
 
@@ -732,6 +745,7 @@ class TestRelionLocalRes(TestRelionBase):
                                " must be %0.2f" % (sr, pxSize))
 
     def test_runRelionLocalRes(self):
+        print(magentaStr("\n==> Testing relion - local resolution:"))
         protRef = self._createRef3DProtBox("auto-refine")
 
         protRef._createFilenameTemplates()
@@ -777,12 +791,11 @@ class TestRelionExpandSymmetry(TestRelionBase):
         return protPart
 
     def test_ExpandSymmetry(self):
+        print(magentaStr("\n==> Testing relion - expand symmetry:"))
         prot = self.newProtocol(ProtRelionExpandSymmetry)
-        print("Import particles")
         importRun = self.importParticles(self.partRef3dFn)
         prot.inputParticles.set(importRun.outputParticles)
         prot.symmetryGroup.set("D2")
-        print("Run expand symmetry")
         self.launchProtocol(prot)
 
         self.assertIsNotNone(prot.outputParticles,
@@ -822,6 +835,7 @@ class TestRelionCreate3dMask(TestRelionBase):
                                " must be %0.2f" % (sr, pxSize))
 
     def test_createMask(self):
+        print(magentaStr("\n==> Testing relion - create mask 3d:"))
         importProt = self.importVolume()
 
         maskProt = self.newProtocol(ProtRelionCreateMask3D,
@@ -875,11 +889,9 @@ class TestRelionExtractParticles(TestRelionBase):
 
         cls.protImport.setObjLabel('import mics')
         cls.launchProtocol(cls.protImport)
-        if cls.protImport.isFailed():
-            raise Exception("Protocol has failed. Error: ", cls.protImport.getErrorMessage())
-        # check that input micrographs have been imported (a better way to do this?)
-        if cls.protImport.outputMicrographs is None:
-            raise Exception('Import of micrograph: %s, failed. outputMicrographs is None.' % pattern)
+        cls.assertIsNotNone(cls.protImport.outputMicrographs,
+                            "SetOfMicrographs has not been produced.")
+
         return cls.protImport
 
     @classmethod
@@ -912,8 +924,9 @@ class TestRelionExtractParticles(TestRelionBase):
         cls.protPP.inputMicrographs.set(mics)
         cls.proj.launchProtocol(cls.protPP, wait=True)
         # check that faked picking has run ok
-        if cls.protPP.outputCoordinates is None:
-            raise Exception('Faked particle picking failed. outputCoordinates is None.')
+        cls.assertIsNotNone(cls.protPP.outputCoordinates,
+                            "SetOfCoordinates has not been produced.")
+
         return cls.protPP
 
     @classmethod
@@ -947,7 +960,7 @@ class TestRelionExtractParticles(TestRelionBase):
                                first.getSamplingRate())
 
     def testExtractSameAsPicking(self):
-        print("Run extract particles from same micrographs as picking")
+        print(magentaStr("\n==> Testing relion - extract particles (same mics as picking):"))
         protExtract = self.newProtocol(ProtRelionExtractParticles,
                                        boxSize=110,
                                        doInvert=False)
@@ -981,7 +994,7 @@ class TestRelionExtractParticles(TestRelionBase):
         compare(228)
 
     def testExtractOriginal(self):
-        print("Run extract particles from the original micrographs")
+        print(magentaStr("\n==> Testing relion - extract particles (other mics):"))
         protExtract = self.newProtocol(ProtRelionExtractParticles,
                                        boxSize=550,
                                        downsampleType=OTHER,
@@ -1020,7 +1033,7 @@ class TestRelionExtractParticles(TestRelionBase):
         self._checkSamplingConsistency(outputParts)
 
     def testExtractOther(self):
-        print("Run extract particles from original micrographs, with downsampling")
+        print(magentaStr("\n==> Testing relion - extract particles (other mics with downsampling):"))
         downFactor = 2.989
         protExtract = self.newProtocol(ProtRelionExtractParticles,
                                        boxSize=550, downsampleType=OTHER,
@@ -1070,7 +1083,7 @@ class TestRelionExtractParticles(TestRelionBase):
             self.assertAlmostEqual(outputSampling, particle.getSamplingRate())
 
     def testExtractCTF(self):
-        print("Run extract particles with CTF")
+        print(magentaStr("\n==> Testing relion - extract particles (with CTF):"))
         protExtract = self.newProtocol(ProtRelionExtractParticles,
                                        boxSize=110,
                                        downsampleType=SAME_AS_PICKING,
@@ -1126,6 +1139,7 @@ class TestRelionCenterAverages(TestRelionBase):
                                       samplingRate=5.04)
         self.launchProtocol(protImport)
         inputAvgs = protImport.outputAverages
+        print(magentaStr("\n==> Testing relion - center averages:"))
         protCenter = self.newProtocol(ProtRelionCenterAverages)
         protCenter.inputAverages.set(inputAvgs)
         self.launchProtocol(protCenter)
@@ -1156,16 +1170,15 @@ class TestRelionExportParticles(TestRelionBase):
                                          samplingRate=samplingRate,
                                          checkStack=checkStack,
                                          haveDataBeenPhaseFlipped=phaseFlip)
-        print('_label: ', cls.protImport._label)
         cls.launchProtocol(cls.protImport)
-        # check that input images have been imported (a better way to do this?)
-        if cls.protImport.outputParticles is None:
-            raise Exception('Import of images: %s, failed. outputParticles is None.' % pattern)
+        cls.assertIsNotNone(cls.protImport.outputParticles,
+                            "SetOfParticles has not been produced.")
+
         return cls.protImport
 
     def test_basic(self):
         """ Run an Import particles protocol. """
-
+        print(magentaStr("\n==> Testing relion - export particles:"))
         inputParts = self.protImport.outputParticles
 
         paramsList = [

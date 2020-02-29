@@ -41,6 +41,7 @@ from pwem.objects import (SetOfParticles, CTFModel, Acquisition,
 from pwem.emlib.image import ImageHandler
 import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_3D
+from pyworkflow.utils import magentaStr
 
 from .. import Plugin
 import relion.convert as convert
@@ -56,6 +57,7 @@ class TestConversions(BaseTest):
 
     def test_particlesToStar(self):
         """ Write a SetOfParticles to Relion star input file. """
+        print(magentaStr("\n==> Testing relion - convert particles to star file:"))
         imgSet = SetOfParticles(filename=self.getOutputPath("particles.sqlite"))
         n = 10
         fn = self.getFile('particles_binary')
@@ -93,6 +95,7 @@ class TestConversions(BaseTest):
 
     def test_particlesWithPhaseShiftToStar(self):
         """ Write a SetOfParticles to Relion star input file. """
+        print(magentaStr("\n==> Testing relion - convert particles with phase shift to star file:"))
         imgSet = SetOfParticles(filename=self.getOutputPath("particles_ph_sh.sqlite"))
         n = 10
         fn = self.getFile('particles_binary')
@@ -133,6 +136,7 @@ class TestConversions(BaseTest):
 
     def test_particlesFromStar(self):
         """ Read a set of particles from an .star file.  """
+        print(magentaStr("\n==> Testing relion - read from particle star file:"))
         fnStar = self.getFile('relion_it020_data')
         
         print(">>> Reading star file: ", fnStar)
@@ -150,9 +154,9 @@ class TestConversions(BaseTest):
 
     def test_particlesFromStarNewLabels(self):
         """ Read a set of particles from an .star file.  """
+        print(magentaStr("\n==> Testing relion - read particle star file with new label:"))
         fnStar = self.getFile('relion_it020_data_newlabels')
-
-        print(">>> Reading new star file: ", fnStar)
+        print(">>> Reading star file: ", fnStar)
 
         goldLabels = ['rlnVoltage', 'rlnDefocusU', 'rlnDefocusV',
                       'rlnDefocusAngle', 'rlnSphericalAberration',
@@ -204,6 +208,7 @@ class TestConvertBinaryFiles(BaseTest):
         """ In this case the hdf stack files should be converted
         to .stk spider files for Relion.
         """
+        print(magentaStr("\n==> Testing relion - convert hdf files to mrcs:"))
         stackFiles = ['BPV_1386_ptcls.hdf',
                       'BPV_1387_ptcls.hdf',
                       'BPV_1388_ptcls.hdf']
@@ -216,17 +221,14 @@ class TestConvertBinaryFiles(BaseTest):
             partSet.append(particle)
             
         outputDir = self.getOutputPath()
-        
         filesDict = convert.convertBinaryFiles(partSet, outputDir)
-        
         partSet.close()
-        
         print(filesDict)
         
     def test_mrcsLink(self):
         """ In this case just a link with .mrcs extension 
-        should be created
-        """
+        should be created """
+        print(magentaStr("\n==> Testing relion - link mrc stack to mrcs:"))
         stackFile = self.dsEmx.getFile('particles/particles.mrc')
         partSet = SetOfParticles(filename=':memory:')
         
@@ -236,9 +238,7 @@ class TestConvertBinaryFiles(BaseTest):
             partSet.append(particle)
             
         outputDir = self.getOutputPath()
-        
         filesDict = convert.convertBinaryFiles(partSet, outputDir)
-        
         print(filesDict)
 
 
@@ -266,7 +266,7 @@ class TestConvertAnglesBase(BaseTest):
 
     def launchTest(self, fileKey, mList, alignType=None, **kwargs):
         """ Helper function to launch similar alignment tests
-        give the EMX transformation matrix.
+        given the EMX transformation matrix.
         Params:
             fileKey: the file where to grab the input stack images.
             mList: the matrix list of transformations
@@ -309,7 +309,7 @@ class TestConvertAnglesBase(BaseTest):
                                            sphericalAberration=2,
                                            amplitudeContrast=0.1,
                                            magnification=60000))
-        # Populate the SetOfParticles with  images
+        # Populate the SetOfParticles with images
         # taken from images.mrc file
         # and setting the previous alignment parameters
         aList = [np.array(m) for m in mList]
@@ -373,7 +373,7 @@ class TestAlignment(TestConvertAnglesBase):
     CMD = "relion_stack_create  --i %(mdFn)s --o %(outputFnRelion)s --apply_transformation"
 
     def test_isInverse(self):
-        """Consistency between fordwards and backwards geometrical
+        """Consistency between forwards and backwards geometrical
         transformations"""
         def _testInv(matrix):
             matrix = np.array(matrix)

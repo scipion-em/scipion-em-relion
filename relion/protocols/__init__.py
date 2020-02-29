@@ -56,4 +56,5 @@ else:
     from .protocol_ctf_refinement import ProtRelionCtfRefinement
 
     # New protocol from Relion v3.1:
-    from .protocol_assign_optic_groups import ProtRelionAssignOpticsGroup
+# FIXME: this has to be imported for tests / wizards to work
+from .protocol_assign_optic_groups import ProtRelionAssignOpticsGroup
