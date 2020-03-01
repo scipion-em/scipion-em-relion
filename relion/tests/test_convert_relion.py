@@ -250,7 +250,8 @@ PRINT_FILES = True
 
 def runRelionProgram(cmd):
     print(">>>", cmd)
-    p = subprocess.Popen(cmd, shell=True, env=Plugin.getEnviron())
+    cmd = cmd.split()
+    p = subprocess.Popen(cmd, env=Plugin.getEnviron())
     return p.wait()
 
 
