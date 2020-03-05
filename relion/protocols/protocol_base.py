@@ -726,7 +726,7 @@ class ProtRelionBase(EMProtocol):
         self._initialize()
         self._insertFunctionStep('convertInputStep',
                                  self._getInputParticles().getObjId(),
-                                 self.copyAlignment.get())
+                                 bool(self.copyAlignment))
         self._insertRelionStep()
         self._insertFunctionStep('createOutputStep')
 
