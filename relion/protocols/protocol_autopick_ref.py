@@ -532,8 +532,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         return []
 
     def _warnings(self):
-        if not self.isRunOptimize():
-            if not hasattr(self, 'wizardExecuted'):
+        if not self.isRunOptimize() and not hasattr(self, 'wizardExecuted'):
                 return ['It seems that you have not executed the wizard to '
                         'optimize the picking parameters. \n'
                         'Do you want to launch the whole picking anyway?']

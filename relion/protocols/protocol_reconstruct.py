@@ -43,8 +43,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
     and used as direction projections to reconstruct.
     """
     _label = 'reconstruct'
-    # doContinue = False
-    
+
     # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')

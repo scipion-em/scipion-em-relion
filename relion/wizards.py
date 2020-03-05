@@ -106,7 +106,6 @@ class RelionSortMaskWizard(RelionPartMaskDiameterWizard):
 
     def _getProtocolImages(self, protocol):
         return None
-        # return protocol._allParticles(iterate=True)
 
 
 # =============================================================================
@@ -136,16 +135,6 @@ class RelionVolFilterWizard(FilterVolumesWizard):
     def _getProvider(self, protocol):
         _objs = self._getParameters(protocol)['input']    
         return FilterVolumesWizard._getListProvider(self, _objs)
-    
-    # def show(self, form):
-    #     params = self._getParameters(form.protocol)
-    #     # Value should be LowFreq=0, HighFreq and Decay for Low pass filter
-    #     _value = params['value']
-    #     _label = params['label']
-    #     FilterVolumesWizard.show(self, form, _value, _label,
-    #                              mode=FILTER_LOW_PASS,
-    #                              unit=UNIT_ANGSTROM,
-    #                              showDecay=False)
 
     def show(self, form, *args):
         params = self._getParameters(form.protocol)
@@ -174,13 +163,6 @@ class RelionVolFilterWizard(FilterVolumesWizard):
 # PICKING
 # =============================================================================
 
-# class RelionPartDiameter(RelionPartMaskDiameterWizard):
-#     _targets = [(ProtRelionAutopickFom, ['particleDiameter'])]
-#
-#     def _getProtocolImages(self, protocol):
-#         return protocol.inputReferences
-
-
 class Relion2AutopickParams(EmWizard):
     _targets = [(ProtRelion2Autopick, ['runType',
                                        'pickingThreshold',
@@ -196,7 +178,6 @@ class Relion2AutopickParams(EmWizard):
 
         project = autopickProt.getProject()
         micSet = autopickProt.outputMicrographsSubset
-        micfn = micSet.getFileName()
         coordsDir = project.getTmpPath(micSet.getName())
         pwutils.cleanPath(coordsDir)
         pwutils.makePath(coordsDir)

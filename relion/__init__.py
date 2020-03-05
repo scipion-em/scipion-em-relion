@@ -25,6 +25,7 @@
 # **************************************************************************
 
 import os
+import pyworkflow as pw
 import pyworkflow.utils as pwutils
 import pwem
 
@@ -47,8 +48,12 @@ class Plugin(pwem.Plugin):
     def getEnviron(cls):
         """ Setup the environment variables needed to launch Relion. """
         environ = pwutils.Environ(os.environ)
-        binPath = cls.getHome('bin')
-        libPath = cls.getHome('lib') + ":" + cls.getHome('lib64')
+        binPath = os.pathsep.join([cls.getHome('bin'),
+                                   pwem.Config.MPI_BINDIR])
+        libPath = os.pathsep.join([cls.getHome('lib'),
+                                   cls.getHome('lib64'),
+                                   pwem.Config.MPI_LIBDIR,
+                                   ])
 
         if binPath not in environ['PATH']:
             environ.update({'PATH': binPath,
@@ -57,7 +62,7 @@ class Plugin(pwem.Plugin):
                             }, position=pwutils.Environ.BEGIN)
 
         # Take Scipion CUDA library path
-        cudaLib = environ.getFirst((RELION_CUDA_LIB, 'CUDA_LIB'))
+        cudaLib = environ.get(RELION_CUDA_LIB, pwem.Config.CUDA_LIB)
         environ.addLibrary(cudaLib)
 
         if 'RELION_MPI_LIB' in os.environ:
@@ -66,7 +71,6 @@ class Plugin(pwem.Plugin):
         if 'RELION_MPI_BIN' in os.environ:
             environ.set('PATH', os.environ['RELION_MPI_BIN'],
                         position=pwutils.Environ.BEGIN)
-
         return environ
 
     @classmethod

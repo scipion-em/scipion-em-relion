@@ -320,8 +320,7 @@ class ProtRelionPolish(ProtProcessParticles, ProtRelionBase):
         return summary message for NORMAL EXECUTION. 
         """
         errors = []
-        if self.performBfactorWeighting:
-            if self.maskForReconstructions.get() is None:
+        if self.performBfactorWeighting and self.maskForReconstructions.get() is None:
                 errors.append('You should provide a *mask* when performing B-factor weighting.')
 
         return errors

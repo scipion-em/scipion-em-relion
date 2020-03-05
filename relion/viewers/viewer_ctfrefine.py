@@ -248,7 +248,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
 
         return [DataView(phaseDifferenceFn), DataView(modelFitFn)]
 
-    def createScipionPartView(self, filename, viewParams={}):
+    def createScipionPartView(self, filename):
         inputParticlesId = self.protocol.inputParticles.get().strId()
         labels = 'enabled id _size _filename '
         labels += ' _ctfModel._defocusU _ctfModel._defocusV '

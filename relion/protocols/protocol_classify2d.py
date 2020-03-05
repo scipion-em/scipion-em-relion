@@ -83,10 +83,12 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         """ Create the SetOfClasses2D from a given iteration. """
         self._loadClassesInfo(iteration)
         dataStar = 'particles@' + self._getFileName('data', iter=iteration)
+        self.reader = convert.Reader(alignType=pwem.ALIGN_2D)
+        mdIter = md.iterRows(dataStar, sortByLabel=md.RLN_IMAGE_ID)
         clsSet.classifyItems(updateItemCallback=self._updateParticle,
                              updateClassCallback=self._updateClass,
-                             itemDataIterator=md.iterRows(dataStar,
-                                                          sortByLabel=md.RLN_IMAGE_ID))
+                             itemDataIterator=mdIter,
+                             doClone=False)
         
     def createOutputStep(self):
         partSet = self.inputParticles.get()       
@@ -145,9 +147,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
     
     def _methods(self):
         methods = ''
-        
         if hasattr(self, 'outputClasses'):
-            
             methods += "We classified input particles %s (%d items) " % (
                 self.getObjectTag('inputParticles'),
                 self.inputParticles.get().getSize())
@@ -158,8 +158,8 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
     # --------------------------- UTILS functions -----------------------------
     def _updateParticle(self, item, row):
         item.setClassId(row.getValue(md.RLN_PARTICLE_CLASS))
-        item.setTransform(convert.rowToAlignment(row, pwem.constants.ALIGN_2D))
-        
+        self.reader.setParticleTransform(item, row)
+
         item._rlnNormCorrection = Float(row.getValue('rlnNormCorrection'))
         item._rlnLogLikeliContribution = Float(row.getValue('rlnLogLikeliContribution'))
         item._rlnMaxValueProbDistribution = Float(row.getValue('rlnMaxValueProbDistribution'))

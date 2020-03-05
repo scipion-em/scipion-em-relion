@@ -123,10 +123,9 @@ leads to objective and high-quality results.
         # self._validateDim(self._getInputParticles(), self.referenceVolume.get(),
         #                   errors, 'Input particles', 'Reference volume')
 
-        if self.IS_3D:
-            if self.solventFscMask and not self.referenceMask.get():
-                errors.append('When using solvent-corrected FSCs, '
-                              'please provide a reference mask.')
+        if self.IS_3D and self.solventFscMask and not self.referenceMask.get():
+            errors.append('When using solvent-corrected FSCs, '
+                          'please provide a reference mask.')
 
         return errors
     
