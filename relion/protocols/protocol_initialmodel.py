@@ -26,9 +26,9 @@
 # *
 # **************************************************************************
 
+import pwem
 from pwem.protocols import ProtInitialVolume
 import pwem.emlib.metadata as md
-import pwem.constants as emcts
 from pwem.objects import Volume
 from pyworkflow.protocol.params import (PointerParam, FloatParam,
                                         LabelParam, IntParam,
@@ -432,11 +432,11 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         tableName = '' if relion.IS_30 else 'particles@'
         outImgsFn = self._getFileName('data', iter=iteration)
         imgSet.setAlignmentProj()
-        imgSet.copyItems(
-            self._getInputParticles(),
-            updateItemCallback=self._createItemMatrix,
-            itemDataIterator=md.iterRows(tableName + outImgsFn,
-                                         sortByLabel=md.RLN_IMAGE_ID))
+        self.reader = convert.Reader(alignType=pwem.ALIGN_PROJ)
+        mdIter = md.iterRows(tableName + outImgsFn, sortByLabel=md.RLN_IMAGE_ID)
+        imgSet.copyItems(self._getInputParticles(), doClone=False,
+                         updateItemCallback=self._createItemMatrix,
+                         itemDataIterator=mdIter)
 
     def _createItemMatrix(self, item, row):
-        convert.createItemMatrix(item, row, align=emcts.ALIGN_PROJ)
+        self.reader.setParticleTransform(item, row)
