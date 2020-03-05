@@ -35,7 +35,7 @@ from pyworkflow.protocol.params import (PointerParam, BooleanParam,
                                         FloatParam, IntParam, Positive)
 
 import relion.convert as convert
-from .protocol_base import ProtRelionBase
+from ..protocol_base import ProtRelionBase
 
 
 class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
