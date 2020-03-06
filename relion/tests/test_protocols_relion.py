@@ -133,6 +133,86 @@ class TestRelionBase(BaseTest):
         return protImport
 
 
+class TestRelionPicking(TestRelionBase):
+    @classmethod
+    def setUpClass(cls):
+        setupTestProject(cls)
+        cls.ds = DataSet.getDataSet('relion_tutorial')
+        cls.partFn = cls.ds.getFile('import/classify2d/extra/relion_it015_data.star')
+
+        cls.protImportMics = cls.newProtocol(
+            ProtImportMicrographs,
+            samplingRateMode=0,
+            filesPath='%s/*.mrc' % cls.ds.getFile('micrographs'),
+            samplingRate=7.08,
+            magnification=50000,
+            voltage=300,
+            sphericalAberration=0.1)
+        cls.launchProtocol(cls.protImportMics)
+
+    def _checkOutput(self, pickProt, minCoords, maxCoords):
+        """ Check that the outputCoordinates is not None
+         and that it should be between 300 and 400 coordinates
+         per micrograph.
+        """
+        coordSet = getattr(pickProt, 'outputCoordinates', None)
+        self.assertIsNotNone(coordSet)
+        for micAgg in coordSet.aggregate(["count"], "_micId", ["_micId"]):
+            self.assertGreaterEqual(micAgg['count'], minCoords)
+            self.assertLessEqual(micAgg['count'], maxCoords)
+
+    def testPickingLog(self):
+        protPickLog = self.newProtocol(
+            ProtRelionAutopickLoG,
+            objLabel='autopick LoG',
+            inputMicrographs=self.protImportMics.outputMicrographs,
+            boxSize=64,
+            minDiameter=260,
+            maxDiameter=360,
+            streamingBatchSize=5,
+        )
+        self.launchProtocol(protPickLog)
+        self._checkOutput(protPickLog, 300, 400)
+
+    def testPickingRef(self):
+        # Create a subset with a few good averages
+        ih = ImageHandler()
+        avgsFn = self.ds.getFile('import/classify2d/extra/'
+                                 'relion_it015_classes.mrcs')
+        outAvgsFn = os.path.abspath(self.proj.getTmpPath('averages.mrcs'))
+
+        for i, index in enumerate([5, 16, 17, 18, 31]):
+            ih.convert((index, avgsFn), (i + 1, outAvgsFn))
+
+        protAvg = self.newProtocol(ProtImportAverages,
+                                   importFrom=ProtImportParticles.IMPORT_FROM_FILES,
+                                   filesPath=outAvgsFn,
+                                   samplingRate=7.08
+                                   )
+        self.launchProtocol(protAvg)
+
+        # We need CTF estimation for picking ref with Relion
+        import grigoriefflab.protocols
+        protCtf = self.newProtocol(
+            grigoriefflab.protocols.ProtCTFFind,
+            inputMicrographs=self.protImportMics.outputMicrographs,
+            slowSearch=False,
+            resamplePix=False,
+        )
+        self.launchProtocol(protCtf)
+
+        protPickRef = self.newProtocol(
+            ProtRelion2Autopick,
+            inputMicrographs=self.protImportMics.outputMicrographs,
+            ctfRelations=protCtf.outputCTF,
+            runType=relion.RUN_COMPUTE,
+            inputReferences=protAvg.outputAverages,
+            streamingBatchSize=5,
+        )
+        self.launchProtocol(protPickRef)
+        self._checkOutput(protPickRef, 240, 310)
+
+
 class TestRelionClassify2D(TestRelionBase):
     @classmethod
     def setUpClass(cls):
@@ -385,20 +465,23 @@ class TestRelionSubtract(TestRelionBase):
         cls.dsRelion = DataSet.getDataSet('relion_tutorial')
     
     def test_subtract(self):
-        protParts = self.newProtocol(ProtImportParticles,
-                                     objLabel='from relion auto-refine',
-                                     importFrom=ProtImportParticles.IMPORT_FROM_RELION,
-                                     starFile=self.dsRelion.getFile('import/refine3d/extra/relion_it001_data.star'),
-                                     magnification=10000,
-                                     samplingRate=7.08,
-                                     haveDataBeenPhaseFlipped=True
-                                     )
+        protParts = self.newProtocol(
+            ProtImportParticles,
+            objLabel='from relion auto-refine',
+            importFrom=ProtImportParticles.IMPORT_FROM_RELION,
+            starFile=self.dsRelion.getFile('import/refine3d/extra/'
+                                           'relion_it001_data.star'),
+            magnification=10000,
+            samplingRate=7.08,
+            haveDataBeenPhaseFlipped=True)
+
         self.launchProtocol(protParts)
         self.assertEqual(60, protParts.outputParticles.getXDim())
         
-        protVol = self.newProtocol(ProtImportVolumes,
-                                   filesPath=self.dsRelion.getFile('volumes/reference.mrc'),
-                                   samplingRate=7.08)
+        protVol = self.newProtocol(
+            ProtImportVolumes,
+            filesPath=self.dsRelion.getFile('volumes/reference.mrc'),
+            samplingRate=7.08)
         self.launchProtocol(protVol)
         self.assertEqual(60, protVol.outputVolume.getDim()[0])
 
