@@ -192,10 +192,15 @@ class TestRelionPicking(TestRelionBase):
         self.launchProtocol(protAvg)
 
         # We need CTF estimation for picking ref with Relion
-        import grigoriefflab.protocols
+        # Now estimate CTF on the micrographs with ctffind
+        print("Performing CTFfind...")
+        ProtCTFFind = Domain.importFromPlugin(
+            'cistem.protocols', 'CistemProtCTFFind', doRaise=True)
+
         protCtf = self.newProtocol(
-            grigoriefflab.protocols.ProtCTFFind,
+            ProtCTFFind,
             inputMicrographs=self.protImportMics.outputMicrographs,
+            minDefocus=12000, maxDefocus=30000,
             slowSearch=False,
             resamplePix=False,
         )
