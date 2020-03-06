@@ -764,11 +764,28 @@ class TestRelionLocalRes(TestRelionBase):
         project = protRef.getProject()
         project._storeProtocol(protRef)
 
-        postProt = self.newProtocol(ProtRelionLocalRes, protRefine=protRef)
-        postProt.setObjLabel('Relion local resolution')
+        restProt = self.newProtocol(ProtRelionLocalRes, protRefine=protRef)
+        restProt.setObjLabel('Relion local resolution')
 
-        self.launchProtocol(postProt)
-        self._validations(postProt.outputVolume, 60, 7.08)
+        self.launchProtocol(restProt)
+        self._validations(restProt.outputVolume, 60, 7.08)
+
+        # Add also a test case for the mask
+        if relion.IS_GT30:
+            protMask = self.newProtocol(ProtRelionCreateMask3D,
+                                        inputVolume=protRef.outputVolume,
+                                        initialLowPassFilterA=30)
+            #protMask.inputVolume.set(protRef.outputVolume)
+            self.launchProtocol(protMask)
+
+            restProt = self.newProtocol(ProtRelionLocalRes,
+                                        objLabel='relion localres (with mask)',
+                                        protRefine=protRef,
+                                        solventMask=protMask.outputMask)
+            #postProt.setObjLabel('relion local resolution (with mask)')
+            self.launchProtocol(restProt)
+
+
 
 
 class TestRelionExpandSymmetry(TestRelionBase):
