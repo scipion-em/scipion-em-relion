@@ -58,3 +58,5 @@ else:
     # New protocol from Relion v3.1:
 # FIXME: this has to be imported for tests / wizards to work
 from .protocol_assign_optic_groups import ProtRelionAssignOpticsGroup
+
+from .protocol_plot_bfactor import ProtRelionPlotBfactor
