@@ -30,7 +30,7 @@ import pyworkflow.tests as pwtests
 from pwem.tests.workflows import TestWorkflow
 from pwem.protocols import ProtImportMovies
 from pwem.objects import SetOfMovies
-from pyworkflow.utils import copyTree, join
+from pyworkflow.utils import copyTree, join, magentaStr
 
 import relion
 import relion.convert
@@ -52,6 +52,7 @@ class Relion3TestProtocolBase(TestWorkflow):
 
     @classmethod
     def _importMovies(cls, **kwargs):
+        print(magentaStr("\n==> Importing data - movies:"))
         protImport = cls.newProtocol(
             ProtImportMovies,
             filesPath=cls.ds.getFile('Movies/'),
@@ -88,7 +89,7 @@ class Relion3TestProtocolBase(TestWorkflow):
             'numberOfThreads': CPUS
         }
         args.update(kwargs)
-
+        print(magentaStr("\nRunning relion - motioncor:"))
         protRelionMc = self.newProtocol(ProtRelionMotioncor, **args)
         protRelionMc.inputMovies.set(protInput.outputMovies)
         protRelionMc = self.launchProtocol(protRelionMc)
@@ -104,6 +105,7 @@ class Relion3TestProtocolBase(TestWorkflow):
         }
         args.update(kwargs)
 
+        print(magentaStr("\nRunning relion - assign optics groups:"))
         protAssign = self.newProtocol(ProtRelionAssignOpticsGroup, **args)
         protAssign.inputSet.set(protInput.outputMovies)
         return self.launchProtocol(protAssign)
@@ -119,7 +121,7 @@ class Relion3TestAssignOptics(Relion3TestProtocolBase):
 
     def _checkOutputMovies(self, prot, size, exists=True,
                            hasAlignment=True):
-        # # Validate output movies
+        # Validate output movies
         movies = getattr(prot, 'outputMovies', None)
         self.assertIsNotNone(movies, "No movies were generated")
         self.assertEqual(size, movies.getSize())
@@ -143,6 +145,7 @@ class Relion3TestAssignOptics(Relion3TestProtocolBase):
             self.assertEqual(acq.getAttributeValue('mtfFile', ''),
                              self.MTF_FILE)
 
+        print(magentaStr("\n==> Testing relion - assign optics groups:"))
         protRelionAssign = self._runAssignOptics(self.protImport)
         self._checkOutputMovies(protRelionAssign, 3, hasAlignment=False)
         output = protRelionAssign.outputMovies
@@ -181,12 +184,14 @@ class Relion3TestMotioncor(Relion3TestProtocolBase):
                 self.assertTrue(os.path.exists(m.getFileName()))
 
     def test_1x1(self):
+        print(magentaStr("\n==> Testing relion - motioncor (global):"))
         protRelionMc = self._runRelionMc(self.protImport, objLabel='relion - mc 1x1',
                                          patchX=1, patchY=1)
         self._checkOutputMovies(protRelionMc, 3)
 
     def test_1x1_PS(self):
         if relion.IS_GT30:
+            print(magentaStr("\n==> Testing relion - motioncor (global + PS):"))
             protRelionMc = self._runRelionMc(self.protImport, objLabel='relion - mc PS',
                                              patchX=1, patchY=1,
                                              savePSsum=True)
@@ -195,6 +200,7 @@ class Relion3TestMotioncor(Relion3TestProtocolBase):
             print("Cannot test motioncorr with PS saving - it's only available for Relion 3.1+")
 
     def test_3x3_DW(self):
+        print(magentaStr("\n==> Testing relion - motioncor (local + DW):"))
         protRelionMc = self._runRelionMc(self.protImport, objLabel='relion - mc 3x3 DW',
                                          patchX=3, patchY=3, doDW=True)
         self._checkOutputMovies(protRelionMc, 3)
@@ -225,6 +231,7 @@ class Relion3TestMultiBody(Relion3TestProtocolBase):
         return relionRefine
 
     def testMultibody(self):
+        print(magentaStr("\n==> Testing relion - multi-body:"))
         relionMbody = self.newProtocol(relion.protocols.ProtRelionMultiBody,
                                        initialOffsetRange=2.0,
                                        initialOffsetStep=0.5,

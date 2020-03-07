@@ -254,7 +254,7 @@ class Writer(WriterBase):
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
         self._imageSize = firstPart.getXDim()
-        self._pixelSize = firstPart.getSamplingRate()
+        self._pixelSize = firstPart.getSamplingRate() or 1.0
 
         self._counter = 0  # Mark first conversion as special one
         self._partToRow(firstPart, partRow)

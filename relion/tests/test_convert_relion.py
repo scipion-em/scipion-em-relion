@@ -26,7 +26,6 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-from __future__ import print_function
 
 import os
 import subprocess
@@ -320,7 +319,7 @@ class TestConvertAnglesBase(BaseTest):
             p.setTransform(Transform(a))
             partSet.append(p)
         # Write out the .sqlite file and check that are correctly aligned
-        print("Parset", partFn1)
+        print("Partset", partFn1)
         partSet.printAll()
         partSet.write()
         # Convert to a Xmipp metadata and also check that the images are
@@ -610,7 +609,7 @@ class TestReconstruct(TestConvertAnglesBase):
     CMD = "relion_reconstruct --i %(mdFn)s --o %(outputFn)s"
 
     def test_forward_backwards(self):
-        """convert transformation matrixt to xmipp and back"""
+        """convert transformation matrix to xmipp and back"""
 
         mList = [[[0.71461016, 0.63371837, -0.29619813,  1.],  # a1
                   [-0.61309201, 0.77128059, 0.17101008,  2.],
@@ -671,7 +670,7 @@ class TestReconstruct(TestConvertAnglesBase):
             aMatrix = a.getMatrix()
             # aMatrix[0,:] *= -1; aMatrix[2,:] *= -1;
             # same two matrices with flip
-            print("aMatrix: \n", aMatrix, "bMatrix: \n", b.getMatrix())
+            print("\naMatrix: \n", aMatrix, "\nbMatrix: \n", b.getMatrix())
             
             self.assertTrue(np.allclose(aMatrix, b.getMatrix(), rtol=1e-2))
 

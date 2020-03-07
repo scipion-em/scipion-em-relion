@@ -105,11 +105,8 @@ class Plugin(pwem.Plugin):
                        default=True)
 
 
-pwem.Domain.registerPlugin(__name__)
-
 # Convenience constants to check what version of the binary is active
 IS_30 = Plugin.isVersion30Active()
 # Greater than 3.0?
 IS_GT30 = not IS_30  # Now 2.x is deprecated
 IS_31 = Plugin.isVersion31Active()
-
