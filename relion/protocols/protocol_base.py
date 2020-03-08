@@ -283,6 +283,7 @@ class ProtRelionBase(EMProtocol):
                                'areas.')
             form.addParam('solventFscMask', BooleanParam, default=False,
                           expertLevel=LEVEL_ADVANCED,
+                          condition='not isClassify',
                           label='Use solvent-flattened FSCs?',
                           help='If set to Yes, then instead of using '
                                'unmasked maps to calculate the gold-standard '
@@ -373,7 +374,6 @@ class ProtRelionBase(EMProtocol):
                            'CTF-correction. However, if the phases have been '
                            'flipped, the program will handle it.')
         form.addParam('ignoreCTFUntilFirstPeak', BooleanParam, default=False,
-                      expertLevel=LEVEL_ADVANCED,
                       label='Ignore CTFs until first peak?',
                       condition='not doContinue',
                       help='If set to Yes, then CTF-amplitude correction will '

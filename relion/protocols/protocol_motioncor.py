@@ -48,7 +48,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
     Wrapper for the Relion's implementation of motioncor algorithm.
     """
 
-    _label = 'motioncor'
+    _label = 'motion correction'
 
     def __init__(self, **kwargs):
 
@@ -72,7 +72,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         line.addParam('sumFrameN', params.IntParam, default=0,
                       label='to')
 
-        form.addParam('doDW', params.BooleanParam, default=False,
+        form.addParam('doDW', params.BooleanParam, default=True,
                       label='Do dose-weighting?',
                       help='If set to Yes, the averaged micrographs will be '
                            'dose-weighted. \n\n'
@@ -131,7 +131,8 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
         line = form.addLine('Number of patches',
                             help='Number of patches (in X and Y direction) to '
-                                 'apply motion correction. \n')
+                                 'apply motion correction. If <= 2 then '
+                                 'only global correction will be done.')
         line.addParam('patchX', params.IntParam, default=1, label='X')
         line.addParam('patchY', params.IntParam, default=1, label='Y')
 
@@ -319,6 +320,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         xShifts, yShifts = [], []
 
         for row in table:
+            # Shifts are in pixels of the original (unbinned) movies
             xShifts.append(float(row.rlnMicrographShiftX))
             yShifts.append(float(row.rlnMicrographShiftY))
             if len(xShifts) == n:
@@ -537,9 +539,8 @@ def createGlobalAlignmentPlot(meanX, meanY, first, pixSize):
     ax_ang2.set_ylabel('Shift y (A)')
 
     i = first
-    # The output and log files list the shifts relative to the first frame.
-    # ROB unit seems to be pixels since sampling rate is only asked
-    # by the program if dose filtering is required
+    # The output _rlnMicrographShiftX/Y shifts relative to the first frame.
+    # Unit is pixels of the original (unbinned) movies (Takanori, 2018)
     skipLabels = ceil(len(meanX) / 10.0)
     labelTick = 1
 

@@ -117,43 +117,41 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
 
         self.addSymmetry(form)
 
-        group = form.addGroup('CTF')
-
-        group.addParam('continueMsg', LabelParam, default=True,
-                       condition='doContinue',
-                       label='CTF parameters are not available in continue mode')
-        group.addParam('doCTF', BooleanParam, default=True,
-                       label='Do CTF-correction?', condition='not doContinue',
-                       help='If set to Yes, CTFs will be corrected inside the '
-                            'MAP refinement. The resulting algorithm '
-                            'intrinsically implements the optimal linear, or '
-                            'Wiener filter. Note that input particles should '
-                            'contains CTF parameters.')
-        group.addParam('haveDataBeenPhaseFlipped', LabelParam,
-                       condition='not doContinue',
-                       label='Have data been phase-flipped?      '
-                             '(Don\'t answer, see help)',
-                       help='The phase-flip status is recorded and managed by '
-                            'Scipion. \n In other words, when you import or '
-                            'extract particles, \nScipion will record whether '
-                            'or not phase flipping has been done.\n\n'
-                            'Note that CTF-phase flipping is NOT a necessary '
-                            'pre-processing step \nfor MAP-refinement in '
-                            'RELION, as this can be done inside the internal\n'
-                            'CTF-correction. However, if the phases have been '
-                            'flipped, the program will handle it.')
-        group.addParam('ignoreCTFUntilFirstPeak', BooleanParam, default=False,
-                       expertLevel=LEVEL_ADVANCED,
-                       label='Ignore CTFs until first peak?',
-                       condition='not doContinue',
-                       help='If set to Yes, then CTF-amplitude correction will '
-                            'only be performed from the first peak '
-                            'of each CTF onward. This can be useful if the CTF '
-                            'model is inadequate at the lowest resolution. '
-                            'Still, in general using higher amplitude contrast '
-                            'on the CTFs (e.g. 10-20%) often yields better '
-                            'results. Therefore, this option is not generally '
-                            'recommended.')
+        form.addSection(label='CTF')
+        form.addParam('continueMsg', LabelParam, default=True,
+                      condition='doContinue',
+                      label='CTF parameters are not available in continue mode')
+        form.addParam('doCTF', BooleanParam, default=True,
+                      label='Do CTF-correction?', condition='not doContinue',
+                      help='If set to Yes, CTFs will be corrected inside the '
+                           'MAP refinement. The resulting algorithm '
+                           'intrinsically implements the optimal linear, or '
+                           'Wiener filter. Note that input particles should '
+                           'contains CTF parameters.')
+        form.addParam('haveDataBeenPhaseFlipped', LabelParam,
+                      condition='not doContinue',
+                      label='Have data been phase-flipped?      '
+                            '(Don\'t answer, see help)',
+                      help='The phase-flip status is recorded and managed by '
+                           'Scipion. \n In other words, when you import or '
+                           'extract particles, \nScipion will record whether '
+                           'or not phase flipping has been done.\n\n'
+                           'Note that CTF-phase flipping is NOT a necessary '
+                           'pre-processing step \nfor MAP-refinement in '
+                           'RELION, as this can be done inside the internal\n'
+                           'CTF-correction. However, if the phases have been '
+                           'flipped, the program will handle it.')
+        form.addParam('ignoreCTFUntilFirstPeak', BooleanParam, default=False,
+                      label='Ignore CTFs until first peak?',
+                      condition='not doContinue',
+                      help='If set to Yes, then CTF-amplitude correction will '
+                           'only be performed from the first peak '
+                           'of each CTF onward. This can be useful if the CTF '
+                           'model is inadequate at the lowest resolution. '
+                           'Still, in general using higher amplitude contrast '
+                           'on the CTFs (e.g. 10-20%) often yields better '
+                           'results. Therefore, this option is not generally '
+                           'recommended.')
 
         form.addSection('Optimisation')
         form.addParam('numberOfClasses', IntParam, default=1,
@@ -211,7 +209,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
 
         form.addParam('sgdNoiseVar', IntParam, default=-1,
                       expertLevel=LEVEL_ADVANCED,
-                      label='SGD increased noise variance half-life',
+                      label='Increased noise variance half-life',
                       help='When set to a positive value, the initial '
                            'estimates of the noise variance will internally '
                            'be multiplied by 8, and then be gradually '
