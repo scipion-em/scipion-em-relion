@@ -153,7 +153,8 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
         else:
             relativeOutput = os.path.relpath(rootDir,
                                              os.path.dirname(outputRoot))
-        os.symlink(relativeOutput, outputRoot)
+        if not os.path.exists(outputRoot):
+            os.symlink(relativeOutput, outputRoot)
     elif ext == 'mrc' and extension == 'mrcs':
         print("convertBinaryFiles: creating soft links (mrcs -> mrc).")
         mapFunc = createBinaryLink

@@ -133,6 +133,91 @@ class TestRelionBase(BaseTest):
         return protImport
 
 
+class TestRelionPicking(TestRelionBase):
+    @classmethod
+    def setUpClass(cls):
+        setupTestProject(cls)
+        cls.ds = DataSet.getDataSet('relion_tutorial')
+        cls.partFn = cls.ds.getFile('import/classify2d/extra/relion_it015_data.star')
+
+        cls.protImportMics = cls.newProtocol(
+            ProtImportMicrographs,
+            samplingRateMode=0,
+            filesPath='%s/*.mrc' % cls.ds.getFile('micrographs'),
+            samplingRate=7.08,
+            magnification=50000,
+            voltage=300,
+            sphericalAberration=0.1)
+        cls.launchProtocol(cls.protImportMics)
+
+    def _checkOutput(self, pickProt, minCoords, maxCoords):
+        """ Check that the outputCoordinates is not None
+         and that it should be between 300 and 400 coordinates
+         per micrograph.
+        """
+        coordSet = getattr(pickProt, 'outputCoordinates', None)
+        self.assertIsNotNone(coordSet)
+        for micAgg in coordSet.aggregate(["count"], "_micId", ["_micId"]):
+            self.assertGreaterEqual(micAgg['count'], minCoords)
+            self.assertLessEqual(micAgg['count'], maxCoords)
+
+    def testPickingLog(self):
+        protPickLog = self.newProtocol(
+            ProtRelionAutopickLoG,
+            objLabel='autopick LoG',
+            inputMicrographs=self.protImportMics.outputMicrographs,
+            boxSize=64,
+            minDiameter=260,
+            maxDiameter=360,
+            streamingBatchSize=5,
+        )
+        self.launchProtocol(protPickLog)
+        self._checkOutput(protPickLog, 300, 400)
+
+    def testPickingRef(self):
+        # Create a subset with a few good averages
+        ih = ImageHandler()
+        avgsFn = self.ds.getFile('import/classify2d/extra/'
+                                 'relion_it015_classes.mrcs')
+        outAvgsFn = os.path.abspath(self.proj.getTmpPath('averages.mrcs'))
+
+        for i, index in enumerate([5, 16, 17, 18, 31]):
+            ih.convert((index, avgsFn), (i + 1, outAvgsFn))
+
+        protAvg = self.newProtocol(ProtImportAverages,
+                                   importFrom=ProtImportParticles.IMPORT_FROM_FILES,
+                                   filesPath=outAvgsFn,
+                                   samplingRate=7.08
+                                   )
+        self.launchProtocol(protAvg)
+
+        # We need CTF estimation for picking ref with Relion
+        # Now estimate CTF on the micrographs with ctffind
+        print("Performing CTFfind...")
+        ProtCTFFind = Domain.importFromPlugin(
+            'cistem.protocols', 'CistemProtCTFFind', doRaise=True)
+
+        protCtf = self.newProtocol(
+            ProtCTFFind,
+            inputMicrographs=self.protImportMics.outputMicrographs,
+            minDefocus=12000, maxDefocus=30000,
+            slowSearch=False,
+            resamplePix=False,
+        )
+        self.launchProtocol(protCtf)
+
+        protPickRef = self.newProtocol(
+            ProtRelion2Autopick,
+            inputMicrographs=self.protImportMics.outputMicrographs,
+            ctfRelations=protCtf.outputCTF,
+            runType=relion.RUN_COMPUTE,
+            inputReferences=protAvg.outputAverages,
+            streamingBatchSize=5,
+        )
+        self.launchProtocol(protPickRef)
+        self._checkOutput(protPickRef, 240, 310)
+
+
 class TestRelionClassify2D(TestRelionBase):
     @classmethod
     def setUpClass(cls):
@@ -239,6 +324,7 @@ class TestRelionRefine(TestRelionBase):
         cls.protImportVol = cls.runImportVolumes(cls.vol, 3.5)
     
     def testProtRelionRefine(self):
+        print(magentaStr("\n==> Running relion - preprocess particles:"))
         relNorm = self.newProtocol(ProtRelionPreprocessParticles)
         relNorm.inputParticles.set(self.protImport.outputParticles)
         relNorm.doNormalize.set(True)
@@ -385,20 +471,23 @@ class TestRelionSubtract(TestRelionBase):
         cls.dsRelion = DataSet.getDataSet('relion_tutorial')
     
     def test_subtract(self):
-        protParts = self.newProtocol(ProtImportParticles,
-                                     objLabel='from relion auto-refine',
-                                     importFrom=ProtImportParticles.IMPORT_FROM_RELION,
-                                     starFile=self.dsRelion.getFile('import/refine3d/extra/relion_it001_data.star'),
-                                     magnification=10000,
-                                     samplingRate=7.08,
-                                     haveDataBeenPhaseFlipped=True
-                                     )
+        protParts = self.newProtocol(
+            ProtImportParticles,
+            objLabel='from relion auto-refine',
+            importFrom=ProtImportParticles.IMPORT_FROM_RELION,
+            starFile=self.dsRelion.getFile('import/refine3d/extra/'
+                                           'relion_it001_data.star'),
+            magnification=10000,
+            samplingRate=7.08,
+            haveDataBeenPhaseFlipped=True)
+
         self.launchProtocol(protParts)
         self.assertEqual(60, protParts.outputParticles.getXDim())
         
-        protVol = self.newProtocol(ProtImportVolumes,
-                                   filesPath=self.dsRelion.getFile('volumes/reference.mrc'),
-                                   samplingRate=7.08)
+        protVol = self.newProtocol(
+            ProtImportVolumes,
+            filesPath=self.dsRelion.getFile('volumes/reference.mrc'),
+            samplingRate=7.08)
         self.launchProtocol(protVol)
         self.assertEqual(60, protVol.outputVolume.getDim()[0])
 
@@ -526,6 +615,7 @@ class TestRelionPostprocess(TestRelionBase):
         cls.half2Fn = cls.ds.getFile(join(pathFns, 'relion_it025_half2_class001.mrc'))
 
     def importVolume(self):
+
         protVol = self.newProtocol(ProtImportVolumes,
                                    objLabel='import volume',
                                    filesPath=self.volFn,
@@ -705,6 +795,7 @@ class TestRelionLocalRes(TestRelionBase):
         cls.modelFn = cls.ds.getFile(join(pathFns, 'relion_model.star'))
 
     def importVolume(self):
+        print(magentaStr("\n==> Importing data - volume:"))
         protVol = self.newProtocol(ProtImportVolumes,
                                    objLabel='import volume',
                                    filesPath=self.volFn,
@@ -745,7 +836,6 @@ class TestRelionLocalRes(TestRelionBase):
                                " must be %0.2f" % (sr, pxSize))
 
     def test_runRelionLocalRes(self):
-        print(magentaStr("\n==> Testing relion - local resolution:"))
         protRef = self._createRef3DProtBox("auto-refine")
 
         protRef._createFilenameTemplates()
@@ -764,11 +854,29 @@ class TestRelionLocalRes(TestRelionBase):
         project = protRef.getProject()
         project._storeProtocol(protRef)
 
-        postProt = self.newProtocol(ProtRelionLocalRes, protRefine=protRef)
-        postProt.setObjLabel('Relion local resolution')
+        restProt = self.newProtocol(ProtRelionLocalRes, protRefine=protRef)
+        print(magentaStr("\n==> Testing relion - local resolution:"))
+        restProt.setObjLabel('Relion local resolution')
 
-        self.launchProtocol(postProt)
-        self._validations(postProt.outputVolume, 60, 7.08)
+        self.launchProtocol(restProt)
+        self._validations(restProt.outputVolume, 60, 7.08)
+
+        # Add also a test case for the mask
+        if relion.IS_GT30:
+            print(magentaStr("\n==> Importing data - mask 3D:"))
+            protMask = self.newProtocol(ProtRelionCreateMask3D,
+                                        inputVolume=protRef.outputVolume,
+                                        initialLowPassFilterA=30)
+            #protMask.inputVolume.set(protRef.outputVolume)
+            self.launchProtocol(protMask)
+
+            print(magentaStr("\n==> Testing relion - local resolution (with mask):"))
+            restProt = self.newProtocol(ProtRelionLocalRes,
+                                        objLabel='relion localres (with mask)',
+                                        protRefine=protRef,
+                                        solventMask=protMask.outputMask)
+            #postProt.setObjLabel('relion local resolution (with mask)')
+            self.launchProtocol(restProt)
 
 
 class TestRelionExpandSymmetry(TestRelionBase):
@@ -814,6 +922,7 @@ class TestRelionCreate3dMask(TestRelionBase):
         cls.ds = DataSet.getDataSet('relion_tutorial')
 
     def importVolume(self):
+        print(magentaStr("\n==> Importing data - volume:"))
         volFn = self.ds.getFile('import/refine3d/extra/relion_class001.mrc')
         protVol = self.newProtocol(ProtImportVolumes,
                                    objLabel='import volume',
@@ -835,13 +944,13 @@ class TestRelionCreate3dMask(TestRelionBase):
                                " must be %0.2f" % (sr, pxSize))
 
     def test_createMask(self):
-        print(magentaStr("\n==> Testing relion - create mask 3d:"))
         importProt = self.importVolume()
 
         maskProt = self.newProtocol(ProtRelionCreateMask3D,
                                     initialLowPassFilterA=10)  # filter at 10 A
         vol = importProt.outputVolume
         maskProt.inputVolume.set(vol)
+        print(magentaStr("\n==> Testing relion - create mask 3d:"))
         self.launchProtocol(maskProt)
 
         self._validations(maskProt.outputMask, vol.getXDim(),
@@ -1133,7 +1242,8 @@ class TestRelionCenterAverages(TestRelionBase):
         cls.ds = DataSet.getDataSet('mda')
 
     def test_basic(self):
-        """ Run an Import particles protocol. """
+        """ Run an Import averages protocol. """
+        print(magentaStr("\n==> Importing data - averages:"))
         protImport = self.newProtocol(ProtImportAverages,
                                       filesPath=self.ds.getFile('averages/averages.stk'),
                                       samplingRate=5.04)
@@ -1165,6 +1275,7 @@ class TestRelionExportParticles(TestRelionBase):
     def runImportParticles(cls, pattern, samplingRate, checkStack=False,
                            phaseFlip=False):
         """ Run an Import particles protocol. """
+        print(magentaStr("\n==> Importing data - particles:"))
         cls.protImport = cls.newProtocol(ProtImportParticles,
                                          filesPath=pattern,
                                          samplingRate=samplingRate,
@@ -1178,9 +1289,8 @@ class TestRelionExportParticles(TestRelionBase):
 
     def test_basic(self):
         """ Run an Import particles protocol. """
-        print(magentaStr("\n==> Testing relion - export particles:"))
         inputParts = self.protImport.outputParticles
-
+        print(magentaStr("\n==> Testing relion - export particles:"))
         paramsList = [
             {'stackType': 0, 'useAlignment': True},
             {'stackType': 0, 'useAlignment': False},

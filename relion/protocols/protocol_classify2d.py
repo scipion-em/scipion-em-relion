@@ -30,6 +30,7 @@ import pwem.emlib.metadata as md
 from pwem.objects import SetOfClasses2D
 from pwem.protocols import ProtClassify2D
 
+import relion
 import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
@@ -82,9 +83,10 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
     def _fillClassesFromIter(self, clsSet, iteration):
         """ Create the SetOfClasses2D from a given iteration. """
         self._loadClassesInfo(iteration)
-        dataStar = 'particles@' + self._getFileName('data', iter=iteration)
+        tableName = '' if relion.IS_30 else 'particles@'
+        dataStar = self._getFileName('data', iter=iteration)
         self.reader = convert.Reader(alignType=pwem.ALIGN_2D)
-        mdIter = md.iterRows(dataStar, sortByLabel=md.RLN_IMAGE_ID)
+        mdIter = md.iterRows(tableName + dataStar, sortByLabel=md.RLN_IMAGE_ID)
         clsSet.classifyItems(updateItemCallback=self._updateParticle,
                              updateClassCallback=self._updateClass,
                              itemDataIterator=mdIter,

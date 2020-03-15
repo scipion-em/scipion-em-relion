@@ -25,9 +25,9 @@
 # **************************************************************************
 
 from pyworkflow.object import String, Float
+import pwem
 from pwem.protocols import ProtClassify3D
 import pwem.emlib.metadata as md
-import pwem.constants as emcts
 
 import relion
 import relion.convert as convert
@@ -178,15 +178,17 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
         self._loadClassesInfo(iteration)
         tableName = '' if relion.IS_30 else 'particles@'
         dataStar = self._getFileName('data', iter=iteration)
+        self.reader = convert.Reader(alignType=pwem.ALIGN_PROJ)
+        mdIter = md.iterRows(tableName + dataStar, sortByLabel=md.RLN_IMAGE_ID)
         clsSet.classifyItems(updateItemCallback=self._updateParticle,
                              updateClassCallback=self._updateClass,
-                             itemDataIterator=md.iterRows(tableName + dataStar,
-                                                          sortByLabel=md.RLN_IMAGE_ID))
+                             itemDataIterator=mdIter,
+                             doClone=False)
     
     def _updateParticle(self, item, row):
         item.setClassId(row.getValue(md.RLN_PARTICLE_CLASS))
-        item.setTransform(convert.rowToAlignment(row, emcts.ALIGN_PROJ))
-        
+        self.reader.setParticleTransform(item, row)
+
         item._rlnLogLikeliContribution = Float(row.getValue('rlnLogLikeliContribution'))
         item._rlnMaxValueProbDistribution = Float(row.getValue('rlnMaxValueProbDistribution'))
         item._rlnGroupName = String(row.getValue('rlnGroupName'))

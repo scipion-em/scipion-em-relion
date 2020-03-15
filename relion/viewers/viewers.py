@@ -1857,7 +1857,7 @@ class RelionMotioncorrViewer(EmProtocolViewer):
                         showj.RENDER: '_powerSpectra._filename'
                         }
 
-        if getattr(self.protocol, '_savePsSum', False):
+        if getattr(self.protocol, 'savePSsum', False):
             if getattr(self.protocol, 'outputMicrographs', None) is not None:
                 output = self.protocol.outputMicrographs
             else:
