@@ -77,7 +77,7 @@ class Relion3TestProtocolBase(TestWorkflow):
         return protImport
 
     def _runRelionMc(self, protImport, **kwargs):
-        if not relion.IS_30:
+        if not relion.Plugin.IS_30():
             protInput = self._runAssignOptics(protImport)
         else:
             protInput = protImport
@@ -134,8 +134,8 @@ class Relion3TestAssignOptics(Relion3TestProtocolBase):
                 self.assertTrue(os.path.exists(m.getFileName()))
 
     def test_assign(self):
-        if relion.IS_30:
-            print("This test only make sense for Relion >= 3.1. Exiting...")
+        if relion.Plugin.IS_30():
+            print("This test only makes sense for Relion >= 3.1. Exiting...")
             return
 
         def _checkAcq(obj):
@@ -169,7 +169,7 @@ class Relion3TestMotioncor(Relion3TestProtocolBase):
 
     def _checkOutputMovies(self, prot, size, exists=True,
                            hasAlignment=True):
-        # # Validate output movies
+        # Validate output movies
         movies = getattr(prot, 'outputMovies', None)
         self.assertIsNotNone(movies, "No movies were generated")
         # dims = movies.getDim()
@@ -190,7 +190,7 @@ class Relion3TestMotioncor(Relion3TestProtocolBase):
         self._checkOutputMovies(protRelionMc, 3)
 
     def test_1x1_PS(self):
-        if relion.IS_GT30:
+        if relion.Plugin.IS_GT30():
             print(magentaStr("\n==> Testing relion - motioncor (global + PS):"))
             protRelionMc = self._runRelionMc(self.protImport, objLabel='relion - mc PS',
                                              patchX=1, patchY=1,

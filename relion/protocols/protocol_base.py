@@ -948,7 +948,7 @@ class ProtRelionBase(EMProtocol):
         args['--particle_diameter'] = maskDiameter
 
         # Since Relion 3.1 --angpix is not longer a valid argument
-        if relion.IS_30:
+        if relion.Plugin.IS_30():
             args['--angpix'] = ps
 
         self._setCTFArgs(args)
@@ -967,7 +967,7 @@ class ProtRelionBase(EMProtocol):
                     args['--firstiter_cc'] = ''
                 args['--ini_high'] = self.initialLowPassFilterA.get()
                 args['--sym'] = self.symmetryGroup.get()
-                if relion.IS_GT30:
+                if relion.Plugin.IS_GT30():
                     # We use the same pixel size as input particles, since
                     # we convert anyway the input volume to match same size
                     args['--ref_angpix'] = ps

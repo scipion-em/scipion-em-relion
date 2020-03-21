@@ -32,7 +32,7 @@ import relion
 # Writing of star files will be handle by the Writer class
 # We have a new implementation of it for Relion > 3.1 since
 # the star file format has changed in 3.1
-if relion.IS_GT30:
+if relion.Plugin.IS_GT30():
     from .convert31 import Writer, Reader
 else:
     from .convert30 import Writer, Reader

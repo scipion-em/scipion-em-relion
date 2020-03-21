@@ -69,7 +69,7 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
                            '3D half maps. Note that it is recommended that the '
                            'refinement protocol uses a gold-standard method.')
 
-        if relion.IS_GT30:
+        if relion.Plugin.IS_GT30():
             form.addParam('solventMask', params.PointerParam,
                           pointerClass='VolumeMask', allowsNull=True,
                           label='User-provided solvent mask',
@@ -149,7 +149,7 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
         ih.convert(half1, self._getFileName("half1"))
         ih.convert(half2, self._getFileName("half2"))
 
-        if relion.IS_GT30 and self.solventMask.hasValue():
+        if relion.Plugin.IS_GT30() and self.solventMask.hasValue():
             relion.convert.convertMask(self.solventMask.get(),
                                        self._getFileName('solventMask'))
 
@@ -194,7 +194,7 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
         if mtfFile:
             self.paramDict['--mtf'] = mtfFile
 
-        if relion.IS_GT30 and self.solventMask.hasValue():
+        if relion.Plugin.IS_GT30() and self.solventMask.hasValue():
             self.paramDict['--mask'] = self._getFileName('solventMask')
 
     def _getRelionMapFn(self, fn):
