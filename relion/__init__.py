@@ -25,7 +25,6 @@
 # **************************************************************************
 
 import os
-import pyworkflow as pw
 import pyworkflow.utils as pwutils
 import pwem
 
@@ -74,12 +73,16 @@ class Plugin(pwem.Plugin):
         return environ
 
     @classmethod
-    def isVersion30Active(cls):
+    def IS_30(cls):
         return cls.getActiveVersion().startswith('3.0')
 
     @classmethod
-    def isVersion31Active(cls):
+    def IS_31(cls):
         return cls.getActiveVersion().startswith('3.1')
+
+    @classmethod
+    def IS_GT30(cls):
+        return not cls.getActiveVersion().startswith('3.0')
 
     @classmethod
     def defineBinaries(cls, env):
@@ -103,10 +106,3 @@ class Plugin(pwem.Plugin):
                        updateCuda=True,
                        vars=relion_vars,
                        default=True)
-
-
-# Convenience constants to check what version of the binary is active
-IS_30 = Plugin.isVersion30Active()
-# Greater than 3.0?
-IS_GT30 = not IS_30  # Now 2.x is deprecated
-IS_31 = Plugin.isVersion31Active()

@@ -74,7 +74,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         self.assertEqual((3710, 3838, 24), dims)
         self.assertEqual(24, movies.getSize())
 
-        if relion.IS_30:
+        if relion.Plugin.IS_30():
             return protImport
         else:
             protAssign = self.newProtocol(ProtRelionAssignOpticsGroup,

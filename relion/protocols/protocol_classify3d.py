@@ -176,7 +176,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
     def _fillClassesFromIter(self, clsSet, iteration):
         """ Create the SetOfClasses3D from a given iteration. """
         self._loadClassesInfo(iteration)
-        tableName = '' if relion.IS_30 else 'particles@'
+        tableName = '' if relion.Plugin.IS_30() else 'particles@'
         dataStar = self._getFileName('data', iter=iteration)
         self.reader = convert.Reader(alignType=pwem.ALIGN_PROJ)
         mdIter = md.iterRows(tableName + dataStar, sortByLabel=md.RLN_IMAGE_ID)

@@ -502,6 +502,8 @@ class TestRelionSubtract(TestRelionBase):
 
 class TestRelionSortParticles(TestRelionBase):
     """ This class helps to test sort particles protocol from Relion. """
+    if relion.Plugin.IS_31():
+        print("Sort particles protocol was removed in Relion > 3.1")
 
     @classmethod
     def setUpClass(cls):
@@ -862,7 +864,7 @@ class TestRelionLocalRes(TestRelionBase):
         self._validations(restProt.outputVolume, 60, 7.08)
 
         # Add also a test case for the mask
-        if relion.IS_GT30:
+        if relion.Plugin.IS_GT30():
             print(magentaStr("\n==> Importing data - mask 3D:"))
             protMask = self.newProtocol(ProtRelionCreateMask3D,
                                         inputVolume=protRef.outputVolume,

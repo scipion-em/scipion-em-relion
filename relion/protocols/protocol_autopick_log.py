@@ -30,8 +30,8 @@ import pyworkflow.protocol.params as params
 from pyworkflow.protocol import STEPS_SERIAL
 from pwem.protocols import ProtParticlePickingAuto
 
+from relion import Plugin
 from .protocol_autopick import ProtRelionAutopickBase
-from .. import IS_GT30
 
 
 class ProtRelionAutopickLoG(ProtRelionAutopickBase):
@@ -91,7 +91,7 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
                             'threshold) particles compared to the default '
                             'setting.')
 
-        if IS_GT30:
+        if Plugin.IS_GT30():
             group.addParam('threshold2', params.FloatParam, default=999,
                            label='Upper threshold (stddev)',
                            help='Use this to discard picks with LoG thresholds '
@@ -141,7 +141,7 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
                 self.threshold.get()
             ]
 
-        if IS_GT30:
+        if Plugin.IS_GT30():
             args.append(self.threshold2.get())
 
         return args
@@ -157,7 +157,7 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
         params += ' --LoG_diam_max %0.3f' % maxDiameter
         params += ' --LoG_adjust_threshold %0.3f' % threshold
 
-        if IS_GT30:
+        if Plugin.IS_GT30():
             params += ' --LoG_upper_threshold %0.3f' % threshold2
 
         program = self._getProgram('relion_autopick')

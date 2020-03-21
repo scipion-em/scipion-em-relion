@@ -49,7 +49,7 @@ from .protocol_motioncor import ProtRelionMotioncor
 from .protocol_multibody import ProtRelionMultiBody
 from .protocol_symmetrize_volume import ProtRelionSymmetrizeVolume
 
-if relion.IS_30:
+if relion.Plugin.IS_30():
     from ._legacy.protocol30_ctf_refinement import ProtRelionCtfRefinement
     from ._legacy.protocol30_preprocess import ProtRelionPreprocessParticles
 else:
