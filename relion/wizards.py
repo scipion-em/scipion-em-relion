@@ -34,8 +34,8 @@ from pyworkflow.gui.browser import FileBrowserWindow
 
 from .constants import *
 import relion.convert as convert
+from relion import Plugin
 from .protocols import *
-from . import IS_GT30
 
 
 # =============================================================================
@@ -296,7 +296,7 @@ class RelionWizLogPickParams(EmWizard):
               'maxDiameter',
               'threshold']
 
-    if IS_GT30:
+    if Plugin.IS_GT30():
         params.append('threshold2')
 
     _targets = [(ProtRelionAutopickLoG, params)]
@@ -309,7 +309,7 @@ class RelionWizLogPickParams(EmWizard):
         coordsDir = project.getTmpPath(micSet.getName())
         print("coordsDir: ", coordsDir)
 
-        if IS_GT30:
+        if Plugin.IS_GT30():
             params, minDiameter, maxDiameter, threshold, threshold2 = autopickProt._getPickArgs()
         else:
             params, minDiameter, maxDiameter, threshold = autopickProt._getPickArgs()

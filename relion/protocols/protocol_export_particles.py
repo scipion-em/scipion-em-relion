@@ -99,7 +99,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
             outputDir = particlesPath
 
         # We still need to maintain some old code for Relion 3.0
-        if relion.IS_30:
+        if relion.Plugin.IS_30():
             outputDir = self._getExtraPath()
             postprocessImageRow = self._postprocessImageRow
 

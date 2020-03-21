@@ -178,7 +178,7 @@ leads to objective and high-quality results.
 
     # -------------------------- UTILS functions ------------------------------
     def _fillDataFromIter(self, imgSet, iteration):
-        tableName = '' if relion.IS_30 else 'particles@'
+        tableName = '' if relion.Plugin.IS_30() else 'particles@'
         outImgsFn = self._getFileName('data', iter=iteration)
         imgSet.setAlignmentProj()
         self.reader = convert.Reader(alignType=pwem.ALIGN_PROJ)

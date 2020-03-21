@@ -33,7 +33,7 @@ from pyworkflow.protocol.params import PointerParam, BooleanParam, LabelParam
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pwem.protocols import ProtOperateParticles
 
-from .. import Plugin
+from relion import Plugin
 import relion.convert as convert
 
 
@@ -45,7 +45,6 @@ class ProtRelionSubtract(ProtOperateParticles):
     properly generate volume projections.
     """
     _label = 'subtract projection'
-    IS_V31 = Plugin.isVersion31Active()
 
     def _initialize(self):
         self._createFilenameTemplates()
@@ -68,7 +67,7 @@ class ProtRelionSubtract(ProtOperateParticles):
                       label="Input particles", important=True,
                       help='Select the experimental particles.')
 
-        if not self.IS_V31:
+        if not Plugin.IS_31():
             form.addParam('inputVolume', PointerParam, pointerClass='Volume',
                           label="Input map to be projected",
                           important=True,
