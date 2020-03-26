@@ -494,114 +494,13 @@ class TestRelionSubtract(TestRelionBase):
         print(magentaStr("\n==> Testing relion - subtract projection:"))
         protSubtract = self.newProtocol(ProtRelionSubtract)
         protSubtract.inputParticles.set(protParts.outputParticles)
-        protSubtract.inputVolume.set(protVol.outputVolume)
+
+        if relion.Plugin.IS_30():
+            protSubtract.inputVolume.set(protVol.outputVolume)
+
         self.launchProtocol(protSubtract)
         self.assertIsNotNone(protSubtract.outputParticles,
                              "There was a problem with subtract projection")
-
-
-class TestRelionSortParticles(TestRelionBase):
-    """ This class helps to test sort particles protocol from Relion. """
-    if relion.Plugin.IS_31():
-        print("Sort particles protocol was removed in Relion > 3.1")
-
-    @classmethod
-    def setUpClass(cls):
-        setupTestProject(cls)
-        cls.ds = DataSet.getDataSet('relion_tutorial')
-
-        cls.dataset = DataSet.getDataSet('relion_tutorial')
-        cls.partFn = cls.dataset.getFile('import/particles.sqlite')
-        cls.partAvg = cls.dataset.getFile('import/averages.mrcs')
-        cls.partCl2dFn = cls.dataset.getFile('import/classify2d/extra/relion_it015_data.star')
-        cls.partCl3dFn = cls.dataset.getFile('import/classify3d/extra/relion_it015_data.star')
-        cls.partRef3dFn = cls.dataset.getFile('import/refine3d/extra/relion_data.star')
-        cls.volFn = cls.dataset.getFile('import/refine3d/extra/relion_class001.mrc')
-
-    def importParticles(self, partStar):
-        """ Import particles from Relion star file. """
-        protPart = self.newProtocol(ProtImportParticles,
-                                    importFrom=ProtImportParticles.IMPORT_FROM_RELION,
-                                    starFile=partStar,
-                                    magnification=10000,
-                                    samplingRate=7.08,
-                                    haveDataBeenPhaseFlipped=True
-                                    )
-        self.launchProtocol(protPart)
-        return protPart
-
-    def importParticlesFromScipion(self):
-        partFn = self.ds.getFile('import/particles.sqlite')
-        protPart = self.newProtocol(ProtImportParticles,
-                                    objLabel='from xmipp extract (after relion auto-picking)',
-                                    importFrom=ProtImportParticles.IMPORT_FROM_SCIPION,
-                                    sqliteFile=partFn,
-                                    magnification=10000,
-                                    samplingRate=7.08,
-                                    haveDataBeenPhaseFlipped=True
-                                    )
-
-        self.launchProtocol(protPart)
-        return protPart
-
-    def importAverages(self):
-        """ Import averages used for relion autopicking. """
-        partAvg = self.ds.getFile('import/averages.mrcs')
-        protAvg = self.newProtocol(ProtImportAverages,
-                                   importFrom=ProtImportParticles.IMPORT_FROM_FILES,
-                                   filesPath=partAvg,
-                                   samplingRate=7.08
-                                   )
-        self.launchProtocol(protAvg)
-        return protAvg
-
-    def importVolume(self):
-        volFn = self.ds.getFile('import/refine3d/extra/relion_class001.mrc')
-        protVol = self.newProtocol(ProtImportVolumes,
-                                   objLabel='import volume',
-                                   filesPath=volFn,
-                                   samplingRate=7.08)
-        self.launchProtocol(protVol)
-        return protVol
-
-    def test_afterCl2D(self):
-        print(magentaStr("\n==> Testing relion - sort particles after class 2d:"))
-        partCl2dFn = self.ds.getFile(
-            'import/classify2d/extra/relion_it015_data.star')
-        importRun = self.importParticles(partCl2dFn)
-
-        prot = self.newProtocol(ProtRelionSortParticles)
-        prot.setObjLabel('relion - sort after cl2d')
-        prot.inputSet.set(importRun.outputClasses)
-        self.launchProtocol(prot)
-
-    def test_afterCl3D(self):
-        print(magentaStr("\n==> Testing relion - sort particles after class 3d:"))
-        prot = self.newProtocol(ProtRelionSortParticles)
-        prot.setObjLabel('relion - sort after cl3d')
-        partCl3dFn = self.ds.getFile(
-            'import/classify3d/extra/relion_it015_data.star')
-        importRun = self.importParticles(partCl3dFn)
-        prot.inputSet.set(importRun.outputClasses)
-        self.launchProtocol(prot)
-
-    def test_after3DRefinement(self):
-        print(magentaStr("\n==> Testing relion - sort particles after refine 3d:"))
-        prot = self.newProtocol(ProtRelionSortParticles)
-        prot.setObjLabel('relion - sort after ref3d')
-        partRef3dFn = self.ds.getFile('import/refine3d/extra/relion_data.star')
-        importRun = self.importParticles(partRef3dFn)
-        prot.inputSet.set(importRun.outputParticles)
-        prot.referenceVolume.set(self.importVolume().outputVolume)
-        self.launchProtocol(prot)
-
-    def test_afterPicking(self):
-        print(magentaStr("\n==> Testing relion - sort particles after auto-picking:"))
-        prot = self.newProtocol(ProtRelionSortParticles)
-        prot.setObjLabel('relion - sort after picking')
-        prot.inputSet.set(self.importParticlesFromScipion().outputParticles)
-        prot.referenceAverages.set(self.importAverages().outputAverages)
-        self.launchProtocol(prot)
 
 
 class TestRelionPostprocess(TestRelionBase):
