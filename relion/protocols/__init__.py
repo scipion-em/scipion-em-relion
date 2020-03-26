@@ -31,7 +31,6 @@ from .protocol_classify3d import ProtRelionClassify3D
 from .protocol_refine3d import ProtRelionRefine3D
 from .protocol_reconstruct import ProtRelionReconstruct
 from .protocol_postprocess import ProtRelionPostprocess
-from .protocol_polish import ProtRelionPolish
 from .protocol_sort import ProtRelionSortParticles
 from .protocol_subtract import ProtRelionSubtract
 from .protocol_expand_symmetry import ProtRelionExpandSymmetry
