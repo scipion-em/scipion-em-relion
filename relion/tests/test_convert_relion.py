@@ -821,7 +821,7 @@ class TestRelionWriter(BaseTest):
         mic.setAcquisition(acq)
         mic.setCTF(ctf)
 
-        itemsPerOptics = n / nOptics
+        itemsPerOptics = n // nOptics
 
         for i in range(1, n+1):
             mic.setFileName(micName % i)
@@ -829,7 +829,7 @@ class TestRelionWriter(BaseTest):
             ctf.setPsdFile(psdName % i)
             ctf.setFitQuality(np.random.uniform())
             ctf.setResolution(np.random.uniform(3, 15))
-            ogNumber = (i-1) / itemsPerOptics + 1
+            ogNumber = (i-1) // itemsPerOptics + 1
             acq.opticsGroupName.set(ogName % ogNumber)
             acq.mtfFile.set(mtfFile % ogNumber)
 

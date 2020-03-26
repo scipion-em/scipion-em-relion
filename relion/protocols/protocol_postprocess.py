@@ -36,6 +36,7 @@ from pwem.emlib.image import ImageHandler
 from pwem.objects import Volume
 
 import relion.convert as convert
+from relion import Plugin
 
 
 class ProtRelionPostprocess(ProtAnalysis3D):
@@ -97,6 +98,12 @@ class ProtRelionPostprocess(ProtAnalysis3D):
                            '[Relion\'s Wiki FAQs]]\n'
                            ' - [[http://www.gatan.com/K3][Gatan\'s website]]\n\n'
                            'Relion param: *--mtf*')
+        if Plugin.IS_31():
+            form.addParam('origPixelSize', params.FloatParam,
+                          default=-1.0,
+                          label='Original detector pixel size (A)',
+                          help='This is the original pixel size (in Angstroms)'
+                               ' in the raw (non-super-resolution!) micrographs')
         form.addParam('doAutoBfactor', params.BooleanParam, default=True,
                       label='Estimate B-factor automatically?',
                       help='If set to Yes, then the program will use the '
@@ -111,9 +118,9 @@ class ProtRelionPostprocess(ProtAnalysis3D):
                                  'described in Rosenthal and Henderson '
                                  '(2003, JMB).')
         line.addParam('bfactorLowRes', params.FloatParam,
-                      default='10.0', label='low')
+                      default=10.0, label='low')
         line.addParam('bfactorHighRes', params.FloatParam,
-                      default='0.0', label='high')
+                      default=0.0, label='high')
         form.addParam('bfactor', params.FloatParam, default=-350,
                       condition='not doAutoBfactor',
                       label='Provide B-factor:',
@@ -263,6 +270,9 @@ class ProtRelionPostprocess(ProtAnalysis3D):
         if self.skipFscWeighting:
             self.paramDict['--skip_fsc_weighting'] = ''
             self.paramDict['--low_pass'] = self.lowRes.get()
+
+        if Plugin.IS_31() and self.origPixelSize.get() != -1.0:
+            self.paramDict['--mtf_angpix'] = self.origPixelSize.get()
 
     def _getRelionMapFn(self, fn):
         return fn.split(':')[0]
