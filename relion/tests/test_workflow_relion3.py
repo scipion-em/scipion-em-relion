@@ -106,7 +106,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
             numberOfThreads=CPUS,
         )
 
-        protRelionLog.inputMicrographs.set(protRelionMc.outputMicrographs)
+        protRelionLog.inputMicrographs.set(protRelionMc.outputMicrographsDoseWeighted)
         protRelionLog = self.launchProtocol(protRelionLog)
 
         return protRelionLog
@@ -123,7 +123,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
             gpuList="0"
         )
 
-        protGctf.inputMicrographs.set(protMc.outputMicrographs)
+        protGctf.inputMicrographs.set(protMc.outputMicrographsDoseWeighted)
         protGctf = self.launchProtocol(protGctf)
 
         return protGctf

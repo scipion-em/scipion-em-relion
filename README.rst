@@ -4,9 +4,13 @@ Relion plugin
 
 This plugin provide wrappers around several programs of `RELION <https://www3.mrc-lmb.cam.ac.uk/relion/index.php/Main_Page>`_ software suite.
 
-.. figure:: http://scipion-test.cnb.csic.es:9980/badges/relion_devel.svg
-   :align: left
-   :alt: build status
++------------------+------------------+
+| stable: |stable| | devel: | |devel| |
++------------------+------------------+
+
+.. |stable| image:: http://scipion-test.cnb.csic.es:9980/badges/relion_prod.svg
+.. |devel| image:: http://scipion-test.cnb.csic.es:9980/badges/relion_sdevel.svg
+
 
 Installation
 ------------
@@ -35,41 +39,14 @@ b) Developer's version
 
 RELION sources will be downloaded and compiled automatically with the plugin, but you can also link an existing installation. Default installation path assumed is ``software/em/relion-3.1``, if you want to change it, set *RELION_HOME* in ``scipion.conf`` file to the folder where the RELION is installed. If you need to use CUDA different from the one used during Scipion installation (defined by *CUDA_LIB*), you can add *RELION_CUDA_LIB* variable to the config file. Moreover, if you have to use a MPI for Relion different from Scipion MPI, you can set *RELION_MPI_BIN* and *RELION_MPI_LIB* variables in your shell environment - they will be recognized by Scipion.
 
-To check the installation, simply run one of the following Scipion tests:
-
-.. code-block::
-
-   scipion test pwem.tests.workflows.test_workflow_streaming.TestRelionPickStreaming
-   scipion test pwem.tests.em.workflows.test_workflow_streaming.TestRelionExtractStreaming
-   scipion test pwem.tests.em.workflows.test_workflow_mixed_large.TestMixedRelionTutorial
-   scipion test relion.tests.test_workflow_relion3.TestWorkflowRelion3Betagal
-   scipion test relion.tests.test_convert_relion.TestReconstruct
-   scipion test relion.tests.test_convert_relion.TestConvertBinaryFiles
-   scipion test relion.tests.test_convert_relion.TestConversions
-   scipion test relion.tests.test_convert_relion.TestAlignment
-   scipion test relion.tests.test_protocols_relion.TestRelionSubtract
-   scipion test relion.tests.test_protocols_relion.TestRelionSortParticles
-   scipion test relion.tests.test_protocols_relion.TestRelionRefine
-   scipion test relion.tests.test_protocols_relion.TestRelionPreprocess
-   scipion test relion.tests.test_protocols_relion.TestRelionPostprocess
-   scipion test relion.tests.test_protocols_relion.TestRelionLocalRes
-   scipion test relion.tests.test_protocols_relion.TestRelionInitialModel
-   scipion test relion.tests.test_protocols_relion.TestRelionExtractParticles
-   scipion test relion.tests.test_protocols_relion.TestRelionExportParticles
-   scipion test relion.tests.test_protocols_relion.TestRelionExpandSymmetry
-   scipion test relion.tests.test_protocols_relion.TestRelionCreate3dMask
-   scipion test relion.tests.test_protocols_relion.TestRelionClassify3D
-   scipion test relion.tests.test_protocols_relion.TestRelionClassify2D
-   scipion test relion.tests.test_protocols_relion.TestRelionCenterAverages
-
-A complete list of tests can also be seen by executing ``scipion test --show --grep relion``
+To check the installation, simply run one of the tests. A complete list of tests can be displayed by executing ``scipion test --show --grep relion``
 
 Supported versions
 ------------------
 
 3.0, 3.1
 
-In 2018 the plugin was updated to support the latest (at that moment) RELION: 3.0. This required a lot of code refactoring and the support of old RELION versions (1.x) had to be discontinued. Many new protocols specific to new RELION release we added. You are welcome to check them out and give us your feedback. We are still fixing few issues related to RELION 3 support, please do let us know if something does not work as expected.
+In 2020 the plugin was updated to support the latest RELION 3.1. We discontinued any support for 2.x versions. We are still working towards stable plugin release, so some things might not work yet.
 
 Protocols
 ---------
@@ -78,7 +55,8 @@ Protocols
 * 3D auto-refine            
 * 3D classification         
 * 3D initial model          
-* 3D multi-body             
+* 3D multi-body
+* assign optics group
 * auto-picking              
 * auto-picking LoG          
 * bayesian polishing        
@@ -89,15 +67,12 @@ Protocols
 * export ctf                
 * export particles          
 * local resolution          
-* motioncor                 
-* movie particles extraction
-* particle polishing        
-* particles extraction      
+* motion correction
+* particles extraction
 * post-processing           
 * preprocess particles      
 * reconstruct               
-* sort particles            
-* subtract projection       
+* subtract projection
 * symmetrize volume
 
 References
