@@ -1000,6 +1000,7 @@ class PostprocessViewer(ProtocolViewer):
     
     def _showVolumesChimera(self, volPath):
         """ Create a chimera script to visualize selected volumes. """
+        volPath = volPath.replace(':mrc', '')
         view = ChimeraClientView(volPath)
         return [view]
             
