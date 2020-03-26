@@ -187,6 +187,11 @@ class ProtRelionPostprocess(ProtAnalysis3D):
         vols.insert(0, outVol.getFileName())
         ih = ImageHandler()
 
+        # skip resize if dimensions match
+        dimMask = self.solventMask.get().getXDim()
+        if dimMask == dim:
+            dim = None
+
         convert.convertMask(self.solventMask.get(),
                             self._getFileName('mask'), newDim=dim)
 
