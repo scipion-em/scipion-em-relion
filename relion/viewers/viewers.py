@@ -280,7 +280,7 @@ Examples:
         # properly see the rlnClassDistribution label. 
         dim = self.protocol.inputParticles.get().getDim()[0]
         if dim < 128:
-            zoom = 128*100/dim
+            zoom = 128 * 100 // dim
         else:
             zoom = 100
         return zoom
@@ -720,7 +720,7 @@ Examples:
 # =============================================================================
     def _validate(self):
         if self.lastIter is None:
-            return ['There are not iterations completed.'] 
+            return ['There are no completed iterations.']
     
     def createDataView(self, filename, viewParams={}):
         return DataView(filename, env=self._env, viewParams=viewParams)
