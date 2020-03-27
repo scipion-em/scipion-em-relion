@@ -300,11 +300,6 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
                            'The command "relion_autopick" will print a list '
                            'of possible options.')
 
-        form.addSection('Helix')
-        form.addParam('fomLabel', params.LabelParam,
-                      important=True,
-                      label='Helix processing is not implemented still.')
-
         self._defineStreamingParams(form)
 
         form.addParallelSection(threads=0, mpi=4)
