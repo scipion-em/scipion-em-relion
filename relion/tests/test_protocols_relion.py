@@ -866,6 +866,43 @@ class TestRelionCreate3dMask(TestRelionBase):
         self.assertTrue(mean > 0)
 
 
+class TestRelionSymmetrizeVolume(TestRelionBase):
+    @classmethod
+    def setUpClass(cls):
+        setupTestProject(cls)
+        cls.ds = DataSet.getDataSet('resmap')
+
+    def importVolume(self):
+        print(magentaStr("\n==> Importing data - volume:"))
+        protVol = self.newProtocol(ProtImportVolumes,
+                                   objLabel='import volume',
+                                   filesPath=self.ds.getFile('betaGal.mrc'),
+                                   samplingRate=3.54)
+        return self.launchProtocol(protVol)
+
+    def test_symmetrizeVolume(self):
+
+        print(magentaStr("\n==> Importing data - volume:"))
+        importVol = self.newProtocol(
+            ProtImportVolumes,
+            objLabel='import volume',
+            filesPath=self.ds.getFile('betaGal.mrc'),
+            samplingRate=3.54)
+
+        self.launchProtocol(importVol)
+
+        symmVol = self.newProtocol(
+            ProtRelionSymmetrizeVolume,
+            objLabel='symmetryze d2',
+            inputVolume=importVol.outputVolume,
+            symmetryGroup='d2'
+        )
+        self.launchProtocol(symmVol)
+
+        self.assertIsNotNone(getattr(symmVol, 'outputVolumeAligned'))
+        self.assertIsNotNone(getattr(symmVol, 'outputVolumeSymmetrized'))
+
+
 class TestRelionExtractParticles(TestRelionBase):
     """This class check if the protocol to extract particles
     in Relion works properly.
