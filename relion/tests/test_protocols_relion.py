@@ -936,6 +936,7 @@ class TestRelionExtractParticles(TestRelionBase):
     @classmethod
     def runImportMicrographBPV(cls, pattern):
         """ Run an Import micrograph protocol. """
+        print(magentaStr("\n==> Importing data - micrographs:"))
         return cls.runImportMicrograph(pattern, samplingRate=1.237,
                                        voltage=300, sphericalAberration=2,
                                        scannedPixelSize=None, magnification=56000)
@@ -946,6 +947,7 @@ class TestRelionExtractParticles(TestRelionBase):
         XmippProtPreprocessMicrographs = Domain.importFromPlugin(
             'xmipp3.protocols', 'XmippProtPreprocessMicrographs')
 
+        print(magentaStr("\n==> Running xmipp - preprocess micrographs:"))
         cls.protDown = XmippProtPreprocessMicrographs(doDownsample=True,
                                                       downFactor=downFactorValue,
                                                       numberOfThreads=threads)
@@ -959,6 +961,7 @@ class TestRelionExtractParticles(TestRelionBase):
         XmippProtParticlePicking = Domain.importFromPlugin(
             'xmipp3.protocols', 'XmippProtParticlePicking')
 
+        print(magentaStr("\n==> Running xmipp - fake particle picking:"))
         cls.protPP = XmippProtParticlePicking(importFolder=pattern, runMode=1)
         cls.protPP.inputMicrographs.set(mics)
         cls.proj.launchProtocol(cls.protPP, wait=True)
@@ -982,6 +985,7 @@ class TestRelionExtractParticles(TestRelionBase):
         cls.protDown = cls.runDownsamplingMicrographs(cls.protImport.outputMicrographs,
                                                       cls.DOWNSAMPLING)
 
+        print(magentaStr("\n==> Importing data - ctfs:"))
         cls.protCTF = cls.newProtocol(ProtImportCTF,
                                       importFrom=ProtImportCTF.IMPORT_FROM_XMIPP3,
                                       filesPath=cls.dataset.getFile('ctfsDir'),
