@@ -872,16 +872,7 @@ class TestRelionSymmetrizeVolume(TestRelionBase):
         setupTestProject(cls)
         cls.ds = DataSet.getDataSet('resmap')
 
-    def importVolume(self):
-        print(magentaStr("\n==> Importing data - volume:"))
-        protVol = self.newProtocol(ProtImportVolumes,
-                                   objLabel='import volume',
-                                   filesPath=self.ds.getFile('betaGal.mrc'),
-                                   samplingRate=3.54)
-        return self.launchProtocol(protVol)
-
     def test_symmetrizeVolume(self):
-
         print(magentaStr("\n==> Importing data - volume:"))
         importVol = self.newProtocol(
             ProtImportVolumes,
@@ -891,6 +882,7 @@ class TestRelionSymmetrizeVolume(TestRelionBase):
 
         self.launchProtocol(importVol)
 
+        print(magentaStr("\n==> Testing relion - symmetrize volume:"))
         symmVol = self.newProtocol(
             ProtRelionSymmetrizeVolume,
             objLabel='symmetryze d2',
