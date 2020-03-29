@@ -36,6 +36,7 @@ from pyworkflow.object import ObjectWrap, String, Integer
 from pwem.constants import NO_INDEX, ALIGN_2D, ALIGN_3D, ALIGN_PROJ, ALIGN_NONE
 import pwem.convert.transformations as tfs
 
+from relion import Plugin
 from relion.constants import *
 from .metadata import Table
 from .convert_utils import *
@@ -709,30 +710,37 @@ def convertBinaryVol(vol, outputDir):
     return fn
 
 
-def convertMask(img, outputPath, newDim=None):
-    """ Convert binary mask to a format read by Relion and truncate the
-    values between 0-1 values, due to Relion only support masks with this
-    values (0-1).
+def convertMask(img, outputPath, newPix=None, newDim=None):
+    """ Convert mask to mrc format read by Relion.
     Params:
         img: input image to be converted.
         outputPath: it can be either a directory or a file path.
             If it is a directory, the output name will be inferred from input
             and put into that directory. If it is not a directory,
             it is assumed is the output filename.
+        newPix: output pixel size (equals input if None)
+        newDim: output box size
     Return:
         new file name of the mask.
     """
     
-    ih = ImageHandler()
     imgFn = getImageLocation(img.getLocation())
+    inPix = img.getSamplingRate()
+    outPix = inPix if newPix is None else newPix
 
     if os.path.isdir(outputPath):
         outFn = join(outputPath, pwutils.replaceBaseExt(imgFn, 'mrc'))
     else:
         outFn = outputPath
 
-    ih.truncateMask(imgFn, outFn, newDim=newDim)
-    
+    params = '--i %s --o %s --angpix %0.3f --rescale_angpix %0.3f' % (
+        imgFn, outFn, inPix, outPix)
+
+    if newDim is not None:
+        params += ' --new_box %d' % newDim
+
+    pwutils.runJob(None, 'relion_image_handler', params, env=Plugin.getEnviron())
+
     return outFn
 
 

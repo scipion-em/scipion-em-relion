@@ -28,7 +28,6 @@ import pyworkflow.object as pwobj
 from pyworkflow.protocol.params import (PointerParam, FloatParam, StringParam,
                                         BooleanParam, IntParam, LEVEL_ADVANCED)
 from pyworkflow.utils import removeExt
-import pwem
 from pwem.protocols import ProtParticles
 from pwem.objects import SetOfParticles, SetOfClasses
 import pwem.emlib.metadata as md

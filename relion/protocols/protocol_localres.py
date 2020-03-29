@@ -144,6 +144,8 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
 
         protRef = self.protRefine.get()
         vol = protRef.outputVolume
+        newDim = vol.getXDim()
+        newPix = vol.getSamplingRate()
         half1, half2 = vol.getHalfMaps().split(',')
         ih = ImageHandler()
         ih.convert(half1, self._getFileName("half1"))
@@ -151,7 +153,8 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
 
         if relion.Plugin.IS_GT30() and self.solventMask.hasValue():
             relion.convert.convertMask(self.solventMask.get(),
-                                       self._getFileName('solventMask'))
+                                       self._getFileName('solventMask'),
+                                       newPix, newDim)
 
     # -------------------------- INFO functions -------------------------------
     def _summary(self):

@@ -336,7 +336,9 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         if protRefine.referenceMask.hasValue():
             tmp = protRefine._getTmpPath()
             newDim = protRefine._getInputParticles().getXDim()
-            convert.convertMask(protRefine.referenceMask.get(), tmp, newDim)
+            newPix = protRefine._getInputParticles().getSamplingRate()
+            convert.convertMask(protRefine.referenceMask.get(), tmp,
+                                newPix, newDim)
 
         self._setComputeArgs(args)
 

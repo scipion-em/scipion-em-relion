@@ -150,7 +150,8 @@ class ProtRelionSubtract(ProtOperateParticles):
         if self.refMask.hasValue():
             tmp = self._getTmpPath()
             newDim = self._getInputParticles().getXDim()
-            maskFn = convert.convertMask(self.refMask.get(), tmp, newDim)
+            newPix = self._getInputParticles().getSamplingRate()
+            maskFn = convert.convertMask(self.refMask.get(), tmp, newPix, newDim)
             params += ' --mask %s' % maskFn
         
         if self._getInputParticles().isPhaseFlipped():

@@ -63,7 +63,7 @@ class ProtRelionBase(EMProtocol):
     CHANGE_LABELS = [md.RLN_OPTIMISER_CHANGES_OPTIMAL_ORIENTS,
                      md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS,
                      md.RLN_OPTIMISER_ACCURACY_ROT,
-                     md.RLN_OPTIMISER_ACCURACY_TRANS,
+                     #md.RLN_OPTIMISER_ACCURACY_TRANS_ANGSTROM,  # FIXME
                      md.RLN_OPTIMISER_CHANGES_OPTIMAL_CLASSES]
     PREFIXES = ['']
 
@@ -101,7 +101,6 @@ class ProtRelionBase(EMProtocol):
             'all_avgPmax_xmipp': self._getTmpPath('iterations_avgPmax_xmipp.xmd'),
             'all_changes_xmipp': self._getTmpPath('iterations_changes_xmipp.xmd'),
             'selected_volumes': self._getTmpPath('selected_volumes_xmipp.xmd'),
-            'movie_particles': self._getPath('movie_particles.star'),
             'volume_shiny': self._getExtraPath('shiny/shiny_post.mrc:mrc'),
             'volume_frame': self._getExtraPath('shiny/frame%(frame)03d_%(halve)sclass%(ref3d)03d_unfil.mrc:mrc'),
             'guinier_frame': self._getExtraPath('shiny/frame%(frame)03d_guinier.star'),
@@ -115,7 +114,7 @@ class ProtRelionBase(EMProtocol):
             'finalSGDvolume': self._getExtraPath("relion_it%(iter)03d_class%(ref3d)03d.mrc:mrc"),
             'preprocess_particles': self._getPath("preprocess_particles.mrcs"),
             'preprocess_particles_star': self._getPath("preprocess_particles.star"),
-            'preprocess_particles_preffix': "preprocess_particles"
+            'preprocess_particles_prefix': "preprocess_particles"
         }
         # add to keys, data.star, optimiser.star and sampling.star
         for key in self.FILE_KEYS:
@@ -231,8 +230,7 @@ class ProtRelionBase(EMProtocol):
                       help='This option is not recommended and should be used '
                            'with care. The provided averages will be used as '
                            'initial 2D references. If this option is used, '
-                           'the number of classes will be ignored. '
-                      )
+                           'the number of classes will be ignored. ')
 
         referenceClass = 'Volume'
         referenceLabel = 'Input volume'
@@ -389,10 +387,10 @@ class ProtRelionBase(EMProtocol):
                       condition='not doContinue',
                       help='Set this to Yes the CTFs will grouping manually.')
         form.addParam('defocusRange', FloatParam, default=1000,
-                      label='defocus range for group creation (in Angstroms)',
+                      label='Defocus range for group creation (in Angstroms)',
                       condition='doCtfManualGroups and not doContinue',
                       help='Particles will be grouped by defocus.'
-                           'This parameter is the bin for an histogram.'
+                           'This parameter is the bin for a histogram.'
                            'All particles assigned to a bin form a group')
         form.addParam('numParticles', FloatParam, default=10,
                       label='minimum size for defocus group',
@@ -480,9 +478,6 @@ class ProtRelionBase(EMProtocol):
             form.addSection('Sampling')
         else:
             form.addSection('Auto-Sampling')
-            form.addParam('noteAutoSampling', LabelParam,
-                          label='Note that initial sampling rates will be '
-                                'auto-incremented!')
 
         form.addParam('doImageAlignment', BooleanParam, default=True,
                       label='Perform image alignment?', condition="isClassify",
@@ -556,8 +551,7 @@ class ProtRelionBase(EMProtocol):
                                    'see previous option) will be applied, so '
                                    'that orientations closer to the optimal '
                                    'orientation in the previous iteration will '
-                                   'get higher weights than those further away.'
-                              )
+                                   'get higher weights than those further away.')
             else:
                 form.addParam('localSearchAutoSamplingDeg', EnumParam,
                               default=4, choices=ANGULAR_SAMPLING_LIST,
@@ -791,50 +785,6 @@ class ProtRelionBase(EMProtocol):
             self.info("In continue mode is not necessary convert the input "
                       "particles")
 
-        # if self.realignMovieFrames, self.IS_CLASSIFY must be False.
-        if getattr(self, 'realignMovieFrames', False):
-            movieParticleSet = self.inputMovieParticles.get()
-            movieFn = self._getFileName('movie_particles')
-            self.info("Converting set from '%s' into '%s'" %
-                      (movieParticleSet.getFileName(), movieFn))
-
-            auxMovieParticles = self._createSetOfMovieParticles(suffix='tmp')
-            auxMovieParticles.copyInfo(movieParticleSet)
-
-            # Discard movie particles that are not present in the
-            # refinement set
-            for movieParticle in movieParticleSet:
-                particle = imgSet[movieParticle.getParticleId()]
-                if particle is not None:
-                    auxMovieParticles.append(movieParticle)
-
-            relion.convert.writeSetOfParticles(
-                auxMovieParticles, movieFn, None,
-                fillMagnification=True,
-                postprocessImageRow=self._postprocessImageRow)
-
-            mdMovies = md.MetaData(movieFn)
-            continueRun = self.continueRun.get()
-            continueIter = self._getContinueIter()
-            mdFile = continueRun._getFileName('data', iter=continueIter)
-            mdParts = md.MetaData(mdFile)
-
-            self._copyAlignAsPriors(mdParts, pwem.ALIGN_PROJ)
-            mdParts.renameColumn(md.RLN_IMAGE_NAME, md.RLN_PARTICLE_ORI_NAME)
-            mdParts.removeLabel(md.RLN_MICROGRAPH_NAME)
-
-            mdAux = md.MetaData()
-            mdAux.join2(mdMovies, mdParts, md.RLN_PARTICLE_ID,
-                        md.RLN_IMAGE_ID, md.INNER_JOIN)
-            mdAux.fillConstant(md.RLN_PARTICLE_NR_FRAMES,
-                               self._getNumberOfFrames())
-
-            # FIXME: set to 1 till frame averaging is implemented in xmipp
-            mdAux.fillConstant(md.RLN_PARTICLE_NR_FRAMES_AVG, 1)
-
-            mdAux.write(movieFn, md.MD_OVERWRITE)
-            pwutils.cleanPath(auxMovieParticles.getFileName())
-
     def runRelionStep(self, params):
         """ Execute the relion steps with the give params. """
         params += ' --j %d' % self.numberOfThreads
@@ -1061,14 +1011,15 @@ class ProtRelionBase(EMProtocol):
         if self.IS_3D:
             tmp = self._getTmpPath()
             newDim = self._getInputParticles().getXDim()
+            newPix = self._getInputParticles().getSamplingRate()
             if self.referenceMask.hasValue():
                 mask = relion.convert.convertMask(self.referenceMask.get(),
-                                                  tmp, newDim)
+                                                  tmp, newPix, newDim)
                 args['--solvent_mask'] = mask
 
             if self.solventMask.hasValue():
                 solventMask = relion.convert.convertMask(self.solventMask.get(),
-                                                         tmp, newDim)
+                                                         tmp, newPix, newDim)
                 args['--solvent_mask2'] = solventMask
 
             if self.referenceMask.hasValue() and self.solventFscMask:
@@ -1077,8 +1028,9 @@ class ProtRelionBase(EMProtocol):
             if self.referenceMask2D.hasValue():
                 tmp = self._getTmpPath()
                 newDim = self._getInputParticles().getXDim()
+                newPix = self._getInputParticles().getSamplingRate()
                 mask = relion.convert.convertMask(self.referenceMask2D.get(),
-                                                  tmp, newDim)
+                                                  tmp, newPix, newDim)
                 args['--solvent_mask'] = mask
 
     def _setSubsetArgs(self, args):
@@ -1184,13 +1136,6 @@ class ProtRelionBase(EMProtocol):
     def _getnumberOfIters(self):
         return self._getContinueIter() + self.numberOfIterations.get()
 
-    def _getNumberOfFrames(self):
-        movieProt = self.inputMovieParticles.get().getObjParentId()
-        inputMovies = self.getProject().getProtocol(int(movieProt)).inputMovies.get()
-        frames = inputMovies.getFirstItem().getNumberOfFrames()
-
-        return frames
-
     def _getReferenceVolumes(self):
         """ Return a list with all input references.
         (Could be one or more volumes. ).
@@ -1269,18 +1214,6 @@ class ProtRelionBase(EMProtocol):
                     row.setValue(md.RLN_MLMODEL_REF_IMAGE, "%05d@%s" % newAvgLoc)
                     row.addToMd(refMd)
                 refMd.write(self._getRefStar())
-
-    def _postprocessImageRow(self, img, imgRow):
-        partId = img.getParticleId()
-        hasMicName = img.getCoordinate().getMicName() is not None
-        if hasMicName:
-            micBase = pwutils.removeBaseExt(img.getCoordinate().getMicName())
-        else:
-            micBase = "fake_movie_%06d" % img.getCoordinate().getMicId()
-
-        imgRow.setValue(md.RLN_PARTICLE_ID, int(partId))
-        imgRow.setValue(md.RLN_MICROGRAPH_NAME,
-                        "%06d@%s.mrcs" % (img.getFrameId(), micBase))
 
     def _postprocessParticleRow(self, part, partRow):
         pass

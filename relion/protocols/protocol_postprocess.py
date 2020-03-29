@@ -182,18 +182,14 @@ class ProtRelionPostprocess(ProtAnalysis3D):
 
         protRef = self.protRefine.get()
         outVol = protRef.outputVolume
-        dim = outVol.getXDim()
+        newDim = outVol.getXDim()
+        newPix = outVol.getSamplingRate()
         vols = outVol.getHalfMaps().split(',')
         vols.insert(0, outVol.getFileName())
         ih = ImageHandler()
 
-        # skip resize if dimensions match
-        dimMask = self.solventMask.get().getXDim()
-        if dimMask == dim:
-            dim = None
-
         convert.convertMask(self.solventMask.get(),
-                            self._getFileName('mask'), newDim=dim)
+                            self._getFileName('mask'), newPix, newDim)
 
         for vol, key in zip(vols, ['outputVolume', 'half1', 'half2']):
             ih.convert(vol, self._getFileName(key))

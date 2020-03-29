@@ -31,7 +31,7 @@ from pwem.tests.workflows import TestWorkflow
 from pwem.protocols import ProtImportMovies
 from pyworkflow.plugin import Domain
 
-import relion
+from relion import Plugin
 from ..protocols import *
 
 
@@ -74,7 +74,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         self.assertEqual((3710, 3838, 24), dims)
         self.assertEqual(24, movies.getSize())
 
-        if relion.Plugin.IS_30():
+        if Plugin.IS_30():
             return protImport
         else:
             protAssign = self.newProtocol(ProtRelionAssignOpticsGroup,

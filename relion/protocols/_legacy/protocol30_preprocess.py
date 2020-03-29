@@ -289,7 +289,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
     
     def _getOutParam(self):
         outParam = '--operate_out '
-        outParam += self._getFileName("preprocess_particles_preffix")
+        outParam += self._getFileName("preprocess_particles_prefix")
         return outParam
     
     def _setFileName(self, item, row):
