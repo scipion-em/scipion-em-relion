@@ -739,6 +739,8 @@ def convertMask(img, outputPath, newPix=None, newDim=None):
     if newDim is not None:
         params += ' --new_box %d' % newDim
 
+    params += ' --threshold_above 1 --threshold_below 0'
+
     pwutils.runJob(None, 'relion_image_handler', params, env=Plugin.getEnviron())
 
     return outFn
