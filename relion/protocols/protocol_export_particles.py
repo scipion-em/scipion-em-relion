@@ -120,9 +120,9 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
     
     def _summary(self):
         summary = []
-        if pwutils.exists(self._getPath("particles.star")):
+        if pwutils.exists(self._particlesPath("particles.star")):
             summary.append('Particles were exported into: %s'
-                           % self._getPath("particles.star"))
+                           % self._particlesPath("particles.star"))
         else:
             summary.append('Output is not ready.')
         return summary
