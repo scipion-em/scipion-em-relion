@@ -228,7 +228,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
 
         form.addParam('ignoreCTFUntilFirstPeak', params.BooleanParam,
                       condition=refCondition,
-                      default=False, expertLevel=params.LEVEL_ADVANCED,
+                      default=False,
                       label='Ignore CTFs until first peak?',
                       help='Set this to Yes, only if this option was also used '
                            'to generate the references.')

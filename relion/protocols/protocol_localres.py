@@ -59,16 +59,13 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
-        
         form.addSection(label='Input')
-
         form.addParam('protRefine', params.PointerParam,
                       pointerClass="ProtRefine3D",
                       label='Select a previous refinement protocol',
                       help='Select any previous refinement protocol to get the '
                            '3D half maps. Note that it is recommended that the '
                            'refinement protocol uses a gold-standard method.')
-
         if relion.Plugin.IS_GT30():
             form.addParam('solventMask', params.PointerParam,
                           pointerClass='VolumeMask', allowsNull=True,
@@ -79,7 +76,6 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
                                'RELION does NOT use this mask for calculation, '
                                'but makes a histogram of local resolution '
                                'within this mask.')
-
         form.addParam('calibratedPixelSize', params.FloatParam, default=0.,
                       label='Calibrated pixel size (A)',
                       help="Provide the final, calibrated pixel size in "
@@ -89,7 +85,6 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
                            "the pixel size using the fit to a PDB model. "
                            "The X-axis of the output FSC plot will use this "
                            "calibrated value.")
-
         form.addParam('bfactor', params.FloatParam, default=-100.,
                       label='Provide B-factor:',
                       help='Probably, the overall B-factor as was '
@@ -99,20 +94,20 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
                            'your map, you may end up interpreting '
                            'noise for signal!')
 
-        form.addParam('mtf', params.FileParam,
-                      label='MTF-curve file',
-                      help='User-provided STAR-file with the MTF-curve '
-                           'of the detector.'
-                           'Relion param: <--mtf>')
+        group = form.addGroup('MTF')
+        group.addParam('mtf', params.FileParam,
+                       label='MTF of the detector',
+                       help='User-provided STAR-file with the MTF-curve '
+                            'of the detector.'
+                            'Relion param: <--mtf>')
         if relion.Plugin.IS_31():
-            form.addParam('origPixelSize', params.FloatParam,
-                          default=-1.0,
-                          label='Original detector pixel size (A)',
-                          help='This is the original pixel size (in Angstroms)'
-                               ' in the raw (non-super-resolution!) micrographs')
+            group.addParam('origPixelSize', params.FloatParam,
+                           default=-1.0,
+                           label='Original detector pixel size (A)',
+                           help='This is the original pixel size (in Angstroms)'
+                                ' in the raw (non-super-resolution!) micrographs')
 
         form.addSection(label='LocalRes')
-
         form.addParam('Msg', params.LabelParam,
                       label='Select Advanced level if you want to adjust the '
                             'parameters')

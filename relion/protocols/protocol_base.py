@@ -280,7 +280,6 @@ class ProtRelionBase(EMProtocol):
                                'zero-values in the capsid and the solvent '
                                'areas.')
             form.addParam('solventFscMask', BooleanParam, default=False,
-                          expertLevel=LEVEL_ADVANCED,
                           condition='not isClassify',
                           label='Use solvent-flattened FSCs?',
                           help='If set to Yes, then instead of using '
@@ -489,7 +488,7 @@ class ProtRelionBase(EMProtocol):
         if self.IS_3D:
             form.addParam('angularSamplingDeg', EnumParam, default=2,
                           choices=ANGULAR_SAMPLING_LIST,
-                          label='Angular sampling interval (deg)',
+                          label='Initial angular sampling (deg)',
                           condition='not isClassify or doImageAlignment',
                           help='There are only a few discrete angular samplings'
                                ' possible because we use the HealPix library to'
@@ -512,7 +511,7 @@ class ProtRelionBase(EMProtocol):
                                'automatically after that.')
         form.addParam('offsetSearchRangePix', FloatParam, default=5,
                       condition='not isClassify or doImageAlignment',
-                      label='Offset search range (pix)',
+                      label='Initial offset range (pix)',
                       help='Probabilities will be calculated only for '
                            'translations in a circle with this radius (in '
                            'pixels). The center of this circle changes at '
@@ -521,7 +520,7 @@ class ProtRelionBase(EMProtocol):
                            'iteration.')
         form.addParam('offsetSearchStepPix', FloatParam, default=1.0,
                       condition='not isClassify or doImageAlignment',
-                      label='Offset search step (pix)',
+                      label='Initial offset step (pix)',
                       help='Translations will be sampled with this step-size '
                            '(in pixels). Translational sampling is also done '
                            'using the adaptive approach. Therefore, if '
