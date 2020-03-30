@@ -67,7 +67,7 @@ class ProtRelionSubtract(ProtOperateParticles):
                       label="Input particles", important=True,
                       help='Select the experimental particles.')
 
-        if not Plugin.IS_31():
+        if Plugin.IS_30():
             form.addParam('inputVolume', PointerParam, pointerClass='Volume',
                           label="Input map to be projected",
                           important=True,

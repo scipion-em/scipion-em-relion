@@ -99,7 +99,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
                             '[Relion\'s Wiki FAQs]]\n'
                             ' - [[http://www.gatan.com/K3][Gatan\'s website]]\n\n'
                             'Relion param: *--mtf*')
-        if Plugin.IS_31():
+        if Plugin.IS_GT30():
             group.addParam('origPixelSize', params.FloatParam,
                            default=-1.0,
                            label='Original detector pixel size (A)',
@@ -274,7 +274,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
             self.paramDict['--skip_fsc_weighting'] = ''
             self.paramDict['--low_pass'] = self.lowRes.get()
 
-        if Plugin.IS_31() and self.origPixelSize.get() != -1.0:
+        if Plugin.IS_GT30() and self.origPixelSize.get() != -1.0:
             self.paramDict['--mtf_angpix'] = self.origPixelSize.get()
 
     def _getRelionMapFn(self, fn):

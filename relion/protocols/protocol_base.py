@@ -560,6 +560,37 @@ class ProtRelionBase(EMProtocol):
                                    'of -6/+6 times the sampling rate will be '
                                    'used from this angular sampling rate '
                                    'onwards.')
+                if relion.Plugin.IS_GT30():
+                    form.addParam('useFinerSamplingFaster', BooleanParam,
+                                  default=False,
+                                  label='Use finer angular sampling faster?',
+                                  help='If set to Yes, then let auto-refinement '
+                                       'proceed faster with finer angular '
+                                       'samplings. Two additional command-line '
+                                       'options will be passed to the refine '
+                                       'program:\n\n'
+                                       '\t--auto_ignore_angles lets angular '
+                                       'sampling go down despite changes '
+                                       'still happening in the angles\n'
+                                       '\t--auto_resol_angles lets angular '
+                                       'sampling go down if the current '
+                                       'resolution already requires that '
+                                       'sampling at the edge of the particle.\n\n'
+                                       'This option will make the computation '
+                                       'faster, but has nott been tested for '
+                                       'many cases for potential loss in '
+                                       'reconstruction quality upon convergence.')
+
+        if self.IS_CLASSIFY and relion.Plugin.IS_GT30():
+            form.addParam('allowCoarserSampling', BooleanParam,
+                          default=False,
+                          label='Allow coarser sampling?',
+                          help='If set to Yes, the program will use '
+                               'coarser angular and translational '
+                               'samplings if the estimated accuracies '
+                               'of the assignments is still low in the '
+                               'earlier iterations. This may speed up '
+                               'the calculations.')
 
         form.addSection('Compute')
         self._defineComputeParams(form)

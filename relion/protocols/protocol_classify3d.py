@@ -67,8 +67,13 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
             args['--healpix_order'] = self.angularSamplingDeg.get()
             args['--offset_range'] = self.offsetSearchRangePix.get()
             args['--offset_step'] = self.offsetSearchStepPix.get() * self._getSamplingFactor()
+
             if self.localAngularSearch:
                 args['--sigma_ang'] = self.localAngularSearchRange.get() / 3.
+
+            if relion.Plugin.IS_GT30() and self.allowCoarserSampling:
+                args['--allow_coarser_sampling'] = ''
+
         else:
             args['--skip_align'] = ''
     

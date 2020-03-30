@@ -78,6 +78,7 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def IS_31(cls):
+        # avoid using this, IS_GT30 is preferred
         return cls.getActiveVersion().startswith('3.1')
 
     @classmethod

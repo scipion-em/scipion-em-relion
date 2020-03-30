@@ -100,7 +100,7 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
                        help='User-provided STAR-file with the MTF-curve '
                             'of the detector.'
                             'Relion param: <--mtf>')
-        if relion.Plugin.IS_31():
+        if relion.Plugin.IS_GT30():
             group.addParam('origPixelSize', params.FloatParam,
                            default=-1.0,
                            label='Original detector pixel size (A)',
@@ -197,7 +197,7 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
         mtfFile = self.mtf.get()
         if mtfFile:
             self.paramDict['--mtf'] = mtfFile
-        if relion.Plugin.IS_31() and self.origPixelSize.get() != -1.0:
+        if relion.Plugin.IS_GT30() and self.origPixelSize.get() != -1.0:
             self.paramDict['--mtf_angpix'] = self.origPixelSize.get()
 
         if relion.Plugin.IS_GT30() and self.solventMask.hasValue():
