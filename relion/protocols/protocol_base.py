@@ -541,7 +541,7 @@ class ProtRelionBase(EMProtocol):
                                    'enforced.')
                 form.addParam('localAngularSearchRange', FloatParam,
                               default=5.0,
-                              condition='localAngularSearch',
+                              condition='localAngularSearch and doImageAlignment',
                               label='Local angular search range',
                               help='Local angular searches will be performed '
                                    'within +/- the given amount (in degrees) '

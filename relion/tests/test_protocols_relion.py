@@ -140,6 +140,7 @@ class TestRelionPicking(TestRelionBase):
         cls.ds = DataSet.getDataSet('relion_tutorial')
         cls.partFn = cls.ds.getFile('import/classify2d/extra/relion_it015_data.star')
 
+        print(magentaStr("\n==> Importing data - micrographs:"))
         cls.protImportMics = cls.newProtocol(
             ProtImportMicrographs,
             samplingRateMode=0,
@@ -162,6 +163,7 @@ class TestRelionPicking(TestRelionBase):
             self.assertLessEqual(micAgg['count'], maxCoords)
 
     def testPickingLog(self):
+        print(magentaStr("\n==> Testing relion - autopick LoG:"))
         protPickLog = self.newProtocol(
             ProtRelionAutopickLoG,
             objLabel='autopick LoG',
@@ -184,6 +186,7 @@ class TestRelionPicking(TestRelionBase):
         for i, index in enumerate([5, 16, 17, 18, 31]):
             ih.convert((index, avgsFn), (i + 1, outAvgsFn))
 
+        print(magentaStr("\n==> Importing data - averages:"))
         protAvg = self.newProtocol(ProtImportAverages,
                                    importFrom=ProtImportParticles.IMPORT_FROM_FILES,
                                    filesPath=outAvgsFn,
@@ -193,10 +196,10 @@ class TestRelionPicking(TestRelionBase):
 
         # We need CTF estimation for picking ref with Relion
         # Now estimate CTF on the micrographs with ctffind
-        print("Performing CTFfind...")
         ProtCTFFind = Domain.importFromPlugin(
             'cistem.protocols', 'CistemProtCTFFind', doRaise=True)
 
+        print(magentaStr("\n==> Running cistem - ctffind:"))
         protCtf = self.newProtocol(
             ProtCTFFind,
             inputMicrographs=self.protImportMics.outputMicrographs,
@@ -206,6 +209,7 @@ class TestRelionPicking(TestRelionBase):
         )
         self.launchProtocol(protCtf)
 
+        print(magentaStr("\n==> Testing relion - autopick ref:"))
         protPickRef = self.newProtocol(
             ProtRelion2Autopick,
             inputMicrographs=self.protImportMics.outputMicrographs,
