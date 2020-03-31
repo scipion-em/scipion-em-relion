@@ -56,11 +56,14 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
     # --------------------------- INSERT steps functions ----------------------
     def _setSamplingArgs(self, args):
         """ Set sampling related params. """
-        # Sampling stuff
         if self.doImageAlignment:
             args['--offset_range'] = self.offsetSearchRangePix.get()
             args['--offset_step'] = self.offsetSearchStepPix.get() * self._getSamplingFactor()
             args['--psi_step'] = self.inplaneAngularSamplingDeg.get() * self._getSamplingFactor()
+
+            if relion.Plugin.IS_GT30() and self.allowCoarserSampling:
+                args['--allow_coarser_sampling'] = ''
+
         else:
             args['--skip_align'] = ''
 

@@ -62,11 +62,9 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         form.addParam('maxRes', FloatParam, default=-1,
                       label="Maximum resolution (A)",  
                       help='Maximum resolution (in Angstrom) to consider \n'
-                           'in Fourier space (default Nyquist).\n'
-                           'Param *--maxres* in Relion.') 
+                           'in Fourier space (default Nyquist).')
         form.addParam('pad', FloatParam, default=2,
-                      label="Padding factor",  
-                      help='Padding factor, *--pad* param in Relion.') 
+                      label="Padding factor")
         
         form.addParam('extraParams', StringParam, default='',
                       expertLevel=LEVEL_ADVANCED,
@@ -84,24 +82,14 @@ class ProtRelionReconstruct(ProtReconstruct3D):
                         --shift_error (0.):\t\tApply random deviations with this standard deviation (in pixels) to each of the 2 translations
                         --fom_weighting (false):\t\tWeight particles according to their figure-of-merit (_rlnParticleFigureOfMerit)
                         --fsc ():\t\tFSC-curve for regularized reconstruction
+                        ...
                       """)
         form.addSection('CTF')
         form.addParam('doCTF', BooleanParam, default=False,
-                      label='Apply CTF correction?',
-                      help='Param *--ctf* in Relion.')
+                      label='Apply CTF correction?')
         form.addParam('ctfIntactFirstPeak', BooleanParam, default=False,
                       condition='doCTF',
-                      label='Leave CTFs intact until first peak?',
-                      help='Param *--ctf_intact_first_peak* in Relion.')
-        form.addParam('onlyFlipPhases', BooleanParam, default=False,
-                      condition='doCTF',
-                      label='Only flip phases? (Do not correct CTF-amplitudes)',
-                      help='Param *--only_flip_phases* in Relion.')
-        line = form.addLine('Beam tilt in direction: ',
-                            condition='doCTF',
-                            help='Beamtilt in the directions X and Y (in mrad)')
-        line.addParam('beamTiltX', FloatParam, default='0.0', label='X ')
-        line.addParam('beamTiltY', FloatParam, default='0.0', label='Y ')            
+                      label='Leave CTFs intact until first peak?')
         
         form.addParallelSection(threads=1, mpi=1)
         # TODO: Add an option to allow the user to
@@ -137,13 +125,6 @@ class ProtRelionReconstruct(ProtReconstruct3D):
             params += ' --ctf'
             if self.ctfIntactFirstPeak:
                 params += ' --ctf_intact_first_peak'
-            if self.onlyFlipPhases:
-                params += ' --only_flip_phases' 
-            params += ' --beamtilt_x %0.3f' % self.beamTiltX.get()
-            params += ' --beamtilt_y %0.3f' % self.beamTiltY.get()
-            # are the images phase flipped?
-            if imgSet.isPhaseFlipped():
-                params += ' --ctf_phase_flipped'
 
         if self.extraParams.hasValue():
             params += " " + self.extraParams.get()

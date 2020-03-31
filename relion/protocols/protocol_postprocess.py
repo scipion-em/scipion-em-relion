@@ -88,22 +88,24 @@ class ProtRelionPostprocess(ProtAnalysis3D):
                            "calibrated value.")
 
         form.addSection(label='Sharpening')
-        form.addParam('mtf', params.FileParam,
-                      label='MTF-curve file',
-                      help='User-provided STAR-file with the MTF-curve '
-                           'of the detector. Use the wizard to load one '
-                           'of the predefined ones provided at:\n'
-                           '- [[https://www3.mrc-lmb.cam.ac.uk/relion/index.php/'
-                           'FAQs#Where_can_I_find_MTF_curves_for_typical_detectors.3F]'
-                           '[Relion\'s Wiki FAQs]]\n'
-                           ' - [[http://www.gatan.com/K3][Gatan\'s website]]\n\n'
-                           'Relion param: *--mtf*')
-        if Plugin.IS_31():
-            form.addParam('origPixelSize', params.FloatParam,
-                          default=-1.0,
-                          label='Original detector pixel size (A)',
-                          help='This is the original pixel size (in Angstroms)'
-                               ' in the raw (non-super-resolution!) micrographs')
+        group = form.addGroup('MTF')
+        group.addParam('mtf', params.FileParam,
+                       label='MTF of the detector',
+                       help='User-provided STAR-file with the MTF-curve '
+                            'of the detector. Use the wizard to load one '
+                            'of the predefined ones provided at:\n'
+                            '- [[https://www3.mrc-lmb.cam.ac.uk/relion/index.php/'
+                            'FAQs#Where_can_I_find_MTF_curves_for_typical_detectors.3F]'
+                            '[Relion\'s Wiki FAQs]]\n'
+                            ' - [[http://www.gatan.com/K3][Gatan\'s website]]\n\n'
+                            'Relion param: *--mtf*')
+        if Plugin.IS_GT30():
+            group.addParam('origPixelSize', params.FloatParam,
+                           default=-1.0,
+                           label='Original detector pixel size (A)',
+                           help='This is the original pixel size (in Angstroms)'
+                                ' in the raw (non-super-resolution!) micrographs')
+
         form.addParam('doAutoBfactor', params.BooleanParam, default=True,
                       label='Estimate B-factor automatically?',
                       help='If set to Yes, then the program will use the '
@@ -182,18 +184,14 @@ class ProtRelionPostprocess(ProtAnalysis3D):
 
         protRef = self.protRefine.get()
         outVol = protRef.outputVolume
-        dim = outVol.getXDim()
+        newDim = outVol.getXDim()
+        newPix = outVol.getSamplingRate()
         vols = outVol.getHalfMaps().split(',')
         vols.insert(0, outVol.getFileName())
         ih = ImageHandler()
 
-        # skip resize if dimensions match
-        dimMask = self.solventMask.get().getXDim()
-        if dimMask == dim:
-            dim = None
-
         convert.convertMask(self.solventMask.get(),
-                            self._getFileName('mask'), newDim=dim)
+                            self._getFileName('mask'), newPix, newDim)
 
         for vol, key in zip(vols, ['outputVolume', 'half1', 'half2']):
             ih.convert(vol, self._getFileName(key))
@@ -276,7 +274,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
             self.paramDict['--skip_fsc_weighting'] = ''
             self.paramDict['--low_pass'] = self.lowRes.get()
 
-        if Plugin.IS_31() and self.origPixelSize.get() != -1.0:
+        if Plugin.IS_GT30() and self.origPixelSize.get() != -1.0:
             self.paramDict['--mtf_angpix'] = self.origPixelSize.get()
 
     def _getRelionMapFn(self, fn):

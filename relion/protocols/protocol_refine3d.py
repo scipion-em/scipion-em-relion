@@ -68,7 +68,6 @@ leads to objective and high-quality results.
     # -------------------------- INSERT steps functions -----------------------
     def _setSamplingArgs(self, args):
         """ Set sampling related params"""
-        # Sampling stuff
         args['--auto_local_healpix_order'] = self.localSearchAutoSamplingDeg.get()
         
         if not self.doContinue:
@@ -82,6 +81,10 @@ leads to objective and high-quality results.
             joinHalves = "--low_resol_join_halves"
             if joinHalves not in self.extraParams.get():
                 args['--low_resol_join_halves'] = 40
+
+            if relion.Plugin.IS_GT30() and self.useFinerSamplingFaster:
+                args['--auto_ignore_angles'] = ''
+                args['--auto_resol_angles'] = ''
 
     # -------------------------- STEPS functions ------------------------------
     def createOutputStep(self):

@@ -67,7 +67,7 @@ class ProtRelionSubtract(ProtOperateParticles):
                       label="Input particles", important=True,
                       help='Select the experimental particles.')
 
-        if not Plugin.IS_31():
+        if Plugin.IS_30():
             form.addParam('inputVolume', PointerParam, pointerClass='Volume',
                           label="Input map to be projected",
                           important=True,
@@ -150,7 +150,8 @@ class ProtRelionSubtract(ProtOperateParticles):
         if self.refMask.hasValue():
             tmp = self._getTmpPath()
             newDim = self._getInputParticles().getXDim()
-            maskFn = convert.convertMask(self.refMask.get(), tmp, newDim)
+            newPix = self._getInputParticles().getSamplingRate()
+            maskFn = convert.convertMask(self.refMask.get(), tmp, newPix, newDim)
             params += ' --mask %s' % maskFn
         
         if self._getInputParticles().isPhaseFlipped():

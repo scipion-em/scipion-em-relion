@@ -181,7 +181,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         group = form.addGroup('Sampling')
         group.addParam('angularSamplingDeg', EnumParam, default=1,
                        choices=relion.ANGULAR_SAMPLING_LIST,
-                       label='Angular sampling interval (deg)',
+                       label='Initial angular sampling (deg)',
                        help='There are only a few discrete angular samplings'
                             ' possible because we use the HealPix library to'
                             ' generate the sampling of the first two Euler '

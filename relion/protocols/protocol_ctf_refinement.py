@@ -34,17 +34,16 @@ from pyworkflow.object import Float
 import relion
 import relion.convert as convert
 from ..objects import CtfRefineGlobalInfo
-from ..convert.metadata import Table
 
 
 class ProtRelionCtfRefinement(ProtParticles):
-    """ Wrapper protocol for the Relion's per-particle CTF refinement. """
+    """ Wrapper protocol for the Relion's CTF refinement. """
     _label = 'ctf refinement'
 
     def _defineParams(self, form):
         form.addSection(label='Input')
-        # TODO: conditions on particles?
         form.addParam('inputParticles', params.PointerParam,
+                      pointerCondition='hasAlignmentProj',
                       important=True,
                       label='Input particles',
                       pointerClass='SetOfParticles',
@@ -81,53 +80,55 @@ class ProtRelionCtfRefinement(ProtParticles):
                            "first, and the other one second. It might be worth "
                            "repeating the estimation if both are off.")
 
-        form.addParam('doCtfFitting', params.BooleanParam, default=True,
-                      condition='not estimateAnisoMag',
-                      label='Perform CTF parameter fitting?',
-                      help='If set to Yes, then relion_ctf_refine will be '
-                           'used to estimate the selected parameters below.')
+        group = form.addGroup('CTF')
+        group.addParam('doCtfFitting', params.BooleanParam, default=False,
+                       condition='not estimateAnisoMag',
+                       label='Perform CTF parameter fitting?',
+                       help='If set to Yes, then relion_ctf_refine will be '
+                            'used to estimate the selected parameters below.')
 
-        form.addParam('fitDefocus', params.EnumParam, default=relion.FIT_NO,
-                      condition='doCtfFitting',
-                      choices=['no', 'per-micrograph', 'per-particle'],
-                      display=params.EnumParam.DISPLAY_HLIST,
-                      label='Fit defocus?',
-                      help='If set to per-particle or per-micrograph, then '
-                           'relion_ctf_refine will estimate a defocus values.')
+        group.addParam('fitDefocus', params.EnumParam, default=relion.FIT_NO,
+                       condition='doCtfFitting and not estimateAnisoMag',
+                       choices=['no', 'per-micrograph', 'per-particle'],
+                       display=params.EnumParam.DISPLAY_HLIST,
+                       label='Fit defocus?',
+                       help='If set to per-particle or per-micrograph, then '
+                            'relion_ctf_refine will estimate a defocus values.')
 
-        form.addParam('fitAstig', params.EnumParam, default=relion.FIT_NO,
-                      condition='doCtfFitting',
-                      choices=['no', 'per-micrograph', 'per-particle'],
-                      display=params.EnumParam.DISPLAY_HLIST,
-                      label='Fit astigmatism? ',
-                      help="If set to per-particle or per-micrograph, then "
-                           "relion_ctf_refine will estimate astigmatism.")
+        group.addParam('fitAstig', params.EnumParam, default=relion.FIT_NO,
+                       condition='doCtfFitting and not estimateAnisoMag',
+                       choices=['no', 'per-micrograph', 'per-particle'],
+                       display=params.EnumParam.DISPLAY_HLIST,
+                       label='Fit astigmatism? ',
+                       help="If set to per-particle or per-micrograph, then "
+                            "relion_ctf_refine will estimate astigmatism.")
 
-        form.addParam('fitBfactor', params.EnumParam, default=relion.FIT_NO,
-                      condition='doCtfFitting',
-                      choices=['no', 'per-micrograph', 'per-particle'],
-                      display=params.EnumParam.DISPLAY_HLIST,
-                      label='Fit B-factor?',
-                      help='If set to per-particle or per-micrograph, then '
-                           'relion_ctf_refine will estimate B-factors that '
-                           'describe the signal falloff.')
+        group.addParam('fitBfactor', params.EnumParam, default=relion.FIT_NO,
+                       condition='doCtfFitting and not estimateAnisoMag',
+                       choices=['no', 'per-micrograph', 'per-particle'],
+                       display=params.EnumParam.DISPLAY_HLIST,
+                       label='Fit B-factor?',
+                       help='If set to per-particle or per-micrograph, then '
+                            'relion_ctf_refine will estimate B-factors that '
+                            'describe the signal falloff.')
 
-        form.addParam('fitPhaseShift', params.EnumParam, default=relion.FIT_NO,
-                      condition='doCtfFitting',
-                      choices=['no', 'per-micrograph', 'per-particle'],
-                      display=params.EnumParam.DISPLAY_HLIST,
-                      label='Fit phase-shift? ',
-                      help="If set to per-particle or per-micrograph, then "
-                           "relion_ctf_refine will estimate astigmatism.")
+        group.addParam('fitPhaseShift', params.EnumParam, default=relion.FIT_NO,
+                       condition='doCtfFitting and not estimateAnisoMag',
+                       choices=['no', 'per-micrograph', 'per-particle'],
+                       display=params.EnumParam.DISPLAY_HLIST,
+                       label='Fit phase-shift? ',
+                       help="If set to per-particle or per-micrograph, then "
+                            "relion_ctf_refine will estimate astigmatism.")
 
-        form.addParam('doBeamtiltEstimation', params.BooleanParam, default=True,
+        form.addParam('doBeamtiltEstimation', params.BooleanParam, default=False,
                       label='Estimate beamtilt?',
+                      condition='not estimateAnisoMag',
                       help='If set to Yes, then relion_ctf_refine will '
                            'also estimate the beamtilt per optics group. '
                            'This option is only recommended for data sets '
                            'that extend beyond 4.5 Angstrom resolution.')
         form.addParam('doEstimateTrefoil', params.BooleanParam, default=False,
-                      condition='doBeamtiltEstimation',
+                      condition='doBeamtiltEstimation and not estimateAnisoMag',
                       label='Also estimate trefoil?',
                       help='If set to Yes, then relion_ctf_refine will also '
                            'estimate the trefoil (3-fold astigmatism) per '
@@ -137,6 +138,7 @@ class ProtRelionCtfRefinement(ProtParticles):
 
         form.addParam('doEstimate4thOrder', params.BooleanParam, default=False,
                       label='Estimate 4th order aberrations?',
+                      condition='not estimateAnisoMag',
                       help='If set to Yes, then relion_ctf_refine will also '
                            'estimate the Cs and the tetrafoil (4-fold '
                            'astigmatism) per optics group. This option is only '
@@ -146,7 +148,15 @@ class ProtRelionCtfRefinement(ProtParticles):
         form.addParam('minResolution', params.FloatParam, default=30,
                       label='Minimum resolution for fits (A)',
                       help="The minimum spatial frequency (in Angstrom) used "
-                           "in the beamtilt fit.")
+                           "in the beam tilt fit.")
+
+        form.addParam('extraParams', params.StringParam,
+                      default='',
+                      label='Additional arguments',
+                      help="In this box command-line arguments may be "
+                           "provided that are not generated by the GUI. This "
+                           "may be useful for testing developmental options "
+                           "and/or expert use of the program")
 
         form.addParallelSection(threads=1, mpi=1)
 
@@ -170,15 +180,6 @@ class ProtRelionCtfRefinement(ProtParticles):
                                     fillMagnification=True,
                                     fillRandomSubset=True)
 
-    def _getInputVolumes(self, postStar):
-        """ Parse the input volumes: halves and mask
-        from the postprocess.star file. """
-        table = Table(fileName=postStar, tableName='general')
-        row = table[0]
-        return (row.rlnUnfilteredMapHalf1,
-                row.rlnUnfilteredMapHalf2,
-                row.rlnMaskName)
-
     def refineCtfStep(self):
         args = "--i %s " % self._getPath('input_particles.star')
         args += "--o %s " % self._getExtraPath()
@@ -186,17 +187,10 @@ class ProtRelionCtfRefinement(ProtParticles):
         postStar = inputProt._getExtraPath('postprocess.star')
         args += "--f %s " % postStar
         args += "--angpix_ref %0.3f " % inputProt.solventMask.get().getSamplingRate()
-
-        # TODO: Check why we were using -m1 and -m2 options here
-        # Maybe not needed in R3.1???
-        #postVols = convert.getVolumesFromPostprocess(postStar)
-        #args += "--m1 %s --m2 %s --mask %s " % postVols
         minRes = '%0.3f' % self.minResolution
 
-        # New command line string taken from here:
-        # https://github.com/3dem/relion/blob/a5d691e8a9507c1efcce2810ba74f5fac6d2a098/src/pipeline_jobs.cpp#L5050
         if self.estimateAnisoMag:
-            args += " --fit_aniso --kmin_mag %s" % minRes
+            args += " --fit_aniso --kmin_mag %s " % minRes
         else:
             if self.doCtfFitting:
                 def _letter(option):
@@ -218,6 +212,10 @@ class ProtRelionCtfRefinement(ProtParticles):
                 args += '--fit_aberr '
 
         args += "--j %d " % self.numberOfThreads
+
+        if self.extraParams.hasValue():
+            args += ' ' + self.extraParams.get()
+
         prog = "relion_ctf_refine" + ("_mpi" if self.numberOfMpi > 1 else "")
         self.runJob(prog, args)
 
