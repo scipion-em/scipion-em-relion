@@ -28,7 +28,8 @@ import os
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
-from pyworkflow.em.data import Volume
+import pyworkflow.em.metadata as md
+from pyworkflow.em.data import Volume, Float
 from pyworkflow.em.protocol import ProtAnalysis3D
 
 import relion
@@ -63,11 +64,11 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
     def _createFilenameTemplates(self):
         """ Centralize how files are called for iterations and references. """
         myDict = {
-            'finalVolume': self._getInputPath("relion_class001.mrc"),
-            'half1': self._getInputPath("relion_half1_class001_unfil.mrc"),
-            'half2': self._getInputPath("relion_half2_class001_unfil.mrc"),
-            'mask': self._getInputPath("input_mask.mrc"),
-            'outputVolume': self._getExtraPath('postprocess.mrc')
+            'finalModel': self._getExtraPath("run_model.star"),
+            'input': self._getExtraPath("input_body.star"),
+            'body': self._getExtraPath("run_body%(body)03d.mrc"),
+            'half1': self._getExtraPath("run_half1_body%(body)03d_unfil.mrc"),
+            'half2': self._getExtraPath("run_half2_body%(body)03d_unfil.mrc")
         }
         self._updateFilenamesDict(myDict)
 
@@ -209,6 +210,8 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
     
     # -------------------------- INSERT steps functions ------------------------
     def _insertAllSteps(self):
+        self._createFilenameTemplates()
+
         objId = self.protRefine.get().getObjId()
         self._insertFunctionStep('convertInputStep', objId)
         self._insertFunctionStep('multibodyRefineStep',
@@ -238,13 +241,21 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         self._runProgram('relion_flex_analyse', args)
     
     def createOutputStep(self):
-        volume = Volume()
-        volume.setFileName(self._getFileName('outputVolume'))
+        protRefine = self.protRefine.get()
+        sampling = protRefine._getInputParticles().getSamplingRate()
+        volumes = self._createSetOfVolumes()
+        volumes.setSamplingRate(sampling)
+
+        self._loadVolsInfo()
+
+        for item in range(1, self._getNumberOfBodies() + 1):
+            vol = Volume()
+            self._updateVolume(item, vol)
+            volumes.append(vol)
+
+        self._defineOutputs(outputVolumes=volumes)
         vol = self.protRefine.get().outputVolume
-        pxSize = vol.getSamplingRate()
-        volume.setSamplingRate(pxSize)
-        self._defineOutputs(outputVolume=volume)
-        self._defineSourceRelation(vol, volume)
+        self._defineSourceRelation(vol, volumes)
 
     # -------------------------- INFO functions --------------------------------
     def _validate(self):
@@ -281,6 +292,30 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         return summary
         
     # -------------------------- UTILS functions ------------------------------
+    def _loadVolsInfo(self):
+        """ Read some information about the produced Relion bodies
+        from the *model.star file.
+        """
+        self._volsInfo = {}
+        modelStar = md.MetaData('model_bodies@' +
+                                self._getFileName('finalModel'))
+
+        for body, row in enumerate(md.iterRows(modelStar)):
+            self._volsInfo[body+1] = row.clone()
+
+    def _getNumberOfBodies(self):
+        return int(md.getSize(self._getFileName('input')))
+
+    def _updateVolume(self, bodyNum, item):
+        item.setFileName(self._getFileName('body', body=bodyNum))
+        half1 = self._getFileName('half1', body=bodyNum)
+        half2 = self._getFileName('half2', body=bodyNum)
+        item.setHalfMaps([half1, half2])
+
+        row = self._volsInfo[bodyNum]
+        item._rlnAccuracyRotations = Float(row.getValue('rlnAccuracyRotations'))
+        item._rlnAccuracyTranslations = Float(row.getValue('rlnAccuracyTranslations'))
+
     def _getRefineArgs(self):
         """ Define all parameters to run relion_refine.
         """

@@ -1,3 +1,4 @@
+1.0.9: Fixed multibody output bug. Added a test for it.
 1.0.8:
     - Fixed bug when creating symbolic links from binaries with different root
     - Fixed a few visualization issues from Relion - initial volume viewer
