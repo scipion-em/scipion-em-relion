@@ -30,6 +30,7 @@ import pyworkflow.tests as pwtests
 from pwem.tests.workflows import TestWorkflow
 from pwem.protocols import ProtImportMovies
 from pyworkflow.plugin import Domain
+from pyworkflow.utils import magentaStr
 
 from relion import Plugin
 from ..protocols import *
@@ -46,6 +47,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         cls.ds = pwtests.DataSet.getDataSet('relion30_tutorial')
 
     def _importMovies(self):
+        print(magentaStr("\n==> Importing data - movies:"))
         protImport = self.newProtocol(
             ProtImportMovies,
             filesPath=self.ds.getFile('Movies/'),
@@ -77,6 +79,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         if Plugin.IS_30():
             return protImport
         else:
+            print(magentaStr("\n==> Testing relion - assign optic groups:"))
             protAssign = self.newProtocol(ProtRelionAssignOpticsGroup,
                                           objLabel='assign optics',
                                           opticsGroupName='OpticsGroup1')
@@ -84,6 +87,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
             return self.launchProtocol(protAssign)
 
     def _runRelionMc(self, protImport):
+        print(magentaStr("\n==> Testing relion - motioncor:"))
         protRelionMc = self.newProtocol(
             ProtRelionMotioncor,
             objLabel='relion - motioncor',
@@ -97,6 +101,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         return protRelionMc
 
     def _runRelionLog(self, protRelionMc):
+        print(magentaStr("\n==> Testing relion - autopick LoG:"))
         protRelionLog = self.newProtocol(
             ProtRelionAutopickLoG,
             objLabel='relion - autopick log',
@@ -112,6 +117,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         return protRelionLog
 
     def _runGctf(self, protMc):
+        print(magentaStr("\n==> Testing gctf - estimate ctf:"))
         ProtGctf = Domain.importFromPlugin('gctf.protocols', 'ProtGctf')
 
         protGctf = self.newProtocol(
@@ -129,6 +135,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         return protGctf
 
     def _runRelionExtract(self, protPicking, protCtf):
+        print(magentaStr("\n==> Testing relion - extract particles:"))
         protRelionExtract = self.newProtocol(
             ProtRelionExtractParticles,
             objLabel='relion - extract',
@@ -146,6 +153,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         return protRelionExtract
 
     def _runRelion2D(self, protExtract):
+        print(magentaStr("\n==> Testing relion - classify 2D:"))
         protRelion2D = self.newProtocol(
             ProtRelionClassify2D,
             objLabel='relion - 2d',
@@ -163,6 +171,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         return self.launchProtocol(protRelion2D)
 
     def _runInitModel(self, protRelion2D):
+        print(magentaStr("\n==> Testing relion - initial model:"))
         relionIniModel = self.newProtocol(ProtRelionInitialModel,
                                           doCTF=False, doGpu=True,
                                           maskDiameterA=200,
