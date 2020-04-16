@@ -1,4 +1,17 @@
-1.1.0: Add Relion 3.1 support, remove relion 2.x support
+3.0.0:
+    - GPLv3
+    - Add Relion 3.1 support, remove relion 2.x support
+    - New STAR file parser
+    - New protocol to assign optic groups
+    - Sort protocol will be deleted soon
+    - Extract particle movies is gone
+    - All protocols updated for 3.x version. 3.0 support will be discontinued soon
+    - Updated drift plot for motioncor, added new plot for drift per frame
+    - convertMask changed so that it uses relion_image_handler to change box/pix size/threshold
+    - movie refinement is gone and fully replaced by bayesian polishing
+    - picker protocols code cleanup
+    - get rid of shell=true in subprocess
+    - many small fixes
 1.0.9: Fixed multibody output bug. Added a test for it.
 1.0.8:
     - Fixed bug when creating symbolic links from binaries with different root
