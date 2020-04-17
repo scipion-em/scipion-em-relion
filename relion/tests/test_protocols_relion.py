@@ -798,7 +798,7 @@ class TestRelionExpandSymmetry(TestRelionBase):
                                     starFile=partStar,
                                     magnification=10000,
                                     samplingRate=7.08,
-                                    haveDataBeenPhaseFlipped=True
+                                    haveDataBeenPhaseFlipped=False
                                     )
         self.launchProtocol(protPart)
         return protPart
@@ -1202,32 +1202,13 @@ class TestRelionExportParticles(TestRelionBase):
     @classmethod
     def setUpClass(cls):
         setupTestProject(cls)
-        cls.ds = DataSet.getDataSet('xmipp_tutorial')
-        cls.ds2 = DataSet.getDataSet('relion_tutorial')
-        cls.particlesFn = cls.ds.getFile('particles')
-        cls.particlesFn2 = cls.ds2.getFile('import/classify2d/extra/relion_it015_data.star')
-        cls.runImportParticles(cls.particlesFn, 1.237, True)
-        cls.starImport = cls.runImportParticlesStar(cls.particlesFn2, 50000, 7.08)
-
-    @classmethod
-    def runImportParticles(cls, pattern, samplingRate, checkStack=False,
-                           phaseFlip=False):
-        """ Run an Import particles protocol. """
-        print(magentaStr("\n==> Importing data - particles:"))
-        cls.protImport = cls.newProtocol(ProtImportParticles,
-                                         filesPath=pattern,
-                                         samplingRate=samplingRate,
-                                         checkStack=checkStack,
-                                         haveDataBeenPhaseFlipped=phaseFlip)
-        cls.launchProtocol(cls.protImport)
-        cls.assertIsNotNone(cls.protImport.outputParticles,
-                            "SetOfParticles has not been produced.")
-
-        return cls.protImport
+        cls.ds = DataSet.getDataSet('relion_tutorial')
+        cls.particlesFn = cls.ds.getFile('import/refine3d/extra/relion_data.star')
+        cls.starImport = cls.runImportParticlesStar(cls.particlesFn, 10000, 7.08)
 
     def test_basic(self):
         """ Run an Import particles protocol. """
-        inputParts = self.protImport.outputParticles
+        inputParts = self.starImport.outputParticles
         print(magentaStr("\n==> Testing relion - export particles:"))
         paramsList = [
             {'stackType': 0, 'useAlignment': True},
@@ -1239,7 +1220,7 @@ class TestRelionExportParticles(TestRelionBase):
         ]
 
         def _checkProt(prot, params):
-            stackFiles = glob(prot._getPath('Particles', '*mrcs'))
+            stackFiles = glob(prot._getExportPath('Particles', '*mrcs'))
 
             n = len(stackFiles)
             if params['stackType'] == 0:
@@ -1256,13 +1237,6 @@ class TestRelionExportParticles(TestRelionBase):
             exportProt.inputParticles.set(inputParts)
             self.launchProtocol(exportProt)
             _checkProt(exportProt, params)
-
-    def test_extra(self):
-        """ Test export from Relion directly. """
-        exportProt = self.newProtocol(ProtRelionExportParticles,
-                                      stackType=0)
-        exportProt.inputParticles.set(self.starImport.outputParticles)
-        self.launchProtocol(exportProt)
 
 
 class TestRelionExportCtf(TestRelionBase):

@@ -75,6 +75,7 @@ class ProtRelionExportCtf(EMProtocol):
         self._insertFunctionStep('writeCtfStarStep')
         
     def writeCtfStarStep(self):
+        pwutils.cleanPath(self._getExportPath())
         pwutils.makePath(self._getExportPath())
         inputCTF = self.inputCTF.get()
 
