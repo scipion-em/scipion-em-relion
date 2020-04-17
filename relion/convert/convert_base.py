@@ -148,8 +148,7 @@ class WriterBase:
         dU, dV, dAngle = ctf.getDefocus()
         row['rlnDefocusU'] = dU
         row['rlnDefocusV'] = dV
-        # FIXME Check how astigmatism is defined in Relion
-        row['rlnCtfAstigmatism'] = dU / dV
+        row['rlnCtfAstigmatism'] = abs(dU-dV)
         row['rlnDefocusAngle'] = dAngle
         row['rlnCtfFigureOfMerit'] = ctf.getFitQuality() or 0
         row['rlnCtfMaxResolution'] = ctf.getResolution() or 0
