@@ -102,7 +102,8 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
 
         # We still need to maintain some old code for Relion 3.0
         if relion.Plugin.IS_30():
-            outputDir = self._getExtraPath()
+            outputDir = self._getExportPath("Particles")
+            pwutils.makePath(outputDir)
             postprocessImageRow = self._postprocessImageRow30
 
         # Create links to binary files and write the relion .star file
@@ -160,10 +161,10 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
                 stackName = baseName + '.mrcs'
                 self._stackDict[baseName] = index
 
-            stackFn = self._getExportPath(stackName)
+            stackFn = self._getExportPath("Particles", stackName)
             self._ih.convert(img, (index, stackFn))
             # Store relative path in the star file
-            relStackFn = os.path.relpath(stackFn, self._getPath())
+            relStackFn = os.path.relpath(stackFn, self._getExportPath())
             row.setValue('rlnImageName',
                          convert.locationToRelion(index, relStackFn))
 
