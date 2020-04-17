@@ -1263,3 +1263,93 @@ class TestRelionExportParticles(TestRelionBase):
                                       stackType=0)
         exportProt.inputParticles.set(self.starImport.outputParticles)
         self.launchProtocol(exportProt)
+
+
+class TestRelionExportCtf(TestRelionBase):
+    @classmethod
+    def setUpClass(cls):
+        setupTestProject(cls)
+        cls.dsXmipp = DataSet.getDataSet('xmipp_tutorial')
+        cls.dsGrigorieff = DataSet.getDataSet('grigorieff')
+        cls.dsEman2 = DataSet.getDataSet('eman')
+
+        print(magentaStr("\n==> Importing data - micrographs:"))
+        cls.protImport = cls.newProtocol(ProtImportMicrographs,
+                                         filesPath=cls.dsXmipp.getFile('allMics'),
+                                         samplingRate=1.237, voltage=300)
+        cls.launchProtocol(cls.protImport)
+
+    def runImportXmipp(self):
+        print(magentaStr("\n==> Importing data - ctfs (from xmipp)"))
+        protCTF = self.newProtocol(ProtImportCTF,
+                                   importFrom=ProtImportCTF.IMPORT_FROM_XMIPP3,
+                                   filesPath=self.dsXmipp.getFile('ctfsDir'),
+                                   filesPattern='*.ctfparam')
+        protCTF.inputMicrographs.set(self.protImport.outputMicrographs)
+        protCTF.setObjLabel('import ctfs from xmipp ')
+        self.launchProtocol(protCTF)
+
+        self.assertIsNotNone(protCTF.outputCTF,
+                             "There was a problem when importing ctfs.")
+        return protCTF
+
+
+    def runImportCtffind4(self):
+        print(magentaStr("\n==> Importing data - ctfs (from ctffind)"))
+        protCTF = self.newProtocol(ProtImportCTF,
+                                   importFrom=ProtImportCTF.IMPORT_FROM_GRIGORIEFF,
+                                   filesPath=self.dsGrigorieff.getFile('ctffind4'),
+                                   filesPattern='BPV*/*txt')
+        protCTF.inputMicrographs.set(self.protImport.outputMicrographs)
+        protCTF.setObjLabel('import from ctffind4')
+        self.launchProtocol(protCTF)
+
+        self.assertIsNotNone(protCTF.outputCTF,
+                             "There was a problem when importing ctfs.")
+        return protCTF
+
+    def runImportScipion(self):
+        print(magentaStr("\n==> Importing data - ctfs (from scipion)"))
+        ctfSqlite = self.dsGrigorieff.getFile('ctffind3/ctfs.sqlite')
+
+        protCTF = self.newProtocol(ProtImportCTF,
+                                   objLabel='import from scipion',
+                                   importFrom=ProtImportCTF.IMPORT_FROM_SCIPION,
+                                   filesPath=ctfSqlite)
+
+        protCTF.inputMicrographs.set(self.protImport.outputMicrographs)
+        self.launchProtocol(protCTF)
+
+        self.assertIsNotNone(protCTF.outputCTF,
+                             "There was a problem when importing ctfs.")
+        return protCTF
+
+    def runImportEman2(self):
+        print(magentaStr("\n==> Importing data - ctfs (from eman2)"))
+        protCTF = self.newProtocol(ProtImportCTF,
+                                   importFrom=ProtImportCTF.IMPORT_FROM_EMAN2,
+                                   filesPath=self.dsEman2.getFile('ctfs'),
+                                   filesPattern='BPV*json')
+        protCTF.inputMicrographs.set(self.protImport.outputMicrographs)
+        protCTF.setObjLabel('import from eman2')
+        self.launchProtocol(protCTF)
+
+        self.assertIsNotNone(protCTF.outputCTF,
+                             "There was a problem when importing ctfs.")
+        return protCTF
+
+    def testExportCtf(self):
+        ctfs = [(self.runImportXmipp().outputCTF, 'xmipp'),
+                (self.runImportCtffind4().outputCTF, 'ctffind'),
+                (self.runImportScipion().outputCTF, 'scipion'),
+                (self.runImportEman2().outputCTF, 'eman2')]
+
+        for i in ctfs:
+            protExport = self.newProtocol(ProtRelionExportCtf)
+            protExport.inputCTF.set(i[0])
+            print(magentaStr("\n==> Testing relion - export ctf (from %s)" % i[1]))
+            self.launchProtocol(protExport)
+
+            outFn = os.path.exists(protExport._getStarFile()) or None
+            self.assertIsNotNone(outFn,
+                                 "There was a problem when exporting ctfs.")
