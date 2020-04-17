@@ -258,6 +258,10 @@ class Writer(WriterBase):
 
         self._counter = 0  # Mark first conversion as special one
         self._partToRow(firstPart, partRow)
+
+        if self._postprocessImageRow:
+            self._postprocessImageRow(firstPart, partRow)
+
         opticsTable = self._createTableFromDict(list(self._optics.values())[0])
         partsTable = self._createTableFromDict(partRow)
         partsTable.addRow(**partRow)
