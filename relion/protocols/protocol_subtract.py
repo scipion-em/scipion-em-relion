@@ -25,6 +25,7 @@
 # **************************************************************************
 
 import pwem.emlib.metadata as md
+from pwem import ALIGN_PROJ
 from pyworkflow.protocol.params import PointerParam, BooleanParam, IntParam
 from pwem.protocols import ProtOperateParticles
 
@@ -46,8 +47,8 @@ class ProtRelionSubtract(ProtOperateParticles):
     def _createFilenameTemplates(self):
         """ Centralize how files are called. """
         myDict = {
-                  'input_star': self._getPath('input_particles.star'),
-                  'output_star': self._getExtraPath('output_particles.star')
+                  'input_star': self._getExtraPath('input_particles.star'),
+                  'output_star': self._getExtraPath('particles_subtracted.star')
                   }
         self._updateFilenamesDict(myDict)
     
@@ -71,7 +72,7 @@ class ProtRelionSubtract(ProtOperateParticles):
                       pointerClass='SetOfParticles',
                       condition='not useAll',
                       pointerCondition='hasAlignmentProj',
-                      label="Input particles",
+                      label="Input particles subset",
                       help='Select the particles which are a SUBSET of the '
                            'input protocol provided above.')
 
@@ -124,22 +125,24 @@ class ProtRelionSubtract(ProtOperateParticles):
             self._insertFunctionStep('convertInputStep')
 
         self._insertFunctionStep('subtractStep')
-        #self._insertFunctionStep('createOutputStep')
+        self._insertFunctionStep('createOutputStep')
     
     # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self):
         """ Write the input images as a Relion star file. """
         imgSet = self.inputParticles.get()
         convert.writeSetOfParticles(
-            imgSet, self._getFileName('input_star'), self._getExtraPath())
+            imgSet, self._getFileName('input_star'),
+            self._getExtraPath(), alignType=ALIGN_PROJ)
     
     def subtractStep(self):
         inputProt = self.inputProtocol.get()
         inputProt._initialize()
-        fnOptimiser = inputProt._getFileName('optimiser', iter=inputProt._lastIter())
-        params = " --i %s --o %s --new_boxsize %s" % (fnOptimiser,
-                                                      self._getExtraPath(),
-                                                      self.newBoxSize.get())
+        fnOptimiser = inputProt._getFileName('optimiser',
+                                             iter=inputProt._lastIter())
+        params = " --i %s --o %s --new_box %s" % (fnOptimiser,
+                                                  self._getExtraPath(),
+                                                  self.newBoxSize.get())
 
         if not self.useAll:
             params += " --data %s" % self._getFileName('input_star')
@@ -150,8 +153,8 @@ class ProtRelionSubtract(ProtOperateParticles):
                 self.cX, self.cY, self.cZ)
 
         tmp = self._getTmpPath()
-        newDim = inputProt.outputParticles.getXDim()
-        newPix = inputProt.outputParticles.getSamplingRate()
+        newDim = self._getInputParticles().getXDim()
+        newPix = self._getInputParticles().getSamplingRate()
         maskFn = convert.convertMask(self.refMask.get(), tmp, newPix, newDim)
         params += ' --mask %s' % maskFn
 
@@ -159,25 +162,27 @@ class ProtRelionSubtract(ProtOperateParticles):
         self.runJob(prog, params)
 
     def createOutputStep(self):
-        imgSet = self._getInputParticles()
+        imgSet = self._getInputParticles().get()
         outImgSet = self._createSetOfParticles()
         outImgsFn = self._getFileName('output_star')
-         
         outImgSet.copyInfo(imgSet)
         outImgSet.setAlignmentProj()
-        outImgSet.copyItems(imgSet,
-                            updateItemCallback=self._updateItem,
-                            itemDataIterator=md.iterRows(outImgsFn))
+
+        self.reader = convert.Reader(alignType=ALIGN_PROJ)
+        mdIter = md.iterRows('particles@' + outImgsFn)
+        imgSet.copyItems(imgSet, doClone=False,
+                         updateItemCallback=self._updateItem,
+                         itemDataIterator=mdIter)
+
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(imgSet, outImgSet)
     
     # -------------------------- INFO functions -------------------------------
     def _validate(self):
         errors = []
-
         if not self.useAll:
             self._validateDim(self.inputParticles(),
-                              self.inputProtocol.get().outputParticles.getXDim(),
+                              self._getInputParticles().getXDim(),
                               errors, 'Input particles subset',
                               'Input particles from 3D protocol')
 
@@ -194,7 +199,15 @@ class ProtRelionSubtract(ProtOperateParticles):
         return summary
     
     # -------------------------- UTILS functions ------------------------------
-    def _updateItem(self, item, row):
+    def _updateItem(self, particle, row):
+        self.reader.setParticleTransform(particle, row)
+        convert.setRelionAttributes(particle, row,
+                                    md.RLN_IMAGE_ORI_NAME)
+
         newFn = row.getValue(md.RLN_IMAGE_NAME)
         newLoc = convert.relionToLocation(newFn)
-        item.setLocation(newLoc)
+        row.setLocation(newLoc)
+
+    def _getInputParticles(self):
+        inputProt = self.inputProtocol.get()
+        return inputProt.outputParticles
