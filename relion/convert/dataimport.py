@@ -34,20 +34,20 @@ from pwem.objects import Micrograph
 import pwem.emlib.metadata as md
 from pyworkflow.utils.path import findRootFrom
 
-from .convert_deprecated import readSetOfParticles, relionToLocation, rowToCoordinate
+from .convert_utils import relionToLocation
+#from .convert_deprecated import readSetOfParticles, rowToCoordinate
 
 
 class RelionImport:
-    """    
-    Protocol to import existing Relion runs.
-    """
+    """ Protocol to import existing Relion runs. """
     def __init__(self, protocol, starFile):
         self.protocol = protocol
         self._starFile = starFile
         self.copyOrLink = protocol.getCopyOrLink()
+        self.version30 = False
 
     def importParticles(self):
-        """ Import particles from a metadata 'images.xmd' """
+        """ Import particles from 'run_data.star' """
         self.ignoreIds = self.protocol.ignoreIdColumn.get()
         self._imgDict = {}  # store which images stack have been linked/copied and the new path
         self._findImagesPath(label=md.RLN_IMAGE_NAME)
@@ -69,11 +69,24 @@ class RelionImport:
         self.protocol.fillAcquisition(partSet.getAcquisition())
         # Read the micrographs from the 'self._starFile' metadata
         # but fixing the filenames with new ones (linked or copy to extraDir)
-        readSetOfParticles(
-            self._starFile, partSet,
-            preprocessImageRow=self._preprocessImageRow,
-            postprocessImageRow=self._postprocessImageRow,
-            readAcquisition=False, alignType=self.alignType)
+
+        if self.version30:
+            from .convert_deprecated import readSetOfParticles
+            readSetOfParticles(
+                self._starFile, partSet,
+                preprocessImageRow=self._preprocessImageRow30,
+                postprocessImageRow=self._postprocessImageRow30,
+                readAcquisition=False, alignType=self.alignType)
+        else:
+            from .convert31 import Reader
+            #FIXME
+            self.reader = Reader.readSetOfParticles(
+                self._starFile, partSet,
+                preprocessImageRow=None,
+                postprocessImageRow=None,
+                readAcquisition=False, alignType=self.alignType)
+            mdIter = md.iterRows('particles@' + self._starFile,
+                                 sortByLabel=md.RLN_IMAGE_ID)
 
         if self._micIdOrName:
             self.protocol._defineOutputs(outputMicrographs=self.micSet)
@@ -162,9 +175,14 @@ class RelionImport:
     def _findImagesPath(self, label, warnings=True):
 
         row = md.getFirstRow(self._starFile)
+        if not row.containsLabel('rlnOpticsGroup'):
+            self.version30 = True
+            self.protocol.warning("Import from Relion version < 3.1 ...")
+        else:
+            row = md.getFirstRow('particles@' + self._starFile)
 
         if row is None:
-            raise Exception("Can not import from an empty metadata: %s" % self._starFile)
+            raise Exception("Cannot import from empty metadata: %s" % self._starFile)
 
         if not row.containsLabel(label):
             raise Exception("Label *%s* is missing in metadata: %s" % (md.label2Str(label),
@@ -222,7 +240,7 @@ class RelionImport:
 
         return row, modelRow
 
-    def _preprocessImageRow(self, img, imgRow):
+    def _preprocessImageRow30(self, img, imgRow):
         from .convert_deprecated import setupCTF, copyOrLinkFileName
         if self._imgPath is not None:
             copyOrLinkFileName(imgRow, self._imgPath, self.protocol._getExtraPath())
@@ -255,7 +273,7 @@ class RelionImport:
             # Update the row to set a MDL_MICROGRAPH_ID
             imgRow.setValue('rlnMicrographId', int(mic.getObjId()))
 
-    def _postprocessImageRow(self, img, imgRow):
+    def _postprocessImageRow30(self, img, imgRow):
         if self.ignoreIds:
             img.setObjId(None)  # Force to generate a new id in Set
 
@@ -297,6 +315,7 @@ class RelionImport:
         return acquisitionDict
 
     def importCoordinates(self, fileName, addCoordinate):
+        from .convert_deprecated import rowToCoordinate
         for row in md.iterRows(fileName):
             coord = rowToCoordinate(row)
             addCoordinate(coord)

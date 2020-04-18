@@ -162,12 +162,27 @@ class WriterBase:
 class ReaderBase:
     """ Helper class to grab information from star file rows
      and fill the required values in Scipion objects
-     (e.g particiels, micrographs, etc)
+     (e.g particles, micrographs, etc)
     """
     def __init__(self, **kwargs):
         """
         """
         self._alignType = kwargs.get('alignType', pwem.ALIGN_NONE)
+
+    def readSetOfParticles(self, starFile, partsSet, **kwargs):
+        """ Convert a star file into a set of particles.
+
+        Params:
+            starFile: the filename of the star file
+            partsSet: output particles set
+
+        Keyword Arguments:
+            blockName: The name of the data block (default particles)
+            alignType:
+            removeDisabled:
+
+        """
+        pass
 
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """

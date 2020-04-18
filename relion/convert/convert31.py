@@ -258,6 +258,10 @@ class Writer(WriterBase):
 
         self._counter = 0  # Mark first conversion as special one
         self._partToRow(firstPart, partRow)
+
+        if self._postprocessImageRow:
+            self._postprocessImageRow(firstPart, partRow)
+
         opticsTable = self._createTableFromDict(list(self._optics.values())[0])
         partsTable = self._createTableFromDict(partRow)
         partsTable.addRow(**partRow)
@@ -271,6 +275,8 @@ class Writer(WriterBase):
             # Write all rows
             for part in partsSet:
                 self._partToRow(part, partRow)
+                if self._postprocessImageRow:
+                    self._postprocessImageRow(part, partRow)
                 partsTable.writeStarLine(f, partRow.values())
 
             # Write Optics at the end
@@ -296,6 +302,21 @@ class Reader(ReaderBase):
         """
         ReaderBase.__init__(self, **kwargs)
         self._first = False
+
+    def readSetOfParticles(self, starFile, partsSet, **kwargs):
+        """ Convert a star file into a set of particles.
+
+        Params:
+            starFile: the filename of the star file
+            partsSet: output particles set
+
+        Keyword Arguments:
+            blockName: The name of the data block (default particles)
+            alignType: alignment type
+            removeDisabled: Remove disabled items
+
+        """
+        pass
 
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
