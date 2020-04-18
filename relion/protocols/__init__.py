@@ -32,7 +32,6 @@ from .protocol_refine3d import ProtRelionRefine3D
 from .protocol_reconstruct import ProtRelionReconstruct
 from .protocol_postprocess import ProtRelionPostprocess
 from .protocol_sort import ProtRelionSortParticles
-from .protocol_subtract import ProtRelionSubtract
 from .protocol_expand_symmetry import ProtRelionExpandSymmetry
 from .protocol_initialmodel import ProtRelionInitialModel
 from .protocol_localres import ProtRelionLocalRes
@@ -51,9 +50,11 @@ from .protocol_symmetrize_volume import ProtRelionSymmetrizeVolume
 if relion.Plugin.IS_30():
     from ._legacy.protocol30_ctf_refinement import ProtRelionCtfRefinement
     from ._legacy.protocol30_preprocess import ProtRelionPreprocessParticles
+    from ._legacy.protocol30_subtract import ProtRelionSubtract
 else:
     from .protocol_ctf_refinement import ProtRelionCtfRefinement
     from .protocol_preprocess import ProtRelionPreprocessParticles
+    from .protocol_subtract import ProtRelionSubtract
 
     # New protocol from Relion v3.1:
 # FIXME: this has to be imported for tests / wizards to work
