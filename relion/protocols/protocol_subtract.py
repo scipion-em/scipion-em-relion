@@ -28,6 +28,7 @@ import pwem.emlib.metadata as md
 from pwem import ALIGN_PROJ
 from pyworkflow.protocol.params import PointerParam, BooleanParam, IntParam
 from pwem.protocols import ProtOperateParticles
+from pyworkflow.object import String
 
 import relion.convert as convert
 
@@ -162,7 +163,7 @@ class ProtRelionSubtract(ProtOperateParticles):
         self.runJob(prog, params)
 
     def createOutputStep(self):
-        imgSet = self._getInputParticles().get()
+        imgSet = self._getInputParticles()
         outImgSet = self._createSetOfParticles()
         outImgsFn = self._getFileName('output_star')
         outImgSet.copyInfo(imgSet)
@@ -170,9 +171,9 @@ class ProtRelionSubtract(ProtOperateParticles):
 
         self.reader = convert.Reader(alignType=ALIGN_PROJ)
         mdIter = md.iterRows('particles@' + outImgsFn)
-        imgSet.copyItems(imgSet, doClone=False,
-                         updateItemCallback=self._updateItem,
-                         itemDataIterator=mdIter)
+        outImgSet.copyItems(imgSet, doClone=False,
+                            updateItemCallback=self._updateItem,
+                            itemDataIterator=mdIter)
 
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(imgSet, outImgSet)
@@ -201,12 +202,17 @@ class ProtRelionSubtract(ProtOperateParticles):
     # -------------------------- UTILS functions ------------------------------
     def _updateItem(self, particle, row):
         self.reader.setParticleTransform(particle, row)
+        # FIXME: RLN_IMAGE_ORI_NAME doesnt exist in xmippLib,
+        # also check if other attrs need saving
+        #convert.setRelionAttributes(particle, row,
+        #                            md.RLN_IMAGE_ORI_NAME)
+        particle._rlnImageOriginalName = String(row.getValue('rlnImageOriginalName'))
         convert.setRelionAttributes(particle, row,
-                                    md.RLN_IMAGE_ORI_NAME)
+                                    md.RLN_PARTICLE_RANDOM_SUBSET)
 
         newFn = row.getValue(md.RLN_IMAGE_NAME)
         newLoc = convert.relionToLocation(newFn)
-        row.setLocation(newLoc)
+        particle.setLocation(newLoc)
 
     def _getInputParticles(self):
         inputProt = self.inputProtocol.get()
