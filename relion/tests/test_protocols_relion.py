@@ -1007,11 +1007,11 @@ class TestRelionExtractParticles(TestRelionBase):
                                first.getSamplingRate())
 
     def testExtractSameAsPicking(self):
-        print(magentaStr("\n==> Testing relion - extract particles (same mics as picking):"))
+        print(magentaStr("\n==> Testing relion - extract particles (no ctf):"))
         protExtract = self.newProtocol(ProtRelionExtractParticles,
                                        boxSize=110,
                                        doInvert=False)
-        protExtract.setObjLabel("extract-same as picking")
+        protExtract.setObjLabel("extract-noctf")
         protExtract.inputCoordinates.set(self.protPP.outputCoordinates)
         self.launchProtocol(protExtract)
 
@@ -1046,7 +1046,7 @@ class TestRelionExtractParticles(TestRelionBase):
                                        boxSize=550,
                                        downsampleType=OTHER,
                                        doInvert=False)
-        protExtract.setObjLabel("extract-original")
+        protExtract.setObjLabel("extract-other")
         protExtract.inputCoordinates.set(self.protPP.outputCoordinates)
         protExtract.inputMicrographs.set(self.protImport.outputMicrographs)
         self.launchProtocol(protExtract)
@@ -1095,7 +1095,7 @@ class TestRelionExtractParticles(TestRelionBase):
 
         protExtract.inputCoordinates.set(self.protPP.outputCoordinates)
         protExtract.inputMicrographs.set(self.protImport.outputMicrographs)
-        protExtract.setObjLabel("extract-other")
+        protExtract.setObjLabel("extract-other+downsample")
         self.launchProtocol(protExtract)
 
         inputCoords = protExtract.inputCoordinates.get()
