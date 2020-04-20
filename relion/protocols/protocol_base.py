@@ -620,22 +620,10 @@ class ProtRelionBase(EMProtocol):
     def addSymmetry(self, container):
         container.addParam('symmetryGroup', StringParam, default='c1',
                            label="Symmetry",
-                           help='If the molecule is asymmetric, set Symmetry '
-                                'group to C1. Note their are multiple '
-                                'possibilities for icosahedral symmetry:\n'
-                                '* I1: No-Crowther 222 (standard in Heymann,'
-                                'Chagoyen  & Belnap, JSB, 151 (2005) 196-207)\n'
-                                '* I2: Crowther 222                          \n'
-                                '* I3: 52-setting (as used in SPIDER?)       \n'
-                                '* I4: A different 52 setting                \n'
-                                'The command *relion_refine --sym D2 '
-                                '--print_symmetry_ops* prints a list of all '
-                                'symmetry operators for symmetry group D2. '
-                                'RELION uses XMIPP\'s libraries for symmetry '
-                                'operations.  Therefore, look at the XMIPP '
-                                'Wiki for more details:\n'
-                                ' http://xmipp.cnb.csic.es/twiki/bin/view/'
-                                'Xmipp/WebHome?topic=Symmetry')
+                           help='See [[Relion Symmetry][http://www2.mrc-lmb.cam.ac.uk/'
+                           'relion/index.php/Conventions_%26_File_formats#Symmetry]] '
+                           'page for a description of the symmetry format '
+                           'accepted by Relion')
 
     def _defineComputeParams(self, form):
         form.addParam('useParallelDisk', BooleanParam, default=True,

@@ -818,6 +818,7 @@ class TestRelionExpandSymmetry(TestRelionBase):
 
     def importParticles(self, partStar):
         """ Import particles from Relion star file. """
+        print(magentaStr("\n==> Importing data - particles:"))
         protPart = self.newProtocol(ProtImportParticles,
                                     importFrom=ProtImportParticles.IMPORT_FROM_RELION,
                                     starFile=partStar,

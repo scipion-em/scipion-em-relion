@@ -37,9 +37,6 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
 
     Given an input set of particles with angular assignment,
     expand the set by applying a pseudo-symmetry.
-
-    Be aware that input symmetry values follow Xmipp conventions as described in:
-    http://xmipp.cnb.csic.es/twiki/bin/view/Xmipp/Symmetry
     """
     _label = 'expand symmetry'
 
@@ -47,8 +44,10 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
     def _defineProcessParams(self, form):
         form.addParam('symmetryGroup', StringParam, default="c1",
                       label='Symmetry group',
-                      help="See http://xmipp.cnb.csic.es/twiki/bin/view/Xmipp/Symmetry"
-                           " for a description of the symmetry groups format in Xmipp.\n")
+                      help='See [[Relion Symmetry][http://www2.mrc-lmb.cam.ac.uk/'
+                           'relion/index.php/Conventions_%26_File_formats#Symmetry]] '
+                           'page for a description of the symmetry format '
+                           'accepted by Relion')
         form.addParallelSection(threads=0, mpi=0)
 
     # -------------------------- INSERT steps functions -----------------------
