@@ -35,6 +35,7 @@ from .protocol_sort import ProtRelionSortParticles
 from .protocol_expand_symmetry import ProtRelionExpandSymmetry
 from .protocol_initialmodel import ProtRelionInitialModel
 from .protocol_localres import ProtRelionLocalRes
+from .protocol_export_coords import ProtRelionExportCoordinates
 from .protocol_extract_particles import ProtRelionExtractParticles
 from .protocol_export_ctf import ProtRelionExportCtf
 from .protocol_center_averages import ProtRelionCenterAverages
