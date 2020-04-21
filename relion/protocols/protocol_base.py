@@ -829,6 +829,15 @@ class ProtRelionBase(EMProtocol):
                 errors.append("Relion only works with even values for the "
                               "image dimensions!")
 
+            # if doing scaling, the input is not on abs greyscale
+            volX = self._getReferenceVolumes()[0].getXDim()
+            ptclX = self._getInputParticles().getXDim()
+            if (ptclX != volX) and self.isMapAbsoluteGreyScale:
+                errors.append("Input particles and references have "
+                              "different dimensions, so the reference is "
+                              "not on the absolute greyscale. Select *No* for "
+                              "that option to continue.")
+
             errors += self._validateNormal()
 
         if self.IS_CLASSIFY:
