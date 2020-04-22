@@ -43,6 +43,7 @@ from pwem.viewers import (EmPlotter, ObjectView, ChimeraView,
                           EmProtocolViewer)
 
 import relion.convert as convert
+from relion import Plugin
 from ..protocols import (
     ProtRelionClassify2D, ProtRelionClassify3D, ProtRelionRefine3D,
     ProtRelionPostprocess, ProtRelionSortParticles,
@@ -880,6 +881,8 @@ Examples:
     def _getMdOut(self, it, prefix, ref3d):
         randomSet = self._getRandomSet(prefix)
         dataStar = self._getDataStar(prefix, it)
+        table = 'particles@' if Plugin.IS_GT30() else ''
+        dataStar = table + dataStar
         
         if 0 < randomSet < 3:
             mdAll = md.MetaData(dataStar)
@@ -888,7 +891,6 @@ Examples:
                                 md.MDValueEQ(md.RLN_PARTICLE_RANDOM_SUBSET, randomSet))
         else:
             mdTmp = md.MetaData(dataStar)
-        
         mdOut = md.MetaData()
         mdOut.importObjects(mdTmp,
                             md.MDValueEQ(md.RLN_PARTICLE_CLASS, ref3d))
