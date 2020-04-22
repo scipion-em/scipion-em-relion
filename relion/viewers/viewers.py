@@ -683,8 +683,6 @@ Examples:
     def _showFSC(self, paramName=None):
         print("_showFSC_self._iterations", self._iterations)
         threshold = self.resolutionThresholdFSC.get()
-        prefixes = self._getPrefixes()        
-
         md.activateMathExtensions()
         
         fscViewer = FscViewer(project=self.protocol.getProject(),
@@ -693,16 +691,13 @@ Examples:
                               figure=self._getFigure(),
                               addButton=True)
         fscSet = self.protocol._createSetOfFSCs()
-        for prefix in prefixes:
-            for ref3d in self._refsList:  # ROB: I believe len(_refsList)==1
-                blockName = 'model_class_%d@' % ref3d
-                for it in self._iterations:
-                    model_star = self._getModelStar(prefix, it)
-
-                    if exists(model_star):
-                        fsc = self._plotFSC(None, blockName + model_star,
-                                            'iter %d' % it)
-                        fscSet.append(fsc)
+        blockName = 'model_class_1@'
+        for it in self._iterations:
+            model_star = self._getModelStar('half1_', it)
+            if exists(model_star):
+                fsc = self._plotFSC(None, blockName + model_star,
+                                    'iter %d' % it)
+                fscSet.append(fsc)
         fscViewer.visualize(fscSet)
         return [fscViewer]
     
