@@ -1384,3 +1384,25 @@ class TestRelionExportCtf(TestRelionBase):
             outFn = os.path.exists(protExport._getStarFile()) or None
             self.assertIsNotNone(outFn,
                                  "There was a problem when exporting ctfs.")
+
+
+class TestRelionRemovePrefViews(TestRelionBase):
+    @classmethod
+    def setUpClass(cls):
+        setupTestProject(cls)
+        cls.ds = DataSet.getDataSet('relion_tutorial')
+        cls.particlesFn = cls.ds.getFile('import/refine3d/extra/relion_data.star')
+        cls.starImport = cls.runImportParticlesStar(cls.particlesFn, 10000, 7.08)
+
+    def test_removePrefViews(self):
+        print(magentaStr("\n==> Testing relion - remove preferential views"))
+        inputParts = self.starImport.outputParticles
+        prot = self.newProtocol(ProtRelionRemovePrefViews,
+                                inputParticles=inputParts,
+                                numToRemove=50)
+        self.launchProtocol(prot)
+
+        self.assertIsNotNone(prot.outputParticles,
+                             "There was a problem with remove preferential views protocol.")
+        outSize = prot.outputParticles.getSize()
+        self.assertEqual(outSize, 4080, "Output size is not 4080!")

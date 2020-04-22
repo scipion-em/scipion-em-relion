@@ -43,6 +43,7 @@ from .protocol_export_particles import ProtRelionExportParticles
 from .protocol_autopick_ref import ProtRelion2Autopick
 from .protocol_autopick_log import ProtRelionAutopickLoG
 from .protocol_bayesian_polishing import ProtRelionBayesianPolishing
+from .protocol_remove_views import ProtRelionRemovePrefViews
 
 from .protocol_motioncor import ProtRelionMotioncor
 from .protocol_multibody import ProtRelionMultiBody
