@@ -42,6 +42,7 @@ from pwem.objects import SetOfClasses3D
 from pwem.protocols import EMProtocol
 
 import relion.convert
+from relion import Plugin
 from ..constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO
 
 
@@ -59,12 +60,12 @@ class ProtRelionBase(EMProtocol):
     IS_3D_INIT = False
     OUTPUT_TYPE = SetOfClasses3D
     FILE_KEYS = ['data', 'optimiser', 'sampling']
-    CLASS_LABEL = md.RLN_PARTICLE_CLASS
-    CHANGE_LABELS = [md.RLN_OPTIMISER_CHANGES_OPTIMAL_ORIENTS,
-                     md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS,
-                     md.RLN_OPTIMISER_ACCURACY_ROT,
-                     #md.RLN_OPTIMISER_ACCURACY_TRANS_ANGSTROM,  # FIXME
-                     md.RLN_OPTIMISER_CHANGES_OPTIMAL_CLASSES]
+    CLASS_LABEL = 'rlnClassNumber'
+    CHANGE_LABELS = ['rlnChangesOptimalOrientations',
+                     'rlnChangesOptimalOffsets',
+                     'rlnOverallAccuracyRotations',
+                     'rlnOverallAccuracyTranslationsAngst' if Plugin.IS_GT30() else 'rlnOverallAccuracyTranslations',
+                     'rlnChangesOptimalClasses']
     PREFIXES = ['']
 
     def __init__(self, **args):
@@ -98,8 +99,8 @@ class ProtRelionBase(EMProtocol):
             'shiny': self._getExtraPath('shiny/shiny.star'),
             'optimiser': self.extraIter + 'optimiser.star',
             'angularDist_xmipp': self.extraIter + 'angularDist_xmipp.xmd',
-            'all_avgPmax_xmipp': self._getTmpPath('iterations_avgPmax_xmipp.xmd'),
-            'all_changes_xmipp': self._getTmpPath('iterations_changes_xmipp.xmd'),
+            'all_avgPmax': self._getTmpPath('iterations_avgPmax.star'),
+            'all_changes': self._getTmpPath('iterations_changes.star'),
             'selected_volumes': self._getTmpPath('selected_volumes_xmipp.xmd'),
             'volume_shiny': self._getExtraPath('shiny/shiny_post.mrc:mrc'),
             'volume_frame': self._getExtraPath('shiny/frame%(frame)03d_%(halve)sclass%(ref3d)03d_unfil.mrc:mrc'),

@@ -162,7 +162,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
     
     # --------------------------- UTILS functions -----------------------------
     def _updateParticle(self, item, row):
-        item.setClassId(row.getValue(md.RLN_PARTICLE_CLASS))
+        item.setClassId(row.getValue('rlnClassNumber'))
         self.reader.setParticleTransform(item, row)
 
         item._rlnNormCorrection = Float(row.getValue('rlnNormCorrection'))

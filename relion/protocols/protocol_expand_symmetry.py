@@ -25,6 +25,7 @@
 # **************************************************************************
 
 from pyworkflow.protocol.params import StringParam
+from pyworkflow.object import String
 from pwem.constants import ALIGN_PROJ
 import pwem.emlib.metadata as md
 from pwem.protocols import ProtProcessParticles
@@ -115,6 +116,5 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
         return methods
 
     # -------------------------- Utils functions ------------------------------
-    def _postprocessImageRow(self, img, imgRow):
-        convert.setRelionAttributes(
-            img, imgRow, md.RLN_MLMODEL_GROUP_NAME)
+    def _postprocessImageRow(self, item, row):
+        item._rlnGroupName = String(row.getValue('rlnGroupName'))

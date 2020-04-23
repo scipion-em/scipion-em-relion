@@ -32,6 +32,7 @@ from pwem.objects import Volume, FSC
 from pwem.protocols import ProtRefine3D
 
 import relion
+from relion import Plugin
 import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
@@ -47,10 +48,10 @@ leads to objective and high-quality results.
     """    
     _label = '3D auto-refine'
     IS_CLASSIFY = False
-    CHANGE_LABELS = [md.RLN_OPTIMISER_CHANGES_OPTIMAL_ORIENTS, 
-                     md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS,
-                     md.RLN_OPTIMISER_ACCURACY_ROT,
-                     md.RLN_OPTIMISER_ACCURACY_TRANS]
+    CHANGE_LABELS = ['rlnChangesOptimalOrientations',
+                     'rlnChangesOptimalOffsets',
+                     'rlnOverallAccuracyRotations',
+                     'rlnOverallAccuracyTranslationsAngst' if Plugin.IS_GT30() else 'rlnOverallAccuracyTranslations']
 
     PREFIXES = ['half1_', 'half2_']
     
@@ -188,8 +189,7 @@ leads to objective and high-quality results.
 
     def _createItemMatrix(self, particle, row):
         self.reader.setParticleTransform(particle, row)
-        convert.setRelionAttributes(particle, row,
-                                    md.RLN_PARTICLE_RANDOM_SUBSET)
+        particle._rlnRandomSubset = String(row.getValue('rlnRandomSubset'))
 
     def _updateParticle(self, particle, row):
         particle._coordinate._micName = String(row.getValue('rlnMicrographName'))

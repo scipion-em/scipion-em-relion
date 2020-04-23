@@ -51,8 +51,8 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
     IS_CLASSIFY = False
     IS_3D_INIT = True
     IS_2D = False
-    CHANGE_LABELS = [md.RLN_OPTIMISER_CHANGES_OPTIMAL_ORIENTS,
-                     md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS]
+    CHANGE_LABELS = ['rlnChangesOptimalOrientations',
+                     'rlnChangesOptimalOffsets']
 
     def __init__(self, **args):
         ProtRelionBase.__init__(self, **args)

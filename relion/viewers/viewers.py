@@ -27,7 +27,7 @@
 import os
 from io import open
 from os.path import exists
-from math import radians
+from math import radians, log
 
 import pwem
 import pwem.viewers.showj as showj
@@ -43,6 +43,7 @@ from pwem.viewers import (EmPlotter, ObjectView, ChimeraView,
                           EmProtocolViewer)
 
 import relion.convert as convert
+from relion.convert.metadata import Table
 from relion import Plugin
 from ..protocols import (
     ProtRelionClassify2D, ProtRelionClassify3D, ProtRelionRefine3D,
@@ -52,34 +53,33 @@ from ..constants import *
 
 
 class RelionPlotter(EmPlotter):
-    """ Class to create several plots with Xmipp utilities"""
+    """ Class to create several plots. """
     def __init__(self, x=1, y=1, mainTitle="", **kwargs):
         EmPlotter.__init__(self, x, y, mainTitle, **kwargs)
     
-    def plotMdAngularDistribution(self, title, angularMd, color='blue'):
+    def plotMdAngularDistribution(self, title, angularMd, table=None, color='blue'):
         """Create an special type of subplot, representing the angular
         distribution of weight projections. A metadata should be provided containing
-        labels: RLN_ORIENT_ROT, RLN_ORIENT_TILT, MDL_WEIGHT """
-        rot = [radians(angularMd.getValue(md.RLN_ORIENT_ROT, objId)) for objId in angularMd]
-        tilt = [angularMd.getValue(md.RLN_ORIENT_TILT, objId) for objId in angularMd]
-        weight = [angularMd.getValue(md.MDL_WEIGHT, objId) for objId in angularMd]
-        
-        self.plotAngularDistribution(title, rot, tilt, weight)
+        labels: RLN_ORIENT_ROT, RLN_ORIENT_TILT """
 
-    def plotMd(self, mdObj, mdLabelX, mdLabelY, color='g', **args):
+        table = Table(fileName=angularMd, tableName=table)
+        rot = radians(table.getColumnValues('rlnAngleRot'))
+        tilt = radians(table.getColumnValues('rlnAngleTilt'))
+        self.plotAngularDistribution(title, rot, tilt)
+
+    def plotMd(self, mdTable, mdLabelX, mdLabelY, color='g', **args):
         """ plot metadata columns mdLabelX and mdLabelY
             if nbins is in args then and histogram over y data is made
         """
         if mdLabelX:
             xx = []
         else:
-            xx = range(1, mdObj.size() + 1)
+            xx = range(1, mdTable.size() + 1)
         yy = []
-        for objId in mdObj:
-            if mdLabelX:
-                xx.append(mdObj.getValue(mdLabelX, objId))
-            yy.append(mdObj.getValue(mdLabelY, objId))
-        
+        if mdLabelX:
+            xx += mdTable.getColumnValues(mdLabelX)
+        yy += mdTable.getColumnValues(mdLabelY)
+
         nbins = args.pop('nbins', None)
         if nbins is None:
             self.plotData(xx, yy, color, **args)
@@ -90,8 +90,8 @@ class RelionPlotter(EmPlotter):
         """ plot metadataFile columns mdLabelX and mdLabelY
             if nbins is in args then and histogram over y data is made
         """
-        mdObj = md.MetaData(mdFilename)
-        self.plotMd(mdObj, mdLabelX, mdLabelY, color='g', **args)
+        table = Table(fileName=mdFilename)
+        self.plotMd(table, mdLabelX, mdLabelY, color='g', **args)
 
 
 def protected_show(showFunc):
@@ -369,33 +369,29 @@ Examples:
 # ShowPMax
 # =============================================================================
     def _showPMax(self, paramName=None):
-        labels = [md.RLN_MLMODEL_AVE_PMAX, md.RLN_PARTICLE_PMAX]
-        mdIters = md.MetaData()
+        labels = ['rlnIterationNumber', 'rlnAveragePmax',
+                  'rlnLogLikelihood']
+        tablePMax = Table(columns=labels)
 
-        for it in self._getAllIters():  # range (firstIter,self._visualizeLastIteration+1):
+        for it in self._getAllIters():
             # always list all iterations
-            objId = mdIters.addObject()
-            mdIters.setValue(md.MDL_ITER, it, objId)
-            for i, prefix in enumerate(self.protocol.PREFIXES):
-                fn = 'model_general@' + self.protocol._getFileName(prefix + 'model',
-                                                                   iter=it)
-                mdModel = md.RowMetaData(fn)
-                pmax = mdModel.getValue(md.RLN_MLMODEL_AVE_PMAX)
-                mdIters.setValue(labels[i], pmax, objId)
-        fn = self.protocol._getFileName('all_avgPmax_xmipp')
-        mdIters.write(fn)
-            
-        colors = ['g', 'b']
+            prefix = self.protocol.PREFIXES[0]
+            fn = self.protocol._getFileName(prefix + 'model', iter=it)
+            table = Table(fileName=fn, tableName='model_general')
+            row = table[0]
+            tablePMax.addRow(it, row.rlnAveragePmax,
+                             row.rlnLogLikelihood)
+
+        fn = self.protocol._getFileName('all_avgPmax')
+        with open(fn, 'w') as f:
+            tablePMax.writeStar(f)
 
         xplotter = RelionPlotter()
         xplotter.createSubPlot("Avg PMax per Iterations", "Iterations",
                                "Avg PMax")
-        
-        for label, color in zip(labels, colors):
-            xplotter.plotMd(mdIters, md.MDL_ITER, label, color)
-        
-        if len(self.protocol.PREFIXES) > 1:
-            xplotter.showLegend(self.protocol.PREFIXES)
+        xplotter.plotMd(tablePMax, 'rlnIterationNumber',
+                        'rlnAveragePmax', 'g')
+        xplotter.showLegend(['rlnAveragePmax'])
 
         return [self.createDataView(fn), xplotter]
 
@@ -403,20 +399,23 @@ Examples:
 # Get classes info per iteration
 # =============================================================================
     def _plotClassDistribution(self, paramName=None):
-        labels = ["rlnClassDistribution", "rlnAccuracyRotations",
-                  "rlnAccuracyTranslations"]
-        iterations = range(self.firstIter, self.lastIter + 1)
+        labels = ["rlnClassDistribution", "rlnAccuracyRotations"]
+        if Plugin.IS_GT30():
+            labels.append("rlnAccuracyTranslationsAngst")
+        else:
+            labels.append("rlnAccuracyTranslations")
 
+        iterations = range(self.firstIter, self.lastIter + 1)
         classInfo = {}
 
         for it in iterations:
             modelStar = self.protocol._getFileName('model', iter=it)
-
-            for row in md.iterRows('%s@%s' % ('model_classes', modelStar)):
-                i, fn = convert.relionToLocation(row.getValue('rlnReferenceImage'))
+            table = Table(fileName=modelStar, tableName='model_classes')
+            for row in table:
+                i, fn = convert.relionToLocation(row.rlnReferenceImage)
                 if i == pwem.constants.NO_INDEX:  # the case for 3D classes
                     # NOTE: Since there is not an proper ID value in
-                    #  the clases metadata, we are assuming that class X
+                    # the classes metadata, we are assuming that class X
                     # has a filename *_classXXX.mrc (as it is in Relion)
                     # and we take the ID from there
                     index = int(fn[-7:-4])
@@ -429,7 +428,7 @@ Examples:
                         classInfo[index][l] = []
 
                 for l in labels:
-                    classInfo[index][l].append(row.getValue(l))
+                    classInfo[index][l].append(float(getattr(row, l)))
 
         xplotter = RelionPlotter()
         xplotter.createSubPlot("Classes distribution over iterations",
@@ -481,23 +480,26 @@ Examples:
 # ShowChanges    
 # =============================================================================
     def _showChanges(self, paramName=None):
-        mdIters = md.MetaData()
+        labels = ['rlnIterationNumber'] + self.protocol.CHANGE_LABELS
+        tableChanges = Table(columns=labels)
+
         print("Computing average changes in offset, angles, and class membership")
         for it in self._getAllIters():
             fn = self.protocol._getFileName('optimiser', iter=it)
             if not os.path.exists(fn):
                 continue
             print("Computing data for iteration; %03d" % it)
-            objId = mdIters.addObject()
-            mdIters.setValue(md.MDL_ITER, it, objId)
-            # add by ref3D
             fn = self.protocol._getFileName('optimiser', iter=it)
-            mdOptimiser = md.RowMetaData(fn)
-            for label in self.protocol.CHANGE_LABELS:
-                mdIters.setValue(label, mdOptimiser.getValue(label), objId)
-        fn = self.protocol._getFileName('all_changes_xmipp')
-        mdIters.write(fn)
-        
+            table = Table(fileName=fn, tableName='optimiser_general')
+            row = table[0]
+            cols = [getattr(row, value) for value in self.protocol.CHANGE_LABELS]
+            tableChanges.addRow(it, *cols)
+
+        fn = self.protocol._getFileName('all_changes')
+
+        with open(fn, 'w') as f:
+            tableChanges.writeStar(f)
+
         return [self.createDataView(fn)]
     
 # =============================================================================
@@ -656,24 +658,30 @@ Examples:
                 plot_title = 'Resolution SSNR %s, for Class %s' % (prefix, ref3d)
                 a = xplotter.createSubPlot(plot_title,
                                            'Angstroms^-1', 'log(SSNR)', yformat=False)
-                blockName = 'model_class_%d@' % ref3d
+                blockName = 'model_class_%d' % ref3d
                 for it in self._iterations:
                     fn = self._getModelStar(prefix, it)
                     if exists(fn):
-                        self._plotSSNR(a, blockName+fn, 'iter %d' % it)
+                        self._plotSSNR(a, fn, blockName, 'iter %d' % it)
                 xplotter.legend()
                 a.grid(True)
         
         return [xplotter]
     
-    def _plotSSNR(self, a, fn, label):
-        mdOut = md.MetaData(fn)
-        mdSSNR = md.MetaData()
-        # only cross by 1 is important
-        mdSSNR.importObjects(mdOut, md.MDValueGT(md.RLN_MLMODEL_DATA_VS_PRIOR_REF, 0.9))
-        mdSSNR.operate("rlnSsnrMap=log(rlnSsnrMap)")
-        resolution_inv = [mdSSNR.getValue(md.RLN_RESOLUTION, id) for id in mdSSNR]
-        frc = [mdSSNR.getValue(md.RLN_MLMODEL_DATA_VS_PRIOR_REF, id) for id in mdSSNR]
+    def _plotSSNR(self, a, fn, table, label):
+        table = Table(fileName=fn, tableName=table)
+        ssnr = map(float, table.getColumnValues('rlnSsnrMap'))
+        resolution_inv = map(float, table.getColumnValues('rlnResolution'))
+        ssnrDict = {k: v for (k, v) in zip(ssnr, resolution_inv)}
+        ssnrNewDict = {}
+
+        for ssnr in ssnrDict:
+            # only cross by 1 is important
+            if ssnr > 0.9:
+                ssnrNewDict[log(ssnr)] = ssnrDict[ssnr]
+
+        resolution_inv = list(ssnrNewDict.values())
+        frc = list(ssnrNewDict.keys())
         a.plot(resolution_inv, frc, label=label)
         a.xaxis.set_major_formatter(self._plotFormatter)               
  
@@ -681,7 +689,7 @@ Examples:
 # plotFSC            
 # =============================================================================
     def _showFSC(self, paramName=None):
-        print("_showFSC_self._iterations", self._iterations)
+        print("Showing FSC for iterations: ", self._iterations)
         threshold = self.resolutionThresholdFSC.get()
         md.activateMathExtensions()
         
@@ -691,22 +699,21 @@ Examples:
                               figure=self._getFigure(),
                               addButton=True)
         fscSet = self.protocol._createSetOfFSCs()
-        blockName = 'model_class_1@'
         for it in self._iterations:
             model_star = self._getModelStar('half1_', it)
             if exists(model_star):
-                fsc = self._plotFSC(None, blockName + model_star,
-                                    'iter %d' % it)
+                fsc = self._plotFSC(None, model_star, 'iter %d' % it)
                 fscSet.append(fsc)
         fscViewer.visualize(fscSet)
         return [fscViewer]
     
-    def _plotFSC(self, a, model_star, label):
-        mdStar = md.MetaData(model_star)
-        resolution_inv = [mdStar.getValue(md.RLN_RESOLUTION, id) for id in mdStar]
-        frc = [mdStar.getValue(md.RLN_MLMODEL_FSC_HALVES_REF, id) for id in mdStar]
-
-        fsc = pwem.objects.FSC(objLabel=label)
+    def _plotFSC(self, a, model_star, label, legend=None):
+        if legend is None:
+            legend = label
+        table = Table(fileName=model_star, tableName='model_class_1')
+        resolution_inv = table.getColumnValues('rlnResolution')
+        frc = table.getColumnValues('rlnGoldStandardFsc')
+        fsc = pwem.objects.FSC(objLabel=legend)
         fsc.setData(resolution_inv, frc)
 
         return fsc
@@ -842,10 +849,9 @@ Examples:
         return prefixes
     
     def _iterAngles(self, mdOut):
-        
-        for objId in mdOut:
-            rot = mdOut.getValue(md.RLN_ORIENT_ROT, objId)
-            tilt = mdOut.getValue(md.RLN_ORIENT_TILT, objId)
+        for row in mdOut:
+            rot = float(row.rlnAngleRot)
+            tilt = float(row.rlnAngleTilt)
             yield rot, tilt
     
     def _getVolumePrefixes(self):
@@ -876,19 +882,18 @@ Examples:
     def _getMdOut(self, it, prefix, ref3d):
         randomSet = self._getRandomSet(prefix)
         dataStar = self._getDataStar(prefix, it)
-        table = 'particles@' if Plugin.IS_GT30() else ''
-        dataStar = table + dataStar
-        
-        if 0 < randomSet < 3:
-            mdAll = md.MetaData(dataStar)
-            mdTmp = md.MetaData()
-            mdTmp.importObjects(mdAll,
-                                md.MDValueEQ(md.RLN_PARTICLE_RANDOM_SUBSET, randomSet))
-        else:
-            mdTmp = md.MetaData(dataStar)
-        mdOut = md.MetaData()
-        mdOut.importObjects(mdTmp,
-                            md.MDValueEQ(md.RLN_PARTICLE_CLASS, ref3d))
+        tableName = 'particles' if Plugin.IS_GT30() else None
+        mdOut = []
+
+        table = Table(fileName=dataStar, tableName=tableName)
+        for row in table:
+            if 0 < randomSet < 3:
+                if int(row.rlnRandomSubset) == randomSet and int(row.rlnClassNumber) == ref3d:
+                    mdOut.append(row)
+            else:
+                if int(row.rlnClassNumber) == ref3d:
+                    mdOut.append(row)
+
         return mdOut
     
     def _getDataStar(self, prefix, it):
@@ -1039,19 +1044,19 @@ class PostprocessViewer(ProtocolViewer):
         modelStar = self.protocol._getExtraPath('postprocess.star')
         for label in self._getFSCLabels():
             if exists(modelStar):
-                model = 'fsc@' + modelStar
                 legend = self._getLegend(label)
-                fsc = self._plotFSC(None, model, label, legend)
+                fsc = self._plotFSC(None, modelStar, label, legend)
                 fscSet.append(fsc)
         fscViewer.visualize(fscSet)
         return [fscViewer]
 
     # ROB this function is duplicated
-    def _plotFSC(self, a, model_star, label, legend):
-        mdStar = md.MetaData(model_star)
-        resolution_inv = [mdStar.getValue(md.RLN_RESOLUTION, id) for id in mdStar]
-        frc = [mdStar.getValue(label, id) for id in mdStar]
-
+    def _plotFSC(self, a, model_star, label, legend=None):
+        if legend is None:
+            legend = label
+        table = Table(fileName=model_star, tableName='fsc')
+        resolution_inv = table.getColumnValues('rlnResolution')
+        frc = table.getColumnValues('rlnGoldStandardFsc')
         fsc = pwem.objects.FSC(objLabel=legend)
         fsc.setData(resolution_inv, frc)
 
@@ -1072,8 +1077,7 @@ class PostprocessViewer(ProtocolViewer):
         modelStar = self.protocol._getExtraPath('postprocess.star')
         for label in self._getGuinerLabels():
             if exists(modelStar):
-                model = 'guinier@' + modelStar
-                self._plotGuinier(a, model, label)
+                self._plotGuinier(a, modelStar, label)
                 legends.append(self._getGuinerLegend(label))
             
         xplotter.showLegend(legends)
@@ -1082,12 +1086,14 @@ class PostprocessViewer(ProtocolViewer):
         return [xplotter]
     
     def _plotGuinier(self, a, model, label):
-        mdStar = md.MetaData(model)
-        resolSqInv = [mdStar.getValue(md.RLN_POSTPROCESS_GUINIER_RESOL_SQUARED, id) for id in mdStar]
-        logAmp = [mdStar.getValue(label, id) for id in mdStar]
+        table = Table(fileName=model, tableName='guinier')
+        resolSqInv = table.getColumnValues('rlnResolutionSquared')
+        logAmp = table.getColumnValues(label)
+
         self.maxfsc = max(logAmp)
         self.minInv = min(resolSqInv)
         self.maxInv = max(resolSqInv)
+
         a.plot(resolSqInv, logAmp)
         a.xaxis.set_major_formatter(self._plotFormatter)
     
@@ -1108,46 +1114,47 @@ class PostprocessViewer(ProtocolViewer):
     
     def _getFSCLabels(self):
         if self.resolutionPlotsFSC.get() == 0:
-            return [md.RLN_POSTPROCESS_FSC_TRUE]
+            return ['rlnFourierShellCorrelationCorrected']
         elif self.resolutionPlotsFSC.get() == 1:
-            return [md.RLN_POSTPROCESS_FSC_UNMASKED]
+            return ['rlnFourierShellCorrelationUnmaskedMaps']
         elif self.resolutionPlotsFSC.get() == 2:
-            return [md.RLN_POSTPROCESS_FSC_MASKED]
+            return ['rlnFourierShellCorrelationMaskedMaps']
         elif self.resolutionPlotsFSC.get() == 3:
-            return [md.RLN_POSTPROCESS_FSC_RANDOM_MASKED]
+            return ['rlnCorrectedFourierShellCorrelationPhaseRandomizedMaskedMaps']
         else:
-            return [md.RLN_POSTPROCESS_FSC_TRUE,
-                    md.RLN_POSTPROCESS_FSC_UNMASKED,
-                    md.RLN_POSTPROCESS_FSC_MASKED,
-                    md.RLN_POSTPROCESS_FSC_RANDOM_MASKED]
+            return ['rlnFourierShellCorrelationCorrected',
+                    'rlnFourierShellCorrelationUnmaskedMaps',
+                    'rlnFourierShellCorrelationMaskedMaps',
+                    'rlnCorrectedFourierShellCorrelationPhaseRandomizedMaskedMaps']
     
     def _getLegend(self, label):
-        if label == md.RLN_POSTPROCESS_FSC_TRUE:
+        if label == 'rlnFourierShellCorrelationCorrected':
             return 'Corrected'
-        elif label == md.RLN_POSTPROCESS_FSC_UNMASKED:
+        elif label == 'rlnFourierShellCorrelationUnmaskedMaps':
             return 'Unmasked Maps'
-        elif label == md.RLN_POSTPROCESS_FSC_MASKED:
+        elif label == 'rlnFourierShellCorrelationMaskedMaps':
             return 'Masked Maps'
         else:
             return 'Phase Randomized Masked Maps'
     
     def _getGuinerLabels(self):
-        return [md.RLN_POSTPROCESS_GUINIER_VALUE_IN,
-                md.RLN_POSTPROCESS_GUINIER_VALUE_WEIGHTED,
-                md.RLN_POSTPROCESS_GUINIER_VALUE_SHARPENED,
-                md.RLN_POSTPROCESS_GUINIER_VALUE_INTERCEPT]
+        return ['rlnLogAmplitudesOriginal',
+                'rlnLogAmplitudesWeighted',
+                'rlnLogAmplitudesSharpened',
+                'rlnLogAmplitudesIntercept']
     
     def _getGuinerLegend(self, label):
-        if label == md.RLN_POSTPROCESS_GUINIER_VALUE_IN:
+        if label == 'rlnLogAmplitudesOriginal':
             return 'log(Amplitudes) Original'
-        elif label == md.RLN_POSTPROCESS_GUINIER_VALUE_WEIGHTED:
+        elif label == 'rlnLogAmplitudesWeighted':
             return 'log(Amplitudes) Weighted'
-        elif label == md.RLN_POSTPROCESS_GUINIER_VALUE_SHARPENED:
+        elif label == 'rlnLogAmplitudesSharpened':
             return 'log(Amplitudes) Sharpened'
         else:
             return 'log(Amplitudes) Intercept'
 
 
+# TODO: deprecate this class
 class RelionSortViewer(Viewer):
     """ Visualization of Relion sorting results."""
 
