@@ -24,7 +24,7 @@
 # *
 # **************************************************************************
 
-from pyworkflow.object import String
+from pyworkflow.object import String, Integer
 
 import pwem
 import pwem.emlib.metadata as md
@@ -189,7 +189,7 @@ leads to objective and high-quality results.
 
     def _createItemMatrix(self, particle, row):
         self.reader.setParticleTransform(particle, row)
-        particle._rlnRandomSubset = String(row.getValue('rlnRandomSubset'))
+        particle._rlnRandomSubset = Integer(row.getValue('rlnRandomSubset'))
 
     def _updateParticle(self, particle, row):
         particle._coordinate._micName = String(row.getValue('rlnMicrographName'))

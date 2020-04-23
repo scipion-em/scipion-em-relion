@@ -57,12 +57,12 @@ class RelionPlotter(EmPlotter):
     def __init__(self, x=1, y=1, mainTitle="", **kwargs):
         EmPlotter.__init__(self, x, y, mainTitle, **kwargs)
     
-    def plotMdAngularDistribution(self, title, angularMd, table=None, color='blue'):
+    def plotMdAngularDistribution(self, title, angularMd, tableName=None, color='blue'):
         """Create an special type of subplot, representing the angular
         distribution of weight projections. A metadata should be provided containing
         labels: RLN_ORIENT_ROT, RLN_ORIENT_TILT """
 
-        table = Table(fileName=angularMd, tableName=table)
+        table = Table(fileName=angularMd, tableName=tableName)
         rot = radians(table.getColumnValues('rlnAngleRot'))
         tilt = radians(table.getColumnValues('rlnAngleTilt'))
         self.plotAngularDistribution(title, rot, tilt)
@@ -106,12 +106,7 @@ def protected_show(showFunc):
 
 
 class RelionViewer(EmProtocolViewer):
-    """ Visualization of Relion results.
-
-    (for protocols classify 2d/3d, 3d auto-refine and initial model)
-    The visualization tools follow the recommendations of Relion 2.1 tutorial:
-    http://www2.mrc-lmb.cam.ac.uk/groups/scheres/relion21_tutorial.pdf
-    """
+    """ Visualization of Relion results. """
     _targets = [ProtRelionClassify2D, ProtRelionClassify3D,
                 ProtRelionRefine3D, ProtRelionInitialModel]
     _environments = [DESKTOP_TKINTER, WEB_DJANGO]

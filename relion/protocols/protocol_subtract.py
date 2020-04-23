@@ -28,7 +28,7 @@ import pwem.emlib.metadata as md
 from pwem import ALIGN_PROJ
 from pyworkflow.protocol.params import PointerParam, BooleanParam, IntParam
 from pwem.protocols import ProtOperateParticles
-from pyworkflow.object import String
+from pyworkflow.object import String, Integer
 
 import relion.convert as convert
 
@@ -204,7 +204,7 @@ class ProtRelionSubtract(ProtOperateParticles):
         self.reader.setParticleTransform(particle, row)
         # FIXME: check if other attrs need saving
         particle._rlnImageOriginalName = String(row.getValue('rlnImageOriginalName'))
-        particle._rlnRandomSubset = String(row.getValue('rlnRandomSubset'))
+        particle._rlnRandomSubset = Integer(row.getValue('rlnRandomSubset'))
 
         newLoc = convert.relionToLocation(row.getValue('rlnImageName'))
         particle.setLocation(newLoc)
