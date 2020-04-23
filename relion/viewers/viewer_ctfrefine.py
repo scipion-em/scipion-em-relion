@@ -27,16 +27,13 @@
 # ******************************************************************************
 
 import sys
-import os
 import matplotlib as mpl
 import numpy as np
 
-from pyworkflow.protocol.params import LabelParam
-from pyworkflow.viewer import DESKTOP_TKINTER, WEB_DJANGO, ProtocolViewer
-from pwem.viewers.plotter import plt, EmPlotter
-from pwem.viewers import ObjectView, DataView
-import pwem.viewers.showj as showj
+from pwem.viewers.plotter import plt
+from pyworkflow.viewer import ProtocolViewer
 
+from .viewer_base import *
 from ..objects import CtfRefineGlobalInfo
 from ..protocols import ProtRelionCtfRefinement
 
@@ -61,7 +58,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
         self._env = os.environ.copy()
         showBeamTilt = self.protocol.doBeamtiltEstimation.get()
         form.addSection(label="Results")
-        form.addParam('displayDefocus', LabelParam,
+        form.addParam('displayDefocus', params.LabelParam,
                       label="Show Defocus and Stdev",
                       help="Display the defocus estimation.\n "
                            "Plot defocus difference (Angstroms) vs "
@@ -73,13 +70,13 @@ class ProtCtfRefineViewer(ProtocolViewer):
                            "micrographs)\n"
                            "Home/End keys (move +1000/-1000 micrographs)")
 
-        form.addParam('displayBeamTilt', LabelParam,
+        form.addParam('displayBeamTilt', params.LabelParam,
                       label="Show BeamTilt Images",
                       condition="{}".format(showBeamTilt),
                       help="Display two images: (1) phase differences from "
                            "which this estimate was derived and\n"
                            "(2) the model fitted through it.")
-        form.addParam('displayParticles', LabelParam,
+        form.addParam('displayParticles', params.LabelParam,
                       label="Display Particles",
                       help="See the particles with the new CTF "
                            "and beam tilt values")
