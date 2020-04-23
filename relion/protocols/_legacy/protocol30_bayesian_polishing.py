@@ -24,6 +24,7 @@
 # *
 # ******************************************************************************
 
+import os
 import json
 from io import open
 
@@ -34,7 +35,7 @@ import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ
 
 import relion.convert as convert
-from ..convert.metadata import Table
+from relion.convert.metadata import Table
 
 
 class ProtRelionBayesianPolishing(ProtParticles):
@@ -92,15 +93,6 @@ class ProtRelionBayesianPolishing(ProtParticles):
                       label='first')
         line.addParam('frameN', params.IntParam, default=0,
                       label='last')
-
-        form.addParam('extrSize', params.IntParam, default=-1,
-                      label="Extraction size (px)",
-                      help="Size of the extracted particles in the "
-                           "unbinned original movie(in pixels). "
-                           "This should be an even number.")
-        form.addParam('rescaledSize', params.IntParam, default=-1,
-                      label="Re-scaled size (px)",
-                      help="The re-scaled value needs to be an even number.")
 
         form.addSection(label='Train or Polish')
         form.addParam('operation', params.EnumParam, default=1,
@@ -182,6 +174,8 @@ class ProtRelionBayesianPolishing(ProtParticles):
         self.info("Converting set from '%s' into '%s'" %
                   (inputParts.getFileName(), imgStar))
 
+        tableMovies = Table(columns=['rlnMicrographName',
+                                     'rlnMicrographMetadata'])
         tableGeneral = Table(columns=['rlnImageSizeX',
                                       'rlnImageSizeY',
                                       'rlnImageSizeZ',
@@ -209,15 +203,6 @@ class ProtRelionBayesianPolishing(ProtParticles):
         hasLocal = firstMovie.hasAttribute('_rlnMotionModelCoeff')
         motionMode = 1 if hasLocal else 0
 
-        writer = convert.convert31.Writer()
-        extras = ['rlnAccumMotionTotal', 'rlnAccumMotionEarly',
-                  'rlnAccumMotionLate']
-        writer.writeSetOfMicrographs(inputMovies,
-                                     self._getPath('input_corrected_micrographs.star'),
-                                     extraLabels=extras,
-                                     postprocessImageRow=self._updateMic)
-
-
         tableGeneral.addRow(xdim, ydim, ndim, 'movieName',
                             binningFactor, moviesPixelSize,
                             acq.getDosePerFrame(), acq.getDoseInitial(),
@@ -226,9 +211,10 @@ class ProtRelionBayesianPolishing(ProtParticles):
 
         for movie in inputMovies:
             movieFn = movie.getFileName()
-            #movieBase = os.path.basename(movieFn)
+            movieBase = os.path.basename(movieFn)
             movieStar = self._getInputPath(pwutils.replaceBaseExt(movieFn,
                                                                   'star'))
+            tableMovies.addRow(movieBase, movieStar)
             with open(movieStar, 'w') as f:
                 # Update Movie name
                 tableGeneral[0] = row._replace(rlnMicrographMovieName=movieFn)
@@ -259,6 +245,9 @@ class ProtRelionBayesianPolishing(ProtParticles):
                         tableCoeffs.addRow(i, c)
                     tableCoeffs.writeStar(f, tableName='local_motion_model')
 
+        with open(self._getPath('input_corrected_micrographs.star'), 'w') as f:
+            tableMovies.writeStar(f)
+
         convert.writeSetOfParticles(inputParts, imgStar,
                                     inputPartsFolder,
                                     alignType=ALIGN_PROJ,
@@ -266,21 +255,14 @@ class ProtRelionBayesianPolishing(ProtParticles):
                                     fillRandomSubset=True)
 
     def trainOrPolishStep(self, operation):
-        postProt = self.inputPostprocess.get()
         args = "--i %s " % self._getPath('input_particles.star')
         args += "--o %s " % self._getExtraPath()
-        postStar = postProt._getExtraPath('postprocess.star')
+        postStar = self.inputPostprocess.get()._getExtraPath('postprocess.star')
         args += "--f %s " % postStar
         postprocessTuple = convert.getVolumesFromPostprocess(postStar)
         args += "--m1 %s --m2 %s --mask %s " % postprocessTuple
-        args += "--angpix_ref %0.3f " % postProt.outputVolume.getSamplingRate()
         args += "--corr_mic %s " % self._getPath('input_corrected_micrographs.star')
         args += "--first_frame %d --last_frame %d " % (self.frame0, self.frameN)
-
-        if self.extrSize.get() != -1:
-            args += "--window %d " % self.extrSize.get()
-        if self.rescaledSize.get() != -1:
-            args += "--scale %d " % self.rescaledSize.get()
 
         if self.operation == self.OP_TRAIN:
             args += "--min_p %d " % self.numberOfParticles
@@ -308,12 +290,16 @@ class ProtRelionBayesianPolishing(ProtParticles):
         outImgsFn = md.MetaData(self._getExtraPath('shiny.star'))
         rowIterator = md.SetMdIterator(outImgsFn, sortByLabel=md.RLN_IMAGE_ID,
                                        keyLabel=md.RLN_IMAGE_ID,
-                                       updateItemCallback=self._updatePtcl)
+                                       updateItemCallback=self._updateItem)
         outImgSet.copyItems(imgSet,
                             updateItemCallback=rowIterator.updateItem)
 
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(self.inputParticles, outImgSet)
+
+    def _updateItem(self, particle, row):
+        newLoc = convert.relionToLocation(row.getValue('rlnImageName'))
+        particle.setLocation(newLoc)
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
@@ -339,72 +325,9 @@ class ProtRelionBayesianPolishing(ProtParticles):
     def _validate(self):
         errors = []
 
-        win = self.extrSize.get()
-        scale = self.rescaledSize.get()
-        if win * scale <= 0:
-            errors.append("Please specify both the extraction box size and "
-                          "the downsampled size, or leave both the default (-1)")
-        if win != -1 and scale != -1:
-            if win % 2 != 0:
-                errors.append("ERROR: The extraction box size must be an "
-                              "even number")
-            if scale % 2 != 0:
-                errors.append("ERROR: The downsampled box size must be an "
-                              "even number")
-            if scale > win:
-                errors.append("ERROR: The downsampled box size cannot be "
-                              "larger than the extraction size")
-
         if self.operation == self.OP_TRAIN and self.numberOfMpi > 1:
                 errors.append("Parameter estimation is not supported in MPI mode.")
         return errors
 
-    # -------------------------- UTILS functions ------------------------------
     def _getInputPath(self, *paths):
         return self._getPath('input', *paths)
-
-    def _updatePtcl(self, particle, row):
-        newLoc = convert.relionToLocation(row.getValue('rlnImageName'))
-        particle.setLocation(newLoc)
-
-    def _updateMic(self, mic, row):
-        micFn = mic.getFileName()
-        movieStar = self._getInputPath(pwutils.replaceBaseExt(micFn, 'star'))
-        row['rlnMicrographMetadata'] = movieStar
-
-'''
-MotionCorr/job002/corrected_micrographs.star
-
-# version 30001
-
-data_optics
-
-loop_ 
-_rlnOpticsGroupName #1 
-_rlnOpticsGroup #2 
-_rlnMtfFileName #3 
-_rlnMicrographOriginalPixelSize #4 
-_rlnVoltage #5 
-_rlnSphericalAberration #6 
-_rlnAmplitudeContrast #7 
-_rlnMicrographPixelSize #8 
-opticsGroup1            1 mtf_k2_200kV.star     0.885000   200.000000     1.400000     0.100000     0.885000 
- 
-
-# version 30001
-
-data_micrographs
-
-loop_ 
-_rlnCtfPowerSpectrum #1 
-_rlnMicrographName #2 
-_rlnMicrographMetadata #3 
-_rlnOpticsGroup #4 
-_rlnAccumMotionTotal #5 
-_rlnAccumMotionEarly #6 
-_rlnAccumMotionLate #7 
-MotionCorr/job002/Movies/20170629_00021_frameImage_PS.mrc MotionCorr/job002/Movies/20170629_00021_frameImage.mrc MotionCorr/job002/Movies/2017062
-9_00021_frameImage.star            1    16.420495     2.506308    13.914187
-
-
-'''

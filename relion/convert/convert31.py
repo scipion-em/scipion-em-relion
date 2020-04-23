@@ -44,16 +44,18 @@ class Writer(WriterBase):
     """ Helper class to convert from Scipion SetOfImages subclasses
     into Relion>3.1 star files (and binaries if conversion needed).
     """
-    def writeSetOfMovies(self, moviesIterable, starFile):
+    def writeSetOfMovies(self, moviesIterable, starFile, **kwargs):
         self._writeSetOfMoviesOrMics(moviesIterable, starFile,
-                                     'movies', 'rlnMicrographMovieName')
+                                     'movies', 'rlnMicrographMovieName',
+                                     **kwargs)
 
-    def writeSetOfMicrographs(self, micsIterable, starFile):
+    def writeSetOfMicrographs(self, micsIterable, starFile, **kwargs):
         self._writeSetOfMoviesOrMics(micsIterable, starFile,
-                                     'micrographs', 'rlnMicrographName')
+                                     'micrographs', 'rlnMicrographName',
+                                     **kwargs)
 
     def _writeSetOfMoviesOrMics(self, imgIterable,
-                                starFile, tableName, imgLabelName):
+                                starFile, tableName, imgLabelName, **kwargs):
         """ This function can be used to write either movies or micrographs
         star files. Input can be any iterable of these type of images (e.g
         set, list, etc).
@@ -62,6 +64,8 @@ class Writer(WriterBase):
         # on the generated columns
         self._imgLabelName = imgLabelName
         self._imgLabelPixelSize = 'rlnMicrographPixelSize'
+        self._extraLabels = kwargs.get('extraLabels', [])
+        self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
         self._prefix = tableName[:3]
         self._optics = OrderedDict()
@@ -71,6 +75,8 @@ class Writer(WriterBase):
         mic = next(iterMics)
         self._imageSize = mic.getXDim()
         self._micToRow(mic, micRow)
+        if self._postprocessImageRow:
+            self._postprocessImageRow(mic, micRow)
 
         opticsTable = self._createTableFromDict(list(self._optics.values())[0])
         micsTable = self._createTableFromDict(micRow)
@@ -78,6 +84,10 @@ class Writer(WriterBase):
         while mic is not None:
             micRow[imgLabelName] = self._convert(mic)
             self._micToRow(mic, micRow)
+
+            if self._postprocessImageRow:
+                self._postprocessImageRow(mic, micRow)
+
             micsTable.addRow(**micRow)
             mic = next(iterMics, None)
 
@@ -134,6 +144,8 @@ class Writer(WriterBase):
 
     def _micToRow(self, mic, row):
         WriterBase._micToRow(self, mic, row)
+        # Set additional labels if present
+        self._setAttributes(mic, row, self._extraLabels)
         row['rlnOpticsGroup'] = self._getOpticsGroupNumber(mic)
 
     def _align2DToRow(self, alignment, row):

@@ -72,14 +72,14 @@ class WriterBase:
         self._dimensionality = 2
         self._imageSize = None
 
-    def writeSetOfMovies(self, moviesIterable, starFile):
+    def writeSetOfMovies(self, moviesIterable, starFile, **kwargs):
         pass
 
-    def writeSetOfMicrographs(self, micsIterable, starFile):
+    def writeSetOfMicrographs(self, micsIterable, starFile, **kwargs):
         pass
 
     def _writeSetOfMoviesOrMics(self, imgIterable,
-                                starFile, tableName, imgLabelName):
+                                starFile, tableName, imgLabelName, **kwargs):
         pass
 
     def writeSetOfParticles(self, partsSet, starFile, **kwargs):
