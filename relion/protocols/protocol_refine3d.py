@@ -34,6 +34,7 @@ from pwem.protocols import ProtRefine3D
 import relion
 from relion import Plugin
 import relion.convert as convert
+from relion.convert.metadata import Table
 from .protocol_base import ProtRelionBase
 
 
@@ -107,12 +108,12 @@ leads to objective and high-quality results.
         self._defineTransformRelation(self.inputParticles, outImgSet)
 
         fsc = FSC(objLabel=self.getRunName())
-        blockName = 'model_class_%d@' % 1
-        fn = blockName + self._getExtraPath("relion_model.star")
-        mData = md.MetaData(fn)
-        fsc.loadFromMd(mData,
-                       md.RLN_RESOLUTION,
-                       md.RLN_MLMODEL_FSC_HALVES_REF)
+        fn = self._getExtraPath("relion_model.star")
+        table = Table(fileName=fn, tableName='model_class_1')
+        resolution_inv = table.getColumnValues('rlnResolution')
+        frc = table.getColumnValues('rlnGoldStandardFsc')
+        fsc.setData(resolution_inv, frc)
+
         self._defineOutputs(outputFSC=fsc)
         self._defineSourceRelation(vol, fsc)
 

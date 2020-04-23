@@ -44,6 +44,7 @@ from pyworkflow.utils import magentaStr
 
 from .. import Plugin
 import relion.convert as convert
+from relion.convert.metadata import Table
 
 
 class TestConversions(BaseTest):
@@ -86,11 +87,11 @@ class TestConversions(BaseTest):
         print(">>> Writing to file: %s" % fnStar)
         convert.writeSetOfParticles(imgSet, fnStar, fnStk)
         
-        mdAll = md.MetaData(fnStar)
-        self.assertTrue(mdAll.containsLabel(md.RLN_IMAGE_COORD_X))
-        self.assertTrue(mdAll.containsLabel(md.RLN_IMAGE_COORD_Y))
-        self.assertFalse(mdAll.containsLabel(md.RLN_SELECT_PARTICLES_ZSCORE))
-        self.assertFalse(mdAll.containsLabel(md.RLN_CTF_PHASESHIFT))
+        mdAll = Table(fileName=fnStar)
+        self.assertTrue(mdAll.hasColumn('rlnCoordinateX'))
+        self.assertTrue(mdAll.hasColumn('rlnCoordinateY'))
+        self.assertFalse(mdAll.hasColumn('rlnParticleSelectZScore'))
+        self.assertFalse(mdAll.hasColumn('rlnPhaseShift'))
 
     def test_particlesWithPhaseShiftToStar(self):
         """ Write a SetOfParticles to Relion star input file. """
@@ -127,11 +128,11 @@ class TestConversions(BaseTest):
         print(">>> Writing to file: %s" % fnStar)
         convert.writeSetOfParticles(imgSet, fnStar, fnStk)
 
-        mdAll = md.MetaData(fnStar)
-        self.assertTrue(mdAll.containsLabel(md.RLN_IMAGE_COORD_X))
-        self.assertTrue(mdAll.containsLabel(md.RLN_IMAGE_COORD_Y))
-        self.assertFalse(mdAll.containsLabel(md.RLN_SELECT_PARTICLES_ZSCORE))
-        self.assertTrue(mdAll.containsLabel(md.RLN_CTF_PHASESHIFT))
+        mdAll = Table(fileName=fnStar)
+        self.assertTrue(mdAll.hasColumn('rlnCoordinateX'))
+        self.assertTrue(mdAll.hasColumn('rlnCoordinateY'))
+        self.assertFalse(mdAll.hasColumn('rlnParticleSelectZScore'))
+        self.assertFalse(mdAll.hasColumn('rlnPhaseShift'))
 
     def test_particlesFromStar(self):
         """ Read a set of particles from an .star file.  """
@@ -139,8 +140,8 @@ class TestConversions(BaseTest):
         fnStar = self.getFile('relion_it020_data')
         
         print(">>> Reading star file: ", fnStar)
-        mdAll = md.MetaData(fnStar)
-        goldLabels = ['rlnVoltage', 'rlnDefocusU', 'rlnDefocusV', 
+        mdAll = Table(fileName=fnStar)
+        goldLabels = ['rlnVoltage', 'rlnDefocusU', 'rlnDefocusV',
                       'rlnDefocusAngle', 'rlnSphericalAberration', 
                       'rlnAmplitudeContrast', 'rlnImageName', 'rlnImageId', 
                       'rlnCoordinateX', 'rlnCoordinateY', 'rlnMagnificationCorrection',
@@ -148,10 +149,13 @@ class TestConversions(BaseTest):
                       'rlnOriginX', 'rlnOriginY', 'rlnAngleRot', 'rlnAngleTilt', 
                       'rlnAnglePsi', 'rlnClassNumber', 'rlnLogLikeliContribution', 
                       'rlnNrOfSignificantSamples', 'rlnMaxValueProbDistribution']
-        self.assertEqual(goldLabels, [md.label2Str(l) for l in mdAll.getActiveLabels()])
+
+        mdSorted = sorted([str(c) for c in mdAll.getColumns()])
+        self.assertEqual(sorted(goldLabels), mdSorted)
         self.assertEqual(4700, mdAll.size())
 
     def test_particlesFromStarNewLabels(self):
+        #TODO: remove this test as we don't use xmipp md
         """ Read a set of particles from an .star file.  """
         print(magentaStr("\n==> Testing relion - read particle star file with new label:"))
         fnStar = self.getFile('relion_it020_data_newlabels')
