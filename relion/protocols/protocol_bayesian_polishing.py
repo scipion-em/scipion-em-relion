@@ -1,8 +1,10 @@
 # ******************************************************************************
 # *
 # * Authors:     J.M. De la Rosa Trevin (delarosatrevin@scilifelab.se) [1]
+# * Authors:     Grigory Sharov     (gsharov@mrc-lmb.cam.ac.uk) [2]
 # *
 # * [1] SciLifeLab, Stockholm University
+# * [2] MRC Laboratory of Molecular Biology, MRC-LMB
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -24,6 +26,7 @@
 # *
 # ******************************************************************************
 
+import os
 import json
 from io import open
 
@@ -34,7 +37,7 @@ import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ
 
 import relion.convert as convert
-from ..convert.metadata import Table
+from relion.convert.metadata import Table
 
 
 class ProtRelionBayesianPolishing(ProtParticles):
@@ -210,13 +213,14 @@ class ProtRelionBayesianPolishing(ProtParticles):
         motionMode = 1 if hasLocal else 0
 
         writer = convert.convert31.Writer()
+        #FIXME: we cant grep extras from movies, since they are
+        # associated with aligned mics only.
         extras = ['rlnAccumMotionTotal', 'rlnAccumMotionEarly',
                   'rlnAccumMotionLate']
         writer.writeSetOfMicrographs(inputMovies,
                                      self._getPath('input_corrected_micrographs.star'),
                                      extraLabels=extras,
                                      postprocessImageRow=self._updateMic)
-
 
         tableGeneral.addRow(xdim, ydim, ndim, 'movieName',
                             binningFactor, moviesPixelSize,
@@ -226,7 +230,6 @@ class ProtRelionBayesianPolishing(ProtParticles):
 
         for movie in inputMovies:
             movieFn = movie.getFileName()
-            #movieBase = os.path.basename(movieFn)
             movieStar = self._getInputPath(pwutils.replaceBaseExt(movieFn,
                                                                   'star'))
             with open(movieStar, 'w') as f:
@@ -305,7 +308,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
         outImgSet = self._createSetOfParticles()
         outImgSet.copyInfo(imgSet)
 
-        outImgsFn = md.MetaData(self._getExtraPath('shiny.star'))
+        outImgsFn = md.MetaData('particles@' + self._getExtraPath('shiny.star'))
         rowIterator = md.SetMdIterator(outImgsFn, sortByLabel=md.RLN_IMAGE_ID,
                                        keyLabel=md.RLN_IMAGE_ID,
                                        updateItemCallback=self._updatePtcl)
@@ -368,43 +371,8 @@ class ProtRelionBayesianPolishing(ProtParticles):
         particle.setLocation(newLoc)
 
     def _updateMic(self, mic, row):
-        micFn = mic.getFileName()
-        movieStar = self._getInputPath(pwutils.replaceBaseExt(micFn, 'star'))
+        movieFn = mic.getFileName()
+        movieBase = os.path.basename(movieFn)
+        movieStar = self._getInputPath(pwutils.replaceBaseExt(movieFn, 'star'))
+        row['rlnMicrographName'] = movieBase
         row['rlnMicrographMetadata'] = movieStar
-
-'''
-MotionCorr/job002/corrected_micrographs.star
-
-# version 30001
-
-data_optics
-
-loop_ 
-_rlnOpticsGroupName #1 
-_rlnOpticsGroup #2 
-_rlnMtfFileName #3 
-_rlnMicrographOriginalPixelSize #4 
-_rlnVoltage #5 
-_rlnSphericalAberration #6 
-_rlnAmplitudeContrast #7 
-_rlnMicrographPixelSize #8 
-opticsGroup1            1 mtf_k2_200kV.star     0.885000   200.000000     1.400000     0.100000     0.885000 
- 
-
-# version 30001
-
-data_micrographs
-
-loop_ 
-_rlnCtfPowerSpectrum #1 
-_rlnMicrographName #2 
-_rlnMicrographMetadata #3 
-_rlnOpticsGroup #4 
-_rlnAccumMotionTotal #5 
-_rlnAccumMotionEarly #6 
-_rlnAccumMotionLate #7 
-MotionCorr/job002/Movies/20170629_00021_frameImage_PS.mrc MotionCorr/job002/Movies/20170629_00021_frameImage.mrc MotionCorr/job002/Movies/2017062
-9_00021_frameImage.star            1    16.420495     2.506308    13.914187
-
-
-'''
