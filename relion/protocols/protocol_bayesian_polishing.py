@@ -348,15 +348,16 @@ class ProtRelionBayesianPolishing(ProtParticles):
             if win * scale <= 0:
                 errors.append("Please specify both the extraction box size and "
                               "the downsampled size, or leave both the default (-1)")
-            if win % 2 != 0:
-                errors.append("ERROR: The extraction box size must be an "
-                              "even number")
-            if scale % 2 != 0:
-                errors.append("ERROR: The downsampled box size must be an "
-                              "even number")
-            if scale > win:
-                errors.append("ERROR: The downsampled box size cannot be "
-                              "larger than the extraction size")
+            else:
+                if win % 2 != 0:
+                    errors.append("ERROR: The extraction box size must be an "
+                                  "even number")
+                if scale % 2 != 0:
+                    errors.append("ERROR: The downsampled box size must be an "
+                                  "even number")
+                if scale > win:
+                    errors.append("ERROR: The downsampled box size cannot be "
+                                  "larger than the extraction size")
 
         if self.operation == self.OP_TRAIN and self.numberOfMpi > 1:
                 errors.append("Parameter estimation is not supported in MPI mode.")
