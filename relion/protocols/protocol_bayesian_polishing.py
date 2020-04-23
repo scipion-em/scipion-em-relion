@@ -35,6 +35,7 @@ import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ
 
 import relion.convert as convert
+from relion import Plugin
 from ..convert.metadata import Table
 
 
@@ -64,16 +65,13 @@ class ProtRelionBayesianPolishing(ProtParticles):
 
     def _defineParams(self, form):
         form.addSection(label='Input')
-
-        # TODO: conditions on movies?
         form.addParam('inputMovies', params.PointerParam, pointerClass='SetOfMovies',
-                      important=True,
-                      label='Input movies',
+                      important=True,  # pointerCondition='hasAlignment',
+                      label='Input ALIGNED movies',
                       help='Provide a set of movies that have at '
                            'least global alignment information.')
-        # TODO: conditions on particles?
         form.addParam('inputParticles', params.PointerParam,
-                      important=True,
+                      important=True, pointerCondition='hasAlignmentProj',
                       label='Input particles',
                       pointerClass='SetOfParticles',
                       help='Provide a set of particles from 3D auto-refine '
@@ -97,10 +95,20 @@ class ProtRelionBayesianPolishing(ProtParticles):
         line.addParam('frameN', params.IntParam, default=0,
                       label='last')
 
+        if Plugin.IS_GT30():
+            form.addParam('extrSize', params.IntParam, default=-1,
+                          label="Extraction size (px)",
+                          help="Size of the extracted particles in the "
+                               "unbinned original movie(in pixels). "
+                               "This should be an even number.")
+            form.addParam('rescaledSize', params.IntParam, default=-1,
+                          label="Re-scaled size (px)",
+                          help="The re-scaled value needs to be an even number.")
+
         form.addSection(label='Train or Polish')
-        form.addParam('operation', params.EnumParam, default=0,
-                      choices=[' Train optimal parameters ',
-                               ' Perform particle polishing '],
+        form.addParam('operation', params.EnumParam, default=1,
+                      choices=['Train optimal parameters',
+                               'Perform particle polishing'],
                       display=params.EnumParam.DISPLAY_COMBO,
                       label='Operation',
                       help="If *train optimal parameters* , then "
@@ -166,9 +174,6 @@ class ProtRelionBayesianPolishing(ProtParticles):
         self._insertFunctionStep('trainOrPolishStep', self.operation.get())
         if self.operation == self.OP_POLISH:
             self._insertFunctionStep('createOutputStep', 3)
-
-    def _writeMovieStar(self, movie, starFn):
-        """ Write the required """
 
     def convertInputStep(self, movId, partId, postId):
         inputMovies = self.inputMovies.get()
@@ -270,6 +275,12 @@ class ProtRelionBayesianPolishing(ProtParticles):
         args += "--corr_mic %s " % self._getPath('input_corrected_micrographs.star')
         args += "--first_frame %d --last_frame %d " % (self.frame0, self.frameN)
 
+        if Plugin.IS_GT30():
+            if self.extrSize.get() != -1:
+                args += "--window %d " % self.extrSize.get()
+            if self.rescaledSize.get() != -1:
+                args += "--scale %d " % self.rescaledSize.get()
+
         if self.operation == self.OP_TRAIN:
             args += "--min_p %d " % self.numberOfParticles
             args += "--eval_frac %0.3f " % self.fractionFourierPx
@@ -330,6 +341,22 @@ class ProtRelionBayesianPolishing(ProtParticles):
 
     def _validate(self):
         errors = []
+
+        if Plugin.IS_GT30():
+            win = self.extrSize.get()
+            scale = self.rescaledSize.get()
+            if win * scale <= 0:
+                errors.append("Please specify both the extraction box size and "
+                              "the downsampled size, or leave both the default (-1)")
+            if win % 2 != 0:
+                errors.append("ERROR: The extraction box size must be an "
+                              "even number")
+            if scale % 2 != 0:
+                errors.append("ERROR: The downsampled box size must be an "
+                              "even number")
+            if scale > win:
+                errors.append("ERROR: The downsampled box size cannot be "
+                              "larger than the extraction size")
 
         if self.operation == self.OP_TRAIN and self.numberOfMpi > 1:
                 errors.append("Parameter estimation is not supported in MPI mode.")
