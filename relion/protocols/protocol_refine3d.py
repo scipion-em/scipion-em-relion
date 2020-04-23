@@ -158,15 +158,16 @@ leads to objective and high-quality results.
             summary.append("Output volume not ready yet.")
             it = self._lastIter()
             if it >= 1 and it > self._getContinueIter():
-                row = md.getFirstRow('model_general@' +
-                                     self._getFileName('half1_model',
-                                                       iter=it))
-                resol = row.getValue("rlnCurrentResolution")
+                table = Table(fileName=self._getFileName('half1_model', iter=it),
+                              tableName='model_general')
+                row = table[0]
+                resol = float(row.rlnCurrentResolution)
                 summary.append("Current resolution: *%0.2f A*" % resol)
         else:
-            row = md.getFirstRow('model_general@' +
-                                 self._getFileName('modelFinal'))
-            resol = row.getValue("rlnCurrentResolution")
+            table = Table(fileName=self._getFileName('modelFinal'),
+                          tableName='model_general')
+            row = table[0]
+            resol = float(row.rlnCurrentResolution)
             summary.append("Final resolution: *%0.2f A*" % resol)
 
         return summary

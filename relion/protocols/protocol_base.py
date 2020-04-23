@@ -42,6 +42,7 @@ from pwem.objects import SetOfClasses3D
 from pwem.protocols import EMProtocol
 
 import relion.convert
+from relion.convert.metadata import Table
 from relion import Plugin
 from ..constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO
 
@@ -1224,25 +1225,23 @@ class ProtRelionBase(EMProtocol):
                 if len(refVols) == 1:
                     self._convertVol(ih, refVols[0])
                 else:  # input SetOfVolumes as references
-                    row = md.Row()
-                    refMd = md.MetaData()
+                    table = Table(columns=['rlnReferenceImage'])
                     for vol in refVols:
                         newVolFn = self._convertVol(ih, vol)
-                        row.setValue(md.RLN_MLMODEL_REF_IMAGE, newVolFn)
-                        row.addToMd(refMd)
-                    refMd.write(self._getRefStar())
+                        table.addRow(newVolFn)
+                    with open(self._getRefStar(), 'w') as f:
+                        table.writeStar(f)
         else:  # 2D
             inputAvgs = self.referenceAverages.get()
             if inputAvgs:
-                row = md.Row()
-                refMd = md.MetaData()
+                table = Table(columns=['rlnReferenceImage'])
                 refStack = self._getTmpPath('input_references.mrcs')
                 for i, avg in enumerate(inputAvgs):
                     newAvgLoc = (i + 1, refStack)
                     ih.convert(avg, newAvgLoc)
-                    row.setValue(md.RLN_MLMODEL_REF_IMAGE, "%05d@%s" % newAvgLoc)
-                    row.addToMd(refMd)
-                refMd.write(self._getRefStar())
+                    table.addRow("%05d@%s" % newAvgLoc)
+                with open(self._getRefStar(), 'w') as f:
+                    table.writeStar(f)
 
     def _postprocessParticleRow(self, part, partRow):
         pass
