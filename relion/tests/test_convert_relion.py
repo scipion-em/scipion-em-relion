@@ -132,7 +132,7 @@ class TestConversions(BaseTest):
         self.assertTrue(mdAll.hasColumn('rlnCoordinateX'))
         self.assertTrue(mdAll.hasColumn('rlnCoordinateY'))
         self.assertFalse(mdAll.hasColumn('rlnParticleSelectZScore'))
-        self.assertFalse(mdAll.hasColumn('rlnPhaseShift'))
+        self.assertTrue(mdAll.hasColumn('rlnPhaseShift'))
 
     def test_particlesFromStar(self):
         """ Read a set of particles from an .star file.  """
