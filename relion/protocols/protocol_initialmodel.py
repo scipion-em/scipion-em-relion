@@ -38,6 +38,7 @@ from pyworkflow.protocol.params import (PointerParam, FloatParam,
 
 import relion
 import relion.convert as convert
+from relion.convert.metadata import Table
 from .protocol_base import ProtRelionBase
 
 
@@ -51,8 +52,8 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
     IS_CLASSIFY = False
     IS_3D_INIT = True
     IS_2D = False
-    CHANGE_LABELS = [md.RLN_OPTIMISER_CHANGES_OPTIMAL_ORIENTS,
-                     md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS]
+    CHANGE_LABELS = ['rlnChangesOptimalOrientations',
+                     'rlnChangesOptimalOffsets']
 
     def __init__(self, **args):
         ProtRelionBase.__init__(self, **args)
@@ -377,8 +378,10 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         summary = []
         it = self._lastIter()
         if it >= 1:
-            row = md.getFirstRow('model_general@' + self._getFileName('model', iter=it))
-            resol = row.getValue("rlnCurrentResolution")
+            table = Table(fileName=self._getFileName('model', iter=it),
+                          tableName='model_general')
+            row = table[0]
+            resol = float(row.rlnCurrentResolution)
             summary.append("Current resolution: *%0.2f*" % resol)
         return summary
 

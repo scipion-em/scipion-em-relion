@@ -28,7 +28,6 @@ import os
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
-import pwem.emlib.metadata as md
 from pwem.objects import Volume, Float
 from pwem.protocols import ProtAnalysis3D
 
@@ -292,14 +291,15 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         from the *model.star file.
         """
         self._volsInfo = {}
-        modelStar = md.MetaData('model_bodies@' +
-                                self._getFileName('finalModel'))
+        mdTable = Table(fileName=self._getFileName('finalModel'),
+                        tableName='model_bodies')
 
-        for body, row in enumerate(md.iterRows(modelStar)):
-            self._volsInfo[body + 1] = row.clone()
+        for body, row in enumerate(mdTable):
+            self._volsInfo[body + 1] = row
 
     def _getNumberOfBodies(self):
-        return int(md.getSize(self._getFileName('input')))
+        table = Table(fileName=self._getFileName('input'))
+        return int(table.size())
 
     def _updateVolume(self, bodyNum, item):
         item.setFileName(self._getFileName('body', body=bodyNum))
@@ -308,15 +308,17 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         item.setHalfMaps([half1, half2])
 
         row = self._volsInfo[bodyNum]
-        item._rlnAccuracyRotations = Float(row.getValue('rlnAccuracyRotations'))
-        item._rlnAccuracyTranslations = Float(row.getValue('rlnAccuracyTranslations'))
+        # TODO: check if the following makes sense for Volume
+        item._rlnAccuracyRotations = Float(row.rlnAccuracyRotations)
+        item._rlnAccuracyTranslations = Float(row.rlnAccuracyTranslations)
 
     def _getRefineArgs(self):
         """ Define all parameters to run relion_refine.
         """
         protRefine = self.protRefine.get()
         protRefine._initialize()
-        fnOptimiser = protRefine._getFileName('optimiser', iter=protRefine._lastIter())
+        fnOptimiser = protRefine._getFileName('optimiser',
+                                              iter=protRefine._lastIter())
         healpix = self.initialAngularSampling.get()
 
         args = {
