@@ -64,6 +64,16 @@ class ProtRelionBayesianPolishing(ProtParticles):
     OP_TRAIN = 0
     OP_POLISH = 1
 
+    def _createFilenameTemplates(self):
+        """ Centralize how files are called for iterations and references. """
+        myDict = {
+            'input_mics': self._getPath('input_corrected_micrographs.star'),
+            'input_particles': self._getPath('input_particles.star'),
+            'bfactors': self._getExtraPath('bfactors.star'),
+            'shiny': self._getExtraPath('shiny.star'),
+        }
+        self._updateFilenamesDict(myDict)
+
     def _defineParams(self, form):
         form.addSection(label='Input')
         form.addParam('inputMovies', params.PointerParam, pointerClass='SetOfMovies',
@@ -167,6 +177,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
 
     # -------------------------- STEPS functions -------------------------------
     def _insertAllSteps(self):
+        self._createFilenameTemplates()
         self._insertFunctionStep('convertInputStep',
                                  self.inputMovies.get().getObjId(),
                                  self.inputParticles.get().getObjId(),
@@ -178,7 +189,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
     def convertInputStep(self, movId, partId, postId):
         inputMovies = self.inputMovies.get()
         inputParts = self.inputParticles.get()
-        imgStar = self._getPath('input_particles.star')
+        imgStar = self._getFileName('input_particles')
         inputPartsFolder = self._getInputPath('particles')
         pwutils.makePath(inputPartsFolder)
 
@@ -213,13 +224,8 @@ class ProtRelionBayesianPolishing(ProtParticles):
         motionMode = 1 if hasLocal else 0
 
         writer = convert.convert31.Writer()
-        #FIXME: we cant grep extras from movies, since they are
-        # associated with aligned mics only.
-        extras = ['rlnAccumMotionTotal', 'rlnAccumMotionEarly',
-                  'rlnAccumMotionLate']
         writer.writeSetOfMicrographs(inputMovies,
-                                     self._getPath('input_corrected_micrographs.star'),
-                                     extraLabels=extras,
+                                     self._getFileName('input_mics'),
                                      postprocessImageRow=self._updateMic)
 
         tableGeneral.addRow(xdim, ydim, ndim, 'movieName',
@@ -270,14 +276,14 @@ class ProtRelionBayesianPolishing(ProtParticles):
 
     def trainOrPolishStep(self, operation):
         postProt = self.inputPostprocess.get()
-        args = "--i %s " % self._getPath('input_particles.star')
+        args = "--i %s " % self._getFileName('input_particles')
         args += "--o %s " % self._getExtraPath()
         postStar = postProt._getExtraPath('postprocess.star')
         args += "--f %s " % postStar
         postprocessTuple = convert.getVolumesFromPostprocess(postStar)
         args += "--m1 %s --m2 %s --mask %s " % postprocessTuple
         args += "--angpix_ref %0.3f " % postProt.outputVolume.getSamplingRate()
-        args += "--corr_mic %s " % self._getPath('input_corrected_micrographs.star')
+        args += "--corr_mic %s " % self._getFileName('input_mics')
         args += "--first_frame %d --last_frame %d " % (self.frame0, self.frameN)
 
         if self.extrSize.get() != -1:
@@ -308,7 +314,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
         outImgSet = self._createSetOfParticles()
         outImgSet.copyInfo(imgSet)
 
-        outImgsFn = md.MetaData('particles@' + self._getExtraPath('shiny.star'))
+        outImgsFn = md.MetaData('particles@' + self._getFileName('shiny'))
         rowIterator = md.SetMdIterator(outImgsFn, sortByLabel=md.RLN_IMAGE_ID,
                                        keyLabel=md.RLN_IMAGE_ID,
                                        updateItemCallback=self._updatePtcl)
