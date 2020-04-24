@@ -34,7 +34,8 @@ from pwem.objects import Micrograph
 import pwem.emlib.metadata as md
 from pyworkflow.utils.path import findRootFrom
 
-from .convert_deprecated import readSetOfParticles, relionToLocation, rowToCoordinate
+from .convert_utils import relionToLocation
+from .convert_deprecated import readSetOfParticles, rowToCoordinate
 
 
 class RelionImport:

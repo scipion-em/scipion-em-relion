@@ -28,7 +28,7 @@ import pwem.emlib.metadata as md
 from pwem import ALIGN_PROJ
 from pyworkflow.protocol.params import PointerParam, BooleanParam, IntParam
 from pwem.protocols import ProtOperateParticles
-from pyworkflow.object import String
+from pyworkflow.object import String, Integer
 
 import relion.convert as convert
 
@@ -202,16 +202,11 @@ class ProtRelionSubtract(ProtOperateParticles):
     # -------------------------- UTILS functions ------------------------------
     def _updateItem(self, particle, row):
         self.reader.setParticleTransform(particle, row)
-        # FIXME: RLN_IMAGE_ORI_NAME doesnt exist in xmippLib,
-        # also check if other attrs need saving
-        #convert.setRelionAttributes(particle, row,
-        #                            md.RLN_IMAGE_ORI_NAME)
+        # FIXME: check if other attrs need saving
         particle._rlnImageOriginalName = String(row.getValue('rlnImageOriginalName'))
-        convert.setRelionAttributes(particle, row,
-                                    md.RLN_PARTICLE_RANDOM_SUBSET)
+        particle._rlnRandomSubset = Integer(row.getValue('rlnRandomSubset'))
 
-        newFn = row.getValue(md.RLN_IMAGE_NAME)
-        newLoc = convert.relionToLocation(newFn)
+        newLoc = convert.relionToLocation(row.getValue('rlnImageName'))
         particle.setLocation(newLoc)
 
     def _getInputParticles(self):

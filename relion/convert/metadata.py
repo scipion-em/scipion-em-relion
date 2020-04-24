@@ -200,6 +200,10 @@ class Table:
             raise Exception("Not existing column: %s" % colName)
         return [getattr(row, colName) for row in self._rows]
 
+    def hasColumn(self, colName):
+        """ Return True if a given column exists. """
+        return colName in self._columns
+
     def __len__(self):
         return self.size()
 

@@ -30,7 +30,9 @@ from pwem.protocols import ProtClassify3D
 import pwem.emlib.metadata as md
 
 import relion
+from relion import Plugin
 import relion.convert as convert
+from relion.convert.metadata import Table
 from .protocol_base import ProtRelionBase
 
 
@@ -44,11 +46,11 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
     """
 
     _label = '3D classification'
-    CHANGE_LABELS = [md.RLN_OPTIMISER_CHANGES_OPTIMAL_ORIENTS, 
-                     md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS,
-                     md.RLN_OPTIMISER_ACCURACY_ROT,
-                     md.RLN_OPTIMISER_ACCURACY_TRANS,
-                     md.RLN_OPTIMISER_CHANGES_OPTIMAL_CLASSES]
+    CHANGE_LABELS = ['rlnChangesOptimalOrientations',
+                     'rlnChangesOptimalOffsets',
+                     'rlnOverallAccuracyRotations',
+                     'rlnOverallAccuracyTranslationsAngst' if Plugin.IS_GT30() else 'rlnOverallAccuracyTranslations',
+                     'rlnChangesOptimalClasses']
     
     def __init__(self, **args):        
         ProtRelionBase.__init__(self, **args)
@@ -136,8 +138,10 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
         summary = []
         it = self._lastIter()
         if it >= 1:
-            row = md.getFirstRow('model_general@' + self._getFileName('model', iter=it))
-            resol = row.getValue("rlnCurrentResolution")
+            table = Table(fileName=self._getFileName('model', iter=it),
+                          tableName='model_general')
+            row = table[0]
+            resol = float(row.rlnCurrentResolution)
             summary.append("Current resolution: *%0.2f A*" % resol)
         
         summary.append("Input Particles: *%d*\n"
@@ -191,7 +195,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
                              doClone=False)
     
     def _updateParticle(self, item, row):
-        item.setClassId(row.getValue(md.RLN_PARTICLE_CLASS))
+        item.setClassId(row.getValue('rlnClassNumber'))
         self.reader.setParticleTransform(item, row)
 
         item._rlnLogLikeliContribution = Float(row.getValue('rlnLogLikeliContribution'))

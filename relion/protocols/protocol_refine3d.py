@@ -24,7 +24,7 @@
 # *
 # **************************************************************************
 
-from pyworkflow.object import String
+from pyworkflow.object import String, Integer
 
 import pwem
 import pwem.emlib.metadata as md
@@ -32,7 +32,9 @@ from pwem.objects import Volume, FSC
 from pwem.protocols import ProtRefine3D
 
 import relion
+from relion import Plugin
 import relion.convert as convert
+from relion.convert.metadata import Table
 from .protocol_base import ProtRelionBase
 
 
@@ -47,10 +49,10 @@ leads to objective and high-quality results.
     """    
     _label = '3D auto-refine'
     IS_CLASSIFY = False
-    CHANGE_LABELS = [md.RLN_OPTIMISER_CHANGES_OPTIMAL_ORIENTS, 
-                     md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS,
-                     md.RLN_OPTIMISER_ACCURACY_ROT,
-                     md.RLN_OPTIMISER_ACCURACY_TRANS]
+    CHANGE_LABELS = ['rlnChangesOptimalOrientations',
+                     'rlnChangesOptimalOffsets',
+                     'rlnOverallAccuracyRotations',
+                     'rlnOverallAccuracyTranslationsAngst' if Plugin.IS_GT30() else 'rlnOverallAccuracyTranslations']
 
     PREFIXES = ['half1_', 'half2_']
     
@@ -106,12 +108,12 @@ leads to objective and high-quality results.
         self._defineTransformRelation(self.inputParticles, outImgSet)
 
         fsc = FSC(objLabel=self.getRunName())
-        blockName = 'model_class_%d@' % 1
-        fn = blockName + self._getExtraPath("relion_model.star")
-        mData = md.MetaData(fn)
-        fsc.loadFromMd(mData,
-                       md.RLN_RESOLUTION,
-                       md.RLN_MLMODEL_FSC_HALVES_REF)
+        fn = self._getExtraPath("relion_model.star")
+        table = Table(fileName=fn, tableName='model_class_1')
+        resolution_inv = table.getColumnValues('rlnResolution')
+        frc = table.getColumnValues('rlnGoldStandardFsc')
+        fsc.setData(resolution_inv, frc)
+
         self._defineOutputs(outputFSC=fsc)
         self._defineSourceRelation(vol, fsc)
 
@@ -156,15 +158,16 @@ leads to objective and high-quality results.
             summary.append("Output volume not ready yet.")
             it = self._lastIter()
             if it >= 1 and it > self._getContinueIter():
-                row = md.getFirstRow('model_general@' +
-                                     self._getFileName('half1_model',
-                                                       iter=it))
-                resol = row.getValue("rlnCurrentResolution")
+                table = Table(fileName=self._getFileName('half1_model', iter=it),
+                              tableName='model_general')
+                row = table[0]
+                resol = float(row.rlnCurrentResolution)
                 summary.append("Current resolution: *%0.2f A*" % resol)
         else:
-            row = md.getFirstRow('model_general@' +
-                                 self._getFileName('modelFinal'))
-            resol = row.getValue("rlnCurrentResolution")
+            table = Table(fileName=self._getFileName('modelFinal'),
+                          tableName='model_general')
+            row = table[0]
+            resol = float(row.rlnCurrentResolution)
             summary.append("Final resolution: *%0.2f A*" % resol)
 
         return summary
@@ -188,8 +191,7 @@ leads to objective and high-quality results.
 
     def _createItemMatrix(self, particle, row):
         self.reader.setParticleTransform(particle, row)
-        convert.setRelionAttributes(particle, row,
-                                    md.RLN_PARTICLE_RANDOM_SUBSET)
+        particle._rlnRandomSubset = Integer(row.getValue('rlnRandomSubset'))
 
     def _updateParticle(self, particle, row):
         particle._coordinate._micName = String(row.getValue('rlnMicrographName'))
