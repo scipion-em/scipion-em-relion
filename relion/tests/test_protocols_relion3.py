@@ -56,7 +56,7 @@ class Relion3TestProtocolBase(TestWorkflow):
         protImport = cls.newProtocol(
             ProtImportMovies,
             filesPath=cls.ds.getFile('Movies/'),
-            filesPattern=kwargs.get('filesPattern', '*.tiff'),
+            filesPattern=kwargs.get('filesPattern', '20170629_000?5*tiff'),
             samplingRateMode=0,
             samplingRate=0.885,
             magnification=50000,
