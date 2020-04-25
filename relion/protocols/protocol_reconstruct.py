@@ -25,14 +25,14 @@
 # **************************************************************************
 
 from pyworkflow.protocol.params import (PointerParam, FloatParam,  
-                                        StringParam, BooleanParam, LEVEL_ADVANCED)
+                                        StringParam, BooleanParam,
+                                        EnumParam, IntParam, LEVEL_ADVANCED)
 from pwem.objects import Volume
 from pwem.protocols import ProtReconstruct3D
 from pwem.constants import ALIGN_PROJ
 
 import relion.convert as convert
-
-# TODO: Check if we can centralize this, and how it combines with related functions
+from relion import Plugin
 
 
 class ProtRelionReconstruct(ProtReconstruct3D):
@@ -65,25 +65,21 @@ class ProtRelionReconstruct(ProtReconstruct3D):
                            'in Fourier space (default Nyquist).')
         form.addParam('pad', FloatParam, default=2,
                       label="Padding factor")
+        form.addParam('subset', EnumParam, default=0,
+                      choices=['all', 'half1', 'half2'],
+                      display=EnumParam.DISPLAY_HLIST,
+                      label='Subset to reconstruct',
+                      help='Subset of images to consider.')
+        if Plugin.IS_GT30():
+            form.addParam('classNum', IntParam, default=-1,
+                          label='Use only this class',
+                          help='Consider only this class (-1: use all classes)')
         
         form.addParam('extraParams', StringParam, default='',
                       expertLevel=LEVEL_ADVANCED,
                       label='Extra parameters: ', 
-                      help='Extra parameters to *relion_reconstruct* program:\n'
-                      """
-                        --subtract ():\t\tSubtract projections of this map from the images used for reconstruction
-                        --NN (false):\t\tUse nearest-neighbour instead of linear interpolation before gridding correction
-                        --blob_r (1.9):\t\tRadius of blob for gridding interpolation
-                        --blob_m (0):\t\tOrder of blob for gridding interpolation
-                        --blob_a (15):\t\tAlpha-value of blob for gridding interpolation
-                        --iter (10):\t\tNumber of gridding-correction iterations
-                        --refdim (3):\t\tDimension of the reconstruction (2D or 3D)
-                        --angular_error (0.):\t\tApply random deviations with this standard deviation (in degrees) to each of the 3 Euler angles
-                        --shift_error (0.):\t\tApply random deviations with this standard deviation (in pixels) to each of the 2 translations
-                        --fom_weighting (false):\t\tWeight particles according to their figure-of-merit (_rlnParticleFigureOfMerit)
-                        --fsc ():\t\tFSC-curve for regularized reconstruction
-                        ...
-                      """)
+                      help='Extra parameters to *relion_reconstruct* program. '
+                           'Address to Relion to see full list of options.')
         form.addSection('CTF')
         form.addParam('doCTF', BooleanParam, default=False,
                       label='Apply CTF correction?')
@@ -91,13 +87,10 @@ class ProtRelionReconstruct(ProtReconstruct3D):
                       condition='doCTF',
                       label='Leave CTFs intact until first peak?')
         
-        form.addParallelSection(threads=1, mpi=1)
-        # TODO: Add an option to allow the user to
-        # decide if copy binary files or not
-            
+        form.addParallelSection(threads=0, mpi=1)
+
     # -------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self):
-        # self._initialize()
         self._createFilenameTemplates()
         self._insertFunctionStep('convertInputStep')
         self._insertReconstructStep()
@@ -111,16 +104,20 @@ class ProtRelionReconstruct(ProtReconstruct3D):
 
     def _insertReconstructStep(self):
         imgSet = self.inputParticles.get()
-        imgStar = self._getFileName('input_particles.star')
-        
-        params = ' --i %s' % imgStar
-        params += ' --o %s' % self._getPath('output_volume.vol')
+
+        params = ' --i %s' % self._getFileName('input_particles')
+        params += ' --o %s' % self._getFileName('output_volume')
         params += ' --sym %s' % self.symmetryGroup.get()
         params += ' --angpix %0.3f' % imgSet.getSamplingRate()
         params += ' --maxres %0.3f' % self.maxRes.get()
         params += ' --pad %0.3f' % self.pad.get()
 
-        # TODO: Test that the CTF part is working
+        subset = -1 if self.subset.get() == 0 else self.subset
+        params += ' --subset %d' % subset
+
+        if Plugin.IS_GT30():
+            params += ' --class %d' % self.classNum.get()
+
         if self.doCTF:
             params += ' --ctf'
             if self.ctfIntactFirstPeak:
@@ -133,16 +130,13 @@ class ProtRelionReconstruct(ProtReconstruct3D):
 
     # -------------------------- STEPS functions ------------------------------
     def reconstructStep(self, params):
-        """ Create the input file in STAR format as expected by Relion.
-        If the input particles comes from Relion, just link the file. 
-        """
         self.runJob(self._getProgram(), params)
 
     def _createFilenameTemplates(self):
         """ Centralize how files are called for iterations and references. """
         myDict = {
-            'input_particles.star': self._getTmpPath('input_particles.star'),
-            'output_volume': self._getPath('output_volume.vol')
+            'input_particles': self._getTmpPath('input_particles.star'),
+            'output_volume': self._getExtraPath('output_volume.mrc')
             }
         self._updateFilenamesDict(myDict)
 
@@ -151,11 +145,12 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         If the input particles comes from Relion, just link the file.
         """
         imgSet = self.inputParticles.get()
-        imgStar = self._getFileName('input_particles.star')
+        imgStar = self._getFileName('input_particles')
 
         # Pass stack file as None to avoid write the images files
-        convert.writeSetOfParticles(
-            imgSet, imgStar, self._getTmpPath(), alignType=ALIGN_PROJ)
+        convert.writeSetOfParticles(imgSet, imgStar, self._getTmpPath(),
+                                    alignType=ALIGN_PROJ,
+                                    fillRandomSubset=True)
 
     def createOutputStep(self):
         imgSet = self.inputParticles.get()
@@ -168,18 +163,15 @@ class ProtRelionReconstruct(ProtReconstruct3D):
     
     # -------------------------- INFO functions -------------------------------
     def _validate(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION. 
-        """
         errors = []
 
-        if self.numberOfMpi > 1 and self.numberOfThreads > 1:
-            errors.append('Relion reconstruct can run either with mpi or '
-                          'threads, not both!')
         return errors
     
     def _summary(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION. 
-        """
-        return []
+        summary = []
+        if not hasattr(self, 'outputVolume'):
+            summary.append("Output volume not ready yet.")
+        else:
+            summary.append("Output volume has been reconstructed.")
+
+        return summary

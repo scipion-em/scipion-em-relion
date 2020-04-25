@@ -31,11 +31,11 @@ from os.path import exists
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 from pwem.protocols import ProtAnalysis3D
-import pwem.emlib.metadata as md
 from pwem.emlib.image import ImageHandler
 from pwem.objects import Volume
 
 import relion.convert as convert
+from relion.convert.metadata import Table
 from relion import Plugin
 
 
@@ -237,9 +237,10 @@ class ProtRelionPostprocess(ProtAnalysis3D):
         summary = []
         postStarFn = self._getExtraPath("postprocess.star")
         if exists(postStarFn):
-            mdResol = md.RowMetaData(postStarFn)
-            resol = mdResol.getValue(md.RLN_POSTPROCESS_FINAL_RESOLUTION)
-            summary.append("Final resolution: *%0.2f A*" % resol)
+            table = Table(fileName=postStarFn, tableName='general')
+            row = table[0]
+            summary.append("Final resolution: *%0.2f A*" %
+                           float(row.rlnFinalResolution))
 
         return summary
 

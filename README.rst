@@ -63,7 +63,8 @@ Protocols
 * center averages           
 * create 3d mask            
 * ctf refinement            
-* expand symmetry           
+* expand symmetry
+* export coordinates
 * export ctf                
 * export particles          
 * local resolution          
@@ -71,7 +72,8 @@ Protocols
 * particles extraction
 * post-processing           
 * preprocess particles      
-* reconstruct               
+* reconstruct
+* remove preferential views
 * subtract projection
 * symmetrize volume
 

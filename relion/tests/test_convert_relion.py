@@ -44,6 +44,7 @@ from pyworkflow.utils import magentaStr
 
 from .. import Plugin
 import relion.convert as convert
+from relion.convert.metadata import Table
 
 
 class TestConversions(BaseTest):
@@ -86,11 +87,11 @@ class TestConversions(BaseTest):
         print(">>> Writing to file: %s" % fnStar)
         convert.writeSetOfParticles(imgSet, fnStar, fnStk)
         
-        mdAll = md.MetaData(fnStar)
-        self.assertTrue(mdAll.containsLabel(md.RLN_IMAGE_COORD_X))
-        self.assertTrue(mdAll.containsLabel(md.RLN_IMAGE_COORD_Y))
-        self.assertFalse(mdAll.containsLabel(md.RLN_SELECT_PARTICLES_ZSCORE))
-        self.assertFalse(mdAll.containsLabel(md.RLN_CTF_PHASESHIFT))
+        mdAll = Table(fileName=fnStar)
+        self.assertTrue(mdAll.hasColumn('rlnCoordinateX'))
+        self.assertTrue(mdAll.hasColumn('rlnCoordinateY'))
+        self.assertFalse(mdAll.hasColumn('rlnParticleSelectZScore'))
+        self.assertFalse(mdAll.hasColumn('rlnPhaseShift'))
 
     def test_particlesWithPhaseShiftToStar(self):
         """ Write a SetOfParticles to Relion star input file. """
@@ -127,11 +128,11 @@ class TestConversions(BaseTest):
         print(">>> Writing to file: %s" % fnStar)
         convert.writeSetOfParticles(imgSet, fnStar, fnStk)
 
-        mdAll = md.MetaData(fnStar)
-        self.assertTrue(mdAll.containsLabel(md.RLN_IMAGE_COORD_X))
-        self.assertTrue(mdAll.containsLabel(md.RLN_IMAGE_COORD_Y))
-        self.assertFalse(mdAll.containsLabel(md.RLN_SELECT_PARTICLES_ZSCORE))
-        self.assertTrue(mdAll.containsLabel(md.RLN_CTF_PHASESHIFT))
+        mdAll = Table(fileName=fnStar)
+        self.assertTrue(mdAll.hasColumn('rlnCoordinateX'))
+        self.assertTrue(mdAll.hasColumn('rlnCoordinateY'))
+        self.assertFalse(mdAll.hasColumn('rlnParticleSelectZScore'))
+        self.assertTrue(mdAll.hasColumn('rlnPhaseShift'))
 
     def test_particlesFromStar(self):
         """ Read a set of particles from an .star file.  """
@@ -139,8 +140,8 @@ class TestConversions(BaseTest):
         fnStar = self.getFile('relion_it020_data')
         
         print(">>> Reading star file: ", fnStar)
-        mdAll = md.MetaData(fnStar)
-        goldLabels = ['rlnVoltage', 'rlnDefocusU', 'rlnDefocusV', 
+        mdAll = Table(fileName=fnStar)
+        goldLabels = ['rlnVoltage', 'rlnDefocusU', 'rlnDefocusV',
                       'rlnDefocusAngle', 'rlnSphericalAberration', 
                       'rlnAmplitudeContrast', 'rlnImageName', 'rlnImageId', 
                       'rlnCoordinateX', 'rlnCoordinateY', 'rlnMagnificationCorrection',
@@ -148,10 +149,13 @@ class TestConversions(BaseTest):
                       'rlnOriginX', 'rlnOriginY', 'rlnAngleRot', 'rlnAngleTilt', 
                       'rlnAnglePsi', 'rlnClassNumber', 'rlnLogLikeliContribution', 
                       'rlnNrOfSignificantSamples', 'rlnMaxValueProbDistribution']
-        self.assertEqual(goldLabels, [md.label2Str(l) for l in mdAll.getActiveLabels()])
+
+        mdSorted = sorted([str(c) for c in mdAll.getColumns()])
+        self.assertEqual(sorted(goldLabels), mdSorted)
         self.assertEqual(4700, mdAll.size())
 
     def test_particlesFromStarNewLabels(self):
+        #TODO: remove this test as we don't use xmipp md
         """ Read a set of particles from an .star file.  """
         print(magentaStr("\n==> Testing relion - read particle star file with new label:"))
         fnStar = self.getFile('relion_it020_data_newlabels')
@@ -305,10 +309,15 @@ class TestConvertAnglesBase(BaseTest):
         else:
             partSet = SetOfVolumes(filename=partFn1)
         partSet.setAlignment(alignType)
-        partSet.setAcquisition(Acquisition(voltage=300,
-                                           sphericalAberration=2,
-                                           amplitudeContrast=0.1,
-                                           magnification=60000))
+
+        acq = Acquisition(voltage=300,
+                          sphericalAberration=2,
+                          amplitudeContrast=0.1,
+                          magnification=60000)
+        acq.opticsGroupName.set('opticsGroup1')
+        acq.mtfFile.set("mtfFile1.star")
+        partSet.setSamplingRate(1.0)
+        partSet.setAcquisition(acq)
         # Populate the SetOfParticles with images
         # taken from images.mrc file
         # and setting the previous alignment parameters
@@ -325,7 +334,8 @@ class TestConvertAnglesBase(BaseTest):
         # Convert to a Xmipp metadata and also check that the images are
         # aligned correctly
         if alignType == ALIGN_2D or alignType == ALIGN_PROJ:
-            convert.writeSetOfParticles(partSet, mdFn, "/tmp", alignType=alignType)
+            starWriter = convert.Writer()
+            starWriter.writeSetOfParticles(partSet, mdFn, alignType=alignType)
             partSet2 = SetOfParticles(filename=partFn2)
         else:
             convert.writeSetOfVolumes(partSet, mdFn, alignType=alignType)
@@ -334,7 +344,8 @@ class TestConvertAnglesBase(BaseTest):
         # Xmipp metadata and check one more time.
         partSet2.copyInfo(partSet)
         if alignType == ALIGN_2D or alignType == ALIGN_PROJ:
-            convert.readSetOfParticles(mdFn, partSet2, alignType=alignType)
+            convert.readSetOfParticles(mdFn, partSet2,
+                                       alignType=alignType)
         else:
             convert.readSetOfParticles(mdFn, partSet2,
                                        rowToFunc=convert.rowToVolume,
@@ -351,7 +362,7 @@ class TestConvertAnglesBase(BaseTest):
                 print('m1:\n', m1, convert.geometryFromMatrix(m1, False))
 
                 print('m2:\n', m2, convert.geometryFromMatrix(m2, False))
-                # self.assertTrue(np.allclose(m1, m2, rtol=1e-2))
+                self.assertTrue(np.allclose(m1, m2, rtol=1e-2))
 
         # Launch apply transformation and check result images
         runRelionProgram(self.CMD % locals())
@@ -806,6 +817,7 @@ class TestRelionWriter(BaseTest):
         ogName = 'opticsGroup%d'
         mtfFile = 'mtfFile%d.star'
 
+        cleanPath(self.getOutputPath('micrographs.sqlite'))
         outputMics = SetOfMicrographs(filename=self.getOutputPath('micrographs.sqlite'))
         outputMics.setSamplingRate(1.234)
 
@@ -843,6 +855,7 @@ class TestRelionWriter(BaseTest):
     def _createSetOfParts(self, nMics=10, nOptics=2, partsPerMic=10):
         micSet = self._createSetOfMics(nMics, nOptics)
         outputSqlite = self.getOutputPath('particles.sqlite')
+        cleanPath(outputSqlite)
         print(">>> Writing to particles db: %s" % outputSqlite)
         outputParts = SetOfParticles(filename=outputSqlite)
         outputParts.setSamplingRate(1.234)
@@ -889,6 +902,3 @@ class TestRelionWriter(BaseTest):
         print(">>> Writing to particles star: %s" % outputStar)
         starWriter = convert.Writer()
         starWriter.writeSetOfParticles(partsSet, outputStar)
-
-
-

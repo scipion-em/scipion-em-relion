@@ -468,43 +468,68 @@ class TestRelionPreprocess(TestRelionBase):
         self._validations(protocol.outputParticles, 50, 7.0)
 
 
+class TestRelionSubtract30(TestRelionBase):
+    @classmethod
+    def setUpClass(cls):
+        setupTestProject(cls)
+        cls.ds = DataSet.getDataSet('relion_tutorial')
+        cls.particlesFn = cls.ds.getFile('import/refine3d/extra/relion_data.star')
+        cls.volFn = cls.ds.getFile('volumes/reference.mrc')
+        cls.starImport = cls.runImportParticlesStar(cls.particlesFn, 10000, 7.08)
+        cls.volImport = cls.runImportVolumes(cls.volFn, 7.08)
+
+    def test_subtract(self):
+        if Plugin.IS_30():
+            # explicitly import correct protocol
+            from ..protocols._legacy.protocol30_subtract import ProtRelionSubtract
+            protSubtract = self.newProtocol(ProtRelionSubtract)
+            protSubtract.inputParticles.set(self.starImport.outputParticles)
+            protSubtract.inputVolume.set(self.volImport.outputVolume)
+
+            print(magentaStr("\n==> Testing relion - subtract projection:"))
+            self.launchProtocol(protSubtract)
+            self.assertIsNotNone(protSubtract.outputParticles,
+                                 "There was a problem with subtract projection")
+        else:
+            print("This test is for Relion 3.0 only!")
+
+
 class TestRelionSubtract(TestRelionBase):
     @classmethod
     def setUpClass(cls):
         setupTestProject(cls)
-        cls.dsRelion = DataSet.getDataSet('relion_tutorial')
-    
+        TestRelionBase.setData('mda')
+        cls.protImport = cls.runImportParticles(cls.particlesFn, 3.5)
+        cls.protImportVol = cls.runImportVolumes(cls.vol, 3.5)
+
     def test_subtract(self):
-        protParts = self.newProtocol(
-            ProtImportParticles,
-            objLabel='from relion auto-refine',
-            importFrom=ProtImportParticles.IMPORT_FROM_RELION,
-            starFile=self.dsRelion.getFile('import/refine3d/extra/'
-                                           'relion_it001_data.star'),
-            magnification=10000,
-            samplingRate=7.08,
-            haveDataBeenPhaseFlipped=True)
+        if Plugin.IS_30():
+            print("This test is for Relion version >= 3.1")
+        else:
+            print(magentaStr("\n==> Running relion - refine 3d:"))
+            relionRefine = self.newProtocol(ProtRelionRefine3D,
+                                            doCTF=False, runMode=1,
+                                            maskDiameterA=340,
+                                            symmetryGroup="d6",
+                                            numberOfMpi=3, numberOfThreads=2)
+            relionRefine.inputParticles.set(self.protImport.outputParticles)
+            relionRefine.referenceVolume.set(self.protImportVol.outputVolume)
+            relionRefine.doGpu.set(False)
+            self.launchProtocol(relionRefine)
 
-        self.launchProtocol(protParts)
-        self.assertEqual(60, protParts.outputParticles.getXDim())
-        
-        protVol = self.newProtocol(
-            ProtImportVolumes,
-            filesPath=self.dsRelion.getFile('volumes/reference.mrc'),
-            samplingRate=7.08)
-        self.launchProtocol(protVol)
-        self.assertEqual(60, protVol.outputVolume.getDim()[0])
+            print(magentaStr("\n==> Running relion - create mask 3d:"))
+            protMask = self.newProtocol(ProtRelionCreateMask3D, threshold=0.045)
+            protMask.inputVolume.set(relionRefine.outputVolume)
+            self.launchProtocol(protMask)
 
-        print(magentaStr("\n==> Testing relion - subtract projection:"))
-        protSubtract = self.newProtocol(ProtRelionSubtract)
-        protSubtract.inputParticles.set(protParts.outputParticles)
-
-        if relion.Plugin.IS_30():
-            protSubtract.inputVolume.set(protVol.outputVolume)
-
-        self.launchProtocol(protSubtract)
-        self.assertIsNotNone(protSubtract.outputParticles,
-                             "There was a problem with subtract projection")
+            print(magentaStr("\n==> Testing relion - subtract projection:"))
+            protSubtract = self.newProtocol(ProtRelionSubtract,
+                                            refMask=protMask.outputMask,
+                                            numberOfMpi=2)
+            protSubtract.inputProtocol.set(relionRefine)
+            self.launchProtocol(protSubtract)
+            self.assertIsNotNone(protSubtract.outputParticles,
+                                 "There was a problem with subtract projection")
 
 
 class TestRelionPostprocess(TestRelionBase):
@@ -793,6 +818,7 @@ class TestRelionExpandSymmetry(TestRelionBase):
 
     def importParticles(self, partStar):
         """ Import particles from Relion star file. """
+        print(magentaStr("\n==> Importing data - particles:"))
         protPart = self.newProtocol(ProtImportParticles,
                                     importFrom=ProtImportParticles.IMPORT_FROM_RELION,
                                     starFile=partStar,
@@ -1007,11 +1033,11 @@ class TestRelionExtractParticles(TestRelionBase):
                                first.getSamplingRate())
 
     def testExtractSameAsPicking(self):
-        print(magentaStr("\n==> Testing relion - extract particles (same mics as picking):"))
+        print(magentaStr("\n==> Testing relion - extract particles (no ctf):"))
         protExtract = self.newProtocol(ProtRelionExtractParticles,
                                        boxSize=110,
                                        doInvert=False)
-        protExtract.setObjLabel("extract-same as picking")
+        protExtract.setObjLabel("extract-noctf")
         protExtract.inputCoordinates.set(self.protPP.outputCoordinates)
         self.launchProtocol(protExtract)
 
@@ -1046,7 +1072,7 @@ class TestRelionExtractParticles(TestRelionBase):
                                        boxSize=550,
                                        downsampleType=OTHER,
                                        doInvert=False)
-        protExtract.setObjLabel("extract-original")
+        protExtract.setObjLabel("extract-other")
         protExtract.inputCoordinates.set(self.protPP.outputCoordinates)
         protExtract.inputMicrographs.set(self.protImport.outputMicrographs)
         self.launchProtocol(protExtract)
@@ -1095,7 +1121,7 @@ class TestRelionExtractParticles(TestRelionBase):
 
         protExtract.inputCoordinates.set(self.protPP.outputCoordinates)
         protExtract.inputMicrographs.set(self.protImport.outputMicrographs)
-        protExtract.setObjLabel("extract-other")
+        protExtract.setObjLabel("extract-other+downsample")
         self.launchProtocol(protExtract)
 
         inputCoords = protExtract.inputCoordinates.get()
@@ -1358,3 +1384,25 @@ class TestRelionExportCtf(TestRelionBase):
             outFn = os.path.exists(protExport._getStarFile()) or None
             self.assertIsNotNone(outFn,
                                  "There was a problem when exporting ctfs.")
+
+
+class TestRelionRemovePrefViews(TestRelionBase):
+    @classmethod
+    def setUpClass(cls):
+        setupTestProject(cls)
+        cls.ds = DataSet.getDataSet('relion_tutorial')
+        cls.particlesFn = cls.ds.getFile('import/refine3d/extra/relion_data.star')
+        cls.starImport = cls.runImportParticlesStar(cls.particlesFn, 10000, 7.08)
+
+    def test_removePrefViews(self):
+        print(magentaStr("\n==> Testing relion - remove preferential views"))
+        inputParts = self.starImport.outputParticles
+        prot = self.newProtocol(ProtRelionRemovePrefViews,
+                                inputParticles=inputParts,
+                                numToRemove=50)
+        self.launchProtocol(prot)
+
+        self.assertIsNotNone(prot.outputParticles,
+                             "There was a problem with remove preferential views protocol.")
+        outSize = prot.outputParticles.getSize()
+        self.assertEqual(outSize, 4080, "Output size is not 4080!")

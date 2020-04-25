@@ -42,6 +42,8 @@ from pwem.objects import SetOfClasses3D
 from pwem.protocols import EMProtocol
 
 import relion.convert
+from relion.convert.metadata import Table
+from relion import Plugin
 from ..constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO
 
 
@@ -59,12 +61,12 @@ class ProtRelionBase(EMProtocol):
     IS_3D_INIT = False
     OUTPUT_TYPE = SetOfClasses3D
     FILE_KEYS = ['data', 'optimiser', 'sampling']
-    CLASS_LABEL = md.RLN_PARTICLE_CLASS
-    CHANGE_LABELS = [md.RLN_OPTIMISER_CHANGES_OPTIMAL_ORIENTS,
-                     md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS,
-                     md.RLN_OPTIMISER_ACCURACY_ROT,
-                     #md.RLN_OPTIMISER_ACCURACY_TRANS_ANGSTROM,  # FIXME
-                     md.RLN_OPTIMISER_CHANGES_OPTIMAL_CLASSES]
+    CLASS_LABEL = 'rlnClassNumber'
+    CHANGE_LABELS = ['rlnChangesOptimalOrientations',
+                     'rlnChangesOptimalOffsets',
+                     'rlnOverallAccuracyRotations',
+                     'rlnOverallAccuracyTranslationsAngst' if Plugin.IS_GT30() else 'rlnOverallAccuracyTranslations',
+                     'rlnChangesOptimalClasses']
     PREFIXES = ['']
 
     def __init__(self, **args):
@@ -95,17 +97,11 @@ class ProtRelionBase(EMProtocol):
             'classes_scipion': self.extraIter + 'classes_scipion.sqlite',
             'data': self.extraIter + 'data.star',
             'model': self.extraIter + 'model.star',
-            'shiny': self._getExtraPath('shiny/shiny.star'),
             'optimiser': self.extraIter + 'optimiser.star',
             'angularDist_xmipp': self.extraIter + 'angularDist_xmipp.xmd',
-            'all_avgPmax_xmipp': self._getTmpPath('iterations_avgPmax_xmipp.xmd'),
-            'all_changes_xmipp': self._getTmpPath('iterations_changes_xmipp.xmd'),
+            'all_avgPmax': self._getTmpPath('iterations_avgPmax.star'),
+            'all_changes': self._getTmpPath('iterations_changes.star'),
             'selected_volumes': self._getTmpPath('selected_volumes_xmipp.xmd'),
-            'volume_shiny': self._getExtraPath('shiny/shiny_post.mrc:mrc'),
-            'volume_frame': self._getExtraPath('shiny/frame%(frame)03d_%(halve)sclass%(ref3d)03d_unfil.mrc:mrc'),
-            'guinier_frame': self._getExtraPath('shiny/frame%(frame)03d_guinier.star'),
-            'fsc_shiny': self._getExtraPath('shiny/shiny_post.star'),
-            'bfactors': self._getExtraPath('shiny/bfactors.star'),
             'dataFinal': self._getExtraPath("relion_data.star"),
             'modelFinal': self._getExtraPath("relion_model.star"),
             'finalvolume': self._getExtraPath("relion_class%(ref3d)03d.mrc:mrc"),
@@ -620,22 +616,10 @@ class ProtRelionBase(EMProtocol):
     def addSymmetry(self, container):
         container.addParam('symmetryGroup', StringParam, default='c1',
                            label="Symmetry",
-                           help='If the molecule is asymmetric, set Symmetry '
-                                'group to C1. Note their are multiple '
-                                'possibilities for icosahedral symmetry:\n'
-                                '* I1: No-Crowther 222 (standard in Heymann,'
-                                'Chagoyen  & Belnap, JSB, 151 (2005) 196-207)\n'
-                                '* I2: Crowther 222                          \n'
-                                '* I3: 52-setting (as used in SPIDER?)       \n'
-                                '* I4: A different 52 setting                \n'
-                                'The command *relion_refine --sym D2 '
-                                '--print_symmetry_ops* prints a list of all '
-                                'symmetry operators for symmetry group D2. '
-                                'RELION uses XMIPP\'s libraries for symmetry '
-                                'operations.  Therefore, look at the XMIPP '
-                                'Wiki for more details:\n'
-                                ' http://xmipp.cnb.csic.es/twiki/bin/view/'
-                                'Xmipp/WebHome?topic=Symmetry')
+                           help='See [[Relion Symmetry][http://www2.mrc-lmb.cam.ac.uk/'
+                           'relion/index.php/Conventions_%26_File_formats#Symmetry]] '
+                           'page for a description of the symmetry format '
+                           'accepted by Relion')
 
     def _defineComputeParams(self, form):
         form.addParam('useParallelDisk', BooleanParam, default=True,
@@ -840,6 +824,16 @@ class ProtRelionBase(EMProtocol):
             if self._getInputParticles().isOddX():
                 errors.append("Relion only works with even values for the "
                               "image dimensions!")
+
+            # if doing scaling, the input is not on abs greyscale
+            if self.getAttributeValue('referenceVolume', None):
+                volX = self._getReferenceVolumes()[0].getXDim()
+                ptclX = self._getInputParticles().getXDim()
+                if (ptclX != volX) and self.isMapAbsoluteGreyScale:
+                    errors.append("Input particles and references have "
+                                  "different dimensions, so the reference is "
+                                  "not on the absolute greyscale. Select *No* for "
+                                  "that option to continue.")
 
             errors += self._validateNormal()
 
@@ -1225,25 +1219,23 @@ class ProtRelionBase(EMProtocol):
                 if len(refVols) == 1:
                     self._convertVol(ih, refVols[0])
                 else:  # input SetOfVolumes as references
-                    row = md.Row()
-                    refMd = md.MetaData()
+                    table = Table(columns=['rlnReferenceImage'])
                     for vol in refVols:
                         newVolFn = self._convertVol(ih, vol)
-                        row.setValue(md.RLN_MLMODEL_REF_IMAGE, newVolFn)
-                        row.addToMd(refMd)
-                    refMd.write(self._getRefStar())
+                        table.addRow(newVolFn)
+                    with open(self._getRefStar(), 'w') as f:
+                        table.writeStar(f)
         else:  # 2D
             inputAvgs = self.referenceAverages.get()
             if inputAvgs:
-                row = md.Row()
-                refMd = md.MetaData()
+                table = Table(columns=['rlnReferenceImage'])
                 refStack = self._getTmpPath('input_references.mrcs')
                 for i, avg in enumerate(inputAvgs):
                     newAvgLoc = (i + 1, refStack)
                     ih.convert(avg, newAvgLoc)
-                    row.setValue(md.RLN_MLMODEL_REF_IMAGE, "%05d@%s" % newAvgLoc)
-                    row.addToMd(refMd)
-                refMd.write(self._getRefStar())
+                    table.addRow("%05d@%s" % newAvgLoc)
+                with open(self._getRefStar(), 'w') as f:
+                    table.writeStar(f)
 
     def _postprocessParticleRow(self, part, partRow):
         pass
