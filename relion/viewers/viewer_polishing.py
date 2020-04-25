@@ -25,6 +25,7 @@
 # ******************************************************************************
 
 from pyworkflow.viewer import ProtocolViewer
+from pyworkflow.gui.plotter import Plotter
 
 from .viewer_base import *
 from ..protocols import ProtRelionBayesianPolishing
@@ -49,10 +50,8 @@ class RelionPolishViewer(ProtocolViewer):
     def __defineParams(self, form):
         form.addSection(label='Visualization')
         group = form.addGroup('3D analysis')
-
         group.addParam('showParticles', params.LabelParam,
-                       default=True, label='Display shiny particles',
-                       help='')
+                       default=True, label='Display shiny particles')
         group.addParam('guinierPlot', params.LabelParam,
                        default=True, label='Display polishing scale-factors')
         group.addParam('bfactorPlot', params.LabelParam,
@@ -62,61 +61,54 @@ class RelionPolishViewer(ProtocolViewer):
         self._load()
         return {'showParticles': self._showParticles,
                 'guinierPlot': lambda paramName: self._showBFactorPlot(key='guinier'),
-                'bfactorPlot': lambda paramName: self._showBFactorPlot(key='bfactor'),
+                'bfactorPlot': lambda paramName: self._showBFactorPlot(key='bfactor')
                 }
 
     def _showParticles(self, paramName=None):
         views = []
-        fn = self.protocol._getFileName('shiny')
-        if not pwutils.exists(fn):
-            raise Exception("Missing data star file '%s'")
-        v = self.createScipionPartView(fn)
-        views.append(v)
-
+        if getattr(self.protocol, 'outputParticles', None) is not None:
+            fn = self.protocol.outputParticles.getFileName()
+            v = self.createScipionPartView(fn)
+            views.append(v)
         return views
 
     def _showBFactorPlot(self, key):
         if key == 'guinier':
             label = 'rlnFittedInterceptGuinierPlot'
+            title = "Polishing scale-factors"
         else:  # bfactor
             label = 'rlnBfactorUsedForSharpening'
-        gridsize = [1, 1]
-        md.activateMathExtensions()
+            title = "Polishing B-factors"
 
-        xplotter = RelionPlotter(x=gridsize[0], y=gridsize[1],
-                                 windowTitle='Polishing scale-factors')
-        a = xplotter.createSubPlot("", 'Movie frame number',
-                                   label,
-                                   yformat=False)
-        legends = []
         modelStar = self.protocol._getFileName('bfactors')
         if pwutils.exists(modelStar):
-            self._plotBfactors(a, modelStar, label)
-            legends.append(label)
+            table = Table(fileName=modelStar, tableName='perframe_bfactors')
+            frame = table.getColumnValues('rlnMovieFrameNumber')
+            bfactor = map(float, table.getColumnValues(label))
 
-        xplotter.showLegend(legends)
-        a.grid(True)
+            plotter = Plotter()
+            figure = plotter.getFigure()
+            a = figure.add_subplot(111)
+            a.grid(True)
+            a.set_xlabel('Movie frame number')
+            a.set_ylabel(label)
+            a.invert_yaxis()
+            a.plot(frame, list(bfactor))
+            a.set_title(title)
+            plotter.tightLayout()
 
-        return [xplotter]
-
-    def _plotBfactors(self, a, model, label):
-        table = Table(fileName=model, tableName='perframe_bfactors')
-        frame = table.getColumnValues('rlnMovieFrameNumber')
-        bfactor = table.getColumnValues(label)
-        a.plot(frame, bfactor)
+            return [plotter]
 
     def _load(self):
-        self.protocol._initialize()  # Load filename templates
+        self.protocol._createFilenameTemplates()  # Load filename templates
 
-    def createScipionPartView(self, filename):
+    def createScipionPartView(self, filename, viewParams={}):
         inputParticlesId = self.protocol.inputParticles.get().strId()
-
         labels = 'enabled id _size _filename _transform._matrix'
         viewParams = {showj.ORDER: labels,
                       showj.VISIBLE: labels, showj.RENDER: '_filename',
-                      'labels': 'id',
-                      }
+                      'labels': 'id'}
         return ObjectView(self._project,
-                          self.protocol.strId(), filename, other=inputParticlesId,
-                          env=self._env,
-                          viewParams=viewParams)
+                          self.protocol.strId(), filename,
+                          other=inputParticlesId,
+                          env=self._env, viewParams=viewParams)
