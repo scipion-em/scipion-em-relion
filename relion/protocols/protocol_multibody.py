@@ -72,7 +72,6 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
         self._defineConstants()
 
         form.addSection(label='Input')
-
         form.addParam('protRefine', params.PointerParam,
                       pointerClass="ProtRefine3D",
                       label='Consensus refinement protocol',
@@ -193,7 +192,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         line.addParam('minEigenvalue', params.IntParam, default=-999, label='min')
         line.addParam('maxEigenvalue', params.IntParam, default=999, label='max')
 
-        form.addSection('Additional')
+        form.addSection('Compute')
         self._defineComputeParams(form)
         form.addParam('extraParams', params.StringParam,
                       default='',
@@ -203,7 +202,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
 
         form.addParallelSection(threads=1, mpi=3)
     
-    # -------------------------- INSERT steps functions ------------------------
+    # -------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self):
         self._createFilenameTemplates()
         objId = self.protRefine.get().getObjId()
@@ -215,7 +214,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
                                      self._getAnalyseArgs())
         self._insertFunctionStep('createOutputStep')
     
-    # -------------------------- STEPS functions -------------------------------
+    # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self, protId):
         self.info("Relion version:")
         self.runJob("relion_refine --version", "", numberOfMpi=1)
@@ -225,8 +224,9 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
 
     def _runProgram(self, program, args):
         params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.items()])
-        prog = program + ('_mpi' if self.numberOfMpi > 1 else '')
-        self.runJob(prog, params)
+        if program == 'relion_refine' and self.numberOfMpi > 1:
+            program += '_mpi'
+        self.runJob(program, params)
 
     def multibodyRefineStep(self, args):
         self._runProgram('relion_refine', args)
@@ -251,7 +251,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         vol = self.protRefine.get().outputVolume
         self._defineSourceRelation(vol, volumes)
 
-    # -------------------------- INFO functions --------------------------------
+    # -------------------------- INFO functions -------------------------------
     def _validate(self):
         """ Should be overwritten in subclasses to
         return summary message for NORMAL EXECUTION.
