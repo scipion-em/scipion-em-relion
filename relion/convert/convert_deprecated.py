@@ -986,7 +986,7 @@ def writeMicCoordinates(mic, coordList, outputFn, getPosFunc=None):
 
 def getVolumesFromPostprocess(postStar):
     """ Return the filenames of half1, half2 and mask from
-    a given postproces.star file.
+    a given postprocess.star file.
     """
     table = Table(fileName=postStar, tableName='general')
     row = table[0]

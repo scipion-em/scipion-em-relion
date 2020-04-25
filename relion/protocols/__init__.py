@@ -42,7 +42,6 @@ from .protocol_center_averages import ProtRelionCenterAverages
 from .protocol_export_particles import ProtRelionExportParticles
 from .protocol_autopick_ref import ProtRelion2Autopick
 from .protocol_autopick_log import ProtRelionAutopickLoG
-from .protocol_bayesian_polishing import ProtRelionBayesianPolishing
 from .protocol_remove_views import ProtRelionRemovePrefViews
 
 from .protocol_motioncor import ProtRelionMotioncor
@@ -53,10 +52,12 @@ if relion.Plugin.IS_30():
     from ._legacy.protocol30_ctf_refinement import ProtRelionCtfRefinement
     from ._legacy.protocol30_preprocess import ProtRelionPreprocessParticles
     from ._legacy.protocol30_subtract import ProtRelionSubtract
+    from ._legacy.protocol30_polishing import ProtRelionBayesianPolishing
 else:
     from .protocol_ctf_refinement import ProtRelionCtfRefinement
     from .protocol_preprocess import ProtRelionPreprocessParticles
     from .protocol_subtract import ProtRelionSubtract
+    from .protocol_bayesian_polishing import ProtRelionBayesianPolishing
 
     # New protocol from Relion v3.1:
 # FIXME: this has to be imported for tests / wizards to work
