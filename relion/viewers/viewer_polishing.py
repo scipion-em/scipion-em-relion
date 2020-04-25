@@ -102,7 +102,7 @@ class RelionPolishViewer(ProtocolViewer):
     def _load(self):
         self.protocol._createFilenameTemplates()  # Load filename templates
 
-    def createScipionPartView(self, filename, viewParams={}):
+    def createScipionPartView(self, filename):
         inputParticlesId = self.protocol.inputParticles.get().strId()
         labels = 'enabled id _size _filename _transform._matrix'
         viewParams = {showj.ORDER: labels,
