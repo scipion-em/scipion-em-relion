@@ -57,3 +57,20 @@ def writeSetOfParticles(imgSet, starFile, outputDir, **kwargs):
     """
     writer = Writer(outputDir=outputDir)
     return writer.writeSetOfParticles(imgSet, starFile, **kwargs)
+
+
+def readSetOfParticles(starFile, partsSet, **kwargs):
+    """ Convert a star file into a set of particles.
+
+        Params:
+            starFile: the filename of the star file
+            partsSet: output particles set
+
+        Keyword Arguments:
+            blockName: The name of the data block (default particles)
+            alignType:
+            removeDisabled:
+
+        """
+    reader = Reader()
+    return reader.readSetOfParticles(starFile, partsSet, **kwargs)

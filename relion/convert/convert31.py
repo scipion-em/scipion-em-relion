@@ -37,7 +37,8 @@ import pwem
 import pwem.convert.transformations as tfs
 
 from .convert_base import WriterBase, ReaderBase
-from .convert_utils import convertBinaryFiles, locationToRelion
+from .convert_utils import convertBinaryFiles, locationToRelion, relionToLocation
+from .metadata import Table
 
 
 class Writer(WriterBase):
@@ -309,13 +310,22 @@ class Reader(ReaderBase):
         "rlnAnglePsi",
     ]
 
+    CTF_LABELS = [
+        "rlnDefocusU",
+        "rlnDefocusV",
+        "rlnDefocusAngle",
+        "rlnCtfAstigmatism",
+        "rlnCtfFigureOfMerit",
+        "rlnCtfMaxResolution"
+    ]
+
     def __init__(self, **kwargs):
         """
         """
         ReaderBase.__init__(self, **kwargs)
         self._first = False
 
-    def readSetOfParticles(self, starFile, partsSet, **kwargs):
+    def readSetOfParticles(self, starFile, partSet, **kwargs):
         """ Convert a star file into a set of particles.
 
         Params:
@@ -328,7 +338,95 @@ class Reader(ReaderBase):
             removeDisabled: Remove disabled items
 
         """
-        pass
+        self._preprocessImageRow = kwargs.get('preprocessImageRow', None)
+
+        opticsTable = Table(fileName=starFile, tableName='optics')
+        optics = opticsTable[0]
+        partsTable = Table(fileName=starFile, tableName='particles')
+        firstRow = partsTable[0]
+
+        if kwargs.get("readAcquisition", True):
+            self._acquisition = self._rowToAcquisition(optics)
+
+
+        self._setCtf = getattr(firstRow, 'rlnDefocusU', False)
+        self._alignType = kwargs.get('alignType')
+        self._extraLabels = kwargs.get('extraLabels', [])
+        self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
+        self._pixelSize = optics['rlnImagePixelSize'] or 1.0
+        self._setClassId = getattr(firstRow, 'rlnClassNumber', False)
+
+        for row in partsTable:
+            part = self._rowToPart(row, **kwargs)
+            part.setAcquisition(self._acquisition)
+            partSet.append(part)
+
+        partSet.setHasCTF(self._setCtf)
+        partSet.setAlignment(self._alignType)
+
+
+    def _rowToPart(self, row, **kwargs):
+        img = pwem.objects.Particle()
+        img.setObjId(row['rlnImageId'])
+
+        if self._preprocessImageRow:
+            self._preprocessImageRow(img, row)
+
+        # Decompose Relion filename
+        index, filename = relionToLocation(row['rlnImageName'])
+        img.setLocation(index, filename)
+        if self._setClassId:
+            img.setClassId(row['rlnClassNumber'])
+
+        if self._setCtf:
+            img.setCtf(self._rowToCtf(row))
+
+        self.setParticleTransform(img, row)
+
+        #self._setAttributes(img, row, self._extraLabels)
+        #TODO: coord, partId, micId,
+
+        if self._postprocessImageRow:
+            self._postprocessImageRow(img, row)
+
+        return img
+
+    def _rowToCtf(self, row):
+        """ Create a CTFModel from the row. """
+        if row.containsAll(self.CTF_LABELS):
+            ctfModel = pwem.objects.CTFModel()
+            ctfModel.setDefocusU(row['rlnDefocusU'])
+            ctfModel.setDefocusV(row['rlnDefocusV'])
+            ctfModel.setDefocusAngle(row['rlnDefocusAngle'])
+            ctfModel.setResolution(row['rlnCtfMaxResolution'] or 0)
+            ctfModel.setFitQuality(row['rlnCtfFigureOfMerit'] or 0)
+
+            if getattr(row, 'rlnCtfPhaseShift', False):
+                ctfModel.setPhaseShift(row['rlnCtfPhaseShift'])
+            ctfModel.standardize()
+
+            if getattr(row, 'rlnCtfImage', False):
+                setattr(ctfModel, '_psdFile', row['rlnCtfImage'])
+
+        else:
+            ctfModel = None
+
+        return ctfModel
+
+    def _rowToAcquisition(self, optics):
+        acq = pwem.objects.Acquisition()
+
+        for attr in ['opticsGroupName', 'mtfFile', 'beamTiltX', 'beamTiltY',
+                     'defectFile']:
+            setattr(acq, attr, getattr(optics, attr))
+
+        acq.setAmplitudeContrast(optics['rlnAmplitudeContrast'])
+        acq.setSphericalAberration(optics['rlnSphericalAberration'])
+        acq.setVoltage(optics['rlnVoltage'])
+        #acq.setMagnification(None)
+
+        return acq
+
 
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """

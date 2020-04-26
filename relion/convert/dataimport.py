@@ -35,6 +35,7 @@ import pwem.emlib.metadata as md
 from pyworkflow.utils.path import findRootFrom
 
 from .convert_utils import relionToLocation
+from relion.convert.metadata import Table
 #from .convert_deprecated import readSetOfParticles, rowToCoordinate
 
 
@@ -50,7 +51,7 @@ class RelionImport:
         """ Import particles from 'run_data.star' """
         self.ignoreIds = self.protocol.ignoreIdColumn.get()
         self._imgDict = {}  # store which images stack have been linked/copied and the new path
-        self._findImagesPath(label=md.RLN_IMAGE_NAME)
+        self._findImagesPath(label='rlnImageName')
         if self._micIdOrName:
             # If MDL_MICROGRAPH_ID or MDL_MICROGRAPH then
             # create a set to link from particles
@@ -78,15 +79,12 @@ class RelionImport:
                 postprocessImageRow=self._postprocessImageRow30,
                 readAcquisition=False, alignType=self.alignType)
         else:
-            from .convert31 import Reader
-            #FIXME
-            self.reader = Reader.readSetOfParticles(
+            from relion.convert import readSetOfParticles
+            readSetOfParticles(
                 self._starFile, partSet,
                 preprocessImageRow=None,
                 postprocessImageRow=None,
                 readAcquisition=False, alignType=self.alignType)
-            mdIter = md.iterRows('particles@' + self._starFile,
-                                 sortByLabel=md.RLN_IMAGE_ID)
 
         if self._micIdOrName:
             self.protocol._defineOutputs(outputMicrographs=self.micSet)
@@ -173,22 +171,28 @@ class RelionImport:
         return result
 
     def _findImagesPath(self, label, warnings=True):
-
-        row = md.getFirstRow(self._starFile)
-        if not row.containsLabel('rlnOpticsGroup'):
-            self.version30 = True
-            self.protocol.warning("Import from Relion version < 3.1 ...")
-        else:
-            row = md.getFirstRow('particles@' + self._starFile)
+        # read the first table
+        table = Table(fileName=self._starFile)
+        row = table[0]
+        acqRow = row
 
         if row is None:
             raise Exception("Cannot import from empty metadata: %s" % self._starFile)
 
-        if not row.containsLabel(label):
-            raise Exception("Label *%s* is missing in metadata: %s" % (md.label2Str(label),
+        if not getattr(row, 'rlnOpticsGroup', False):
+            self.version30 = True
+            self.protocol.warning("Import from Relion version < 3.1 ...")
+        else:
+            acqRow = Table(fileName=self._starFile, tableName='optics')[0]
+            # read particles table
+            table = Table(fileName=self._starFile, tableName='particles')
+            row = table[0]
+
+        if not getattr(row, label, False):
+            raise Exception("Label *%s* is missing in metadata: %s" % (label,
                                                                        self._starFile))
 
-        index, fn = relionToLocation(row.getValue(label))
+        index, fn = relionToLocation(getattr(row, label))
         self._imgPath = findRootFrom(self._starFile, fn)
 
         if warnings and self._imgPath is None:
@@ -197,14 +201,17 @@ class RelionImport:
         if (self._starFile.endswith('_data.star') and
                 self._getModelFile(self._starFile)):
             self._modelStarFile = self._getModelFile(self._starFile)
-            modelRow = md.getFirstRow(self._modelStarFile)
-            classDimensionality = modelRow.getValue('rlnReferenceDimensionality')
-            self._optimiserFile = self._starFile.replace('_data.star', '_optimiser.star')
+            modelRow = Table(fileName=self._modelStarFile,
+                             tableName='model_general')[0]
+            classDimensionality = int(modelRow.rlnReferenceDimensionality)
+            self._optimiserFile = self._starFile.replace('_data.star',
+                                                         '_optimiser.star')
             if not exists(self._optimiserFile):
-                autoRefine = modelRow.getValue("rlnNrClasses") == 1
+                autoRefine = int(modelRow.rlnNrClasses) == 1
             else:
-                optimiserRow = md.getFirstRow(self._optimiserFile)
-                autoRefine = optimiserRow.containsLabel('rlnModelStarFile2')
+                optimiserRow = Table(fileName=self._optimiserFile,
+                                     tableName='optimiser_general')[0]
+                autoRefine = getattr(optimiserRow, 'rlnModelStarFile2', False)
 
             self.alignType = ALIGN_PROJ
 
@@ -223,9 +230,11 @@ class RelionImport:
                        
             # Check if we have rot angle -> ALIGN_PROJ,
             # if only psi angle -> ALIGN_2D
-            if row.containsLabel('rlnAngleRot') and row.getValue("rlnAngleRot") != 0.0:
+            if (getattr(row, 'rlnAngleRot', False) and
+                float(row.rlnAngleRot) != 0.0):
                 self.alignType = ALIGN_PROJ
-            elif row.containsLabel('rlnAnglePsi') and row.getValue("rlnAnglePsi") != 0.0:
+            elif (getattr(row, 'rlnAnglePsi', False) and
+                  float(row.rlnAnglePsi) != 0.0):
                 self.alignType = ALIGN_2D
             else:
                 self.alignType = ALIGN_NONE
@@ -233,12 +242,12 @@ class RelionImport:
         # Check if the MetaData contains either MDL_MICROGRAPH_ID
         # or MDL_MICROGRAPH, this will be used when imported
         # particles to keep track of the particle's micrograph
-        self._micIdOrName = (row.containsLabel('rlnMicrographName') or
-                             row.containsLabel('rlnMicrographId'))
+        self._micIdOrName = (getattr(row, 'rlnMicrographName', False) or
+                             getattr(row, 'rlnMicrographId', False))
         # init dictionary. It will be used in the preprocessing
         self.micDict = {}
 
-        return row, modelRow
+        return row, modelRow, acqRow
 
     def _preprocessImageRow30(self, img, imgRow):
         from .convert_deprecated import setupCTF, copyOrLinkFileName
@@ -294,20 +303,20 @@ class RelionImport:
         acquisitionDict = OrderedDict()
 
         try:
-            row, modelRow = self._findImagesPath(label=md.RLN_IMAGE_NAME, warnings=False)
+            _, modelRow, acqRow = self._findImagesPath(label='rlnImageName', warnings=False)
 
-            if row.containsLabel(md.RLN_CTF_VOLTAGE):
-                acquisitionDict['voltage'] = row.getValue(md.RLN_CTF_VOLTAGE)
+            if getattr(acqRow, 'rlnVoltage', False):
+                acquisitionDict['voltage'] = acqRow.rlnVoltage
 
-            if row.containsLabel('rlnAmplitudeContrast'):
-                acquisitionDict['amplitudeContrast'] = row.getValue('rlnAmplitudeContrast')
+            if getattr(acqRow, 'rlnAmplitudeContrast', False):
+                acquisitionDict['amplitudeContrast'] = acqRow.rlnAmplitudeContrast
 
-            if row.containsLabel('rlnSphericalAberration'):
-                acquisitionDict['sphericalAberration'] = row.getValue('rlnSphericalAberration')
+            if getattr(acqRow, 'rlnSphericalAberration', False):
+                acquisitionDict['sphericalAberration'] = acqRow.rlnSphericalAberration
 
             if (modelRow is not None and
-                    modelRow.containsLabel('rlnPixelSize')):
-                acquisitionDict['samplingRate'] = modelRow.getValue('rlnPixelSize')
+                    getattr(modelRow, 'rlnPixelSize', False)):
+                acquisitionDict['samplingRate'] = modelRow.rlnPixelSize
 
         except Exception as ex:
             print("Error loading acquisition: ", str(ex))
