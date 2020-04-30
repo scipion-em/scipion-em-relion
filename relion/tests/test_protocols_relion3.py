@@ -43,7 +43,7 @@ GPUS = os.environ.get('SCIPION_TEST_GPUS', 2)
 class Relion3TestProtocolBase(TestWorkflow):
     GROUP_NAME = "opticsGroupTest"
     MTF_FILE = join(os.path.dirname(relion.convert.__file__), 'mtfs',
-                    'mtf_k3_standard_200kV.star')
+                    'mtf_k2_300_ec.star')
 
     @classmethod
     def setUpClass(cls):
