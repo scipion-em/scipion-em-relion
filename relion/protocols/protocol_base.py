@@ -786,11 +786,13 @@ class ProtRelionBase(EMProtocol):
                 fillRandomSubset=fillRandomSubset)
 
             if alignToPrior:
+                tableName = ''
                 if Plugin.IS_GT30():
+                    tableName = 'particles'
                     mdOptics = Table(fileName=imgStar, tableName='optics')
-                mdParts = Table(fileName=imgStar, tableName='particles')
+                mdParts = Table(fileName=imgStar, tableName=tableName)
                 self._copyAlignAsPriors(mdParts, alignType)
-                mdParts.write(imgStar, tableName='particles')
+                mdParts.write(imgStar, tableName=tableName)
                 if Plugin.IS_GT30():
                     mdOptics.writeStar(imgStar, tableName='optics')
 

@@ -79,13 +79,15 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
         outImagesMd = self._getExtraPath('expanded_particles.star')
 
         # remove repeating rlnImageId column
+        tableName = ''
         if Plugin.IS_GT30():
+            tableName = 'particles'
             mdOptics = Table(fileName=outImagesMd, tableName='optics')
 
-        mdOut = Table(fileName=outImagesMd, tableName='particles')
+        mdOut = Table(fileName=outImagesMd, tableName=tableName)
         mdOut.removeColumns("rlnImageId")
         with open(outImagesMd, "w") as f:
-            mdOut.writeStar(f, tableName='particles')
+            mdOut.writeStar(f, tableName=tableName)
             if Plugin.IS_GT30():
                 mdOptics.writeStar(f, tableName='optics')
 
