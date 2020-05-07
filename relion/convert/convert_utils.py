@@ -36,6 +36,9 @@ import pyworkflow.utils as pwutils
 import pwem
 from pwem.emlib.image import ImageHandler
 
+from relion import Plugin
+from relion.convert.metadata import Table
+
 
 def locationToRelion(index, filename):
     """ Convert an index and filename location
@@ -47,10 +50,6 @@ def locationToRelion(index, filename):
     return filename
 
 
-def getImageLocation(location):
-    return ImageHandler.locationToXmipp(location)
-
-
 def relionToLocation(filename):
     """ Return a location (index, filename) given
     a Relion filename with the index@filename structure. """
@@ -59,18 +58,6 @@ def relionToLocation(filename):
         return int(indexStr), str(fn)
     else:
         return pwem.NO_INDEX, str(filename)
-
-
-def setRelionAttributes(obj, objRow, *labels):
-    """ Set an attribute to obj from a label that is not
-    basic ones. The new attribute will be named _rlnLabelName
-    and the datatype will be set correctly.
-    """
-    # FIXME: Remove dependency from md (and thus from Xmipp)
-    import pwem.emlib.metadata as md
-    for label in labels:
-        setattr(obj, '_%s' % md.label2Str(label),
-                objRow.getValueAsObject(label))
 
 
 def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
@@ -174,8 +161,74 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
     return filesDict
 
 
+def convertBinaryVol(vol, outputDir):
+    """ Convert binary volume to a format read by Relion.
+    Params:
+        vol: input volume object to be converted.
+        outputDir: where to put the converted file(s)
+    Return:
+        new file name of the volume (converted or not).
+    """
+
+    ih = ImageHandler()
+    fn = vol.getFileName()
+
+    if not fn.endswith('.mrc'):
+        newFn = pwutils.join(outputDir, pwutils.replaceBaseExt(fn, 'mrc'))
+        ih.convert(fn, newFn)
+        return newFn
+
+    return fn
+
+
+def convertMask(img, outputPath, newPix=None, newDim=None):
+    """ Convert mask to mrc format read by Relion.
+    Params:
+        img: input image to be converted.
+        outputPath: it can be either a directory or a file path.
+            If it is a directory, the output name will be inferred from input
+            and put into that directory. If it is not a directory,
+            it is assumed is the output filename.
+        newPix: output pixel size (equals input if None)
+        newDim: output box size
+    Return:
+        new file name of the mask.
+    """
+    index, filename = img.getLocation()
+    imgFn = locationToRelion(index, filename)
+    inPix = img.getSamplingRate()
+    outPix = inPix if newPix is None else newPix
+
+    if os.path.isdir(outputPath):
+        outFn = pwutils.join(outputPath, pwutils.replaceBaseExt(imgFn, 'mrc'))
+    else:
+        outFn = outputPath
+
+    params = '--i %s --o %s --angpix %0.3f --rescale_angpix %0.3f' % (
+        imgFn, outFn, inPix, outPix)
+
+    if newDim is not None:
+        params += ' --new_box %d' % newDim
+
+    params += ' --threshold_above 1 --threshold_below 0'
+    pwutils.runJob(None, 'relion_image_handler', params, env=Plugin.getEnviron())
+
+    return outFn
+
+
 def relativeFromFileName(imgRow, prefixPath):
     """ Remove some prefix from filename in row. """
     index, imgPath = relionToLocation(imgRow['rlnImageName'])
     newImgPath = os.path.relpath(imgPath, prefixPath)
     imgRow['rlnImageName'] = locationToRelion(index, newImgPath)
+
+
+def getVolumesFromPostprocess(postStar):
+    """ Return the filenames of half1, half2 and mask from
+    a given postprocess.star file.
+    """
+    table = Table(fileName=postStar, tableName='general')
+    row = table[0]
+    return (row.rlnUnfilteredMapHalf1,
+            row.rlnUnfilteredMapHalf2,
+            row.rlnMaskName)

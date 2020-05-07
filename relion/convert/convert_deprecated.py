@@ -35,9 +35,7 @@ from pyworkflow.object import ObjectWrap, String, Integer
 from pwem.constants import NO_INDEX, ALIGN_2D, ALIGN_3D, ALIGN_PROJ, ALIGN_NONE
 import pwem.convert.transformations as tfs
 
-from relion import Plugin
 from relion.constants import *
-from .metadata import Table
 from .convert_utils import *
 
 
@@ -676,73 +674,6 @@ def setupCTF(imgRow, sampling):
                             imgRow.getValue(md.MDL_CTF_DEFOCUSU))
         if not hasDefocusAngle:
             imgRow.setValue(md.MDL_CTF_DEFOCUS_ANGLE, 0.)
-            
-
-def convertBinaryVol(vol, outputDir):
-    """ Convert binary volume to a format read by Relion.
-    Params:
-        vol: input volume object to be converted.
-        outputDir: where to put the converted file(s)
-    Return:
-        new file name of the volume (converted or not).
-    """
-    
-    ih = ImageHandler()
-    # This approach can be extended when
-    # converting from a binary file format that
-    # is not read from Relion
-
-    def convertToMrc(fn):
-        """ Convert from a format that is not read by Relion
-        to mrc format.
-        """
-        newFn = join(outputDir, pwutils.replaceBaseExt(fn, 'mrc'))
-        ih.convert(fn, newFn)
-        return newFn
-        
-    ext = vol.getFileName()
-    
-    if not ext.endswith('.mrc'):
-        fn = convertToMrc(vol.getFileName())
-    else:
-        fn = vol.getFileName()
-    return fn
-
-
-def convertMask(img, outputPath, newPix=None, newDim=None):
-    """ Convert mask to mrc format read by Relion.
-    Params:
-        img: input image to be converted.
-        outputPath: it can be either a directory or a file path.
-            If it is a directory, the output name will be inferred from input
-            and put into that directory. If it is not a directory,
-            it is assumed is the output filename.
-        newPix: output pixel size (equals input if None)
-        newDim: output box size
-    Return:
-        new file name of the mask.
-    """
-    
-    imgFn = getImageLocation(img.getLocation())
-    inPix = img.getSamplingRate()
-    outPix = inPix if newPix is None else newPix
-
-    if os.path.isdir(outputPath):
-        outFn = join(outputPath, pwutils.replaceBaseExt(imgFn, 'mrc'))
-    else:
-        outFn = outputPath
-
-    params = '--i %s --o %s --angpix %0.3f --rescale_angpix %0.3f' % (
-        imgFn, outFn, inPix, outPix)
-
-    if newDim is not None:
-        params += ' --new_box %d' % newDim
-
-    params += ' --threshold_above 1 --threshold_below 0'
-
-    pwutils.runJob(None, 'relion_image_handler', params, env=Plugin.getEnviron())
-
-    return outFn
 
 
 def createItemMatrix(item, row, align):
@@ -981,14 +912,3 @@ def writeMicCoordinates(mic, coordList, outputFn, getPosFunc=None):
                        coord._rlnAnglePsi))
 
     f.close()
-
-
-def getVolumesFromPostprocess(postStar):
-    """ Return the filenames of half1, half2 and mask from
-    a given postprocess.star file.
-    """
-    table = Table(fileName=postStar, tableName='general')
-    row = table[0]
-    return (row.rlnUnfilteredMapHalf1,
-            row.rlnUnfilteredMapHalf2,
-            row.rlnMaskName)
