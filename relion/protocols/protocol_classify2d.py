@@ -26,12 +26,12 @@
 
 from pyworkflow.object import String, Float
 import pwem
-import pwem.emlib.metadata as md
 from pwem.objects import SetOfClasses2D
 from pwem.protocols import ProtClassify2D
 
-import relion
 import relion.convert as convert
+from relion import Plugin
+from relion.convert.metadata import Table
 from .protocol_base import ProtRelionBase
 
 
@@ -61,7 +61,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
             args['--offset_step'] = self.offsetSearchStepPix.get() * self._getSamplingFactor()
             args['--psi_step'] = self.inplaneAngularSamplingDeg.get() * self._getSamplingFactor()
 
-            if relion.Plugin.IS_GT30() and self.allowCoarserSampling:
+            if self.IS_GT30() and self.allowCoarserSampling:
                 args['--allow_coarser_sampling'] = ''
 
         else:
@@ -73,23 +73,22 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         from the *model.star file.
         """
         self._classesInfo = {}  # store classes info, indexed by class id
-         
-        modelStar = md.MetaData('model_classes@%s' %
-                                self._getFileName('model', iter=iteration))
+        modelFn = self._getFileName('model', iter=iteration)
+        modelIter = Table.iterRows('model_classes@' + modelFn)
         
-        for classNumber, row in enumerate(md.iterRows(modelStar)):
-            index, fn = convert.relionToLocation(row.getValue('rlnReferenceImage'))
-            # Store info indexed by id, we need to store the row.clone() since
-            # the same reference is used for iteration            
-            self._classesInfo[classNumber+1] = (index, fn, row.clone())
+        for classNumber, row in enumerate(modelIter):
+            index, fn = convert.relionToLocation(row.rlnReferenceImage)
+            # Store info indexed by id
+            self._classesInfo[classNumber+1] = (index, fn, row)
     
     def _fillClassesFromIter(self, clsSet, iteration):
         """ Create the SetOfClasses2D from a given iteration. """
         self._loadClassesInfo(iteration)
-        tableName = '' if relion.Plugin.IS_30() else 'particles@'
+        tableName = 'particles@' if self.IS_GT30() else ''
         dataStar = self._getFileName('data', iter=iteration)
         self.reader = convert.Reader(alignType=pwem.ALIGN_2D)
-        mdIter = md.iterRows(tableName + dataStar, sortByLabel=md.RLN_IMAGE_ID)
+
+        mdIter = Table.iterRows(tableName + dataStar, key='rlnImageId')
         clsSet.classifyItems(updateItemCallback=self._updateParticle,
                              updateClassCallback=self._updateClass,
                              itemDataIterator=mdIter,
@@ -162,13 +161,15 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
     
     # --------------------------- UTILS functions -----------------------------
     def _updateParticle(self, item, row):
-        item.setClassId(row.getValue('rlnClassNumber'))
+        item.setClassId(row.rlnClassNumber)
         self.reader.setParticleTransform(item, row)
 
-        item._rlnNormCorrection = Float(row.getValue('rlnNormCorrection'))
-        item._rlnLogLikeliContribution = Float(row.getValue('rlnLogLikeliContribution'))
-        item._rlnMaxValueProbDistribution = Float(row.getValue('rlnMaxValueProbDistribution'))
-        item._rlnGroupName = String(row.getValue('rlnGroupName'))
+        item._rlnNormCorrection = Float(row.rlnNormCorrection)
+        item._rlnLogLikeliContribution = Float(row.rlnLogLikeliContribution)
+        item._rlnMaxValueProbDistribution = Float(row.rlnMaxValueProbDistribution)
+
+        if hasattr(row, 'rlnGroupName'):
+            item._rlnGroupName = String(row.rlnGroupName)
         
     def _updateClass(self, item):
         classId = item.getObjId()
@@ -176,6 +177,12 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
             index, fn, row = self._classesInfo[classId]
             item.setAlignment2D()
             item.getRepresentative().setLocation(index, fn)
-            item._rlnclassDistribution = Float(row.getValue('rlnClassDistribution'))
-            item._rlnAccuracyRotations = Float(row.getValue('rlnAccuracyRotations'))
-            item._rlnAccuracyTranslations = Float(row.getValue('rlnAccuracyTranslations'))
+            item._rlnclassDistribution = Float(row.rlnClassDistribution)
+            item._rlnAccuracyRotations = Float(row.rlnAccuracyRotations)
+            if self.IS_GT30():
+                item._rlnAccuracyTranslationsAngst = Float(row.rlnAccuracyTranslationsAngst)
+            else:
+                item._rlnAccuracyTranslations = Float(row.rlnAccuracyTranslations)
+
+    def IS_GT30(self):
+        return Plugin.IS_GT30()

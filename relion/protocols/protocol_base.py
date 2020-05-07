@@ -36,7 +36,6 @@ from pyworkflow.protocol.params import (BooleanParam, PointerParam, FloatParam,
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 
 import pwem
-import pwem.emlib.metadata as md
 from pwem.emlib.image import ImageHandler
 from pwem.objects import SetOfClasses3D
 from pwem.protocols import EMProtocol
@@ -556,7 +555,7 @@ class ProtRelionBase(EMProtocol):
                                    'of -6/+6 times the sampling rate will be '
                                    'used from this angular sampling rate '
                                    'onwards.')
-                if relion.Plugin.IS_GT30():
+                if self.IS_GT30():
                     form.addParam('useFinerSamplingFaster', BooleanParam,
                                   default=False,
                                   label='Use finer angular sampling faster?',
@@ -577,7 +576,7 @@ class ProtRelionBase(EMProtocol):
                                        'many cases for potential loss in '
                                        'reconstruction quality upon convergence.')
 
-        if self.IS_CLASSIFY and relion.Plugin.IS_GT30():
+        if self.IS_CLASSIFY and self.IS_GT30():
             form.addParam('allowCoarserSampling', BooleanParam,
                           default=False,
                           label='Allow coarser sampling?',
@@ -787,13 +786,13 @@ class ProtRelionBase(EMProtocol):
 
             if alignToPrior:
                 tableName = ''
-                if Plugin.IS_GT30():
+                if self.IS_GT30():
                     tableName = 'particles'
                     mdOptics = Table(fileName=imgStar, tableName='optics')
                 mdParts = Table(fileName=imgStar, tableName=tableName)
                 self._copyAlignAsPriors(mdParts, alignType)
                 mdParts.write(imgStar, tableName=tableName)
-                if Plugin.IS_GT30():
+                if self.IS_GT30():
                     mdOptics.writeStar(imgStar, tableName='optics')
 
             if self.doCtfManualGroups:
@@ -947,7 +946,7 @@ class ProtRelionBase(EMProtocol):
                     args['--firstiter_cc'] = ''
                 args['--ini_high'] = self.initialLowPassFilterA.get()
                 args['--sym'] = self.symmetryGroup.get()
-                if relion.Plugin.IS_GT30():
+                if self.IS_GT30():
                     # We use the same pixel size as input particles, since
                     # we convert anyway the input volume to match same size
                     args['--ref_angpix'] = ps
@@ -1260,7 +1259,7 @@ class ProtRelionBase(EMProtocol):
 
     def _copyAlignAsPriors(self, mdParts, alignType):
         # set priors equal to orig. values
-        if Plugin.IS_GT30():
+        if self.IS_GT30():
             mdParts.addColumns('rlnOriginXPriorAngst=rlnOriginXAngst')
             mdParts.addColumns('rlnOriginYPriorAngst=rlnOriginYAngst')
         else:
@@ -1271,3 +1270,6 @@ class ProtRelionBase(EMProtocol):
         if alignType == pwem.ALIGN_PROJ:
             mdParts.addColumns('rlnAngleRotPrior=rlnAngleRot')
             mdParts.addColumns('rlnAngleTiltPrior=rlnAngleTilt')
+
+    def IS_GT30(self):
+        return Plugin.IS_GT30()

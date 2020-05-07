@@ -89,7 +89,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
                            'the choice, CTF refinement job is always done on '
                            'dose-weighted particles.')
 
-        if relion.Plugin.IS_GT30():
+        if self.IS_GT30():
             form.addParam('savePSsum', params.BooleanParam, default=False,
                           label='Save sum of power spectra?',
                           help='Sum of non-dose weighted power spectra '
@@ -211,7 +211,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
             args += ' --gain_rot %d ' % self.gainRot
             args += ' --gain_flip %d ' % self.gainFlip
 
-        if relion.Plugin.IS_GT30():
+        if self.IS_GT30():
             acq = inputMovies.getAcquisition()
             defectFile = acq.getAttributeValue('defectFile', None)
 
@@ -264,7 +264,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
                 errors.append("Input movies do not contain the dose per frame, "
                               "dose-weighting can not be performed. ")
 
-        if relion.Plugin.IS_GT30():
+        if self.IS_GT30():
             # We require to have opticsGroup information in acquisition
             if not acq.getAttributeValue('opticsGroupName', None):
                 errors.append("In Relion > 3.1, you need to run the "
@@ -305,7 +305,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         """ Parse motion values from the 'corrected_micrographs.star' file
         generated for each movie. """
         fn = self._getMovieExtraFn(movie, 'corrected_micrographs.star')
-        micsTableName = 'micrographs' if relion.Plugin.IS_GT30() else ''
+        micsTableName = 'micrographs' if self.IS_GT30() else ''
         table = md.Table(fileName=fn, tableName=micsTableName)
         row = table[0]
         mic._rlnAccumMotionTotal = pwobj.Float(row.rlnAccumMotionTotal)
@@ -515,6 +515,9 @@ class ProtRelionMotioncor(ProtAlignMovies):
         # Reimplement this method to ignore prefix (called from base class)
         # and always use 'sum' as prefix
         return ProtAlignMovies._getFrameRange(self, n, 'sum')
+
+    def IS_GT30(self):
+        return relion.Plugin.IS_GT30()
 
 
 def createGlobalAlignmentPlot(meanX, meanY, first, pixSize):
