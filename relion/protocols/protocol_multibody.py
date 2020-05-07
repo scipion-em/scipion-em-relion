@@ -253,9 +253,6 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
 
     # -------------------------- INFO functions -------------------------------
     def _validate(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION.
-        """
         errors = []
         bodyFn = self.bodyStarFile.get()
         if not os.path.exists(bodyFn):
@@ -279,9 +276,6 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         return ['Nakane2018']
 
     def _summary(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION.
-        """
         summary = []
         return summary
 

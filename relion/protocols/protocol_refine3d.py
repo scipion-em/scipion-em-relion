@@ -27,11 +27,9 @@
 from pyworkflow.object import String, Integer
 
 import pwem
-import pwem.emlib.metadata as md
 from pwem.objects import Volume, FSC
 from pwem.protocols import ProtRefine3D
 
-import relion
 from relion import Plugin
 import relion.convert as convert
 from relion.convert.metadata import Table
@@ -84,7 +82,7 @@ leads to objective and high-quality results.
             if joinHalves not in self.extraParams.get():
                 args['--low_resol_join_halves'] = 40
 
-            if relion.Plugin.IS_GT30() and self.useFinerSamplingFaster:
+            if self.IS_GT30() and self.useFinerSamplingFaster:
                 args['--auto_ignore_angles'] = ''
                 args['--auto_resol_angles'] = ''
 
@@ -119,9 +117,6 @@ leads to objective and high-quality results.
 
     # -------------------------- INFO functions -------------------------------
     def _validateNormal(self):
-        """ Should be overwritten in subclasses to 
-        return summary message for NORMAL EXECUTION. 
-        """
         errors = []
 
         if self.IS_3D and self.solventFscMask and not self.referenceMask.get():
@@ -131,9 +126,6 @@ leads to objective and high-quality results.
         return errors
     
     def _validateContinue(self):
-        """ Should be overwritten in subclasses to
-        return summary messages for CONTINUE EXECUTION.
-        """
         errors = []
         continueRun = self.continueRun.get()
         continueRun._initialize()
@@ -150,9 +142,6 @@ leads to objective and high-quality results.
         return errors
     
     def _summaryNormal(self):
-        """ Should be overwritten in subclasses to 
-        return summary message for NORMAL EXECUTION. 
-        """
         summary = []
         if not hasattr(self, 'outputVolume'):
             summary.append("Output volume not ready yet.")
@@ -173,25 +162,23 @@ leads to objective and high-quality results.
         return summary
     
     def _summaryContinue(self):
-        """ Should be overwritten in subclasses to
-        return summary messages for CONTINUE EXECUTION.
-        """
         return ["Continue from iteration %01d" % self._getContinueIter()]
 
     # -------------------------- UTILS functions ------------------------------
     def _fillDataFromIter(self, imgSet, iteration):
-        tableName = '' if relion.Plugin.IS_30() else 'particles@'
+        tableName = 'particles@' if self.IS_GT30() else ''
         outImgsFn = self._getFileName('data', iter=iteration)
         imgSet.setAlignmentProj()
         self.reader = convert.Reader(alignType=pwem.ALIGN_PROJ)
-        mdIter = md.iterRows(tableName + outImgsFn, sortByLabel=md.RLN_IMAGE_ID)
+
+        mdIter = Table.iterRows(tableName + outImgsFn, key='rlnImageId')
         imgSet.copyItems(self._getInputParticles(), doClone=False,
                          updateItemCallback=self._createItemMatrix,
                          itemDataIterator=mdIter)
 
     def _createItemMatrix(self, particle, row):
         self.reader.setParticleTransform(particle, row)
-        particle._rlnRandomSubset = Integer(row.getValue('rlnRandomSubset'))
+        particle._rlnRandomSubset = Integer(row.rlnRandomSubset)
 
     def _updateParticle(self, particle, row):
-        particle._coordinate._micName = String(row.getValue('rlnMicrographName'))
+        particle._coordinate._micName = String(row.rlnMicrographName)

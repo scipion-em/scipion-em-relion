@@ -28,7 +28,6 @@
 
 import pwem
 from pwem.protocols import ProtInitialVolume
-import pwem.emlib.metadata as md
 from pwem.objects import Volume
 from pyworkflow.protocol.params import (PointerParam, FloatParam,
                                         LabelParam, IntParam,
@@ -345,16 +344,10 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
 
     # -------------------------- INFO functions -------------------------------
     def _validateNormal(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION.
-        """
         errors = []
         return errors
 
     def _validateContinue(self):
-        """ Should be overwritten in subclasses to
-        return summary messages for CONTINUE EXECUTION.
-        """
         errors = []
         continueRun = self.continueRun.get()
         continueRun._initialize()
@@ -372,9 +365,6 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         return errors
 
     def _summaryNormal(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION.
-        """
         summary = []
         it = self._lastIter()
         if it >= 1:
@@ -386,9 +376,6 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         return summary
 
     def _summaryContinue(self):
-        """ Should be overwritten in subclasses to
-        return summary messages for CONTINUE EXECUTION.
-        """
         summary = list()
         summary.append("Continue from iteration %01d" % self._getContinueIter())
         return summary
@@ -430,11 +417,11 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
             args['--offset_step'] = self.offsetSearchStepPix.get() * 2
 
     def _fillDataFromIter(self, imgSet, iteration):
-        tableName = '' if relion.Plugin.IS_30() else 'particles@'
+        tableName = 'particles@' if self.IS_GT30() else ''
         outImgsFn = self._getFileName('data', iter=iteration)
         imgSet.setAlignmentProj()
         self.reader = convert.Reader(alignType=pwem.ALIGN_PROJ)
-        mdIter = md.iterRows(tableName + outImgsFn, sortByLabel=md.RLN_IMAGE_ID)
+        mdIter = convert.Table.iterRows(tableName + outImgsFn, key='rlnImageId')
         imgSet.copyItems(self._getInputParticles(), doClone=False,
                          updateItemCallback=self._createItemMatrix,
                          itemDataIterator=mdIter)

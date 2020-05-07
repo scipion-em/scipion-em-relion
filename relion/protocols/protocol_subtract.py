@@ -24,13 +24,13 @@
 # *
 # **************************************************************************
 
-import pwem.emlib.metadata as md
 from pwem import ALIGN_PROJ
 from pyworkflow.protocol.params import PointerParam, BooleanParam, IntParam
 from pwem.protocols import ProtOperateParticles
 from pyworkflow.object import String, Integer
 
 import relion.convert as convert
+from relion import Plugin
 
 
 class ProtRelionSubtract(ProtOperateParticles):
@@ -170,7 +170,8 @@ class ProtRelionSubtract(ProtOperateParticles):
         outImgSet.setAlignmentProj()
 
         self.reader = convert.Reader(alignType=ALIGN_PROJ)
-        mdIter = md.iterRows('particles@' + outImgsFn)
+        tableName = 'particles@' if self.IS_GT30() else ''
+        mdIter = convert.Table.iterRows(tableName + outImgsFn)
         outImgSet.copyItems(imgSet, doClone=False,
                             updateItemCallback=self._updateItem,
                             itemDataIterator=mdIter)
@@ -203,12 +204,15 @@ class ProtRelionSubtract(ProtOperateParticles):
     def _updateItem(self, particle, row):
         self.reader.setParticleTransform(particle, row)
         # FIXME: check if other attrs need saving
-        particle._rlnImageOriginalName = String(row.getValue('rlnImageOriginalName'))
-        particle._rlnRandomSubset = Integer(row.getValue('rlnRandomSubset'))
+        particle._rlnImageOriginalName = String(row.rlnImageOriginalName)
+        particle._rlnRandomSubset = Integer(row.rlnRandomSubset)
 
-        newLoc = convert.relionToLocation(row.getValue('rlnImageName'))
+        newLoc = convert.relionToLocation(row.rlnImageName)
         particle.setLocation(newLoc)
 
     def _getInputParticles(self):
         inputProt = self.inputProtocol.get()
         return inputProt.outputParticles
+
+    def IS_GT30(self):
+        return Plugin.IS_GT30()

@@ -278,6 +278,7 @@ class TestRelionClassify3D(TestRelionBase):
         cls.protImportVol = cls.runImportVolumes(cls.vol, 3.5)
     
     def testProtRelionClassify3D(self):
+        print(magentaStr("\n==> Running relion - preprocess particles:"))
         relionNormalize = self.newProtocol(ProtRelionPreprocessParticles)
         relionNormalize.inputParticles.set(self.protImport.outputParticles)
         relionNormalize.doNormalize.set(True)

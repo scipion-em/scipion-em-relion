@@ -90,7 +90,7 @@ class CtfRefineGlobalInfo:
         self._infoSet.write()
 
     def getMaxXY(self):
-        """ Return maximum value of  coordinates"""
+        """ Return maximum value of coordinates"""
         mapper = self._infoSet._getMapper()
         # TODO: eventually remove this if
         # since in the future all instances will

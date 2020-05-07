@@ -159,9 +159,6 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
 
     # -------------------------- INFO functions -------------------------------
     def _summary(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION. 
-        """
         summary = []
         if not hasattr(self, 'outputVolume'):
             summary.append("Output volume not ready yet.")

@@ -105,16 +105,10 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
     
     # -------------------------- INFO functions -------------------------------
     def _validateNormal(self):
-        """ Should be overwritten in subclasses to 
-        return summary message for NORMAL EXECUTION. 
-        """
         errors = []
         return errors
     
     def _validateContinue(self):
-        """ Should be overwritten in subclasses to
-        return summary messages for CONTINUE EXECUTION.
-        """
         errors = []
         continueRun = self.continueRun.get()
         continueRun._initialize()
@@ -131,9 +125,6 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
         return errors
     
     def _summaryNormal(self):
-        """ Should be overwritten in subclasses to 
-        return summary message for NORMAL EXECUTION. 
-        """
         summary = []
         it = self._lastIter()
         if it >= 1:
@@ -151,9 +142,6 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
         return summary
     
     def _summaryContinue(self):
-        """ Should be overwritten in subclasses to
-        return summary messages for CONTINUE EXECUTION.
-        """
         summary = list()
         summary.append("Continue from iteration %01d" % self._getContinueIter())
         return summary
@@ -215,7 +203,3 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
                 item._rlnAccuracyTranslationsAngst = Float(row.rlnAccuracyTranslationsAngst)
             else:
                 item._rlnAccuracyTranslations = Float(row.rlnAccuracyTranslations)
-
-
-    def IS_GT30(self):
-        return Plugin.IS_GT30()

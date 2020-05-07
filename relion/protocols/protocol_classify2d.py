@@ -30,7 +30,6 @@ from pwem.objects import SetOfClasses2D
 from pwem.protocols import ProtClassify2D
 
 import relion.convert as convert
-from relion import Plugin
 from relion.convert.metadata import Table
 from .protocol_base import ProtRelionBase
 
@@ -105,15 +104,9 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         
     # --------------------------- INFO functions ------------------------------
     def _validateNormal(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION. 
-        """
         return []
     
     def _validateContinue(self):
-        """ Should be overwritten in subclasses to
-        return summary messages for CONTINUE EXECUTION.
-        """
         errors = []
         continueRun = self.continueRun.get()
         continueRun._initialize()
@@ -130,9 +123,6 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         return errors
     
     def _summaryNormal(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION. 
-        """
         summary = list()
         summary.append("Input Particles: %s" % self.getObjectTag('inputParticles'))
         summary.append("Classified into *%d* classes." % self.numberOfClasses)
@@ -141,9 +131,6 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         return summary
     
     def _summaryContinue(self):
-        """ Should be overwritten in subclasses to
-        return summary messages for CONTINUE EXECUTION.
-        """
         summary = list()
         summary.append("Continue from iteration %01d" % self._getContinueIter())
         
@@ -183,6 +170,3 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
                 item._rlnAccuracyTranslationsAngst = Float(row.rlnAccuracyTranslationsAngst)
             else:
                 item._rlnAccuracyTranslations = Float(row.rlnAccuracyTranslations)
-
-    def IS_GT30(self):
-        return Plugin.IS_GT30()
