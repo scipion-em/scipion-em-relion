@@ -25,7 +25,6 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-from io import open
 
 from pwem import *
 from pwem.viewers import CoordinatesObjectView
@@ -228,26 +227,25 @@ class Relion2AutopickParams(EmWizard):
 
         pickerProps = os.path.join(coordsDir, 'picker.conf')
 
-        f = open(pickerProps, "w")
-        f.write("""
-        parameters = ipd,threshold,maxStddevNoise
-        ipd.value = %(min_distance)s
-        ipd.label = Inter-particles distance (A)
-        ipd.help = Particles closer together than this distance will be consider to be a single cluster. From each cluster, only one particle will be picked.
-        threshold.value =  %(threshold)s
-        threshold.label = Threshold
-        threshold.help = Use lower thresholds to pick more particles (and more junk probably).
-        maxStddevNoise.value = %(maxStddevNoise)s
-        maxStddevNoise.label = Max. stddev noise
-        maxStddevNoise.help = Prevent picking in carbon areas, useful values probably between 1.0 and 1.2, use -1 to switch it off
-        runDir = %(protDir)s
-        preprocessCommand = %(preprocessCommand)s
-        autopickCommand = %(autopickCommand)s
-        convertCommand = %(convertCmd)s
-        hasInitialCoordinates = true
-        doPickAll = true
-        """ % args)
-        f.close()
+        with open(pickerProps, "w") as f:
+            f.write("""
+            parameters = ipd,threshold,maxStddevNoise
+            ipd.value = %(min_distance)s
+            ipd.label = Inter-particles distance (A)
+            ipd.help = Particles closer together than this distance will be consider to be a single cluster. From each cluster, only one particle will be picked.
+            threshold.value =  %(threshold)s
+            threshold.label = Threshold
+            threshold.help = Use lower thresholds to pick more particles (and more junk probably).
+            maxStddevNoise.value = %(maxStddevNoise)s
+            maxStddevNoise.label = Max. stddev noise
+            maxStddevNoise.help = Prevent picking in carbon areas, useful values probably between 1.0 and 1.2, use -1 to switch it off
+            runDir = %(protDir)s
+            preprocessCommand = %(preprocessCommand)s
+            autopickCommand = %(autopickCommand)s
+            convertCommand = %(convertCmd)s
+            hasInitialCoordinates = true
+            doPickAll = true
+            """ % args)
         os.environ['XMIPP_EXTRA_ALIASES'] = 'micrograph=rlnMicrographName'
         process = CoordinatesObjectView(autopickProt.getProject(), micStarFn,
                                         coordsDir, autopickProt,
@@ -325,8 +323,6 @@ class RelionWizLogPickParams(EmWizard):
                                 outputDir=coordsDir)
         writer.writeSetOfMicrographs(micSet, micStarFn)
 
-        f = open(pickerProps, "w")
-
         # params = params.replace('--odir ""', '--odir extra')
         autopickCmd = "python -m %s relion_autopick " % SCIPION_EP
         autopickCmd += ' --i input_micrographs.star '
@@ -346,24 +342,24 @@ class RelionWizLogPickParams(EmWizard):
             "autopickCmd": autopickCmd
         }
 
-        f.write("""
-        parameters = mind,maxd,threshold
-        mind.value = %(minDiameter)s
-        mind.label = Min diam.(A)
-        mind.help = The smallest allowed diameter for the blob-detection algorithm. This should correspond to the smallest size of your particles in Angstroms.
-        maxd.value = %(maxDiameter)s
-        maxd.label = Max diam.(A)
-        maxd.help = The largest allowed diameter for the blob-detection algorithm. This should correspond to the largest size of your particles in Angstroms.
-        threshold.value =  %(threshold)s
-        threshold.label = Threshold
-        threshold.help = Lower threshold -> more particles
-        runDir = %(coordsDir)s
-        autopickCommand = %(autopickCmd)s
-        convertCommand = %(convert)s --coordinates --from relion --to xmipp --input %(micsSqlite)s --output %(coordsDir)s --extra %(coordsDir)s/
-        hasInitialCoordinates = false
-        doPickAll = true
-        """ % args)
-        f.close()
+        with open(pickerProps, "w") as f:
+            f.write("""
+            parameters = mind,maxd,threshold
+            mind.value = %(minDiameter)s
+            mind.label = Min diam.(A)
+            mind.help = The smallest allowed diameter for the blob-detection algorithm. This should correspond to the smallest size of your particles in Angstroms.
+            maxd.value = %(maxDiameter)s
+            maxd.label = Max diam.(A)
+            maxd.help = The largest allowed diameter for the blob-detection algorithm. This should correspond to the largest size of your particles in Angstroms.
+            threshold.value =  %(threshold)s
+            threshold.label = Threshold
+            threshold.help = Lower threshold -> more particles
+            runDir = %(coordsDir)s
+            autopickCommand = %(autopickCmd)s
+            convertCommand = %(convert)s --coordinates --from relion --to xmipp --input %(micsSqlite)s --output %(coordsDir)s --extra %(coordsDir)s/
+            hasInitialCoordinates = false
+            doPickAll = true
+            """ % args)
         process = CoordinatesObjectView(autopickProt.getProject(), micfn,
                                         coordsDir, autopickProt,
                                         mode=CoordinatesObjectView.MODE_AUTOMATIC,

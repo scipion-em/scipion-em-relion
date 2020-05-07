@@ -29,7 +29,6 @@
 New conversion functions dealing with Relion3.1 new star files format.
 """
 import os
-from io import open
 import numpy as np
 from collections import OrderedDict
 

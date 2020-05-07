@@ -26,7 +26,6 @@ __author__ = 'Jose Miguel de la Rosa Trevin'
 import os
 import sys
 import argparse
-from io import open
 from collections import OrderedDict, namedtuple
 
 

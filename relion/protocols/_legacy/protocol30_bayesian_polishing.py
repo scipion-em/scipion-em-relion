@@ -26,7 +26,6 @@
 
 import os
 import json
-from io import open
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
@@ -311,12 +310,11 @@ class ProtRelionBayesianPolishing(ProtParticles):
             summary.append('Sigma for acceleration: %0.2f' % self.sigmaAcc)
         else:
             if pwutils.exists(self._getExtraPath('opt_params.txt')):
-                f = open(self._getExtraPath('opt_params.txt'))
-                line = list(map(float, f.readline().split()))
+                with open(self._getExtraPath('opt_params.txt')) as f:
+                    line = [float(x) for x in f.readline().split()]
                 summary.append('Sigma for velocity: %0.3f' % line[0])
                 summary.append('Sigma for divergence: %0.1f' % line[1])
                 summary.append('Sigma for acceleration: %0.2f' % line[2])
-                f.close()
             else:
                 summary.append('Output is not ready yet.')
 

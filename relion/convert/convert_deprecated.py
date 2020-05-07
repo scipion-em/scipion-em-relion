@@ -29,7 +29,6 @@
 # **************************************************************************
 
 from os.path import join, basename
-from io import open
 import numpy as np
 
 from pyworkflow.object import ObjectWrap, String, Integer
