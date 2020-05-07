@@ -316,7 +316,7 @@ class Reader(ReaderBase):
 
     #FIXME: remove this function
     def _containsAny(self, row, labels):
-        return any(getattr(row, label, False) for label in labels)
+        return any(hasattr(row, label) for label in labels)
 
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """

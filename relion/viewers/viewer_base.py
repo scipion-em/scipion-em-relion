@@ -721,7 +721,8 @@ Examples:
 
     def createScipionView(self, filename):
         labels = 'enabled id _size _representative._filename '
-        labels += '_rlnclassDistribution _rlnAccuracyRotations _rlnAccuracyTranslations'
+        labels += '_rlnclassDistribution _rlnAccuracyRotations '
+        labels += '_rlnAccuracyTranslations _rlnAccuracyTranslationsAngst '
         viewParams = {showj.ORDER: labels,
                       showj.VISIBLE: labels,
                       showj.RENDER: '_representative._filename',
