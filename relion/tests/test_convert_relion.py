@@ -31,7 +31,7 @@ import os
 import subprocess
 import numpy as np
 
-from pyworkflow.object import Float, String
+from pyworkflow.object import String
 from pyworkflow.tests import BaseTest, setupTestOutput, DataSet
 from pyworkflow.utils import cleanPath
 from pwem.objects import (SetOfParticles, CTFModel, Acquisition,
@@ -42,117 +42,8 @@ import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_3D
 from pyworkflow.utils import magentaStr
 
-from .. import Plugin
+from relion import Plugin
 import relion.convert as convert
-from relion.convert.metadata import Table
-
-
-class TestConversions(BaseTest):
-    
-    @classmethod
-    def setUpClass(cls):
-        setupTestOutput(cls)
-        cls.dataset = DataSet.getDataSet('relion_tutorial')  
-        cls.getFile = cls.dataset.getFile
-
-    def test_particlesToStar(self):
-        """ Write a SetOfParticles to Relion star input file. """
-        print(magentaStr("\n==> Testing relion - convert particles to star file:"))
-        imgSet = SetOfParticles(filename=self.getOutputPath("particles.sqlite"))
-        n = 10
-        fn = self.getFile('particles_binary')
-        ctfs = [CTFModel(defocusU=10000, defocusV=15000, defocusAngle=15),
-                CTFModel(defocusU=20000, defocusV=25000, defocusAngle=25)]
-        acquisition = Acquisition(magnification=60000, voltage=300,
-                                  sphericalAberration=2., amplitudeContrast=0.07)
-        imgSet.setAcquisition(acquisition)
-        coord = Coordinate()
-        coord.setMicId(1)
-
-        for i in range(n):
-            p = Particle()
-            p.setLocation(i+1, fn)
-            ctf = ctfs[i % 2]
-            p.setCTF(ctf)
-            p.setAcquisition(acquisition)
-            p._xmipp_zScore = Float(i)
-            coord.setX(i*10)
-            coord.setY(i*10)
-            p.setCoordinate(coord)
-            imgSet.append(p)
-            
-        fnStar = self.getOutputPath('particles.star')
-        fnStk = self.getOutputPath('particles.stk')
-        
-        print(">>> Writing to file: %s" % fnStar)
-        convert.writeSetOfParticles(imgSet, fnStar, fnStk)
-        
-        mdAll = Table(fileName=fnStar)
-        self.assertTrue(mdAll.hasColumn('rlnCoordinateX'))
-        self.assertTrue(mdAll.hasColumn('rlnCoordinateY'))
-        self.assertFalse(mdAll.hasColumn('rlnParticleSelectZScore'))
-        self.assertFalse(mdAll.hasColumn('rlnPhaseShift'))
-
-    def test_particlesWithPhaseShiftToStar(self):
-        """ Write a SetOfParticles to Relion star input file. """
-        print(magentaStr("\n==> Testing relion - convert particles with phase shift to star file:"))
-        imgSet = SetOfParticles(filename=self.getOutputPath("particles_ph_sh.sqlite"))
-        n = 10
-        fn = self.getFile('particles_binary')
-        ctfs = [CTFModel(defocusU=10000, defocusV=15000,
-                         defocusAngle=15, phaseShift=90),
-                CTFModel(defocusU=20000, defocusV=25000,
-                         defocusAngle=25, phaseShift=60)]
-        acquisition = Acquisition(magnification=60000, voltage=300,
-                                  sphericalAberration=2.,
-                                  amplitudeContrast=0.07)
-        imgSet.setAcquisition(acquisition)
-        coord = Coordinate()
-        coord.setMicId(1)
-
-        for i in range(n):
-            p = Particle()
-            p.setLocation(i + 1, fn)
-            ctf = ctfs[i % 2]
-            p.setCTF(ctf)
-            p.setAcquisition(acquisition)
-            p._xmipp_zScore = Float(i)
-            coord.setX(i * 10)
-            coord.setY(i * 10)
-            p.setCoordinate(coord)
-            imgSet.append(p)
-
-        fnStar = self.getOutputPath('particles_ph_sh.star')
-        fnStk = self.getOutputPath('particles.stk')
-
-        print(">>> Writing to file: %s" % fnStar)
-        convert.writeSetOfParticles(imgSet, fnStar, fnStk)
-
-        mdAll = Table(fileName=fnStar)
-        self.assertTrue(mdAll.hasColumn('rlnCoordinateX'))
-        self.assertTrue(mdAll.hasColumn('rlnCoordinateY'))
-        self.assertFalse(mdAll.hasColumn('rlnParticleSelectZScore'))
-        self.assertTrue(mdAll.hasColumn('rlnPhaseShift'))
-
-    def test_particlesFromStar(self):
-        """ Read a set of particles from an .star file.  """
-        print(magentaStr("\n==> Testing relion - read from particle star file:"))
-        fnStar = self.getFile('relion_it020_data')
-        
-        print(">>> Reading star file: ", fnStar)
-        mdAll = Table(fileName=fnStar)
-        goldLabels = ['rlnVoltage', 'rlnDefocusU', 'rlnDefocusV',
-                      'rlnDefocusAngle', 'rlnSphericalAberration', 
-                      'rlnAmplitudeContrast', 'rlnImageName', 'rlnImageId', 
-                      'rlnCoordinateX', 'rlnCoordinateY', 'rlnMagnificationCorrection',
-                      'rlnNormCorrection', 'rlnMicrographName', 'rlnGroupNumber', 
-                      'rlnOriginX', 'rlnOriginY', 'rlnAngleRot', 'rlnAngleTilt', 
-                      'rlnAnglePsi', 'rlnClassNumber', 'rlnLogLikeliContribution', 
-                      'rlnNrOfSignificantSamples', 'rlnMaxValueProbDistribution']
-
-        mdSorted = sorted([str(c) for c in mdAll.getColumns()])
-        self.assertEqual(sorted(goldLabels), mdSorted)
-        self.assertEqual(4700, mdAll.size())
 
 
 class TestConvertBinaryFiles(BaseTest):
