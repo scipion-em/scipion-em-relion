@@ -786,9 +786,13 @@ class ProtRelionBase(EMProtocol):
                 fillRandomSubset=fillRandomSubset)
 
             if alignToPrior:
-                mdParts = md.MetaData(imgStar)
+                if Plugin.IS_GT30():
+                    mdOptics = Table(fileName=imgStar, tableName='optics')
+                mdParts = Table(fileName=imgStar, tableName='particles')
                 self._copyAlignAsPriors(mdParts, alignType)
-                mdParts.write(imgStar)
+                mdParts.write(imgStar, tableName='particles')
+                if Plugin.IS_GT30():
+                    mdOptics.writeStar(imgStar, tableName='optics')
 
             if self.doCtfManualGroups:
                 self._splitInCTFGroups(imgStar)
@@ -1254,10 +1258,14 @@ class ProtRelionBase(EMProtocol):
 
     def _copyAlignAsPriors(self, mdParts, alignType):
         # set priors equal to orig. values
-        mdParts.copyColumn(md.RLN_ORIENT_ORIGIN_X_PRIOR, md.RLN_ORIENT_ORIGIN_X)
-        mdParts.copyColumn(md.RLN_ORIENT_ORIGIN_Y_PRIOR, md.RLN_ORIENT_ORIGIN_Y)
-        mdParts.copyColumn(md.RLN_ORIENT_PSI_PRIOR, md.RLN_ORIENT_PSI)
+        if Plugin.IS_GT30():
+            mdParts.addColumns('rlnOriginXPriorAngst=rlnOriginXAngst')
+            mdParts.addColumns('rlnOriginYPriorAngst=rlnOriginYAngst')
+        else:
+            mdParts.addColumns('rlnOriginXPrior=rlnOriginX')
+            mdParts.addColumns('rlnOriginYPrior=rlnOriginY')
+        mdParts.addColumns('rlnAnglePsiPrior=rlnAnglePsi')
 
         if alignType == pwem.ALIGN_PROJ:
-            mdParts.copyColumn(md.RLN_ORIENT_ROT_PRIOR, md.RLN_ORIENT_ROT)
-            mdParts.copyColumn(md.RLN_ORIENT_TILT_PRIOR, md.RLN_ORIENT_TILT)
+            mdParts.addColumns('rlnAngleRotPrior=rlnAngleRot')
+            mdParts.addColumns('rlnAngleTiltPrior=rlnAngleTilt')
