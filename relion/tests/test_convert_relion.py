@@ -154,50 +154,6 @@ class TestConversions(BaseTest):
         self.assertEqual(sorted(goldLabels), mdSorted)
         self.assertEqual(4700, mdAll.size())
 
-    def test_particlesFromStarNewLabels(self):
-        #TODO: remove this test as we don't use xmipp md
-        """ Read a set of particles from an .star file.  """
-        print(magentaStr("\n==> Testing relion - read particle star file with new label:"))
-        fnStar = self.getFile('relion_it020_data_newlabels')
-        print(">>> Reading star file: ", fnStar)
-
-        goldLabels = ['rlnVoltage', 'rlnDefocusU', 'rlnDefocusV',
-                      'rlnDefocusAngle', 'rlnSphericalAberration',
-                      'rlnAmplitudeContrast', 'rlnImageName', 'rlnImageId',
-                      'rlnCoordinateX', 'rlnCoordinateY',
-                      'rlnMagnificationCorrection',
-                      'rlnNormCorrection', 'rlnMicrographName',
-                      'rlnGroupNumber',
-                      'rlnOriginX', 'rlnOriginY', 'rlnAngleRot', 'rlnAngleTilt',
-                      'rlnAnglePsi', 'rlnClassNumber',
-                      'rlnLogLikeliContribution',
-                      'rlnNrOfSignificantSamples',
-                      'rlnNewLabel']
-
-        # Read the metadata without defining the new label
-        # In this case label should be treated as string
-        mdAll = md.MetaData(fnStar)
-
-        # This should warn about it and tolerate the undefined rlnNewLabel
-        self.assertEqual(goldLabels,
-                         [md.label2Str(l) for l in mdAll.getActiveLabels()])
-
-        value = mdAll.getValue(md.getLabel("rlnNewLabel"), 1)
-        self.assertTrue(isinstance(value, str),
-                        "undefined labels are not treated as strings")
-
-        # Define new label reusing existing one
-        # md.addLabelAlias(2, "rlnNewLabel", True, md.LABEL_DOUBLE)
-        newLabel = md.getNewAlias("rlnNewLabel", md.LABEL_DOUBLE)
-        mdAll = md.MetaData(fnStar)
-
-        self.assertEqual(goldLabels,
-                         [md.label2Str(l) for l in mdAll.getActiveLabels()])
-
-        value = mdAll.getValue(newLabel, 1)
-        self.assertTrue(isinstance(value, float),
-                        "Defined label to DOUBLE does not take the type")
-
 
 class TestConvertBinaryFiles(BaseTest):
     
