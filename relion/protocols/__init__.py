@@ -52,7 +52,7 @@ if relion.Plugin.IS_30():
     from ._legacy.protocol30_ctf_refinement import ProtRelionCtfRefinement
     from ._legacy.protocol30_preprocess import ProtRelionPreprocessParticles
     from ._legacy.protocol30_subtract import ProtRelionSubtract
-    from ._legacy.protocol30_polishing import ProtRelionBayesianPolishing
+    from ._legacy.protocol30_bayesian_polishing import ProtRelionBayesianPolishing
 else:
     from .protocol_ctf_refinement import ProtRelionCtfRefinement
     from .protocol_preprocess import ProtRelionPreprocessParticles

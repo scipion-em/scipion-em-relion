@@ -27,7 +27,6 @@
 from pyworkflow.object import String, Float
 import pwem
 from pwem.protocols import ProtClassify3D
-import pwem.emlib.metadata as md
 
 import relion
 from relion import Plugin
@@ -106,16 +105,10 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
     
     # -------------------------- INFO functions -------------------------------
     def _validateNormal(self):
-        """ Should be overwritten in subclasses to 
-        return summary message for NORMAL EXECUTION. 
-        """
         errors = []
         return errors
     
     def _validateContinue(self):
-        """ Should be overwritten in subclasses to
-        return summary messages for CONTINUE EXECUTION.
-        """
         errors = []
         continueRun = self.continueRun.get()
         continueRun._initialize()
@@ -132,9 +125,6 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
         return errors
     
     def _summaryNormal(self):
-        """ Should be overwritten in subclasses to 
-        return summary message for NORMAL EXECUTION. 
-        """
         summary = []
         it = self._lastIter()
         if it >= 1:
@@ -152,9 +142,6 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
         return summary
     
     def _summaryContinue(self):
-        """ Should be overwritten in subclasses to
-        return summary messages for CONTINUE EXECUTION.
-        """
         summary = list()
         summary.append("Continue from iteration %01d" % self._getContinueIter())
         return summary
@@ -172,35 +159,36 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
         from the *model.star file.
         """
         self._classesInfo = {}  # store classes info, indexed by class id
-         
-        modelStar = md.MetaData('model_classes@' +
-                                self._getFileName('model', iter=iteration))
-        
-        for classNumber, row in enumerate(md.iterRows(modelStar)):
-            index, fn = convert.relionToLocation(row.getValue('rlnReferenceImage'))
-            # Store info indexed by id, we need to store the row.clone() since
-            # the same reference is used for iteration            
-            self._classesInfo[classNumber+1] = (index, fn, row.clone())
+
+        modelFn = self._getFileName('model', iter=iteration)
+        modelIter = Table.iterRows('model_classes@' + modelFn)
+
+        for classNumber, row in enumerate(modelIter):
+            index, fn = convert.relionToLocation(row.rlnReferenceImage)
+            # Store info indexed by id
+            self._classesInfo[classNumber+1] = (index, fn, row)
     
     def _fillClassesFromIter(self, clsSet, iteration):
         """ Create the SetOfClasses3D from a given iteration. """
         self._loadClassesInfo(iteration)
-        tableName = '' if relion.Plugin.IS_30() else 'particles@'
+        tableName = 'particles@' if self.IS_GT30() else ''
         dataStar = self._getFileName('data', iter=iteration)
         self.reader = convert.Reader(alignType=pwem.ALIGN_PROJ)
-        mdIter = md.iterRows(tableName + dataStar, sortByLabel=md.RLN_IMAGE_ID)
+        mdIter = Table.iterRows(tableName + dataStar, key='rlnImageId')
         clsSet.classifyItems(updateItemCallback=self._updateParticle,
                              updateClassCallback=self._updateClass,
                              itemDataIterator=mdIter,
                              doClone=False)
     
     def _updateParticle(self, item, row):
-        item.setClassId(row.getValue('rlnClassNumber'))
+        item.setClassId(row.rlnClassNumber)
         self.reader.setParticleTransform(item, row)
 
-        item._rlnLogLikeliContribution = Float(row.getValue('rlnLogLikeliContribution'))
-        item._rlnMaxValueProbDistribution = Float(row.getValue('rlnMaxValueProbDistribution'))
-        item._rlnGroupName = String(row.getValue('rlnGroupName'))
+        item._rlnLogLikeliContribution = Float(row.rlnLogLikeliContribution)
+        item._rlnMaxValueProbDistribution = Float(row.rlnMaxValueProbDistribution)
+
+        if hasattr(row, 'rlnGroupName'):
+            item._rlnGroupName = String(row.rlnGroupName)
 
     def _updateClass(self, item):
         classId = item.getObjId()
@@ -209,6 +197,9 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
             fn += ":mrc"
             item.setAlignmentProj()
             item.getRepresentative().setLocation(index, fn)
-            item._rlnClassDistribution = Float(row.getValue('rlnClassDistribution'))
-            item._rlnAccuracyRotations = Float(row.getValue('rlnAccuracyRotations'))
-            item._rlnAccuracyTranslations = Float(row.getValue('rlnAccuracyTranslations'))
+            item._rlnClassDistribution = Float(row.rlnClassDistribution)
+            item._rlnAccuracyRotations = Float(row.rlnAccuracyRotations)
+            if self.IS_GT30():
+                item._rlnAccuracyTranslationsAngst = Float(row.rlnAccuracyTranslationsAngst)
+            else:
+                item._rlnAccuracyTranslations = Float(row.rlnAccuracyTranslations)

@@ -114,7 +114,7 @@ class PostprocessViewer(ProtocolViewer):
         view = ChimeraClientView(volPath)
         return [view]
 
-    def _showVolume(self, paramName=None):
+    def _showVolume(self):
         volPath = self.protocol._getExtraPath('postprocess.mrc:mrc')
 
         if self.displayVol == VOLUME_CHIMERA:
@@ -123,7 +123,7 @@ class PostprocessViewer(ProtocolViewer):
         elif self.displayVol == VOLUME_SLICES:
             return self._showVolumeShowj(volPath)
 
-    def _showMaskedVolume(self, paramName=None):
+    def _showMaskedVolume(self):
         volPath = self.protocol._getExtraPath('postprocess_masked.mrc:mrc')
 
         if self.displayMaskedVol == VOLUME_CHIMERA:
@@ -138,10 +138,9 @@ class PostprocessViewer(ProtocolViewer):
     def _getFigure(self):
         return None if self.figure == 0 else 'active'
 
-    def _showFSC(self, paramName=None):
+    def _showFSC(self):
         threshold = self.resolutionThresholdFSC.get()
 
-        md.activateMathExtensions()
         fscViewer = FscViewer(project=self.protocol.getProject(),
                               threshold=threshold,
                               protocol=self.protocol,
@@ -164,7 +163,7 @@ class PostprocessViewer(ProtocolViewer):
             legend = label
         table = Table(fileName=model_star, tableName='fsc')
         resolution_inv = table.getColumnValues('rlnResolution')
-        frc = table.getColumnValues('rlnGoldStandardFsc')
+        frc = table.getColumnValues(label)
         fsc = FSC(objLabel=legend)
         fsc.setData(resolution_inv, frc)
 
@@ -173,12 +172,8 @@ class PostprocessViewer(ProtocolViewer):
     # =========================================================================
     # plotGuinier
     # =========================================================================
-    def _showGuinier(self, paramName=None):
-        gridsize = [1, 1]
-        md.activateMathExtensions()
-
-        xplotter = RelionPlotter(x=gridsize[0], y=gridsize[1],
-                                 windowTitle='Guinier Plot')
+    def _showGuinier(self):
+        xplotter = RelionPlotter(windowTitle='Guinier Plot')
         a = xplotter.createSubPlot("", 'Angstroms^-2', 'log(Amplitude)',
                                    yformat=False)
         legends = []

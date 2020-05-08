@@ -97,7 +97,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
                             '- [[https://www3.mrc-lmb.cam.ac.uk/relion/index.php/'
                             'FAQs#Where_can_I_find_MTF_curves_for_typical_detectors.3F]'
                             '[Relion\'s Wiki FAQs]]\n'
-                            ' - [[http://www.gatan.com/K3][Gatan\'s website]]\n\n'
+                            ' - [[https://www.gatan.com/techniques/cryo-em#MTF][Gatan\'s website]]\n\n'
                             'Relion param: *--mtf*')
         if Plugin.IS_GT30():
             group.addParam('origPixelSize', params.FloatParam,
@@ -216,9 +216,6 @@ class ProtRelionPostprocess(ProtAnalysis3D):
 
     # -------------------------- INFO functions --------------------------------
     def _validate(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION.
-        """
         errors = []
         mtfFile = self.mtf.get()
 
@@ -231,9 +228,6 @@ class ProtRelionPostprocess(ProtAnalysis3D):
         return ['Chen2013']
 
     def _summary(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION.
-        """
         summary = []
         postStarFn = self._getExtraPath("postprocess.star")
         if exists(postStarFn):

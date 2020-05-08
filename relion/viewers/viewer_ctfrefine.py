@@ -239,7 +239,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
         self.plotter.getColorBar(sc2)
         self.plotter.show()
 
-    def _displayBeamTilt(self, paramName=None):
+    def _displayBeamTilt(self):
         phaseDifferenceFn = self.protocol.fileWithPhaseDifferenceName()
         modelFitFn = self.protocol.fileWithModelFitterName()
 
@@ -267,7 +267,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
                           env=self._env,
                           viewParams=viewParams)
 
-    def _displayParticles(self, paramName=None):
+    def _displayParticles(self):
         views = []
         fn = self.protocol.outputParticles.getFileName()
         v = self.createScipionPartView(fn)

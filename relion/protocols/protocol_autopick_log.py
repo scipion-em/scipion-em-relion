@@ -91,7 +91,7 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
                             'threshold) particles compared to the default '
                             'setting.')
 
-        if Plugin.IS_GT30():
+        if self.IS_GT30():
             group.addParam('threshold2', params.FloatParam, default=999,
                            label='Upper threshold (stddev)',
                            help='Use this to discard picks with LoG thresholds '
@@ -141,7 +141,7 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
                 self.threshold.get()
             ]
 
-        if Plugin.IS_GT30():
+        if self.IS_GT30():
             args.append(self.threshold2.get())
 
         return args
@@ -157,7 +157,7 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
         params += ' --LoG_diam_max %0.3f' % maxDiameter
         params += ' --LoG_adjust_threshold %0.3f' % threshold
 
-        if Plugin.IS_GT30():
+        if self.IS_GT30():
             params += ' --LoG_upper_threshold %0.3f' % threshold2
 
         program = self._getProgram('relion_autopick')
@@ -184,3 +184,6 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
     def getBoxSize(self):
         """ Return a reasonable box-size in pixels. """
         return self.boxSize.get()
+
+    def IS_GT30(self):
+        return Plugin.IS_GT30()

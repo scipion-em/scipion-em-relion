@@ -6,7 +6,6 @@
     - New protocol to assign optic groups
     - Sort protocol will be deleted soon (gone in relion 3.1)
     - Extract particle movies is gone
-    - All protocols updated for 3.x version. 3.0 support will be discontinued soon
     - Updated drift plot for motioncor, added new plot for drift per frame
     - convertMask changed so that it uses relion_image_handler to change box/pix size/threshold
     - movie refinement is gone and fully replaced by bayesian polishing

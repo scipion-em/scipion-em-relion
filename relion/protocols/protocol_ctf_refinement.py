@@ -26,7 +26,6 @@
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
-import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtParticles
 from pyworkflow.object import Float
@@ -225,11 +224,13 @@ class ProtRelionCtfRefinement(ProtParticles):
         outImgSet.copyInfo(imgSet)
         outImgsFn = self.fileWithRefinedCTFName()
         imgSet.setAlignmentProj()
-        rowIterator = md.iterRows('particles@' + outImgsFn,
-                                  sortByLabel=md.RLN_IMAGE_ID)
+
+        tableName = 'particles@' if self.IS_GT30() else ''
+        mdIter = convert.Table.iterRows(tableName + outImgsFn,
+                                        key='rlnImageId')
         outImgSet.copyItems(imgSet,
                             updateItemCallback=self._updateItemCtfBeamTilt,
-                            itemDataIterator=rowIterator)
+                            itemDataIterator=mdIter)
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(self.inputParticles, outImgSet)
 
@@ -247,9 +248,9 @@ class ProtRelionCtfRefinement(ProtParticles):
         particle.setCTF(convert.rowToCtfModel(row))
         # TODO: Add other field from the .star file when other options?
         # check if beamtilt is available and save it
-        if row.hasLabel('rlnBeamTiltX'):
-            particle._rlnBeamTiltX = Float(row.getValue('rlnBeamTiltX', 0))
-            particle._rlnBeamTiltY = Float(row.getValue('rlnBeamTiltY', 0))
+        if hasattr(row, 'rlnBeamTiltX'):
+            particle._rlnBeamTiltX = Float(row.rlnBeamTiltX)
+            particle._rlnBeamTiltY = Float(row.rlnBeamTiltY)
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
@@ -273,3 +274,6 @@ class ProtRelionCtfRefinement(ProtParticles):
 
     def fileWithAnalyzeInfo(self):
         return self._getExtraPath('ctf_analyze.sqlite')
+
+    def IS_GT30(self):
+        return relion.Plugin.IS_GT30()

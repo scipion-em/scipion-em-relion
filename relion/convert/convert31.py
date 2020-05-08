@@ -29,7 +29,6 @@
 New conversion functions dealing with Relion3.1 new star files format.
 """
 import os
-from io import open
 import numpy as np
 from collections import OrderedDict
 
@@ -427,14 +426,17 @@ class Reader(ReaderBase):
 
         return acq
 
+    #FIXME: remove this function
+    def _containsAny(self, row, labels):
+        return any(hasattr(row, label) for label in labels)
 
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
         self._pixelSize = particle.getSamplingRate()
         self._invPixelSize = 1. / self._pixelSize
 
-        if (self._alignType == pwem.ALIGN_NONE or
-            not row.containsAny(self.ALIGNMENT_LABELS)):
+        if ((self._alignType == pwem.ALIGN_NONE) or
+                not self._containsAny(row, self.ALIGNMENT_LABELS)):
             self.setParticleTransform = self.__setParticleTransformNone
         else:
             # Ensure the Transform object exists
@@ -463,7 +465,7 @@ class Reader(ReaderBase):
         ips = self._invPixelSize
 
         def _get(label):
-            return float(row.getValue(label, 0.))
+            return float(getattr(row, label, 0.))
 
         shifts[0] = _get('rlnOriginXAngst') * ips
         shifts[1] = _get('rlnOriginYAngst') * ips
@@ -479,7 +481,7 @@ class Reader(ReaderBase):
         ips = self._invPixelSize
 
         def _get(label):
-            return float(row.getValue(label, 0.))
+            return float(getattr(row, label, 0.))
 
         shifts[0] = _get('rlnOriginXAngst') * ips
         shifts[1] = _get('rlnOriginYAngst') * ips

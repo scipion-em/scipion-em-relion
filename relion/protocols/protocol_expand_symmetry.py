@@ -27,10 +27,11 @@
 from pyworkflow.protocol.params import StringParam
 from pyworkflow.object import String
 from pwem.constants import ALIGN_PROJ
-import pwem.emlib.metadata as md
 from pwem.protocols import ProtProcessParticles
 
 import relion.convert as convert
+from relion.convert.metadata import Table
+from relion import Plugin
 
  
 class ProtRelionExpandSymmetry(ProtProcessParticles):
@@ -77,9 +78,18 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
         partSet.copyInfo(imgSet)
         outImagesMd = self._getExtraPath('expanded_particles.star')
 
-        mdOut = md.MetaData(outImagesMd)
-        mdOut.removeLabel(md.RLN_IMAGE_ID)  # remove repeating rlnImageId in mdOut
-        mdOut.write(outImagesMd, md.MD_OVERWRITE)
+        # remove repeating rlnImageId column
+        tableName = ''
+        if Plugin.IS_GT30():
+            tableName = 'particles'
+            mdOptics = Table(fileName=outImagesMd, tableName='optics')
+
+        mdOut = Table(fileName=outImagesMd, tableName=tableName)
+        mdOut.removeColumns("rlnImageId")
+        with open(outImagesMd, "w") as f:
+            mdOut.writeStar(f, tableName=tableName)
+            if Plugin.IS_GT30():
+                mdOptics.writeStar(f, tableName='optics')
 
         convert.readSetOfParticles(
             outImagesMd, partSet,

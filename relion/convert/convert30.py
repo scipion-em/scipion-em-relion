@@ -25,7 +25,6 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-from io import open
 
 from ..constants import *
 from .convert_base import WriterBase, ReaderBase

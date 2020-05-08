@@ -188,9 +188,6 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
     
     # --------------------------- INFO functions ------------------------------
     def _validate(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION. 
-        """
         validateMsgs = []
 
         if self.doScale and self.scaleSize.get() % 2 != 0:
