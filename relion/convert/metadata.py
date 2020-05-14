@@ -223,6 +223,12 @@ class Table:
         """ Return True if a given column exists. """
         return colName in self._columns
 
+    def hasAnyColumn(self, colsNames):
+        return any(self.hasColumn(c) for c in colsNames)
+
+    def hasAllColumns(self, colNames):
+        return all(self.hasColumn(c) for c in colNames)
+
     def getColumn(self, colName):
         """ Return the column with that name or
         None if the column does not exist.
@@ -310,7 +316,6 @@ class Table:
         for row in oldRows:
             self._rows.append(self.Row(**{k: getattr(row, k) for k in cols}))
 
-
     def getColumnValues(self, colName):
         """
         Return the values of a given column
@@ -320,7 +325,6 @@ class Table:
         if colName not in self._columns:
             raise Exception("Not existing column: %s" % colName)
         return [getattr(row, colName) for row in self._rows]
-
 
     def sort(self, key, reverse=False):
         """ Sort the table in place using the provided key.
@@ -433,7 +437,21 @@ class Table:
         self._createRowClass()
 
     def _createRowClass(self):
-        self.Row = namedtuple('Row', [c for c in self._columns.keys()])
+
+        class Row(namedtuple('_Row', self._columns.keys())):
+            __slots__ = ()
+
+            def hasColumn(self, colName):
+                """ Return True if the row has this column. """
+                return hasattr(self, colName)
+
+            def hasAnyColumn(self, colNames):
+                return any(self.has(c) for c in colNames)
+
+            def hasAllColumns(self, colNames):
+                return all(self.has(c) for c in colNames)
+
+        self.Row = Row
 
     def _findDataLine(self, inputFile, dataStr):
         """ Raise an exception if the desired data string is not found.
