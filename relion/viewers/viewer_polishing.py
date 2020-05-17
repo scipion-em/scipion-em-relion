@@ -64,7 +64,7 @@ class RelionPolishViewer(ProtocolViewer):
                 'bfactorPlot': lambda paramName: self._showBFactorPlot(key='bfactor')
                 }
 
-    def _showParticles(self):
+    def _showParticles(self, paramName=None):
         views = []
         if getattr(self.protocol, 'outputParticles', None) is not None:
             fn = self.protocol.outputParticles.getFileName()
