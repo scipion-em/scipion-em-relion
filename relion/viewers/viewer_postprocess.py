@@ -114,7 +114,7 @@ class PostprocessViewer(ProtocolViewer):
         view = ChimeraClientView(volPath)
         return [view]
 
-    def _showVolume(self):
+    def _showVolume(self, param=None):
         volPath = self.protocol._getExtraPath('postprocess.mrc:mrc')
 
         if self.displayVol == VOLUME_CHIMERA:
@@ -123,7 +123,7 @@ class PostprocessViewer(ProtocolViewer):
         elif self.displayVol == VOLUME_SLICES:
             return self._showVolumeShowj(volPath)
 
-    def _showMaskedVolume(self):
+    def _showMaskedVolume(self, param=None):
         volPath = self.protocol._getExtraPath('postprocess_masked.mrc:mrc')
 
         if self.displayMaskedVol == VOLUME_CHIMERA:
@@ -138,7 +138,7 @@ class PostprocessViewer(ProtocolViewer):
     def _getFigure(self):
         return None if self.figure == 0 else 'active'
 
-    def _showFSC(self):
+    def _showFSC(self, param=None):
         threshold = self.resolutionThresholdFSC.get()
 
         fscViewer = FscViewer(project=self.protocol.getProject(),
@@ -172,7 +172,7 @@ class PostprocessViewer(ProtocolViewer):
     # =========================================================================
     # plotGuinier
     # =========================================================================
-    def _showGuinier(self):
+    def _showGuinier(self, param=None):
         xplotter = RelionPlotter(windowTitle='Guinier Plot')
         a = xplotter.createSubPlot("", 'Angstroms^-2', 'log(Amplitude)',
                                    yformat=False)
