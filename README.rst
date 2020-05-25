@@ -4,12 +4,13 @@ Relion plugin
 
 This plugin provide wrappers around several programs of `RELION <https://www3.mrc-lmb.cam.ac.uk/relion/index.php/Main_Page>`_ software suite.
 
-+------------------+------------------+
-| stable: |stable| | devel: | |devel| |
-+------------------+------------------+
++--------------+----------------+--------------------+
+| prod: |prod| | devel: |devel| | support: |support| |
++--------------+----------------+--------------------+
 
-.. |stable| image:: http://scipion-test.cnb.csic.es:9980/badges/relion_prod.svg
-.. |devel| image:: http://scipion-test.cnb.csic.es:9980/badges/relion_sdevel.svg
+.. |prod| image:: http://scipion-test.cnb.csic.es:9980/badges/relion_prod.svg
+.. |devel| image:: http://scipion-test.cnb.csic.es:9980/badges/relion_devel.svg
+.. |support| image:: http://scipion-test.cnb.csic.es:9980/badges/relion_support.svg
 
 
 Installation
