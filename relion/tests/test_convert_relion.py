@@ -749,3 +749,31 @@ class TestRelionWriter(BaseTest):
         print(">>> Writing to particles star: %s" % outputStar)
         starWriter = convert.Writer()
         starWriter.writeSetOfParticles(partsSet, outputStar)
+
+
+class TestRelionReader(BaseTest):
+    @classmethod
+    def setUpClass(cls):
+        setupTestOutput(cls)
+        cls.ds = DataSet.getDataSet('relion31_tutorial_precalculated')
+
+    def test_readSetOfParticles(self):
+        partsStar = self.ds.getFile("Extract/job018/particles.star")
+        print("<<< Reading star file: \n   %s\n" % partsStar)
+        outputSqlite = self.getOutputPath('particles.sqlite')
+        cleanPath(outputSqlite)
+        print(">>> Writing to particles db: \n   %s\n" % outputSqlite)
+        partsSet = SetOfParticles(filename=outputSqlite)
+        convert.readSetOfParticles(partsStar, partsSet)
+        partsSet.write()
+
+        first = partsSet.getFirstItem()
+        first.printAll()
+        self.assertAlmostEqual(first.getSamplingRate(), 1.244531)
+        self.assertEqual(first.getClassId(), 4)
+
+        acq = first.getAcquisition()
+        self.assertEqual(acq.mtfFile.get(), 'mtf_k2_200kV.star')
+        self.assertEqual(acq.opticsGroupName.get(), 'opticsGroup1')
+
+

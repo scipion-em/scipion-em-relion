@@ -338,105 +338,98 @@ class Reader(ReaderBase):
 
         """
         self._preprocessImageRow = kwargs.get('preprocessImageRow', None)
+        self._alignType = kwargs.get('alignType', pwem.ALIGN_NONE)
 
-        opticsTable = Table(fileName=starFile, tableName='optics')
-        optics = opticsTable[0]
-        partsTable = Table(fileName=starFile, tableName='particles')
-        firstRow = partsTable[0]
+        self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
+
+        optics = Table(fileName=starFile, tableName='optics')[0]
+
+        self._pixelSize = getattr(optics, 'rlnImagePixelSize', 1.0)
+        self._invPixelSize = 1. / self._pixelSize
+
+        partsReader = Table.Reader(starFile, tableName='particles')
+        self._extraLabels = [l for l in kwargs.get('extraLabels', [])
+                             if partsReader.hasColumn(l)]
+        firstRow = partsReader.getRow()
+
+        self._setClassId = hasattr(firstRow, 'rlnClassNumber')
+        self._setCtf = partsReader.hasAllColumns(self.CTF_LABELS[:3])
+
+        particle = pwem.objects.Particle()
+
+        if self._setCtf:
+            particle.setCTF(pwem.objects.CTFModel())
 
         if kwargs.get("readAcquisition", True):
-            self._acquisition = self._rowToAcquisition(optics)
+            acq = pwem.objects.Acquisition()
+            self._rowToAcquisition(optics, acq)
+            particle.setAcquisition(acq)
 
+        partSet.setSamplingRate(self._pixelSize)
 
-        self._setCtf = getattr(firstRow, 'rlnDefocusU', False)
-        self._alignType = kwargs.get('alignType')
-        self._extraLabels = kwargs.get('extraLabels', [])
-        self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
-        self._pixelSize = optics['rlnImagePixelSize'] or 1.0
-        self._setClassId = getattr(firstRow, 'rlnClassNumber', False)
+        self._rowToPart(firstRow, particle)
 
-        for row in partsTable:
-            part = self._rowToPart(row, **kwargs)
-            part.setAcquisition(self._acquisition)
-            partSet.append(part)
+        for row in partsReader:
+            self._rowToPart(row, particle)
+            partSet.append(particle)
 
         partSet.setHasCTF(self._setCtf)
         partSet.setAlignment(self._alignType)
 
-
-    def _rowToPart(self, row, **kwargs):
-        img = pwem.objects.Particle()
-        img.setObjId(row['rlnImageId'])
+    def _rowToPart(self, row, particle):
+        particle.setObjId(getattr(row, 'rlnImageId', None))
 
         if self._preprocessImageRow:
-            self._preprocessImageRow(img, row)
+            self._preprocessImageRow(particle, row)
 
         # Decompose Relion filename
-        index, filename = relionToLocation(row['rlnImageName'])
-        img.setLocation(index, filename)
+        index, filename = relionToLocation(row.rlnImageName)
+        particle.setLocation(index, filename)
+
         if self._setClassId:
-            img.setClassId(row['rlnClassNumber'])
+            particle.setClassId(row.rlnClassNumber)
 
         if self._setCtf:
-            img.setCtf(self._rowToCtf(row))
+            self._rowToCtf(row, particle.getCTF())
 
-        self.setParticleTransform(img, row)
+        self.setParticleTransform(particle, row)
 
         #self._setAttributes(img, row, self._extraLabels)
         #TODO: coord, partId, micId,
 
         if self._postprocessImageRow:
-            self._postprocessImageRow(img, row)
+            self._postprocessImageRow(particle, row)
 
-        return img
-
-    def _rowToCtf(self, row):
+    def _rowToCtf(self, row, ctf):
         """ Create a CTFModel from the row. """
-        if row.containsAll(self.CTF_LABELS):
-            ctfModel = pwem.objects.CTFModel()
-            ctfModel.setDefocusU(row['rlnDefocusU'])
-            ctfModel.setDefocusV(row['rlnDefocusV'])
-            ctfModel.setDefocusAngle(row['rlnDefocusAngle'])
-            ctfModel.setResolution(row['rlnCtfMaxResolution'] or 0)
-            ctfModel.setFitQuality(row['rlnCtfFigureOfMerit'] or 0)
+        ctf.setDefocusU(row.rlnDefocusU)
+        ctf.setDefocusV(row.rlnDefocusV)
+        ctf.setDefocusAngle(row.rlnDefocusAngle)
+        ctf.setResolution(row.rlnCtfMaxResolution or 0)
+        ctf.setFitQuality(row.rlnCtfFigureOfMerit or 0)
 
-            if getattr(row, 'rlnCtfPhaseShift', False):
-                ctfModel.setPhaseShift(row['rlnCtfPhaseShift'])
-            ctfModel.standardize()
+        if getattr(row, 'rlnCtfPhaseShift', False):
+            ctf.setPhaseShift(row.rlnCtfPhaseShift)
+        ctf.standardize()
 
-            if getattr(row, 'rlnCtfImage', False):
-                setattr(ctfModel, '_psdFile', row['rlnCtfImage'])
+        if hasattr(row, 'rlnCtfImage'):
+            ctf.setPsdFile(row.rlnCtfImage)
 
-        else:
-            ctfModel = None
-
-        return ctfModel
-
-    def _rowToAcquisition(self, optics):
-        acq = pwem.objects.Acquisition()
-
-        for attr in ['opticsGroupName', 'mtfFile', 'beamTiltX', 'beamTiltY',
-                     'defectFile']:
-            setattr(acq, attr, getattr(optics, attr))
-
-        acq.setAmplitudeContrast(optics['rlnAmplitudeContrast'])
-        acq.setSphericalAberration(optics['rlnSphericalAberration'])
-        acq.setVoltage(optics['rlnVoltage'])
-        #acq.setMagnification(None)
-
-        return acq
-
-    #FIXME: remove this function
-    def _containsAny(self, row, labels):
-        return any(hasattr(row, label) for label in labels)
+    def _rowToAcquisition(self, optics, acq):
+        acq.setAmplitudeContrast(optics.rlnAmplitudeContrast)
+        acq.setSphericalAberration(optics.rlnSphericalAberration)
+        acq.setVoltage(optics.rlnVoltage)
+        acq.opticsGroupName.set(getattr(optics, 'rlnOpticsGroupName', None))
+        acq.beamTiltX.set(getattr(optics, 'rlnBeamTiltX', None))
+        acq.beamTiltY.set(getattr(optics, 'rlnBeamTiltY', None))
+        acq.mtfFile.set(getattr(optics, 'rlnMtfFileName', None))
+        acq.defectFile.set(getattr(optics, 'rlnDefectFile', None))
 
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
-        self._pixelSize = particle.getSamplingRate()
-        self._invPixelSize = 1. / self._pixelSize
 
         if ((self._alignType == pwem.ALIGN_NONE) or
-                not self._containsAny(row, self.ALIGNMENT_LABELS)):
+            not row.hasAnyColumn(self.ALIGNMENT_LABELS)):
             self.setParticleTransform = self.__setParticleTransformNone
         else:
             # Ensure the Transform object exists

@@ -31,11 +31,9 @@ import relion
 
 # Writing of star files will be handle by the Writer class
 # We have a new implementation of it for Relion > 3.1 since
-# the star file format has changed in 3.1
-if relion.Plugin.IS_GT30():
-    from .convert31 import Writer, Reader
-else:
-    from .convert30 import Writer, Reader
+# the star file format has changed in 3.
+from . import convert30
+from . import convert31
 
 
 def writeSetOfParticles(imgSet, starFile, outputDir, **kwargs):
@@ -54,7 +52,12 @@ def writeSetOfParticles(imgSet, starFile, outputDir, **kwargs):
         fillRandomSubset:
         extraLabels:
         postprocessImageRow:
+        format: string value to specify STAR format, if '30' it will use
+            Relion3.0 format, if not, it will depends on the binary version
     """
+    is30 = kwargs.get('format', '') == '30' or relion.Plugin.IS_30()
+    Writer = convert30.Writer if is30 else convert31.Writer
+
     writer = Writer(outputDir=outputDir)
     return writer.writeSetOfParticles(imgSet, starFile, **kwargs)
 
@@ -62,15 +65,19 @@ def writeSetOfParticles(imgSet, starFile, outputDir, **kwargs):
 def readSetOfParticles(starFile, partsSet, **kwargs):
     """ Convert a star file into a set of particles.
 
-        Params:
-            starFile: the filename of the star file
-            partsSet: output particles set
+    Params:
+        starFile: the filename of the star file
+        partsSet: output particles set
 
-        Keyword Arguments:
-            blockName: The name of the data block (default particles)
-            alignType:
-            removeDisabled:
+    Keyword Arguments:
+        blockName: The name of the data block (default particles)
+        alignType:
+        removeDisabled:
+        format: string value to specify STAR format, if '30' it will use
+            Relion3.0 format, if not, it will depends on the binary version
+    """
+    is30 = kwargs.get('format', '') == '30' or relion.Plugin.IS_30()
+    Reader = convert30.Reader if is30 else convert31.Reader
 
-        """
     reader = Reader()
     return reader.readSetOfParticles(starFile, partsSet, **kwargs)

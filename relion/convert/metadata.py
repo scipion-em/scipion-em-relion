@@ -117,10 +117,10 @@ class _ColumnsList:
                 return hasattr(self, colName)
 
             def hasAnyColumn(self, colNames):
-                return any(self.has(c) for c in colNames)
+                return any(self.hasColumn(c) for c in colNames)
 
             def hasAllColumns(self, colNames):
-                return all(self.has(c) for c in colNames)
+                return all(self.hasColumn(c) for c in colNames)
 
         self.Row = Row
 
@@ -143,10 +143,10 @@ class _Reader(_ColumnsList):
             self._file = inputFile
 
         dataStr = 'data_%s' % (tableName or '')
-        self._findDataLine(inputFile, dataStr)
+        self._findDataLine(self._file, dataStr)
 
         # Find first column line and parse all columns
-        line, foundLoop = self._findLabelLine(inputFile)
+        line, foundLoop = self._findLabelLine(self._file)
         colNames = []
         values = []
 
@@ -155,7 +155,7 @@ class _Reader(_ColumnsList):
             colNames.append(parts[0][1:])
             if not foundLoop:
                 values.append(parts[1])
-            line = inputFile.readline().strip()
+            line = self._file.readline().strip()
 
         self._createColumns(colNames, line, guessType)
         self._types = [c.getType() for c in self.getColumns()]
@@ -362,33 +362,6 @@ class Table(_ColumnsList):
 
     def size(self):
         return len(self._rows)
-
-    def printColumns(self):
-        print("Columns: ")
-        for c in self.getColumns():
-            print("   %s" % str(c))
-
-    def hasColumn(self, colName):
-        """ Return True if a given column exists. """
-        return colName in self._columns
-
-    def hasAnyColumn(self, colsNames):
-        return any(self.hasColumn(c) for c in colsNames)
-
-    def hasAllColumns(self, colNames):
-        return all(self.hasColumn(c) for c in colNames)
-
-    def getColumn(self, colName):
-        """ Return the column with that name or
-        None if the column does not exist.
-        """
-        return self._columns.get(colName, None)
-
-    def getColumns(self):
-        return self._columns.values()
-
-    def getColumnNames(self):
-        return [c.getName() for c in self.getColumns()]
 
     def addColumns(self, *args):
         """ Add one or many columns.

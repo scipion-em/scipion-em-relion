@@ -28,7 +28,7 @@
 
 from ..constants import *
 from .convert_base import WriterBase, ReaderBase
-from .convert_deprecated import rowToAlignment
+from .convert_deprecated import rowToAlignment, readSetOfParticles
 
 
 class Writer(WriterBase):
@@ -92,6 +92,22 @@ class Writer(WriterBase):
 
 
 class Reader(ReaderBase):
+
+    def readSetOfParticles(self, starFile, partsSet, **kwargs):
+        """ Convert a star file into a set of particles.
+
+        Params:
+            starFile: the filename of the star file
+            partsSet: output particles set
+
+        Keyword Arguments:
+            blockName: The name of the data block (default particles)
+            alignType:
+            removeDisabled:
+
+        """
+        readSetOfParticles(starFile, partsSet, **kwargs)
+
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
         particle.setTransform(rowToAlignment(row, self._alignType))
