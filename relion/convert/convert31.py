@@ -32,6 +32,7 @@ import os
 import numpy as np
 from collections import OrderedDict
 
+import pyworkflow as pw
 import pwem
 import pwem.convert.transformations as tfs
 
@@ -365,6 +366,11 @@ class Reader(ReaderBase):
             self._rowToAcquisition(optics, acq)
             particle.setAcquisition(acq)
 
+        if self._extraLabels:
+            for label in self._extraLabels:
+                setattr(particle, '_' + label,
+                        pw.object.ObjectWrap(getattr(firstRow, label)))
+
         partSet.setSamplingRate(self._pixelSize)
 
         self._rowToPart(firstRow, particle)
@@ -393,6 +399,10 @@ class Reader(ReaderBase):
             self._rowToCtf(row, particle.getCTF())
 
         self.setParticleTransform(particle, row)
+
+        if self._extraLabels:
+            for label in self._extraLabels:
+                getattr(particle, '_%s' % label).set(getattr(row, label))
 
         #self._setAttributes(img, row, self._extraLabels)
         #TODO: coord, partId, micId,

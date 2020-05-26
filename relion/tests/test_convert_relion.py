@@ -764,13 +764,15 @@ class TestRelionReader(BaseTest):
         cleanPath(outputSqlite)
         print(">>> Writing to particles db: \n   %s\n" % outputSqlite)
         partsSet = SetOfParticles(filename=outputSqlite)
-        convert.readSetOfParticles(partsStar, partsSet)
+        convert.readSetOfParticles(partsStar, partsSet,
+                                   extraLabels=['rlnNrOfSignificantSamples'])
         partsSet.write()
 
         first = partsSet.getFirstItem()
         first.printAll()
         self.assertAlmostEqual(first.getSamplingRate(), 1.244531)
         self.assertEqual(first.getClassId(), 4)
+        self.assertTrue(hasattr(first, '_rlnNrOfSignificantSamples'))
 
         acq = first.getAcquisition()
         self.assertEqual(acq.mtfFile.get(), 'mtf_k2_200kV.star')
