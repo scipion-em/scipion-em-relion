@@ -27,8 +27,8 @@
 import os
 
 import pyworkflow.tests as pwtests
+import pwem.protocols as emprot
 from pwem.tests.workflows import TestWorkflow
-from pwem.protocols import ProtImportMovies
 from pwem.objects import SetOfMovies
 from pyworkflow.utils import copyTree, join, magentaStr
 
@@ -54,7 +54,7 @@ class Relion3TestProtocolBase(TestWorkflow):
     def _importMovies(cls, **kwargs):
         print(magentaStr("\n==> Importing data - movies:"))
         protImport = cls.newProtocol(
-            ProtImportMovies,
+            emprot.ProtImportMovies,
             filesPath=cls.ds.getFile('Movies/'),
             filesPattern=kwargs.get('filesPattern', '20170629_000?5*tiff'),
             samplingRateMode=0,
@@ -257,3 +257,94 @@ class Relion3TestMultiBody(Relion3TestProtocolBase):
         self.launchProtocol(relionMbody)
         self.assertIsNotNone(relionMbody.outputVolumes,
                              "There was a problem with Relion multi-body")
+
+
+class TestRelion31ImportParticles(pwtests.BaseTest):
+    @classmethod
+    def setUpClass(cls):
+        pwtests.setupTestProject(cls)
+        cls.ds = pwtests.DataSet.getDataSet('relion31_tutorial_precalculated')
+
+    def checkOutput(self, prot, outputName, conditions=[]):
+        """ Check that an ouput was generated and
+        the condition is valid.
+        """
+        o = getattr(prot, outputName, None)
+        locals()[outputName] = o
+        self.assertIsNotNone(o, "Output: %s is None" % outputName)
+        for cond in conditions:
+            self.assertTrue(eval(cond), 'Condition failed: ' + cond)
+
+    def test_fromExtract(self):
+        """ Import particles.star from Extract job.
+        """
+        starFile = self.ds.getFile('Extract/job018/particles.star')
+        optics = relion.convert.getOpticsFromStar(starFile)
+        print(optics)
+
+        prot1 = self.newProtocol(emprot.ProtImportParticles,
+                                 objLabel='from relion (extract job)',
+                                 importFrom=emprot.ProtImportParticles.IMPORT_FROM_RELION,
+                                 starFile=starFile,
+                                 magnification=10000,
+                                 samplingRate=optics.rlnImagePixelSize,
+                                 haveDataBeenPhaseFlipped=False
+                                 )
+        self.launchProtocol(prot1)
+        self.checkOutput(prot1, 'outputParticles', [])
+        self.checkOutput(prot1, 'outputClasses')
+
+    def test_fromClassify2D(self):
+        """ Import an EMX file with Particles and defocus
+        """
+        starFile = self.ds.getFile('Class2D/job013/run_it025_data.star')
+        optics = relion.convert.getOpticsFromStar(starFile)
+
+        prot1 = self.newProtocol(emprot.ProtImportParticles,
+                                 objLabel='from relion (classify 2d)',
+                                 importFrom=emprot.ProtImportParticles.IMPORT_FROM_RELION,
+                                 starFile=starFile,
+                                 magnification=120000,
+                                 samplingRate=optics.rlnImagePixelSize,
+                                 haveDataBeenPhaseFlipped=False
+                                 )
+        self.launchProtocol(prot1)
+        self.checkOutput(prot1, 'outputParticles', ['outputParticles.hasAlignment2D()'])
+        self.checkOutput(prot1, 'outputClasses')
+
+    def test_fromRefine3D(self):
+        """ Import particles from Refine3D job star file.
+        """
+        starFile = self.ds.getFile('Refine3D/job019/run_it020_data.star')
+        optics = relion.convert.getOpticsFromStar(starFile)
+
+        prot1 = self.newProtocol(emprot.ProtImportParticles,
+                                 objLabel='from relion (refine 3d)',
+                                 importFrom=emprot.ProtImportParticles.IMPORT_FROM_RELION,
+                                 starFile=starFile,
+                                 magnification=10000,
+                                 samplingRate=optics.rlnImagePixelSize,
+                                 haveDataBeenPhaseFlipped=False
+                                 )
+        self.launchProtocol(prot1)
+        self.checkOutput(prot1, 'outputParticles', ['outputParticles.hasAlignmentProj()'])
+
+    def test_fromClassify3D(self):
+        """ Import particles from Classify3D job star file.
+        """
+        starFile = self.ds.getFile('Class3D/job016/run_it025_data.star')
+        optics = relion.convert.getOpticsFromStar(starFile)
+
+        prot1 = self.newProtocol(emprot.ProtImportParticles,
+                                 objLabel='from relion (classify 3d)',
+                                 importFrom=emprot.ProtImportParticles.IMPORT_FROM_RELION,
+                                 starFile=starFile,
+                                 magnification=120000,
+                                 samplingRate=optics.rlnImagePixelSize,
+                                 haveDataBeenPhaseFlipped=False
+                                 )
+        self.launchProtocol(prot1)
+        self.checkOutput(prot1, 'outputParticles', ['outputParticles.hasAlignmentProj()'])
+        self.checkOutput(prot1, 'outputClasses')
+
+
