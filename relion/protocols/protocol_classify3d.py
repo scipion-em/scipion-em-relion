@@ -154,52 +154,8 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
         return [strline]
     
     # -------------------------- UTILS functions ------------------------------
-    def _loadClassesInfo(self, iteration):
-        """ Read some information about the produced Relion 3D classes
-        from the *model.star file.
-        """
-        self._classesInfo = {}  # store classes info, indexed by class id
-
-        modelFn = self._getFileName('model', iter=iteration)
-        modelIter = Table.iterRows('model_classes@' + modelFn)
-
-        for classNumber, row in enumerate(modelIter):
-            index, fn = convert.relionToLocation(row.rlnReferenceImage)
-            # Store info indexed by id
-            self._classesInfo[classNumber+1] = (index, fn, row)
-    
     def _fillClassesFromIter(self, clsSet, iteration):
         """ Create the SetOfClasses3D from a given iteration. """
-        self._loadClassesInfo(iteration)
-        tableName = 'particles@' if self.IS_GT30() else ''
-        dataStar = self._getFileName('data', iter=iteration)
-        self.reader = convert.Reader(alignType=pwem.ALIGN_PROJ)
-        mdIter = Table.iterRows(tableName + dataStar, key='rlnImageId')
-        clsSet.classifyItems(updateItemCallback=self._updateParticle,
-                             updateClassCallback=self._updateClass,
-                             itemDataIterator=mdIter,
-                             doClone=False)
-    
-    def _updateParticle(self, item, row):
-        item.setClassId(row.rlnClassNumber)
-        self.reader.setParticleTransform(item, row)
+        classLoader = convert.ClassesLoader(self, pwem.ALIGN_PROJ)
+        classLoader.fillClassesFromIter(clsSet, iteration)
 
-        item._rlnLogLikeliContribution = Float(row.rlnLogLikeliContribution)
-        item._rlnMaxValueProbDistribution = Float(row.rlnMaxValueProbDistribution)
-
-        if hasattr(row, 'rlnGroupName'):
-            item._rlnGroupName = String(row.rlnGroupName)
-
-    def _updateClass(self, item):
-        classId = item.getObjId()
-        if classId in self._classesInfo:
-            index, fn, row = self._classesInfo[classId]
-            fn += ":mrc"
-            item.setAlignmentProj()
-            item.getRepresentative().setLocation(index, fn)
-            item._rlnClassDistribution = Float(row.rlnClassDistribution)
-            item._rlnAccuracyRotations = Float(row.rlnAccuracyRotations)
-            if self.IS_GT30():
-                item._rlnAccuracyTranslationsAngst = Float(row.rlnAccuracyTranslationsAngst)
-            else:
-                item._rlnAccuracyTranslations = Float(row.rlnAccuracyTranslations)

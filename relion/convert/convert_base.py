@@ -36,6 +36,7 @@ from pwem.emlib.image import ImageHandler
 import pyworkflow.utils as pwutils
 
 from .metadata import Table, Column
+from .convert_utils import relionToLocation
 
 
 class WriterBase:
@@ -189,3 +190,5 @@ class ReaderBase:
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
         pass
+
+
