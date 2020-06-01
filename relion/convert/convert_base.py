@@ -168,6 +168,8 @@ class ReaderBase:
         """
         """
         self._alignType = kwargs.get('alignType', pwem.ALIGN_NONE)
+        self._pixelSize = kwargs.get('pixelSize', 1.0)
+        self._invPixelSize = 1. / self._pixelSize
 
     def readSetOfParticles(self, starFile, partsSet, **kwargs):
         """ Convert a star file into a set of particles.

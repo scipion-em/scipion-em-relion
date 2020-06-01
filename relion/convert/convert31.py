@@ -485,8 +485,8 @@ class Reader(ReaderBase):
 
         shifts[0] = _get('rlnOriginXAngst') * ips
         shifts[1] = _get('rlnOriginYAngst') * ips
-        angles[2] = _get('rlnAnglePsi')
-        radAngles = -np.rad2deg(angles)
+        angles[2] = -_get('rlnAnglePsi')
+        radAngles = -np.deg2rad(angles)
         M = tfs.euler_matrix(radAngles[0], radAngles[1], radAngles[2], 'szyz')
         M[:3, 3] = shifts[:3]
         particle.getTransform().setMatrix(M)

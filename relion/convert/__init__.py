@@ -45,7 +45,7 @@ def createReader(**kwargs):
     is30 = kwargs.get('format', '') == '30' or relion.Plugin.IS_30()
     Reader = convert30.Reader if is30 else convert31.Reader
 
-    return Reader()
+    return Reader(**kwargs)
 
 
 def writeSetOfParticles(imgSet, starFile, outputDir, **kwargs):
