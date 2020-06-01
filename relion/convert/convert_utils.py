@@ -232,3 +232,9 @@ def getVolumesFromPostprocess(postStar):
     return (row.rlnUnfilteredMapHalf1,
             row.rlnUnfilteredMapHalf2,
             row.rlnMaskName)
+
+
+def getOpticsFromStar(starFile):
+    """ Helper function to load the optics row values from the given star file.
+    """
+    return Table(fileName=starFile, tableName='optics')[0]

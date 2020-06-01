@@ -36,6 +36,18 @@ from . import convert30
 from . import convert31
 
 
+def createReader(**kwargs):
+    """ Create a new Reader instance.
+    By default it will create the version (3.1 or older) based on the current
+    plugin binary. It can also be forced to use old format by passing
+    the format='30' argument.
+    """
+    is30 = kwargs.get('format', '') == '30' or relion.Plugin.IS_30()
+    Reader = convert30.Reader if is30 else convert31.Reader
+
+    return Reader()
+
+
 def writeSetOfParticles(imgSet, starFile, outputDir, **kwargs):
     """ Convenience function to a SetOfImages as Relion metadata using a Writer.
 
@@ -76,8 +88,4 @@ def readSetOfParticles(starFile, partsSet, **kwargs):
         format: string value to specify STAR format, if '30' it will use
             Relion3.0 format, if not, it will depends on the binary version
     """
-    is30 = kwargs.get('format', '') == '30' or relion.Plugin.IS_30()
-    Reader = convert30.Reader if is30 else convert31.Reader
-
-    reader = Reader()
-    return reader.readSetOfParticles(starFile, partsSet, **kwargs)
+    return createReader(**kwargs).readSetOfParticles(starFile, partsSet, **kwargs)

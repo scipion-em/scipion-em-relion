@@ -37,7 +37,8 @@ import pwem
 import pwem.convert.transformations as tfs
 
 from .convert_base import WriterBase, ReaderBase
-from .convert_utils import convertBinaryFiles, locationToRelion, relionToLocation
+from .convert_utils import (convertBinaryFiles, locationToRelion,
+                            relionToLocation, getOpticsFromStar)
 from .metadata import Table
 
 
@@ -117,7 +118,7 @@ class Writer(WriterBase):
             self._optics[ogName] = {
                 'rlnOpticsGroupName': ogName,
                 'rlnOpticsGroup': ogNumber,
-                #'rlnMtfFileName': acq.mtfFile.get() or 'No-MTF',
+                'rlnMtfFileName': acq.mtfFile.get() or '',
                 # FIXME: Check when we need to update the following
                 'rlnMicrographOriginalPixelSize': ps,
                 self._imgLabelPixelSize: ps,
@@ -270,6 +271,7 @@ class Writer(WriterBase):
         self._pixelSize = firstPart.getSamplingRate() or 1.0
 
         self._counter = 0  # Mark first conversion as special one
+        firstPart.setAcquisition(partsSet.getAcquisition())
         self._partToRow(firstPart, partRow)
 
         if self._postprocessImageRow:
@@ -284,13 +286,17 @@ class Writer(WriterBase):
             f.write("# Star file generated with Scipion\n")
             f.write("# version 30001\n")
             # Write header first
-            partsTable.writeStar(f, tableName='particles', writeRows=False)
+            partsWriter = Table.Writer(f)
+            partsWriter.writeTableName('particles')
+            partsWriter.writeHeader(partsTable.getColumns())
+            #partsTable.writeStar(f, tableName='particles', writeRows=False)
             # Write all rows
             for part in partsSet:
                 self._partToRow(part, partRow)
                 if self._postprocessImageRow:
                     self._postprocessImageRow(part, partRow)
-                partsTable.writeStarLine(f, partRow.values())
+                partsWriter.writeRowValues(partRow.values())
+                # partsTable.writeStarLine(f, partRow.values())
 
             # Write Optics at the end
             for opticsDict in self._optics.values():
@@ -343,9 +349,10 @@ class Reader(ReaderBase):
 
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
-        optics = Table(fileName=starFile, tableName='optics')[0]
+        opticsTable = Table(fileName=starFile, tableName='optics')
+        self._optics = {row.rlnOpticsGroup: row for row in opticsTable}
 
-        self._pixelSize = getattr(optics, 'rlnImagePixelSize', 1.0)
+        self._pixelSize = getattr(opticsTable[0], 'rlnImagePixelSize', 1.0)
         self._invPixelSize = 1. / self._pixelSize
 
         partsReader = Table.Reader(starFile, tableName='particles')
@@ -361,9 +368,10 @@ class Reader(ReaderBase):
         if self._setCtf:
             particle.setCTF(pwem.objects.CTFModel())
 
-        if kwargs.get("readAcquisition", True):
+        self._setAcq = kwargs.get("readAcquisition", True)
+        if self._setAcq:
             acq = pwem.objects.Acquisition()
-            self._rowToAcquisition(optics, acq)
+            acq.setMagnification(kwargs.get('magnification', 10000))
             particle.setAcquisition(acq)
 
         if self._extraLabels:
@@ -371,9 +379,10 @@ class Reader(ReaderBase):
                 setattr(particle, '_' + label,
                         pw.object.ObjectWrap(getattr(firstRow, label)))
 
-        partSet.setSamplingRate(self._pixelSize)
-
         self._rowToPart(firstRow, particle)
+        partSet.setSamplingRate(self._pixelSize)
+        partSet.setAcquisition(particle.getAcquisition())
+        partSet.append(particle)
 
         for row in partsReader:
             self._rowToPart(row, particle)
@@ -397,6 +406,10 @@ class Reader(ReaderBase):
 
         if self._setCtf:
             self._rowToCtf(row, particle.getCTF())
+
+        if self._setAcq:
+            self._rowToAcquisition(self._optics[row.rlnOpticsGroup],
+                                   particle.getAcquisition())
 
         self.setParticleTransform(particle, row)
 
