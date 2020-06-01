@@ -122,6 +122,12 @@ class _ColumnsList:
             def hasAllColumns(self, colNames):
                 return all(self.hasColumn(c) for c in colNames)
 
+            def set(self, key, value):
+                return setattr(self, key, value)
+
+            def get(self, key, default=None):
+                return getattr(self, key, default)
+
         self.Row = Row
 
 
@@ -245,28 +251,37 @@ class _Writer:
     def writeHeader(self, columns):
         self._file.write("loop_\n")
         # Write column names
-        for col in columns.values():
+        for col in columns:
             self._file.write("_%s \n" % col.getName())
 
-    def writeRow(self, row):
+    def writeRowValues(self, values):
+        """ Write to file a line for these row values.
+        Order should be ensured that is the same of the expected columns.
+        """
         if not self._format:
-            self._computeLineFormat([row])
-        self._file.write(self._format.format(*row))
+            self._computeLineFormat([values])
+        self._file.write(self._format.format(*values))
+
+    def writeRow(self, row):
+        """ Write to file the line for this row.
+        Row should be an instance of the expected Row class.
+        """
+        self.writeRowValues(row._asdict().values())
 
     def writeNewline(self):
         self._file.write('\n')
 
-    def _computeLineFormat(self, rows):
+    def _computeLineFormat(self, valuesList):
         """ Compute format base on row values width. """
         # Take a hint for the columns width from the first row
-        widths = [len(_formatValue(v)) for v in rows[0]]
-        formats = [_getFormatStr(v) for v in rows[0]]
-        n = len(rows)
+        widths = [len(_formatValue(v)) for v in valuesList[0]]
+        formats = [_getFormatStr(v) for v in valuesList[0]]
+        n = len(valuesList)
 
         if n > 1:
             # Check middle and last row, just in case ;)
             for index in [n // 2, -1]:
-                for i, v in enumerate(rows[index]):
+                for i, v in enumerate(valuesList[index]):
                     w = len(_formatValue(v))
                     if w > widths[i]:
                         widths[i] = w
@@ -345,7 +360,7 @@ class Table(_ColumnsList):
         if singleRow:
             writer.writeSingleRow(self._rows[0])
         else:
-            writer.writeHeader(self._columns)
+            writer.writeHeader(self._columns.values())
             for row in self:
                 writer.writeRow(row)
 
@@ -428,7 +443,8 @@ class Table(_ColumnsList):
         oldRows = self._rows
 
         # Remove non desired columns and create again the Row class
-        self._columns = {k: v for k, v in oldColumns.items() if k not in rmCols}
+        self._columns = OrderedDict([(k, v) for k, v in oldColumns.items()
+                                     if k not in rmCols])
         self._createRowClass()
 
         # Recreate rows without these column values
