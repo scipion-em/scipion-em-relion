@@ -135,7 +135,7 @@ class RelionVolFilterWizard(FilterVolumesWizard):
         _objs = self._getParameters(protocol)['input']    
         return FilterVolumesWizard._getListProvider(self, _objs)
 
-    def show(self, form, *args):
+    def show(self, form):
         params = self._getParameters(form.protocol)
         protocol = form.protocol
         provider = self._getProvider(protocol)
@@ -167,7 +167,7 @@ class Relion2AutopickParams(EmWizard):
                                        'pickingThreshold',
                                        'interParticleDistance'])]
 
-    def show(self, form, *args):
+    def show(self, form):
         autopickProt = form.protocol
 
         if not autopickProt.hasAttribute('outputCoordinatesSubset'):
@@ -301,7 +301,7 @@ class RelionWizLogPickParams(EmWizard):
 
     _targets = [(ProtRelionAutopickLoG, params)]
 
-    def show(self, form, *args):
+    def show(self, form):
         autopickProt = form.protocol
         project = autopickProt.getProject()
         micSet = autopickProt.getInputMicrographs()

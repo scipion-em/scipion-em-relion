@@ -277,7 +277,7 @@ Examples:
             zoom = 100
         return zoom
 
-    def _showImagesInClasses(self):
+    def _showImagesInClasses(self, paramName=None):
         """ Read Relion _data.star images file and
         generate a new metadata with the Xmipp classification standard:
         a 'classes' block and a 'class00000?_images' block per class.
@@ -297,7 +297,7 @@ Examples:
 
         return views
 
-    def _showClassesOnly(self):
+    def _showClassesOnly(self, paramName=None):
         views = []
         viewParams = {showj.MODE: showj.MODE_GALLERY,
                       showj.RENDER: 'rlnReferenceImage',
@@ -317,7 +317,7 @@ Examples:
     # showImagesAngularAssignment
     # =============================================================================
     @protected_show
-    def _showImagesAngularAssignment(self):
+    def _showImagesAngularAssignment(self, paramName=None):
         views = []
 
         for it in self._iterations:
@@ -332,7 +332,7 @@ Examples:
         return views
 
     @protected_show
-    def _showOptimiserFile(self):
+    def _showOptimiserFile(self, paramName=None):
         views = []
 
         for it in self._iterations:
@@ -348,7 +348,7 @@ Examples:
     # =============================================================================
     # showLLRelion
     # =============================================================================
-    def _showLL(self):
+    def _showLL(self, paramName=None):
         views = []
         for it in self._iterations:
             fn = self.protocol._getIterData(it)
@@ -359,7 +359,7 @@ Examples:
     # =============================================================================
     # ShowPMax
     # =============================================================================
-    def _showPMax(self):
+    def _showPMax(self, paramName=None):
         labels = ['rlnIterationNumber', 'rlnAveragePmax',
                   'rlnLogLikelihood']
         tablePMax = Table(columns=labels)
@@ -389,7 +389,7 @@ Examples:
     # =============================================================================
     # Get classes info per iteration
     # =============================================================================
-    def _plotClassDistribution(self):
+    def _plotClassDistribution(self, paramName=None):
         labels = ["rlnClassDistribution", "rlnAccuracyRotations"]
         if Plugin.IS_GT30():
             labels.append("rlnAccuracyTranslationsAngst")
@@ -470,7 +470,7 @@ Examples:
     # =============================================================================
     # ShowChanges
     # =============================================================================
-    def _showChanges(self):
+    def _showChanges(self, paramName=None):
         labels = ['rlnIterationNumber'] + self.protocol.CHANGE_LABELS
         tableChanges = Table(columns=labels)
 
@@ -497,7 +497,7 @@ Examples:
     # ShowVolumes
     # =============================================================================
     @protected_show
-    def _showVolumes(self):
+    def _showVolumes(self, paramName=None):
         if self.displayVol == VOLUME_CHIMERA:
             return self._showVolumesChimera()
         elif self.displayVol == VOLUME_SLICES:
@@ -546,7 +546,7 @@ Examples:
     # showAngularDistribution
     # =============================================================================
     @protected_show
-    def _showAngularDistribution(self):
+    def _showAngularDistribution(self, paramName=None):
         views = []
 
         if self.displayAngDist == ANGDIST_CHIMERA:
@@ -635,7 +635,7 @@ Examples:
     def _getFigure(self):
         return None if self.figure == 0 else 'active'
 
-    def _showSSNR(self):
+    def _showSSNR(self, paramName=None):
         prefixes = self._getPrefixes()
         nrefs = len(self._refsList)
         n = nrefs * len(prefixes)
@@ -678,7 +678,7 @@ Examples:
     # =============================================================================
     # plotFSC
     # =============================================================================
-    def _showFSC(self):
+    def _showFSC(self, paramName=None):
         print("Showing FSC for iterations: ", self._iterations)
         threshold = self.resolutionThresholdFSC.get()
 
