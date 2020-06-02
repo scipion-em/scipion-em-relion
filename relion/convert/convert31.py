@@ -118,7 +118,6 @@ class Writer(WriterBase):
             self._optics[ogName] = {
                 'rlnOpticsGroupName': ogName,
                 'rlnOpticsGroup': ogNumber,
-                'rlnMtfFileName': acq.mtfFile.get() or '',
                 # FIXME: Check when we need to update the following
                 'rlnMicrographOriginalPixelSize': ps,
                 self._imgLabelPixelSize: ps,

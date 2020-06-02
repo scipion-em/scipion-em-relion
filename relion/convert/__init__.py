@@ -48,6 +48,18 @@ def createReader(**kwargs):
     return Reader(**kwargs)
 
 
+def createWriter(**kwargs):
+    """ Create a new Writer instance.
+    By default it will create the version (3.1 or older) based on the current
+    plugin binary. It can also be forced to use old format by passing
+    the format='30' argument.
+    """
+    is30 = kwargs.get('format', '') == '30' or relion.Plugin.IS_30()
+    Writer = convert30.Reader if is30 else convert31.Writer
+
+    return Writer(**kwargs)
+
+
 def writeSetOfParticles(imgSet, starFile, outputDir, **kwargs):
     """ Convenience function to a SetOfImages as Relion metadata using a Writer.
 
@@ -67,11 +79,7 @@ def writeSetOfParticles(imgSet, starFile, outputDir, **kwargs):
         format: string value to specify STAR format, if '30' it will use
             Relion3.0 format, if not, it will depends on the binary version
     """
-    is30 = kwargs.get('format', '') == '30' or relion.Plugin.IS_30()
-    Writer = convert30.Writer if is30 else convert31.Writer
-
-    writer = Writer(outputDir=outputDir)
-    return writer.writeSetOfParticles(imgSet, starFile, **kwargs)
+    return createWriter(**kwargs).writeSetOfParticles(imgSet, starFile, **kwargs)
 
 
 def readSetOfParticles(starFile, partsSet, **kwargs):
