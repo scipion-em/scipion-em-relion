@@ -187,7 +187,7 @@ class _Reader(_ColumnsList):
 
         if self._singleRow:
             self._row = None
-        else:
+        elif result is not None:
             line = self._file.readline().strip()
             self._row = self.__rowFromValues(line.split()) if line else None
 
@@ -237,6 +237,7 @@ class _Writer:
     def __init__(self, inputFile):
         self._file = inputFile
         self._format = None
+        self._columns = None
 
     def writeTableName(self, tableName):
         self._file.write("\ndata_%s\n\n" % (tableName or ''))
@@ -250,6 +251,7 @@ class _Writer:
 
     def writeHeader(self, columns):
         self._file.write("loop_\n")
+        self._columns = columns
         # Write column names
         for col in columns:
             self._file.write("_%s \n" % col.getName())
