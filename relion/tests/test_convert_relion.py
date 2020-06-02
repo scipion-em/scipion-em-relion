@@ -181,7 +181,7 @@ class TestConvertAnglesBase(BaseTest):
         # Convert to a Xmipp metadata and also check that the images are
         # aligned correctly
         if alignType == ALIGN_2D or alignType == ALIGN_PROJ:
-            starWriter = convert.Writer()
+            starWriter = convert.createWriter()
             starWriter.writeSetOfParticles(partSet, mdFn, alignType=alignType)
             partSet2 = SetOfParticles(filename=partFn2)
         else:
@@ -706,6 +706,11 @@ class TestRelionWriter(BaseTest):
         print(">>> Writing to particles db: %s" % outputSqlite)
         outputParts = SetOfParticles(filename=outputSqlite)
         outputParts.setSamplingRate(1.234)
+        acq = Acquisition(magnification=50000,
+                          voltage=200.,
+                          sphericalAberration=1.4,
+                          amplitudeContrast=0.1)
+        outputParts.setAcquisition(acq)
 
         part = SetOfParticles.ITEM_TYPE()
         coord = Coordinate()
@@ -730,7 +735,7 @@ class TestRelionWriter(BaseTest):
         outputStar = self.getOutputPath("micrographs.star")
         outputMics = self._createSetOfMics(10)
         print(">>> Writing to micrographs: %s" % outputStar)
-        starWriter = convert.Writer()
+        starWriter = convert.createWriter()
         starWriter.writeSetOfMicrographs(outputMics, outputStar)
 
     def test_particlesToStar(self):
@@ -738,7 +743,7 @@ class TestRelionWriter(BaseTest):
         outputStar = self.getOutputPath("particles.star")
         outputParts = self._createSetOfParts(10, 2, 10)
         print(">>> Writing to particles star: %s" % outputStar)
-        starWriter = convert.Writer()
+        starWriter = convert.createWriter()
         starWriter.writeSetOfParticles(outputParts, outputStar)
 
     def test_particlesImportToStar(self):
@@ -747,7 +752,7 @@ class TestRelionWriter(BaseTest):
         partsSet.loadAllProperties()
         outputStar = self.getOutputPath("particles.star")
         print(">>> Writing to particles star: %s" % outputStar)
-        starWriter = convert.Writer()
+        starWriter = convert.createWriter()
         starWriter.writeSetOfParticles(partsSet, outputStar)
 
 

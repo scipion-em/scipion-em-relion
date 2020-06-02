@@ -650,6 +650,11 @@ class TestRelionPostprocess(TestRelionBase):
         XmippProtProjMatch = Domain.importFromPlugin('xmipp3.protocols',
                                                      'XmippProtProjMatch')
 
+        if XmippProtProjMatch is None:
+            print("WARNING: Can not load xmipp3.protocols.XmippProtProjMatch."
+                  "Skipping the tests.")
+            return
+
         protRef, protMask = self._createRef3DProtBox(
             "Proj Match", XmippProtProjMatch, storeIter=True, iterN=2)
 
@@ -978,6 +983,11 @@ class TestRelionExtractParticles(TestRelionBase):
         XmippProtPreprocessMicrographs = Domain.importFromPlugin(
             'xmipp3.protocols', 'XmippProtPreprocessMicrographs')
 
+        if XmippProtPreprocessMicrographs is None:
+            print("WARNING: Can not load xmipp3.protocols.XmippProtPreprocessMicrographs."
+                  "Skipping the tests.")
+            return
+
         print(magentaStr("\n==> Running xmipp - preprocess micrographs:"))
         cls.protDown = XmippProtPreprocessMicrographs(doDownsample=True,
                                                       downFactor=downFactorValue,
@@ -989,8 +999,17 @@ class TestRelionExtractParticles(TestRelionBase):
     @classmethod
     def runFakedPicking(cls, mics, pattern):
         """ Run a faked particle picking. Coordinates already existing. """
+
+        # TODO This fake picking depends on Xmipp particle picking
+        # TODO: Can we change this to an import coordinates?
+
         XmippProtParticlePicking = Domain.importFromPlugin(
             'xmipp3.protocols', 'XmippProtParticlePicking')
+
+        if XmippProtParticlePicking is None:
+            print("WARNING: Can not load xmipp3.protocols.XmippProtParticlePicking."
+                  "Skipping the tests.")
+            return None
 
         print(magentaStr("\n==> Running xmipp - fake particle picking:"))
         cls.protPP = XmippProtParticlePicking(importFolder=pattern, runMode=1)
