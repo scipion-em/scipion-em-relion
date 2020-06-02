@@ -155,7 +155,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
     def _extractMicrographList(self, micList, params):
         workingDir = self.getWorkingDir()
         micsStar = self._getMicsStar(micList)
-        starWriter = relion.convert.Writer(rootDir=workingDir,
+        starWriter = relion.convert.createWriter(rootDir=workingDir,
                                            outputDir=self._getTmpPath())
         starWriter.writeSetOfMicrographs(micList, self._getPath(micsStar))
 

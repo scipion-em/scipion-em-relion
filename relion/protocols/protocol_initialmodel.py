@@ -420,7 +420,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         tableName = 'particles@' if self.IS_GT30() else ''
         outImgsFn = self._getFileName('data', iter=iteration)
         imgSet.setAlignmentProj()
-        self.reader = convert.Reader(alignType=pwem.ALIGN_PROJ)
+        self.reader = convert.createReader(alignType=pwem.ALIGN_PROJ)
         mdIter = convert.Table.iterRows(tableName + outImgsFn, key='rlnImageId')
         imgSet.copyItems(self._getInputParticles(), doClone=False,
                          updateItemCallback=self._createItemMatrix,

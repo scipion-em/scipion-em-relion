@@ -130,7 +130,7 @@ class ProtRelionExportCtf(EMProtocol):
 
         micDir = self._getExportPath('Micrographs')
         pwutils.makePath(micDir)
-        starWriter = convert.Writer(rootDir=self._getExportPath(),
+        starWriter = convert.createWriter(rootDir=self._getExportPath(),
                                     outputDir=micDir,
                                     useBaseName=True)
         starWriter.writeSetOfMicrographs(micSet, self._getStarFile())
