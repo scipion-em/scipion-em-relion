@@ -640,8 +640,7 @@ def prependToFileName(imgRow, prefixPath):
     newLoc = locationToRelion(index, os.path.join(prefixPath, imgPath))
     imgRow.setValue(md.RLN_IMAGE_NAME, newLoc)
 
-    
-    
+
 def copyOrLinkFileName(imgRow, prefixDir, outputDir, copyFiles=False):
     index, imgPath = relionToLocation(imgRow.getValue(md.RLN_IMAGE_NAME))
     baseName = os.path.basename(imgPath)

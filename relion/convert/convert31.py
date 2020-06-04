@@ -32,11 +32,14 @@ import os
 import numpy as np
 from collections import OrderedDict
 
+import pyworkflow as pw
 import pwem
 import pwem.convert.transformations as tfs
 
 from .convert_base import WriterBase, ReaderBase
-from .convert_utils import convertBinaryFiles, locationToRelion
+from .convert_utils import (convertBinaryFiles, locationToRelion,
+                            relionToLocation, getOpticsFromStar)
+from .metadata import Table
 
 
 class Writer(WriterBase):
@@ -115,7 +118,6 @@ class Writer(WriterBase):
             self._optics[ogName] = {
                 'rlnOpticsGroupName': ogName,
                 'rlnOpticsGroup': ogNumber,
-                #'rlnMtfFileName': acq.mtfFile.get() or 'No-MTF',
                 # FIXME: Check when we need to update the following
                 'rlnMicrographOriginalPixelSize': ps,
                 self._imgLabelPixelSize: ps,
@@ -268,6 +270,7 @@ class Writer(WriterBase):
         self._pixelSize = firstPart.getSamplingRate() or 1.0
 
         self._counter = 0  # Mark first conversion as special one
+        firstPart.setAcquisition(partsSet.getAcquisition())
         self._partToRow(firstPart, partRow)
 
         if self._postprocessImageRow:
@@ -282,13 +285,17 @@ class Writer(WriterBase):
             f.write("# Star file generated with Scipion\n")
             f.write("# version 30001\n")
             # Write header first
-            partsTable.writeStar(f, tableName='particles', writeRows=False)
+            partsWriter = Table.Writer(f)
+            partsWriter.writeTableName('particles')
+            partsWriter.writeHeader(partsTable.getColumns())
+            #partsTable.writeStar(f, tableName='particles', writeRows=False)
             # Write all rows
             for part in partsSet:
                 self._partToRow(part, partRow)
                 if self._postprocessImageRow:
                     self._postprocessImageRow(part, partRow)
-                partsTable.writeStarLine(f, partRow.values())
+                partsWriter.writeRowValues(partRow.values())
+                # partsTable.writeStarLine(f, partRow.values())
 
             # Write Optics at the end
             for opticsDict in self._optics.values():
@@ -308,23 +315,143 @@ class Reader(ReaderBase):
         "rlnAnglePsi",
     ]
 
+    CTF_LABELS = [
+        "rlnDefocusU",
+        "rlnDefocusV",
+        "rlnDefocusAngle",
+        "rlnCtfAstigmatism",
+        "rlnCtfFigureOfMerit",
+        "rlnCtfMaxResolution"
+    ]
+
     def __init__(self, **kwargs):
         """
         """
         ReaderBase.__init__(self, **kwargs)
         self._first = False
 
-    #FIXME: remove this function
-    def _containsAny(self, row, labels):
-        return any(hasattr(row, label) for label in labels)
+    def readSetOfParticles(self, starFile, partSet, **kwargs):
+        """ Convert a star file into a set of particles.
+
+        Params:
+            starFile: the filename of the star file
+            partsSet: output particles set
+
+        Keyword Arguments:
+            blockName: The name of the data block (default particles)
+            alignType: alignment type
+            removeDisabled: Remove disabled items
+
+        """
+        self._preprocessImageRow = kwargs.get('preprocessImageRow', None)
+        self._alignType = kwargs.get('alignType', pwem.ALIGN_NONE)
+
+        self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
+
+        opticsTable = Table(fileName=starFile, tableName='optics')
+        self._optics = {row.rlnOpticsGroup: row for row in opticsTable}
+
+        self._pixelSize = getattr(opticsTable[0], 'rlnImagePixelSize', 1.0)
+        self._invPixelSize = 1. / self._pixelSize
+
+        partsReader = Table.Reader(starFile, tableName='particles')
+        self._extraLabels = [l for l in kwargs.get('extraLabels', [])
+                             if partsReader.hasColumn(l)]
+        firstRow = partsReader.getRow()
+
+        self._setClassId = hasattr(firstRow, 'rlnClassNumber')
+        self._setCtf = partsReader.hasAllColumns(self.CTF_LABELS[:3])
+
+        particle = pwem.objects.Particle()
+
+        if self._setCtf:
+            particle.setCTF(pwem.objects.CTFModel())
+
+        self._setAcq = kwargs.get("readAcquisition", True)
+        if self._setAcq:
+            acq = pwem.objects.Acquisition()
+            acq.setMagnification(kwargs.get('magnification', 10000))
+            particle.setAcquisition(acq)
+
+        if self._extraLabels:
+            for label in self._extraLabels:
+                setattr(particle, '_' + label,
+                        pw.object.ObjectWrap(getattr(firstRow, label)))
+
+        self._rowToPart(firstRow, particle)
+        partSet.setSamplingRate(self._pixelSize)
+        partSet.setAcquisition(particle.getAcquisition())
+        partSet.append(particle)
+
+        for row in partsReader:
+            self._rowToPart(row, particle)
+            partSet.append(particle)
+
+        partSet.setHasCTF(self._setCtf)
+        partSet.setAlignment(self._alignType)
+
+    def _rowToPart(self, row, particle):
+        particle.setObjId(getattr(row, 'rlnImageId', None))
+
+        if self._preprocessImageRow:
+            self._preprocessImageRow(particle, row)
+
+        # Decompose Relion filename
+        index, filename = relionToLocation(row.rlnImageName)
+        particle.setLocation(index, filename)
+
+        if self._setClassId:
+            particle.setClassId(row.rlnClassNumber)
+
+        if self._setCtf:
+            self._rowToCtf(row, particle.getCTF())
+
+        if self._setAcq:
+            self._rowToAcquisition(self._optics[row.rlnOpticsGroup],
+                                   particle.getAcquisition())
+
+        self.setParticleTransform(particle, row)
+
+        if self._extraLabels:
+            for label in self._extraLabels:
+                getattr(particle, '_%s' % label).set(getattr(row, label))
+
+        #self._setAttributes(img, row, self._extraLabels)
+        #TODO: coord, partId, micId,
+
+        if self._postprocessImageRow:
+            self._postprocessImageRow(particle, row)
+
+    def _rowToCtf(self, row, ctf):
+        """ Create a CTFModel from the row. """
+        ctf.setDefocusU(row.rlnDefocusU)
+        ctf.setDefocusV(row.rlnDefocusV)
+        ctf.setDefocusAngle(row.rlnDefocusAngle)
+        ctf.setResolution(row.rlnCtfMaxResolution or 0)
+        ctf.setFitQuality(row.rlnCtfFigureOfMerit or 0)
+
+        if getattr(row, 'rlnCtfPhaseShift', False):
+            ctf.setPhaseShift(row.rlnCtfPhaseShift)
+        ctf.standardize()
+
+        if hasattr(row, 'rlnCtfImage'):
+            ctf.setPsdFile(row.rlnCtfImage)
+
+    def _rowToAcquisition(self, optics, acq):
+        acq.setAmplitudeContrast(optics.rlnAmplitudeContrast)
+        acq.setSphericalAberration(optics.rlnSphericalAberration)
+        acq.setVoltage(optics.rlnVoltage)
+        acq.opticsGroupName.set(getattr(optics, 'rlnOpticsGroupName', None))
+        acq.beamTiltX.set(getattr(optics, 'rlnBeamTiltX', None))
+        acq.beamTiltY.set(getattr(optics, 'rlnBeamTiltY', None))
+        acq.mtfFile.set(getattr(optics, 'rlnMtfFileName', None))
+        acq.defectFile.set(getattr(optics, 'rlnDefectFile', None))
 
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
-        self._pixelSize = particle.getSamplingRate()
-        self._invPixelSize = 1. / self._pixelSize
 
         if ((self._alignType == pwem.ALIGN_NONE) or
-                not self._containsAny(row, self.ALIGNMENT_LABELS)):
+            not row.hasAnyColumn(self.ALIGNMENT_LABELS)):
             self.setParticleTransform = self.__setParticleTransformNone
         else:
             # Ensure the Transform object exists
@@ -357,8 +484,8 @@ class Reader(ReaderBase):
 
         shifts[0] = _get('rlnOriginXAngst') * ips
         shifts[1] = _get('rlnOriginYAngst') * ips
-        angles[2] = _get('rlnAnglePsi')
-        radAngles = -np.rad2deg(angles)
+        angles[2] = -_get('rlnAnglePsi')
+        radAngles = -np.deg2rad(angles)
         M = tfs.euler_matrix(radAngles[0], radAngles[1], radAngles[2], 'szyz')
         M[:3, 3] = shifts[:3]
         particle.getTransform().setMatrix(M)

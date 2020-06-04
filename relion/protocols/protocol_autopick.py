@@ -48,7 +48,7 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
 
         micsDir = self._createTmpMicsDir(micList)
         micStar = os.path.join(micsDir, 'input_micrographs.star')
-        writer = convert.Writer(rootDir=micsDir,
+        writer = convert.createWriter(rootDir=micsDir,
                                 outputDir=micsDir)
         writer.writeSetOfMicrographs(micList, micStar)
         self._pickMicrographsFromStar(micStar, micsDir, *args)

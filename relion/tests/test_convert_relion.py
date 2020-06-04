@@ -181,7 +181,7 @@ class TestConvertAnglesBase(BaseTest):
         # Convert to a Xmipp metadata and also check that the images are
         # aligned correctly
         if alignType == ALIGN_2D or alignType == ALIGN_PROJ:
-            starWriter = convert.Writer()
+            starWriter = convert.createWriter()
             starWriter.writeSetOfParticles(partSet, mdFn, alignType=alignType)
             partSet2 = SetOfParticles(filename=partFn2)
         else:
@@ -706,6 +706,11 @@ class TestRelionWriter(BaseTest):
         print(">>> Writing to particles db: %s" % outputSqlite)
         outputParts = SetOfParticles(filename=outputSqlite)
         outputParts.setSamplingRate(1.234)
+        acq = Acquisition(magnification=50000,
+                          voltage=200.,
+                          sphericalAberration=1.4,
+                          amplitudeContrast=0.1)
+        outputParts.setAcquisition(acq)
 
         part = SetOfParticles.ITEM_TYPE()
         coord = Coordinate()
@@ -730,7 +735,7 @@ class TestRelionWriter(BaseTest):
         outputStar = self.getOutputPath("micrographs.star")
         outputMics = self._createSetOfMics(10)
         print(">>> Writing to micrographs: %s" % outputStar)
-        starWriter = convert.Writer()
+        starWriter = convert.createWriter()
         starWriter.writeSetOfMicrographs(outputMics, outputStar)
 
     def test_particlesToStar(self):
@@ -738,7 +743,7 @@ class TestRelionWriter(BaseTest):
         outputStar = self.getOutputPath("particles.star")
         outputParts = self._createSetOfParts(10, 2, 10)
         print(">>> Writing to particles star: %s" % outputStar)
-        starWriter = convert.Writer()
+        starWriter = convert.createWriter()
         starWriter.writeSetOfParticles(outputParts, outputStar)
 
     def test_particlesImportToStar(self):
@@ -747,5 +752,35 @@ class TestRelionWriter(BaseTest):
         partsSet.loadAllProperties()
         outputStar = self.getOutputPath("particles.star")
         print(">>> Writing to particles star: %s" % outputStar)
-        starWriter = convert.Writer()
+        starWriter = convert.createWriter()
         starWriter.writeSetOfParticles(partsSet, outputStar)
+
+
+class TestRelionReader(BaseTest):
+    @classmethod
+    def setUpClass(cls):
+        setupTestOutput(cls)
+        cls.ds = DataSet.getDataSet('relion31_tutorial_precalculated')
+
+    def test_readSetOfParticles(self):
+        partsStar = self.ds.getFile("Extract/job018/particles.star")
+        print("<<< Reading star file: \n   %s\n" % partsStar)
+        outputSqlite = self.getOutputPath('particles.sqlite')
+        cleanPath(outputSqlite)
+        print(">>> Writing to particles db: \n   %s\n" % outputSqlite)
+        partsSet = SetOfParticles(filename=outputSqlite)
+        convert.readSetOfParticles(partsStar, partsSet,
+                                   extraLabels=['rlnNrOfSignificantSamples'])
+        partsSet.write()
+
+        first = partsSet.getFirstItem()
+        first.printAll()
+        self.assertAlmostEqual(first.getSamplingRate(), 1.244531)
+        self.assertEqual(first.getClassId(), 4)
+        self.assertTrue(hasattr(first, '_rlnNrOfSignificantSamples'))
+
+        acq = first.getAcquisition()
+        self.assertEqual(acq.mtfFile.get(), 'mtf_k2_200kV.star')
+        self.assertEqual(acq.opticsGroupName.get(), 'opticsGroup1')
+
+

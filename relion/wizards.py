@@ -319,7 +319,7 @@ class RelionWizLogPickParams(EmWizard):
         pickerProps = os.path.join(coordsDir, 'picker.conf')
         micStarFn = os.path.join(coordsDir, 'input_micrographs.star')
 
-        writer = convert.Writer(rootDir=coordsDir,
+        writer = convert.createWriter(rootDir=coordsDir,
                                 outputDir=coordsDir)
         writer.writeSetOfMicrographs(micSet, micStarFn)
 

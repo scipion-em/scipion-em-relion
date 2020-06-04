@@ -188,7 +188,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                  '%s_input.star' % self._getMovieRoot(movie))
         pwutils.makePath(os.path.join(movieFolder, 'output'))
 
-        writer = convert.Writer()
+        writer = convert.createWriter()
         # Let's use only the basename, since we will launch the command
         # from the movieFolder
         movie.setFileName(os.path.basename(movie.getFileName()))

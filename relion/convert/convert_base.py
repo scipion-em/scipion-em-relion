@@ -36,6 +36,7 @@ from pwem.emlib.image import ImageHandler
 import pyworkflow.utils as pwutils
 
 from .metadata import Table, Column
+from .convert_utils import relionToLocation
 
 
 class WriterBase:
@@ -162,13 +163,32 @@ class WriterBase:
 class ReaderBase:
     """ Helper class to grab information from star file rows
      and fill the required values in Scipion objects
-     (e.g particiels, micrographs, etc)
+     (e.g particles, micrographs, etc)
     """
     def __init__(self, **kwargs):
         """
         """
         self._alignType = kwargs.get('alignType', pwem.ALIGN_NONE)
+        self._pixelSize = kwargs.get('pixelSize', 1.0)
+        self._invPixelSize = 1. / self._pixelSize
+
+    def readSetOfParticles(self, starFile, partsSet, **kwargs):
+        """ Convert a star file into a set of particles.
+
+        Params:
+            starFile: the filename of the star file
+            partsSet: output particles set
+
+        Keyword Arguments:
+            blockName: The name of the data block (default particles)
+            alignType:
+            removeDisabled:
+
+        """
+        pass
 
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
         pass
+
+
