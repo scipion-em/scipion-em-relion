@@ -222,7 +222,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
         hasLocal = firstMovie.hasAttribute('_rlnMotionModelCoeff')
         motionMode = 1 if hasLocal else 0
 
-        writer = convert.convert31.Writer()
+        writer = convert.createWriter()
         writer.writeSetOfMicrographs(inputMovies,
                                      self._getFileName('input_mics'),
                                      postprocessImageRow=self._updateMic)
