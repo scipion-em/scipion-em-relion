@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -25,7 +25,6 @@
 # ******************************************************************************
 
 import os
-from itertools import izip
 from math import ceil
 import json
 
@@ -33,12 +32,14 @@ import pyworkflow.object as pwobj
 import pyworkflow.protocol.params as params
 import pyworkflow.protocol.constants as cons
 import pyworkflow.utils as pwutils
-import pyworkflow.em as em
-from pyworkflow.em.protocol import ProtAlignMovies
+import pwem
+from pwem.protocols import ProtAlignMovies
+from pwem.objects import Image
 from pyworkflow.gui.plotter import Plotter
 from pyworkflow.protocol import STEPS_SERIAL
 
 import relion
+import relion.convert as convert
 import relion.convert.metadata as md
 
 
@@ -47,13 +48,10 @@ class ProtRelionMotioncor(ProtAlignMovies):
     Wrapper for the Relion's implementation of motioncor algorithm.
     """
 
-    _label = 'motioncor'
-
-    @classmethod
-    def isDisabled(cls):
-        return not relion.Plugin.isVersion3Active()
+    _label = 'motion correction'
 
     def __init__(self, **kwargs):
+
         ProtAlignMovies.__init__(self, **kwargs)
         self.stepsExecutionMode = STEPS_SERIAL
 
@@ -66,15 +64,15 @@ class ProtRelionMotioncor(ProtAlignMovies):
     def _defineAlignmentParams(self, form):
 
         line = form.addLine('Frames for corrected SUM',
-                             help='First and last frames to use in corrected '
-                                  'average (starts counting at 1 and 0 as last '
-                                  'means util the last frame in the movie). ')
+                            help='First and last frames to use in corrected '
+                                 'average (starts counting at 1 and 0 as last '
+                                 'means util the last frame in the movie). ')
         line.addParam('sumFrame0', params.IntParam, default=1,
                       label='from')
         line.addParam('sumFrameN', params.IntParam, default=0,
                       label='to')
 
-        form.addParam('doDW', params.BooleanParam, default=False,
+        form.addParam('doDW', params.BooleanParam, default=True,
                       label='Do dose-weighting?',
                       help='If set to Yes, the averaged micrographs will be '
                            'dose-weighted. \n\n'
@@ -91,54 +89,19 @@ class ProtRelionMotioncor(ProtAlignMovies):
                            'the choice, CTF refinement job is always done on '
                            'dose-weighted particles.')
 
-        group = form.addGroup("Motion")
-
-        group.addParam('bfactor', params.IntParam, default=150,
-                       label='Bfactor',
-                       help="The B-factor that will be applied to the "
-                            "micrographs.")
-
-        line = group.addLine('Number of patches',
-                             help='Number of patches (in X and Y direction) to '
-                                  'apply motion correction. \n')
-        line.addParam('patchX', params.IntParam, default=1, label='X')
-        line.addParam('patchY', params.IntParam, default=1, label='Y')
-
-        group.addParam('groupFrames', params.IntParam, default=1,
-                       label='Group frames',
-                       help="Average together this many frames before "
-                            "calculating the beam-induced shifts.")
-
-        group.addParam('binFactor', params.FloatParam, default=1.,
-                       label='Binning factor',
-                       help='Bin the micrographs this much by a windowing '
-                            'operation in the Fourier Tranform. Binning at '
-                            'this level is hard to un-do later on, but may be '
-                            'useful to down-scale super-resolution images. '
-                            'Float-values may be used. Do make sure though '
-                            'that the resulting micrograph size is even.')
-
-        group.addParam('gainRot', params.EnumParam, default=0,
-                       choices=['No rotation (0)',
-                                ' 90 degrees (1)',
-                                '180 degrees (2)',
-                                '270 degrees (3)'],
-                       label='Gain rotation',
-                       help="Rotate the gain reference by this number times 90 "
-                            "degrees clockwise in relion_display. This is the "
-                            "same as -RotGain in MotionCor2. \n"
-                            "Note that MotionCor2 uses a different convention "
-                            "for rotation so it says 'counter-clockwise'.")
-
-        group.addParam('gainFlip', params.EnumParam, default=0,
-                       choices=['No flipping        (0)',
-                                'Flip upside down   (1)',
-                                'Flip left to right (2)'],
-                       label='Gain flip',
-                       help="Flip the gain reference after rotation. "
-                            "This is the same as -FlipGain in MotionCor2. "
-                            "0 means do nothing, 1 means flip Y (upside down) "
-                            "and 2 means flip X (left to right).")
+        if self.IS_GT30():
+            form.addParam('savePSsum', params.BooleanParam, default=False,
+                          label='Save sum of power spectra?',
+                          help='Sum of non-dose weighted power spectra '
+                               'provides better signal for CTF estimation. '
+                               'The power spectra can be used by CTFFIND4 '
+                               'but not by GCTF.')
+            form.addParam('dosePSsum', params.FloatParam, default=4.0,
+                          condition='savePSsum',
+                          label='Sum power spectra every e/A2',
+                          help='McMullan et al. (Ultramicroscopy, 2015) '
+                               'suggests summing power spectra every '
+                               '4.0 e/A2 gives optimal Thon rings.')
 
         form.addParam('extraParams', params.StringParam, default='',
                       expertLevel=cons.LEVEL_ADVANCED,
@@ -160,12 +123,62 @@ class ProtRelionMotioncor(ProtAlignMovies):
                            'micrograph thumbnail and keep it with the '
                            'micrograph object for visualization purposes. ')
 
+        form.addSection("Motion")
+        form.addParam('bfactor', params.IntParam, default=150,
+                      label='Bfactor',
+                      help="The B-factor that will be applied to the "
+                           "micrographs.")
+
+        line = form.addLine('Number of patches',
+                            help='Number of patches (in X and Y direction) to '
+                                 'apply motion correction. If <= 2 then '
+                                 'only global correction will be done.')
+        line.addParam('patchX', params.IntParam, default=1, label='X')
+        line.addParam('patchY', params.IntParam, default=1, label='Y')
+
+        form.addParam('groupFrames', params.IntParam, default=1,
+                      label='Group frames',
+                      help="Average together this many frames before "
+                           "calculating the beam-induced shifts.")
+
+        form.addParam('binFactor', params.FloatParam, default=1.,
+                      label='Binning factor',
+                      help='Bin the micrographs this much by a windowing '
+                           'operation in the Fourier Tranform. Binning at '
+                           'this level is hard to un-do later on, but may be '
+                           'useful to down-scale super-resolution images. '
+                           'Float-values may be used. Do make sure though '
+                           'that the resulting micrograph size is even.')
+
+        form.addParam('gainRot', params.EnumParam, default=0,
+                      choices=['No rotation (0)',
+                               ' 90 degrees (1)',
+                               '180 degrees (2)',
+                               '270 degrees (3)'],
+                      label='Gain rotation',
+                      help="Rotate the gain reference by this number times 90 "
+                           "degrees clockwise in relion_display. This is the "
+                           "same as -RotGain in MotionCor2. \n"
+                           "Note that MotionCor2 uses a different convention "
+                           "for rotation so it says 'counter-clockwise'.")
+
+        form.addParam('gainFlip', params.EnumParam, default=0,
+                      choices=['No flipping        (0)',
+                               'Flip upside down   (1)',
+                               'Flip left to right (2)'],
+                      label='Gain flip',
+                      help="Flip the gain reference after rotation. "
+                           "This is the same as -FlipGain in MotionCor2. "
+                           "0 means do nothing, 1 means flip Y (upside down) "
+                           "and 2 means flip X (left to right).")
+
         form.addParallelSection(threads=4, mpi=1)
 
     # --------------------------- STEPS functions -------------------------------
     def _convertInputStep(self):
         self.info("Relion version:")
         self.runJob("relion_run_motioncorr --version", "", numberOfMpi=1)
+        self.info("Detected version from config: %s" % relion.Plugin.getActiveVersion())
 
         ProtAlignMovies._convertInputStep(self)
 
@@ -173,9 +186,14 @@ class ProtRelionMotioncor(ProtAlignMovies):
         movieFolder = self._getOutputMovieFolder(movie)
         inputStar = os.path.join(movieFolder,
                                  '%s_input.star' % self._getMovieRoot(movie))
-        self.writeInputStar(inputStar, movie)
-
         pwutils.makePath(os.path.join(movieFolder, 'output'))
+
+        writer = convert.createWriter()
+        # Let's use only the basename, since we will launch the command
+        # from the movieFolder
+        movie.setFileName(os.path.basename(movie.getFileName()))
+        writer.writeSetOfMovies([movie], inputStar)
+
         # The program will run in the movie folder, so let's put
         # the input files relative to that
         args = "--i %s --o output/ " % os.path.basename(inputStar)
@@ -189,9 +207,19 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
         inputMovies = self.inputMovies.get()
         if inputMovies.getGain():
-            args += ' --gainref "%s"' % inputMovies.getGain()
+            args += ' --gainref "%s" ' % inputMovies.getGain()
             args += ' --gain_rot %d ' % self.gainRot
             args += ' --gain_flip %d ' % self.gainFlip
+
+        if self.IS_GT30():
+            acq = inputMovies.getAcquisition()
+            defectFile = acq.getAttributeValue('defectFile', None)
+
+            if defectFile:
+                args += ' --defect_file "%s" ' % defectFile
+
+            if self._savePsSum():
+                args += ' --grouping_for_ps %d ' % self._calcPsDose()
 
         if self.doDW:
             args += "--dose_weighting "
@@ -225,11 +253,23 @@ class ProtRelionMotioncor(ProtAlignMovies):
         # Check base validation before the specific ones for Motioncor
         errors = ProtAlignMovies._validate(self)
 
+        if not relion.Plugin.getActiveVersion():
+            errors.append("Could not detect the current Relion version. \n"
+                          "RELION_HOME='%s'" % relion.Plugin.getHome())
+
+        acq = self.inputMovies.get().getAcquisition()
         if self.doDW:
-            dose = self.inputMovies.get().getAcquisition().getDosePerFrame()
+            dose = acq.getDosePerFrame()
             if dose is None or dose < 0.001:
                 errors.append("Input movies do not contain the dose per frame, "
                               "dose-weighting can not be performed. ")
+
+        if self.IS_GT30():
+            # We require to have opticsGroup information in acquisition
+            if not acq.getAttributeValue('opticsGroupName', None):
+                errors.append("In Relion > 3.1, you need to run the "
+                              "*relion - assign optics group* to set optics "
+                              "group information. ")
 
         return errors
 
@@ -250,15 +290,23 @@ class ProtRelionMotioncor(ProtAlignMovies):
     def _createOutputWeightedMicrographs(self):
         return bool(self.doDW)
 
+    def _savePsSum(self):
+        return self.getAttributeValue('savePSsum', False)
+
     def _preprocessOutputMicrograph(self, mic, movie):
         self._setPlotInfo(movie, mic)
         self._setMotionValues(movie, mic)
+        if self._savePsSum():
+            outPs = self._getExtraPath(self._getOutputMicPsName(movie))
+            mic._powerSpectra = Image(location=outPs)
+            mic._powerSpectra.setSamplingRate(self._calcPSSampling())
 
     def _setMotionValues(self, movie, mic):
         """ Parse motion values from the 'corrected_micrographs.star' file
         generated for each movie. """
         fn = self._getMovieExtraFn(movie, 'corrected_micrographs.star')
-        table = md.Table(fileName=fn)
+        micsTableName = 'micrographs' if self.IS_GT30() else ''
+        table = md.Table(fileName=fn, tableName=micsTableName)
         row = table[0]
         mic._rlnAccumMotionTotal = pwobj.Float(row.rlnAccumMotionTotal)
         mic._rlnAccumMotionEarly = pwobj.Float(row.rlnAccumMotionEarly)
@@ -272,6 +320,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         xShifts, yShifts = [], []
 
         for row in table:
+            # Shifts are in pixels of the original (unbinned) movies
             xShifts.append(float(row.rlnMicrographShiftX))
             yShifts.append(float(row.rlnMicrographShiftY))
             if len(xShifts) == n:
@@ -285,16 +334,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
         if self.numberOfMpi > 1:
             program += '_mpi'
         return program
-
-    def writeInputStar(self, starFn, *images):
-        """ Easy way to write a simple star file with a single micrographs.
-        Used by the relion implementation of motioncor.
-        """
-        with open(starFn, 'w') as f:
-            table = md.Table(columns=['rlnMicrographMovieName'])
-            for img in images:
-                table.addRow(os.path.basename(img.getFileName()))
-            table.writeStar(f)
 
     def _getMovieOutFn(self, movie, suffix):
         movieBase = pwutils.removeBaseExt(movie.getFileName()).replace('.', '_')
@@ -321,12 +360,12 @@ class ProtRelionMotioncor(ProtAlignMovies):
         return self._getNameExt(movie, '_psd', 'jpeg', extra=True)
 
     def _setPlotInfo(self, movie, mic):
-        mic.plotGlobal = em.Image(location=self._getPlotGlobal(movie))
+        mic.plotGlobal = pwem.objects.Image(location=self._getPlotGlobal(movie))
         if self.doComputePSD:
-            mic.psdCorr = em.Image(location=self._getPsdCorr(movie))
-            mic.psdJpeg = em.Image(location=self._getPsdJpeg(movie))
+            mic.psdCorr = pwem.objects.Image(location=self._getPsdCorr(movie))
+            mic.psdJpeg = pwem.objects.Image(location=self._getPsdJpeg(movie))
         if self.doComputeMicThumbnail:
-            mic.thumbnail = em.Image(
+            mic.thumbnail = pwem.objects.Image(
                 location=self._getOutputMicThumbnail(movie))
 
     def _computeExtra(self, movie):
@@ -340,7 +379,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                   outputFn=self._getOutputMicThumbnail(movie))
 
         if self.doComputePSD:
-            #fakeShiftsFn = self.writeZeroShifts(movie)
             movieFn = movie.getFileName()
             aveMicFn = os.path.join(movieFolder,
                                     pwutils.removeBaseExt(movieFn) + "_tmp.mrc")
@@ -349,10 +387,10 @@ class ProtRelionMotioncor(ProtAlignMovies):
                               dark=inputMovies.getDark(),
                               gain=inputMovies.getGain())
 
-            self.computePSDs(movie, aveMicFn, outMicFn,
-                             outputFnCorrected=self._getPsdJpeg(movie))
+            self.computePSDImages(movie, aveMicFn, outMicFn,
+                                  outputFnCorrected=self._getPsdJpeg(movie))
 
-        self._saveAlignmentPlots(movie)
+        self._saveAlignmentPlots(movie, inputMovies.getSamplingRate())
 
     def _moveFiles(self, movie):
         # It really annoying that Relion default names changes if you use DW or not
@@ -366,6 +404,10 @@ class ProtRelionMotioncor(ProtAlignMovies):
         else:
             pwutils.moveFile(self._getMovieOutFn(movie, '.mrc'),
                              self._getExtraPath(self._getOutputMicName(movie)))
+
+        if self._savePsSum():
+            pwutils.moveFile(self._getMovieOutFn(movie, '_PS.mrc'),
+                             self._getExtraPath(self._getOutputMicPsName(movie)))
 
         # Keep some local files of this movie in the extra folder
         for suffix in ['.star', '.log']:
@@ -396,11 +438,11 @@ class ProtRelionMotioncor(ProtAlignMovies):
                 return lastFrmAligned
         return movie.getNumberOfFrames()
 
-    def _saveAlignmentPlots(self, movie):
+    def _saveAlignmentPlots(self, movie, pixSize):
         # Create plots and save as an image
         shiftsX, shiftsY = self._getMovieShifts(movie, self._getMovieOutFn(movie, '.star'))
-        first, _ = self._getFrameRange(movie.getNumberOfFrames(), 'align')
-        plotter = createGlobalAlignmentPlot(shiftsX, shiftsY, first)
+        first, _ = self._getFrameRange(movie.getNumberOfFrames(), 'sum')
+        plotter = createGlobalAlignmentPlot(shiftsX, shiftsY, first, pixSize)
         plotter.savefig(self._getPlotGlobal(movie))
         plotter.close()
 
@@ -416,20 +458,20 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                  tableName='local_motion_model')
                 coeffs = [row.rlnMotionModelCoeff for row in table]
             except:
-                print("Failed to parse local motion from: %s" % 
+                print("Failed to parse local motion from: %s" %
                       os.path.abspath(self._getMovieExtraFn(movie, '.star')))
                 coeffs = []  # Failed to parse the local motion
             m._rlnMotionModelCoeff = pwobj.String(json.dumps(coeffs))
         return m
 
     def createOutputStep(self):
-        # This method is re-implementd here becase a bug in the base protocol
+        # This method is re-implemented here because a bug in the base protocol
         # where the outputMicrographs is used without check if it is produced.
         # validate that we have some output movies
         if self._createOutputMovies():
             output = self.outputMovies
         elif self._createOutputMicrographs():
-            output = self.outputMicroraphs
+            output = self.outputMicrographs
         elif self._createOutputWeightedMicrographs():
             output = self.outputMicrographsDoseWeighted
         else:
@@ -446,32 +488,88 @@ class ProtRelionMotioncor(ProtAlignMovies):
             self.warning(pwutils.yellowStr("WARNING - Failed to align %d movies."
                                            % (inputSize - outputSize)))
 
+    def _calcPsDose(self):
+        _, dose = self._getCorrectedDose(self.inputMovies.get())
+        dose_for_ps = round(self.dosePSsum.get() / dose)
 
-def createGlobalAlignmentPlot(meanX, meanY, first):
+        return 1 if dose_for_ps == 0 else dose_for_ps
+
+    def _calcPSSampling(self):
+        """ Copied from relion 3.1 code. """
+        target_pixel_size = 1.4  # from CTFFIND 4.1
+        ps = self.inputMovies.get().getSamplingRate()
+        ps_angpix = ps * self.binFactor.get()
+        if ps_angpix < target_pixel_size:
+            nx_needed = ceil(512 * ps_angpix / target_pixel_size)
+            nx_needed += nx_needed % 2
+            ps_angpix = 512 * ps_angpix / nx_needed
+        return ps_angpix
+
+    def _getOutputMicPsName(self, movie):
+        """ Returns the name of the output PS
+        (relative to micFolder)
+        """
+        return self._getMovieRoot(movie) + '_aligned_mic_PS.mrc'
+
+    def _getFrameRange(self, n, prefix):
+        # Reimplement this method to ignore prefix (called from base class)
+        # and always use 'sum' as prefix
+        return ProtAlignMovies._getFrameRange(self, n, 'sum')
+
+    def IS_GT30(self):
+        return relion.Plugin.IS_GT30()
+
+
+def createGlobalAlignmentPlot(meanX, meanY, first, pixSize):
     """ Create a plotter with the shift per frame. """
+    sumMeanX = []
+    sumMeanY = []
+
+    def px_to_ang(ax_px):
+        y1, y2 = ax_px.get_ylim()
+        x1, x2 = ax_px.get_xlim()
+        ax_ang2.set_ylim(y1 * pixSize, y2 * pixSize)
+        ax_ang.set_xlim(x1 * pixSize, x2 * pixSize)
+        ax_ang.figure.canvas.draw()
+        ax_ang2.figure.canvas.draw()
+
     figureSize = (6, 4)
     plotter = Plotter(*figureSize)
     figure = plotter.getFigure()
-    ax = figure.add_subplot(111)
-    ax.grid()
-    ax.set_title('Global shift')
-    ax.set_xlabel('Shift x (pixels)')
-    ax.set_ylabel('Shift y (pixels)')
+    ax_px = figure.add_subplot(111)
+    ax_px.grid()
+    ax_px.set_xlabel('Shift x (px)')
+    ax_px.set_ylabel('Shift y (px)')
+
+    ax_ang = ax_px.twiny()
+    ax_ang.set_xlabel('Shift x (A)')
+    ax_ang2 = ax_px.twinx()
+    ax_ang2.set_ylabel('Shift y (A)')
 
     i = first
-    skipLabels = ceil(len(meanX)/10.0)
+    # The output _rlnMicrographShiftX/Y shifts relative to the first frame.
+    # Unit is pixels of the original (unbinned) movies (Takanori, 2018)
+    skipLabels = ceil(len(meanX) / 10.0)
     labelTick = 1
 
-    for x, y in izip(meanX, meanY):
+    for x, y in zip(meanX, meanY):
+        sumMeanX.append(x)
+        sumMeanY.append(y)
         if labelTick == 1:
-            ax.text(x - 0.02, y + 0.02, str(i))
+            ax_px.text(x - 0.02, y + 0.02, str(i))
             labelTick = skipLabels
         else:
             labelTick -= 1
         i += 1
 
-    ax.plot(meanX, meanY, color='b')
-    ax.plot(meanX, meanY, 'yo')
+    # automatically update lim of ax_ang when lim of ax_px changes.
+    ax_px.callbacks.connect("ylim_changed", px_to_ang)
+    ax_px.callbacks.connect("xlim_changed", px_to_ang)
+
+    ax_px.plot(sumMeanX, sumMeanY, color='b')
+    ax_px.plot(sumMeanX, sumMeanY, 'yo')
+    ax_px.plot(sumMeanX[0], sumMeanY[0], 'ro', markersize=10, linewidth=0.5)
+    ax_px.set_title('Global frame alignment')
 
     plotter.tightLayout()
 

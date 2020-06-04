@@ -8,7 +8,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -26,23 +26,22 @@
 # *
 # **************************************************************************
 
-import pyworkflow as pw
-import pyworkflow.em.metadata as md
+import pwem
+from pwem.protocols import ProtInitialVolume
+from pwem.objects import Volume
 from pyworkflow.protocol.params import (PointerParam, FloatParam,
                                         LabelParam, IntParam,
                                         EnumParam, StringParam,
-                                        BooleanParam, PathParam,
+                                        BooleanParam,
                                         LEVEL_ADVANCED)
+
 import relion
-import relion.convert
-from relion.constants import V2_0, ANGULAR_SAMPLING_LIST
+import relion.convert as convert
+from relion.convert.metadata import Table
 from .protocol_base import ProtRelionBase
 
 
-IS_V3 = relion.Plugin.isVersion3Active()
-
-
-class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
+class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
     """ This protocols creates a 3D initial model using Relion.
 
     Generate a 3D initial model _de novo_ from 2D particles using
@@ -52,12 +51,8 @@ class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
     IS_CLASSIFY = False
     IS_3D_INIT = True
     IS_2D = False
-    CHANGE_LABELS = [md.RLN_OPTIMISER_CHANGES_OPTIMAL_ORIENTS,
-                     md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS]
-
-    @classmethod
-    def isDisabled(cls):
-        return relion.Plugin.getActiveVersion() in [V2_0]
+    CHANGE_LABELS = ['rlnChangesOptimalOrientations',
+                     'rlnChangesOptimalOffsets']
 
     def __init__(self, **args):
         ProtRelionBase.__init__(self, **args)
@@ -122,62 +117,58 @@ class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
 
         self.addSymmetry(form)
 
-        group = form.addGroup('CTF')
-
-        group.addParam('continueMsg', LabelParam, default=True,
-                       condition='doContinue',
-                       label='CTF parameters are not available in continue mode')
-        group.addParam('doCTF', BooleanParam, default=True,
-                       label='Do CTF-correction?', condition='not doContinue',
-                       help='If set to Yes, CTFs will be corrected inside the '
-                            'MAP refinement. The resulting algorithm '
-                            'intrinsically implements the optimal linear, or '
-                            'Wiener filter. Note that input particles should '
-                            'contains CTF parameters.')
-        group.addParam('haveDataBeenPhaseFlipped', LabelParam,
-                       condition='not doContinue',
-                       label='Have data been phase-flipped?      '
-                             '(Don\'t answer, see help)',
-                       help='The phase-flip status is recorded and managed by '
-                            'Scipion. \n In other words, when you import or '
-                            'extract particles, \nScipion will record whether '
-                            'or not phase flipping has been done.\n\n'
-                            'Note that CTF-phase flipping is NOT a necessary '
-                            'pre-processing step \nfor MAP-refinement in '
-                            'RELION, as this can be done inside the internal\n'
-                            'CTF-correction. However, if the phases have been '
-                            'flipped, the program will handle it.')
-        group.addParam('ignoreCTFUntilFirstPeak', BooleanParam, default=False,
-                       expertLevel=LEVEL_ADVANCED,
-                       label='Ignore CTFs until first peak?',
-                       condition='not doContinue',
-                       help='If set to Yes, then CTF-amplitude correction will '
-                            'only be performed from the first peak '
-                            'of each CTF onward. This can be useful if the CTF '
-                            'model is inadequate at the lowest resolution. '
-                            'Still, in general using higher amplitude contrast '
-                            'on the CTFs (e.g. 10-20%) often yields better '
-                            'results. Therefore, this option is not generally '
-                            'recommended.')
+        form.addSection(label='CTF')
+        form.addParam('continueMsg', LabelParam, default=True,
+                      condition='doContinue',
+                      label='CTF parameters are not available in continue mode')
+        form.addParam('doCTF', BooleanParam, default=True,
+                      label='Do CTF-correction?', condition='not doContinue',
+                      help='If set to Yes, CTFs will be corrected inside the '
+                           'MAP refinement. The resulting algorithm '
+                           'intrinsically implements the optimal linear, or '
+                           'Wiener filter. Note that input particles should '
+                           'contains CTF parameters.')
+        form.addParam('haveDataBeenPhaseFlipped', LabelParam,
+                      condition='not doContinue',
+                      label='Have data been phase-flipped?      '
+                            '(Don\'t answer, see help)',
+                      help='The phase-flip status is recorded and managed by '
+                           'Scipion. \n In other words, when you import or '
+                           'extract particles, \nScipion will record whether '
+                           'or not phase flipping has been done.\n\n'
+                           'Note that CTF-phase flipping is NOT a necessary '
+                           'pre-processing step \nfor MAP-refinement in '
+                           'RELION, as this can be done inside the internal\n'
+                           'CTF-correction. However, if the phases have been '
+                           'flipped, the program will handle it.')
+        form.addParam('ignoreCTFUntilFirstPeak', BooleanParam, default=False,
+                      label='Ignore CTFs until first peak?',
+                      condition='not doContinue',
+                      help='If set to Yes, then CTF-amplitude correction will '
+                           'only be performed from the first peak '
+                           'of each CTF onward. This can be useful if the CTF '
+                           'model is inadequate at the lowest resolution. '
+                           'Still, in general using higher amplitude contrast '
+                           'on the CTFs (e.g. 10-20%) often yields better '
+                           'results. Therefore, this option is not generally '
+                           'recommended.')
 
         form.addSection('Optimisation')
-        if IS_V3:
-            form.addParam('numberOfClasses', IntParam, default=1,
-                          label='Number of classes',
-                          help='The number of classes (K) for a multi-reference '
-                               'ab initio SGD refinement. These classes will be '
-                               'made in an unsupervised manner, starting from a '
-                               'single reference in the initial iterations of '
-                               'the SGD, and the references will become '
-                               'increasingly dissimilar during the in between '
-                               'iterations.')
+        form.addParam('numberOfClasses', IntParam, default=1,
+                      label='Number of classes',
+                      help='The number of classes (K) for a multi-reference '
+                           'ab initio SGD refinement. These classes will be '
+                           'made in an unsupervised manner, starting from a '
+                           'single reference in the initial iterations of '
+                           'the SGD, and the references will become '
+                           'increasingly dissimilar during the in between '
+                           'iterations.')
 
-        if IS_V3:
-            form.addParam('doFlattenSolvent', BooleanParam, default=True,
-                          label='Flatten and enforce non-negative solvent?',
-                          help='If set to Yes, the job will apply a spherical '
-                               'mask and enforce all values in the reference '
-                               'to be non-negative.')
+        form.addParam('doFlattenSolvent', BooleanParam, default=True,
+                      label='Flatten and enforce non-negative solvent?',
+                      help='If set to Yes, the job will apply a spherical '
+                           'mask and enforce all values in the reference '
+                           'to be non-negative.')
 
         form.addParam('symmetryGroup', StringParam, default='c1',
                       label="Symmetry",
@@ -189,8 +180,8 @@ class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
 
         group = form.addGroup('Sampling')
         group.addParam('angularSamplingDeg', EnumParam, default=1,
-                       choices=ANGULAR_SAMPLING_LIST,
-                       label='Angular sampling interval (deg)',
+                       choices=relion.ANGULAR_SAMPLING_LIST,
+                       label='Initial angular sampling (deg)',
                        help='There are only a few discrete angular samplings'
                             ' possible because we use the HealPix library to'
                             ' generate the sampling of the first two Euler '
@@ -214,14 +205,11 @@ class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
                             'evaluated on a 2x coarser grid.')
 
         form.addSection(label='SGD')
-        if IS_V3:
-            self._defineSGD3(form)
-        else:
-            self._defineSGD2(form)
+        self._defineSGD3(form)
 
         form.addParam('sgdNoiseVar', IntParam, default=-1,
                       expertLevel=LEVEL_ADVANCED,
-                      label='SGD increased noise variance half-life',
+                      label='Increased noise variance half-life',
                       help='When set to a positive value, the initial '
                            'estimates of the noise variance will internally '
                            'be multiplied by 8, and then be gradually '
@@ -248,34 +236,6 @@ class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
                            "--pad 2\n")
 
         form.addParallelSection(threads=1, mpi=3)
-
-    def _defineSGD2(self, form):
-        """ Define SGD parameters for Relion version 2. """
-        form.addParam('numberOfIterations', IntParam, default=1,
-                      label='Number of iterations',
-                      help='Number of iterations to be performed. '
-                           'Often 1 or 2 iterations with approximately '
-                           'ten thousand particles, or 5-10 iterations '
-                           'with several thousand particles is enough.')
-        form.addParam('sgdSubsetSize', IntParam, default=200,
-                      label='SGD subset size',
-                      help='How many particles will be processed for each '
-                           'SGD step. Often 200 seems to work well.')
-        form.addParam('writeSubsets', IntParam, default=10,
-                      expertLevel=LEVEL_ADVANCED,
-                      label='Write-out frequency subsets',
-                      help='Every how many subsets do you want to write the '
-                           'model to disk. Negative value means only write '
-                           'out model after entire iteration.')
-        form.addParam('sgdResLimit', IntParam, default=20,
-                      label='Limit resolution SGD to (A)',
-                      help='If set to a positive number, then the SGD will '
-                           'be done only including the Fourier components '
-                           'up to this resolution (in Angstroms). This is '
-                           'essential in SGD, as there is very little '
-                           'regularisation, i.e. overfitting will start '
-                           'to happen very quickly. Values in the range '
-                           'of 15-30 Angstroms have proven useful.')
 
     def _defineSGD3(self, form):
         """ Define SGD parameters for Relion version 3. """
@@ -307,12 +267,12 @@ class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
                             'left dissimilar. 50 seems to work well in many '
                             'cases. Perhaps increase when multiple reference '
                             'have trouble separating.')
-        form.addParam('writeIter', IntParam, default=10,
-                      expertLevel=LEVEL_ADVANCED,
-                      label='Write-out frequency (iter)',
-                      help='Every how many iterations do you want to write the '
-                           'model to disk. Negative value means only write '
-                           'out model after entire iteration.')
+        group.addParam('writeIter', IntParam, default=10,
+                       expertLevel=LEVEL_ADVANCED,
+                       label='Write-out frequency (iter)',
+                       help='Every how many iterations do you want to write the '
+                            'model to disk. Negative value means only write '
+                            'out model after entire iteration.')
 
         line = form.addLine('Resolution (A)',
                             help='This is the resolution cutoff (in A) that '
@@ -353,8 +313,8 @@ class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
         volumes = []
 
         for i in range(1, k + 1):
-            vol = pw.em.Volume(self._getExtraPath('relion_it%03d_class%03d.mrc')
-                               % (lastIter, i))
+            vol = Volume(self._getExtraPath('relion_it%03d_class%03d.mrc')
+                         % (lastIter, i))
             vol.setSamplingRate(pixelSize)
             volumes.append(vol)
 
@@ -384,16 +344,10 @@ class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
 
     # -------------------------- INFO functions -------------------------------
     def _validateNormal(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION.
-        """
         errors = []
         return errors
 
     def _validateContinue(self):
-        """ Should be overwritten in subclasses to
-        return summary messages for CONTINUE EXECUTION.
-        """
         errors = []
         continueRun = self.continueRun.get()
         continueRun._initialize()
@@ -411,22 +365,18 @@ class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
         return errors
 
     def _summaryNormal(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION.
-        """
         summary = []
         it = self._lastIter()
         if it >= 1:
-            row = md.getFirstRow('model_general@' + self._getFileName('model', iter=it))
-            resol = row.getValue("rlnCurrentResolution")
+            table = Table(fileName=self._getFileName('model', iter=it),
+                          tableName='model_general')
+            row = table[0]
+            resol = float(row.rlnCurrentResolution)
             summary.append("Current resolution: *%0.2f*" % resol)
         return summary
 
     def _summaryContinue(self):
-        """ Should be overwritten in subclasses to
-        return summary messages for CONTINUE EXECUTION.
-        """
-        summary = []
+        summary = list()
         summary.append("Continue from iteration %01d" % self._getContinueIter())
         return summary
 
@@ -445,21 +395,15 @@ class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
 
     def _setSGDArgs(self, args):
         args['--sgd'] = ''
-
-        if IS_V3:
-            args['--sgd_ini_iter'] = self.numberOfIterInitial.get()
-            args['--sgd_inbetween_iter'] = self.numberOfIterInBetween.get()
-            args['--sgd_fin_iter'] = self.numberOfIterFinal.get()
-            args['--sgd_write_iter'] = self.writeIter.get()
-            args['--sgd_ini_resol'] = self.initialRes.get()
-            args['--sgd_fin_resol'] = self.finalRes.get()
-            args['--sgd_ini_subset'] = self.initialBatch.get()
-            args['--sgd_fin_subset'] = self.finalBatch.get()
-            args['--K'] = self.numberOfClasses.get()
-        else:
-            args['--subset_size'] = self.sgdSubsetSize.get()
-            args['--strict_highres_sgd'] = self.sgdResLimit.get()
-            args['--write_subsets'] = self.writeSubsets.get()
+        args['--sgd_ini_iter'] = self.numberOfIterInitial.get()
+        args['--sgd_inbetween_iter'] = self.numberOfIterInBetween.get()
+        args['--sgd_fin_iter'] = self.numberOfIterFinal.get()
+        args['--sgd_write_iter'] = self.writeIter.get()
+        args['--sgd_ini_resol'] = self.initialRes.get()
+        args['--sgd_fin_resol'] = self.finalRes.get()
+        args['--sgd_ini_subset'] = self.initialBatch.get()
+        args['--sgd_fin_subset'] = self.finalBatch.get()
+        args['--K'] = self.numberOfClasses.get()
 
         if not self.doContinue:
             args['--denovo_3dref'] = ''
@@ -473,14 +417,14 @@ class ProtRelionInitialModel(pw.em.ProtInitialVolume, ProtRelionBase):
             args['--offset_step'] = self.offsetSearchStepPix.get() * 2
 
     def _fillDataFromIter(self, imgSet, iteration):
+        tableName = 'particles@' if self.IS_GT30() else ''
         outImgsFn = self._getFileName('data', iter=iteration)
         imgSet.setAlignmentProj()
-        imgSet.copyItems(
-            self._getInputParticles(),
-            updateItemCallback=self._createItemMatrix,
-            itemDataIterator=md.iterRows(outImgsFn,
-                                         sortByLabel=md.RLN_IMAGE_ID))
+        self.reader = convert.createReader(alignType=pwem.ALIGN_PROJ)
+        mdIter = convert.Table.iterRows(tableName + outImgsFn, key='rlnImageId')
+        imgSet.copyItems(self._getInputParticles(), doClone=False,
+                         updateItemCallback=self._createItemMatrix,
+                         itemDataIterator=mdIter)
 
     def _createItemMatrix(self, item, row):
-        relion.convert.createItemMatrix(item, row, align=pw.em.ALIGN_PROJ)
-
+        self.reader.setParticleTransform(item, row)

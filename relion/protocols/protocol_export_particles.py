@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -26,15 +26,15 @@
 
 import os
 
-import pyworkflow.em as em
-import pyworkflow.utils as pwutils
-
-from pyworkflow.em.protocol.protocol_particles import ProtProcessParticles
 import pyworkflow.protocol.params as params
+import pyworkflow.utils as pwutils
+import pwem
+from pwem.emlib.image import ImageHandler
+from pwem.protocols import ProtProcessParticles
 
 import relion
-import relion.convert
-from relion.constants import STACK_NONE, STACK_MULT, STACK_ONE
+import relion.convert as convert
+from ..constants import STACK_NONE, STACK_MULT, STACK_ONE
 from .protocol_base import ProtRelionBase
 
 
@@ -42,6 +42,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
     """ Export particles from Relion to be used outside Scipion. """
 
     _label = 'export particles'
+    PTCLS_STAR_FILE = 'particles_%06d.star'
     
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -80,25 +81,41 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
         """ Create the input file in STAR format as expected by Relion.
         If the input particles comes from Relion, just link the file. 
         """
+        pwutils.cleanPath(self._getExportPath())
+        pwutils.makePath(self._getExportPath())
         imgSet = self.inputParticles.get()
         self._stackType = self.stackType.get()
-        self._ih = em.ImageHandler()
+        self._ih = ImageHandler()
         self._stackDict = {}
-        particlesPath = self._getPath('Particles')
-        pwutils.cleanPath(particlesPath)
-        pwutils.makePath(particlesPath)
 
-        alignType = imgSet.getAlignment() if self.useAlignment else em.ALIGN_NONE
+        alignType = imgSet.getAlignment() if self.useAlignment else pwem.ALIGN_NONE
+        outputDir = None
+        outputStack = None
+        postprocessImageRow = None
+
+        if self._stackType == STACK_ONE:
+            outputStack = self._getExportPath('Particles/particles.mrcs')
+            pwutils.makePath(self._getExportPath("Particles"))
+        elif self._stackType == STACK_MULT:
+            postprocessImageRow = self._postprocessImageRow
+            outputDir = self._getExportPath("Particles")
+
+        # We still need to maintain some old code for Relion 3.0
+        if relion.Plugin.IS_30():
+            outputDir = self._getExportPath("Particles")
+            pwutils.makePath(outputDir)
+            postprocessImageRow = self._postprocessImageRow30
+
         # Create links to binary files and write the relion .star file
-        relion.convert.writeSetOfParticles(
-            imgSet, self._getPath("particles.star"),
-            outputDir=self._getExtraPath(),
+        convert.writeSetOfParticles(
+            imgSet, self._getStarFile(),
+            outputDir=outputDir,
+            outputStack=outputStack,
             alignType=alignType,
-            postprocessImageRow=self._postprocessImageRow,
-            fillMagnification=True)
+            postprocessImageRow=postprocessImageRow,
+            fillMagnification=True,
+            forceConvert=True)
 
-        pwutils.prettyDict(self._stackDict)
-    
     # --------------------------- INFO functions ------------------------------
     def _validate(self):
         validateMsgs = []
@@ -106,15 +123,24 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
     
     def _summary(self):
         summary = []
-        if pwutils.exists(self._getPath("particles.star")):
-            summary.append('Particles were exported into: %s'
-                           % self._getPath("particles.star"))
+
+        if os.path.exists(self._getStarFile()):
+            summary.append("Output is written to: \n%s\n" %
+                           os.path.abspath(self._getExportPath()))
+            summary.append("Pixel size: *%0.3f*" % self._getPixelSize())
         else:
-            summary.append('Output is not ready.')
+            summary.append("No output generated yet.")
+
         return summary
     
     # --------------------------- UTILS functions -----------------------------
     def _postprocessImageRow(self, img, row):
+        """ Stack fn should be relative to Export.
+        Only relevant when saving multiple stacks. """
+        convert.relativeFromFileName(row, self._getExportPath())
+
+    # TODO: Remove this function when support for 3.0 is dropped
+    def _postprocessImageRow30(self, img, row):
         """ Write the binary image to the final stack
         and update the row imageName. """
 
@@ -127,7 +153,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
                 self._count = getattr(self, '_count', 1)
                 index, stackName = (self._count, 'particles.mrcs')
                 self._count += 1
-            else: # STACK_MULT
+            else:  # STACK_MULT
                 baseName = pwutils.removeBaseExt(img.getFileName())
                 if baseName not in self._stackDict:
                     self._stackDict[baseName] = 0
@@ -135,10 +161,18 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
                 stackName = baseName + '.mrcs'
                 self._stackDict[baseName] = index
 
-            stackFn = self._getPath('Particles', stackName)
-
+            stackFn = self._getExportPath("Particles", stackName)
             self._ih.convert(img, (index, stackFn))
             # Store relative path in the star file
-            relStackFn = os.path.relpath(stackFn, self._getPath())
+            relStackFn = os.path.relpath(stackFn, self._getExportPath())
             row.setValue('rlnImageName',
-                         relion.convert.locationToRelion(index, relStackFn))
+                         convert.locationToRelion(index, relStackFn))
+
+    def _getExportPath(self, *paths):
+        return os.path.join(self._getPath('Export'), *paths)
+
+    def _getStarFile(self):
+        return self._getExportPath(self.PTCLS_STAR_FILE % self.getObjId())
+
+    def _getPixelSize(self):
+        return self.inputParticles.get().getSamplingRate()

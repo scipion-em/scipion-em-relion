@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -24,29 +24,27 @@
 # *
 # **************************************************************************
 
-import os
 from os.path import relpath
 
 import pyworkflow.protocol.params as params
-from pyworkflow.em.protocol import ProtParticlePickingAuto
-from pyworkflow.em.constants import RELATION_CTF, ALIGN_NONE
-from pyworkflow.em.convert import ImageHandler
+from pwem.protocols import ProtParticlePickingAuto
+from pwem.constants import RELATION_CTF
+from pwem.emlib.image import ImageHandler
 from pyworkflow.utils.properties import Message
 import pyworkflow.utils as pwutils
-import pyworkflow.em.metadata as md
-from pyworkflow.em import getSubsetByDefocus
+from pwem.convert.utils import getSubsetByDefocus
 
-import relion
 import relion.convert
-from relion.constants import *
-from .protocol_base import ProtRelionBase
+from ..convert.metadata import Table
+from ..constants import *
+from .protocol_autopick import ProtRelionAutopickBase
 
 
-class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
-    """ This protocol runs Relion autopicking (version 2.0+).
+class ProtRelion2Autopick(ProtRelionAutopickBase):
+    """ This protocol runs Relion autopicking (version > 3.0).
 
     This Relion protocol uses the 'relion_autopick' program to pick particles
-    from micrographs, either using templates or gaussian blobs.
+    from micrographs, either using references (2D averages or 3D volumes)
 
     The picking with this protocol is divided in three steps:
     1) Run with 'Optimize' option for several (less than 30) micrographs.
@@ -65,11 +63,6 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
     and minimum distance parameters.
     """
     _label = 'auto-picking'
-
-    @classmethod
-    def isDisabled(cls):
-        # Now Relion1 is deprecated, so v2 and v3 should be fine
-        return False
 
     # -------------------------- DEFINE param functions ------------------------
     def _defineParams(self, form):
@@ -113,10 +106,10 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                             'and that number will be selected to cover the '
                             'defocus range. ')
         group.addParam('micrographsNumber', params.IntParam, default='10',
-                      condition='micrographsSelection==%d' % MICS_AUTO,
-                      label='Micrographs for optimization:',
-                      help='Select the number of micrographs that you want'
-                           'to be used for the parameters optimization. ')
+                       condition='micrographsSelection==%d' % MICS_AUTO,
+                       label='Micrographs for optimization:',
+                       help='Select the number of micrographs that you want'
+                            'to be used for the parameters optimization. ')
         group.addParam('micrographsSubset', params.PointerParam,
                        condition='micrographsSelection==%d' % MICS_SUBSET,
                        pointerClass='SetOfMicrographs',
@@ -125,37 +118,29 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                             'you have previously selected. '
                             '(Probably covering the defocus range).')
 
-        # From Relion 2.+, it can be picked with gaussian blobs, so we
+        # From Relion 3.+, references can be 2D or 3D
         # need to add these parameters
         refCondition = 'referencesType==%s' % REF_AVERAGES
+        ref3dCondition = 'referencesType==%s' % REF_VOLUME
 
-        group = form.addGroup('References')
-        group.addParam('referencesType', params.EnumParam,
-                      choices=['References', 'Gaussian blobs'],
+        form.addSection('References')
+
+        form.addParam('referencesType', params.EnumParam,
+                      choices=['2D', '3D'],
                       default=REF_AVERAGES,
                       display=params.EnumParam.DISPLAY_HLIST,
-                      label='References type',
-                      help='You may select "Gaussian blobs" to be used as '
-                           'references. The preferred way to autopick is '
+                      label='References',
+                      help='The preferred way to autopick is '
                            'by providing 2D references images that were '
                            'obtained by 2D classification. \n'
                            'The Gaussian blob references may be useful to '
                            'kickstart a new data set.')
 
-        group.addParam('gaussianPeak', params.FloatParam, default=0.1,
-                      condition='referencesType==%s' % REF_BLOBS,
-                      label='Gaussian peak value',
-                      help='The peak value of the Gaussian blob. '
-                           'Weaker data will need lower values.')
-
-        pointerClassStr = 'SetOfAverages'
         # In Relion 3 it is also possible to pass a volume as reference for
         # autopicking
-        if relion.Plugin.isVersion3Active():
-            pointerClassStr += ",Volume"
 
-        group.addParam('inputReferences', params.PointerParam,
-                      pointerClass=pointerClassStr,
+        form.addParam('inputReferences', params.PointerParam,
+                      pointerClass='SetOfAverages',
                       condition=refCondition,
                       label='Input references', important=True,
                       help='Input references (SetOfAverages) for auto-pick. \n\n'
@@ -165,14 +150,42 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                            '3D volume which projections will be used as '
                            'references.')
 
-        group.addParam('particleDiameter', params.IntParam, default=-1,
+        form.addParam('inputReferences3D', params.PointerParam,
+                      pointerClass='Volume',
+                      condition=ref3dCondition,
+                      label='Input references', important=True,
+                      help='Input volume from which 2D references will be '
+                           'made by projection. Note that the absolute '
+                           'greyscale needs to be correct, so only use '
+                           'maps created by RELION itself from this data set.')
+
+        form.addParam('symmetryGroup', params.StringParam, default='c1',
+                      condition=ref3dCondition,
+                      label='Symmetry',
+                      help="Symmetry point group of the 3D reference. "
+                           "Only projections in the asymmetric part of the "
+                           "sphere will be generated.")
+
+        form.addParam('angularSamplingDeg', params.EnumParam, default=0,
+                      choices=ANGULAR_SAMPLING_LIST,
+                      condition=ref3dCondition,
+                      label='3D angular sampling (deg)',
+                      help="There are only a few discrete angular samplings "
+                           "possible because we use the HealPix library to "
+                           "generate the sampling of the first two Euler "
+                           "angles on the sphere. The samplings are approximate "
+                           "numbers and vary slightly over the sphere.\n"
+                           "For autopicking, 30 degrees is usually fine enough, "
+                           "but for highly symmetrical objects one may need to "
+                           "go finer to adequately sample the asymmetric part of "
+                           "the sphere.")
+
+        form.addParam('particleDiameter', params.IntParam, default=-1,
                       label='Mask diameter (A)',
                       help='Diameter of the circular mask that will be applied '
                            'around the templates in Angstroms. When set to a '
                            'negative value, this value is estimated '
                            'automatically from the templates themselves.')
-
-        form.addSection('References')
 
         form.addParam('lowpassFilterRefs', params.IntParam, default=20,
                       condition=refCondition,
@@ -215,7 +228,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
 
         form.addParam('ignoreCTFUntilFirstPeak', params.BooleanParam,
                       condition=refCondition,
-                      default=False, expertLevel=params.LEVEL_ADVANCED,
+                      default=False,
                       label='Ignore CTFs until first peak?',
                       help='Set this to Yes, only if this option was also used '
                            'to generate the references.')
@@ -224,59 +237,59 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
 
         group = form.addGroup('Autopick')
         group.addParam('pickingThreshold', params.FloatParam, default=0.25,
-                      label='Picking threshold:',
-                      help='Use lower thresholds to pick more particles '
-                           '(and more junk probably)')
+                       label='Picking threshold:',
+                       help='Use lower thresholds to pick more particles '
+                            '(and more junk probably)')
 
         group.addParam('interParticleDistance', params.IntParam, default=-1,
-                      label='Minimum inter-particle distance (A):',
-                      help='Particles closer together than this distance \n'
-                           'will be consider to be a single cluster. \n'
-                           'From each cluster, only one particle will be '
-                           'picked.')
+                       label='Minimum inter-particle distance (A):',
+                       help='Particles closer together than this distance \n'
+                            'will be consider to be a single cluster. \n'
+                            'From each cluster, only one particle will be '
+                            'picked.')
 
         group.addParam('maxStddevNoise', params.FloatParam, default=1.1,
-                      label='Maximum stddev noise:',
-                      help='This is useful to prevent picking in carbon areas, '
-                           'or areas with big contamination features. Peaks in '
-                           'areas where the background standard deviation in '
-                           'the normalized micrographs is higher than this '
-                           'value will be ignored. Useful values are probably '
-                           'in the range 1.0 to 1.2. Set to -1 to switch off '
-                           'the feature to eliminate peaks due to high '
-                           'background standard deviations.')
+                       label='Maximum stddev noise:',
+                       help='This is useful to prevent picking in carbon areas, '
+                            'or areas with big contamination features. Peaks in '
+                            'areas where the background standard deviation in '
+                            'the normalized micrographs is higher than this '
+                            'value will be ignored. Useful values are probably '
+                            'in the range 1.0 to 1.2. Set to -1 to switch off '
+                            'the feature to eliminate peaks due to high '
+                            'background standard deviations.')
 
         group = form.addGroup('Computing')
         group.addParam('shrinkFactor', params.FloatParam, default=0,
-                      validators=[params.Range(0, 1, "value should be "
-                                                     "between 0 and 1. ")],
-                      label='Shrink factor',
-                      help='This is useful to speed up the calculations, '
-                           'and to make them less memory-intensive. The '
-                           'micrographs will be downscaled (shrunk) to '
-                           'calculate the cross-correlations, and peak '
-                           'searching will be done in the downscaled FOM '
-                           'maps. When set to 0, the micrographs will de '
-                           'downscaled to the lowpass filter of the '
-                           'references, a value between 0 and 1 will '
-                           'downscale the micrographs by that factor. '
-                           'Note that the results will not be exactly '
-                           'the same when you shrink micrographs!')
+                       validators=[params.Range(0, 1, "value should be "
+                                                      "between 0 and 1. ")],
+                       label='Shrink factor',
+                       help='This is useful to speed up the calculations, '
+                            'and to make them less memory-intensive. The '
+                            'micrographs will be downscaled (shrunk) to '
+                            'calculate the cross-correlations, and peak '
+                            'searching will be done in the downscaled FOM '
+                            'maps. When set to 0, the micrographs will de '
+                            'downscaled to the lowpass filter of the '
+                            'references, a value between 0 and 1 will '
+                            'downscale the micrographs by that factor. '
+                            'Note that the results will not be exactly '
+                            'the same when you shrink micrographs!')
 
         group.addParam('doGpu', params.BooleanParam, default=True,
-                      label='Use GPU acceleration?',
-                      help='If set to Yes, the job will try to use GPU '
-                           'acceleration.')
+                       label='Use GPU acceleration?',
+                       help='If set to Yes, the job will try to use GPU '
+                            'acceleration.')
 
         group.addParam('gpusToUse', params.StringParam, default='',
-                      label='Which GPUs to use:', condition='doGpu',
-                      help='This argument is not necessary. If left empty, '
-                           'the job itself will try to allocate available GPU '
-                           'resources. You can override the default '
-                           'allocation by providing a list of which GPUs '
-                           '(0,1,2,3, etc) to use. MPI-processes are '
-                           'separated by ":", threads by ",". '
-                           'For example: "0,0:1,1:0,0:1,1"')
+                       label='Which GPUs to use:', condition='doGpu',
+                       help='This argument is not necessary. If left empty, '
+                            'the job itself will try to allocate available GPU '
+                            'resources. You can override the default '
+                            'allocation by providing a list of which GPUs '
+                            '(0,1,2,3, etc) to use. MPI-processes are '
+                            'separated by ":", threads by ",". '
+                            'For example: "0,0:1,1:0,0:1,1"')
 
         form.addParam('extraParams', params.StringParam, default='',
                       label='Additional arguments:',
@@ -287,11 +300,6 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                            'The command "relion_autopick" will print a list '
                            'of possible options.')
 
-        form.addSection('Helix')
-        form.addParam('fomLabel', params.LabelParam,
-                      important=True,
-                      label='Helix processing is not implemented still.')
-
         self._defineStreamingParams(form)
 
         form.addParallelSection(threads=0, mpi=4)
@@ -301,17 +309,23 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         self.inputStreaming = self.getInputMicrographs().isStreamOpen()
 
         if ((self.streamingBatchSize > 0 or self.inputStreaming)
-            and not self.isRunOptimize()):
+                and not self.isRunOptimize()):
             # If the input is in streaming, follow the base class policy
             # about inserting new steps and discovery new input/output
-            ProtParticlePickingAuto._insertAllSteps(self)
             self.createOutputStep = self._doNothing
+            ProtParticlePickingAuto._insertAllSteps(self)
         else:
             # If not in streaming, then we will just insert a single step to
             # pick all micrographs at once since it is much faster
-            self._insertInitialSteps()
-            self._insertFunctionStep('_pickMicrographsFromStar',
-                                     self._getPath('input_micrographs.star'),
+            self.micDict = {}
+            self.micDict, _ = self._loadInputList()
+
+            self._insertFunctionStep('convertInputStep',
+                                     self.getInputMicrographs().strId(),
+                                     self.getInputReferences().strId(),
+                                     self.runType.get())
+            nameList = [mic.getMicName() for mic in self.getMicrographList()]
+            self._insertFunctionStep('pickMicrographListStep', nameList,
                                      *self._getPickArgs())
             self._insertFunctionStep('createOutputStep')
 
@@ -323,14 +337,14 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         # Convert the input micrographs and references to
         # the required Relion star files
         inputRefs = self.getInputReferences()
-        refId = inputRefs.strId() if self.useInputReferences() else 'Gaussian'
         convertId = self._insertFunctionStep('convertInputStep',
                                              self.getInputMicrographs().strId(),
-                                             refId, self.runType.get())
+                                             inputRefs.strId(),
+                                             self.runType.get())
         return [convertId]
 
     def _doNothing(self, *args):
-        pass # used to avoid some streaming functions
+        pass
 
     def _loadInputList(self):
         """ This function is re-implemented in this protocol, because it have
@@ -342,7 +356,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
 
         # Remove the micrographs that have not CTF
         # and set the CTF property for those who have it
-        for micKey, mic in micDict.iteritems():
+        for micKey, mic in micDict.items():
             if micKey in ctfDict:
                 mic.setCTF(ctfDict[micKey])
             else:
@@ -352,42 +366,17 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         return micDict, micClose and ctfClosed
 
     # -------------------------- STEPS functions ------------------------------
-
     def convertInputStep(self, micsId, refsId, runType):
         # runType is passed as parameter to force a re-execute of this step
         # if there is a change in the type
+        pwutils.makePath(self._getExtraPath('DONE'))  # Required to report finished
 
-        self._ih = ImageHandler() # used to convert micrographs
-        # Match ctf information against the micrographs
-        self.ctfDict = {}
-        if self.ctfRelations.get() is not None:
-            for ctf in self.ctfRelations.get():
-                self.ctfDict[ctf.getMicrograph().getMicName()] = ctf.clone()
-
-        micStar = self._getPath('input_micrographs.star')
-        relion.convert.writeSetOfMicrographs(
-            self.getMicrographList(), micStar,
-            alignType=ALIGN_NONE,
-            preprocessImageRow=self._preprocessMicrographRow)
-
+        inputRefs = self.getInputReferences()
         if self.useInputReferences():
-            relion.convert.writeReferences(self.getInputReferences(),
-                                           self._getPath('input_references'),
-                                           useBasename=True)
-
-        # FIXME: (JMRT-20180523) The following code does not seems to work
-        # here it has been worked around by changing the name of the wizard
-        # output but this seems to reflect a deeper problem of deleting
-        # already existing output objects in a protocol. Maybe when updating
-        # from run.db to project.sqlite?
-
-        # Clean up if previously created the outputMicrographs and Coordinates
-        # in the wizard - optimization run
-        # if self.hasAttribute('outputMicrographs'):
-        #     self._deleteChild('outputMicrographs', self.outputMicrographs)
-        # if self.hasAttribute('outputCoordinates'):
-        #     self._deleteChild('outputCoordinates', self.outputCoordinates)
-        # self._store()
+            relion.convert.writeReferences(
+                inputRefs, self._getPath('reference_2d'), useBasename=True)
+        else:
+            ImageHandler().convert(inputRefs, self._getPath('reference_3d.mrc'))
 
     def getAutopickParams(self):
         # Return the autopicking parameters except for the interactive ones:
@@ -403,13 +392,15 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         if self.doGpu:
             params += ' --gpu "%s"' % self.gpusToUse
 
-        # Now in Relion2.0 autopick can use gaussian blobs
         if self.useInputReferences():
-            params += ' --ref input_references.star'
-            ps = self.getInputReferences().getSamplingRate()
-            params += ' --angpix_ref %0.3f' % ps
-        else: # Gaussian blobs
-            params += ' --ref gauss --gauss_max %0.3f' % self.gaussianPeak
+            params += ' --ref ../../reference_2d.stk'
+        else:  # 3D reference
+            params += ' --ref ../../reference_3d.mrc'
+            params += ' --sym %s' % self.symmetryGroup
+            params += ' --healpix_order %s' % self.angularSamplingDeg
+
+        ps = self.getInputReferences().getSamplingRate()
+        params += ' --angpix_ref %0.3f' % ps
 
         if self.refsHaveInvertedContrast:
             params += ' --invert'
@@ -437,67 +428,22 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         fomParam = ' --write_fom_maps' if self.isRunOptimize() else ''
         return [basicArgs, threshold, interDist, maxStd, fomParam]
 
-    def _pickMicrographsFromStar(self, micStarFile, params,
+    def _pickMicrographsFromStar(self, micStarFile, cwd, params,
                                  threshold, minDistance, maxStddevNoise, fom):
         """ Launch the 'relion_autopick' for micrographs in the inputStarFile.
          If the input set of complete, the star file will contain all the
          micrographs. If working in streaming, it will be only one micrograph.
         """
-        params += ' --i %s' % relpath(micStarFile, self.getWorkingDir())
+        params += ' --i %s' % relpath(micStarFile, cwd)
         params += ' --threshold %0.3f ' % threshold
         params += ' --min_distance %0.3f %s' % (minDistance, fom)
         params += ' --max_stddev_noise %0.3f' % maxStddevNoise
 
         program = self._getProgram('relion_autopick')
 
-        self.runJob(program, params, cwd=self.getWorkingDir())
-
-    def _pickMicrograph(self, mic, params, threshold, minDistance,
-                        maxStddevNoise, fom):
-        """ This method should be invoked only when working in streaming mode.
-        """
-        micRow = md.Row()
-        self._preprocessMicrographRow(mic, micRow)
-        relion.convert.micrographToRow(mic, micRow)
-        self._postprocessMicrographRow(mic, micRow)
-        self._pickMicrographsFromStar(self._getMicStarFile(mic), params,
-                                      threshold, minDistance, maxStddevNoise, fom)
-
-    def _pickMicrographList(self, micList, params, threshold,
-                            minDistance, maxStddevNoise, fom):
-        micStar = self._getPath('input_micrographs_%s-%s.star' %
-                                (micList[0].strId(), micList[-1].strId()))
-        relion.convert.writeSetOfMicrographs(
-            micList, micStar,
-            alignType=ALIGN_NONE,
-            preprocessImageRow=self._preprocessMicrographRow)
-
-        self._pickMicrographsFromStar(
-            micStar, params, threshold, minDistance, maxStddevNoise, fom)
-
-    def _createSetOfCoordinates(self, micSet, suffix=''):
-        """ Override this method to set the box size. """
-        coordSet = ProtParticlePickingAuto._createSetOfCoordinates(self, micSet,
-                                                                   suffix=suffix)
-        coordSet.setBoxSize(self.getBoxSize())
-
-        return coordSet
-
-    def readCoordsFromMics(self, workingDir, micList, coordSet):
-        """ Parse back the output star files and populate the SetOfCoordinates.
-        """
-        template = self._getExtraPath("%s_autopick.star")
-        starFiles = [template % pwutils.removeBaseExt(mic.getFileName())
-                     for mic in micList]
-        relion.convert.readSetOfCoordinates(coordSet, starFiles, micList)
+        self.runJob(program, params, cwd=cwd)
 
     # -------------------------- STEPS functions -------------------------------
-    def autopickStep(self, micStarFile, params, threshold,
-                     minDistance, maxStddevNoise, fom):
-        """ This method is used from the wizard to optimize the parameters. """
-        self._pickMicrographsFromStar(micStarFile, params, threshold,
-                                      minDistance, maxStddevNoise, fom)
-
     def createOutputStep(self):
         micSet = self.getInputMicrographs()
         outputCoordinatesName = 'outputCoordinates'
@@ -510,8 +456,11 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
             micSubSet = self._createSetOfMicrographs(suffix=outputSuffix)
             micSubSet.copyInfo(micSet)
             # Use previously written star file for reading the subset of micrographs,
-            for row in md.iterRows(self._getPath('input_micrographs.star')):
-                mic = micSet[row.getValue('rlnImageId')]
+            micsStar = self._getTmpPath('input_micrographs.star')
+            micsTable = Table(fileName=micsStar, tableName='micrographs')
+
+            for row in micsTable:
+                mic = micSet[int(row.rlnImageId)]
                 micSubSet.append(mic)
             self._defineOutputs(outputMicrographsSubset=micSubSet)
             self._defineTransformRelation(self.getInputMicrographsPointer(),
@@ -519,10 +468,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
             micSet = micSubSet
 
         coordSet = self._createSetOfCoordinates(micSet)
-        template = self._getExtraPath("%s_autopick.star")
-        starFiles = [template % pwutils.removeBaseExt(mic.getFileName())
-                     for mic in micSet]
-        relion.convert.readSetOfCoordinates(coordSet, starFiles, micSet)
+        self.readCoordsFromMics(None, micSet, coordSet)
 
         self._defineOutputs(**{outputCoordinatesName: coordSet})
         self._defineSourceRelation(self.getInputMicrographsPointer(),
@@ -581,8 +527,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
         return []
 
     def _warnings(self):
-        if not self.isRunOptimize():
-            if not hasattr(self, 'wizardExecuted'):
+        if not self.isRunOptimize() and not hasattr(self, 'wizardExecuted'):
                 return ['It seems that you have not executed the wizard to '
                         'optimize the picking parameters. \n'
                         'Do you want to launch the whole picking anyway?']
@@ -606,7 +551,7 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
                                   output.getBoxSize()))
         else:
             methodsMsgs.append(Message.TEXT_NO_OUTPUT_CO)
-    
+
         return methodsMsgs
 
     # -------------------------- UTILS functions -------------------------------
@@ -639,18 +584,15 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
             boxSize = int(inputRefs.getXDim() * scale)
 
         if boxSize % 2 == 1:
-            boxSize += 1 # Use even box size for relion
+            boxSize += 1  # Use even box size for relion
 
         return boxSize
-                
+
     def getInputReferences(self):
-        return self.inputReferences.get()
-
-    def getInputMicrographsPointer(self):
-        return self.inputMicrographs
-
-    def getInputMicrographs(self):
-        return self.getInputMicrographsPointer().get()
+        if self.useInputReferences():
+            return self.inputReferences.get()
+        else:
+            return self.inputReferences3D.get()
 
     def getMicrographList(self):
         """ Return the list of micrographs (either a subset or the full set)
@@ -670,56 +612,20 @@ class ProtRelion2Autopick(ProtParticlePickingAuto, ProtRelionBase):
 
         return mics
 
-    def getCoordsDir(self):
-        return self._getTmpPath('xmipp_coordinates')
+    def __getMicListPrefix(self, micList):
+        n = len(micList)
+        if n == 0:
+            raise Exception("Empty micrographs list!")
+        micsPrefix = 'mic_%06d' % micList[0].getObjId()
+        if n > 1:
+            micsPrefix += "-%06d" % micList[-1].getObjId()
+        return micsPrefix
 
-    def _writeXmippCoords(self, coordSet):
-        micSet = self.getInputMicrographs()
-        coordPath = self._getTmpPath('xmipp_coordinates')
-        pwutils.cleanPath(coordPath)
-        pwutils.makePath(coordPath)
-        micPath = micSet.getFileName()
-        relion.convert.writeSetOfCoordinatesXmipp(coordPath, coordSet, ismanual=False)
-        return micPath, coordPath
+    def _getMicStarFile(self, micList):
+        return self._getTmpPath(self.__getMicListPrefix(micList) + '.star')
 
-    def writeXmippOutputCoords(self):
-        return self._writeXmippCoords(self.outputCoordinates)
-
-    def writeXmippCoords(self):
-        """ Write the SetOfCoordinates as expected by Xmipp
-        to be displayed with its GUI.
-        """
-        micSet = self.getInputMicrographs()
-        coordSet = self._createSetOfCoordinates(micSet)
-        coordSet.setBoxSize(self.getBoxSize())
-        starFiles = [self._getExtraPath(pwutils.removeBaseExt(mic.getFileName())
-                                        + '_autopick.star') for mic in micSet]
-        relion.convert.readSetOfCoordinates(coordSet, starFiles)
-        return self._writeXmippCoords(coordSet)
-
-    def _preprocessMicrographRow(self, img, imgRow):
-        # Temporarly convert the few micrographs to tmp and make sure
-        # they are in 'mrc' format
-        # Get basename and replace extension by 'mrc'
-        newName = pwutils.replaceBaseExt(img.getFileName(), 'mrc')
-        newPath = self._getExtraPath(newName)
-
-        # If the micrographs are in 'mrc' format just create a link
-        # if not, convert to 'mrc'
-        if img.getFileName().endswith('mrc'):
-            pwutils.createLink(img.getFileName(), newPath)
-        else:
-            self._ih.convert(img, newPath)
-        # The command will be launched from the working dir
-        # so, let's make the micrograph path relative to that
-        img.setFileName(os.path.join('extra', newName))
-        # JMRT: The following is not needed since it is set when loading CTF
-        # if self.ctfRelations.get() is not None:
-        #     img.setCTF(self.ctfDict[img.getMicName()])
-
-    def _postprocessMicrographRow(self, img, imgRow):
-        imgRow.writeToFile(self._getMicStarFile(img))
-
-    def _getMicStarFile(self, mic):
-        micBase = pwutils.replaceBaseExt(mic.getFileName(), 'star')
-        return self._getExtraPath(micBase)
+    def _createTmpMicsDir(self, micList):
+        """ Create a temporary path to work with a list of micrographs. """
+        micsDir = self._getTmpPath(self.__getMicListPrefix(micList))
+        pwutils.makePath(micsDir)
+        return micsDir

@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -24,17 +24,15 @@
 # *
 # **************************************************************************
 
-import pyworkflow as pw
 import pyworkflow.protocol.params as params
+from pwem.protocols import ProtCreateMask3D
+from pwem.objects import VolumeMask
 
-import relion
-import relion.convert
-from relion.constants import MASK_AND, MASK_OR, MASK_AND_NOT, MASK_OR_NOT
-
-IS_V3 = relion.Plugin.isVersion3Active()
+import relion.convert as convert
+from ..constants import MASK_AND
 
 
-class ProtRelionCreateMask3D(pw.em.ProtCreateMask3D):
+class ProtRelionCreateMask3D(ProtCreateMask3D):
     """ This protocols creates a 3D mask using Relion.
     The mask is created from a 3d volume or by comparing two input volumes.
     """
@@ -48,7 +46,7 @@ class ProtRelionCreateMask3D(pw.em.ProtCreateMask3D):
                       label="Input volume",
                       help="Select the volume that will be used to create the mask")
         form.addParam('initialLowPassFilterA', params.FloatParam,
-                      default=-1,
+                      default=15.,
                       label='Lowpass filter map by (A)',
                       help='Lowpass filter that will be applied to the input map, '
                            'prior to binarization. To calculate solvent masks, a '
@@ -106,8 +104,7 @@ class ProtRelionCreateMask3D(pw.em.ProtCreateMask3D):
                       label='Invert final mask',
                       help='Invert the final mask')
 
-        if IS_V3:
-            form.addParallelSection(threads=4, mpi=0)
+        form.addParallelSection(threads=4, mpi=0)
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
@@ -118,11 +115,11 @@ class ProtRelionCreateMask3D(pw.em.ProtCreateMask3D):
     
     # --------------------------- STEPS functions -----------------------------
     def convertInputStep(self, volId):
-        self.inputVolFn = relion.convert.convertBinaryVol(
+        self.inputVolFn = convert.convertBinaryVol(
             self.inputVolume.get(), self._getTmpPath())
 
         if self.doCompare:
-            self.inputVol2Fn = relion.convert.convertBinaryVol(
+            self.inputVol2Fn = convert.convertBinaryVol(
                 self.inputVolume2.get(), self._getTmpPath())
 
     def createMaskStep(self):
@@ -136,7 +133,7 @@ class ProtRelionCreateMask3D(pw.em.ProtCreateMask3D):
             argsDict['--lowpass '] = self.initialLowPassFilterA.get()
 
         args = ' --o %s ' % self.maskFile
-        args += ' '.join(['%s %s' % (k, v) for k, v in argsDict.iteritems()])
+        args += ' '.join(['%s %s' % (k, v) for k, v in argsDict.items()])
 
         if self.doCompare:
             op = self.operation.get()
@@ -146,7 +143,7 @@ class ProtRelionCreateMask3D(pw.em.ProtCreateMask3D):
         if self.doInvert:
             args += ' --invert'
 
-        if IS_V3 and self.numberOfThreads > 1:
+        if self.numberOfThreads > 1:
             args += ' --j %d' % self.numberOfThreads
 
         self.runJob("relion_mask_create", args)
@@ -154,7 +151,7 @@ class ProtRelionCreateMask3D(pw.em.ProtCreateMask3D):
         return [self.maskFile]
 
     def createOutputStep(self):
-        volMask = pw.em.VolumeMask()
+        volMask = VolumeMask()
         volMask.setFileName(self.maskFile)
         volMask.setSamplingRate(self.inputVolume.get().getSamplingRate())
 

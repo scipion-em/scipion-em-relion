@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -28,13 +28,12 @@ import pyworkflow.object as pwobj
 from pyworkflow.protocol.params import (PointerParam, FloatParam, StringParam,
                                         BooleanParam, IntParam, LEVEL_ADVANCED)
 from pyworkflow.utils import removeExt
-import pyworkflow.em as em
-from pyworkflow.em.protocol import ProtParticles
-from pyworkflow.em.data import SetOfClasses3D, SetOfParticles, SetOfClasses
-import pyworkflow.em.metadata as md
+from pwem.protocols import ProtParticles
+from pwem.objects import SetOfParticles, SetOfClasses
+import pwem.emlib.metadata as md
+from pwem.emlib.image import ImageHandler
 
-import relion
-import relion.convert
+import relion.convert as convert
 
 
 class ProtRelionSortParticles(ProtParticles):
@@ -157,7 +156,7 @@ class ProtRelionSortParticles(ProtParticles):
         # Join in a single line all key, value pairs of the args dict
         args = {}
         self._setArgs(args)
-        params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.iteritems()])
+        params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.items()])
 
         if self.extraParams.hasValue():
             params += ' ' + self.extraParams.get()
@@ -196,9 +195,9 @@ class ProtRelionSortParticles(ProtParticles):
 
         else:
             if self.isInputAutoRefine():
-                em.ImageHandler().convert(self.referenceVolume.get(),
+                ImageHandler().convert(self.referenceVolume.get(),
                                        self._getFileName('input_refvol'))
-            else: # Autopicking case
+            else:  # Autopicking case
                 refSet = self.referenceAverages.get()
 
         self.classDict = {}
@@ -212,13 +211,13 @@ class ProtRelionSortParticles(ProtParticles):
             for i, c in enumerate(classList):
                 self.classDict[c] = i + 1
 
-            relion.convert.writeReferences(
+            convert.writeReferences(
                 refSet, removeExt(refStar),
                 postprocessImageRow=self._updateClasses)
 
         # Write particles star file
         allParticles = self._allParticles(iterate=False)
-        relion.convert.writeSetOfParticles(
+        convert.writeSetOfParticles(
             allParticles, imgStar, self._getPath(),
             postprocessImageRow=self._postProcessImageRow)
 
@@ -334,7 +333,7 @@ class ProtRelionSortParticles(ProtParticles):
             classId = img.getClassId()
 
             if classId is not None:
-                if not classId in self.classDict:
+                if classId not in self.classDict:
                     raise Exception("Class Id %s from particle %s is not found"
                                     % (classId, img.getObjId()))
                 newClassId = self.classDict[classId]

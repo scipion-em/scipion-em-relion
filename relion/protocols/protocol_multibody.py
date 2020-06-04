@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -28,13 +28,12 @@ import os
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
-import pyworkflow.em.metadata as md
-from pyworkflow.em.data import Volume, Float
-from pyworkflow.em.protocol import ProtAnalysis3D
+from pwem.objects import Volume, Float
+from pwem.protocols import ProtAnalysis3D
 
-import relion
-from relion.convert.metadata import Table
-from relion.constants import ANGULAR_SAMPLING_LIST
+import relion.convert as convert
+from ..convert.metadata import Table
+from ..constants import ANGULAR_SAMPLING_LIST
 from .protocol_base import ProtRelionBase
 
 
@@ -53,10 +52,6 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
     the most important motions in the data.
     """
     _label = '3D multi-body'
-
-    @classmethod
-    def isDisabled(cls):
-        return not relion.Plugin.isVersion3Active()
 
     def _getInputPath(self, *paths):
         return self._getPath('input', *paths)
@@ -77,7 +72,6 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
         self._defineConstants()
 
         form.addSection(label='Input')
-
         form.addParam('protRefine', params.PointerParam,
                       pointerClass="ProtRefine3D",
                       label='Consensus refinement protocol',
@@ -85,22 +79,22 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
                            'where to run the multi-body refinement. '
                            'The output volume will be used and some '
                            'parameters from the optimiser.star file. ')
-        #FIXME: Find an easy way to avoid input a file here
+        # FIXME: Find an easy way to avoid input a file here
         form.addParam('bodyStarFile', params.FileParam,
-                    label='Body STAR file',
-                    help=' Provide the STAR file with all information '
-                         'about the bodies to be used in multi-body '
-                         'refinement. An example for a three-body '
-                         'refinement would look like this:\n'
-                         'data_\n'
-                         'loop_\n'
-                         '_rlnBodyMaskName\n'
-                         '_rlnBodyRotateRelativeTo\n'
-                         '_rlnBodySigmaAngles\n'
-                         '_rlnBodySigmaOffset\n'
-                         'large_body_mask.mrc 2 10 2\n'
-                         'small_body_mask.mrc 1 10 2 \n'
-                         'head_body_mask.mrc 2 10 2 \n')
+                      label='Body STAR file',
+                      help=' Provide the STAR file with all information '
+                           'about the bodies to be used in multi-body '
+                           'refinement. An example for a three-body '
+                           'refinement would look like this:\n'
+                           'data_\n'
+                           'loop_\n'
+                           '_rlnBodyMaskName\n'
+                           '_rlnBodyRotateRelativeTo\n'
+                           '_rlnBodySigmaAngles\n'
+                           '_rlnBodySigmaOffset\n'
+                           'large_body_mask.mrc 2 10 2\n'
+                           'small_body_mask.mrc 1 10 2 \n'
+                           'head_body_mask.mrc 2 10 2 \n')
 
         """
  Where each data line represents a different body, and:
@@ -198,7 +192,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         line.addParam('minEigenvalue', params.IntParam, default=-999, label='min')
         line.addParam('maxEigenvalue', params.IntParam, default=999, label='max')
 
-        form.addSection('Additional')
+        form.addSection('Compute')
         self._defineComputeParams(form)
         form.addParam('extraParams', params.StringParam,
                       default='',
@@ -208,10 +202,9 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
 
         form.addParallelSection(threads=1, mpi=3)
     
-    # -------------------------- INSERT steps functions ------------------------
+    # -------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self):
         self._createFilenameTemplates()
-
         objId = self.protRefine.get().getObjId()
         self._insertFunctionStep('convertInputStep', objId)
         self._insertFunctionStep('multibodyRefineStep',
@@ -221,7 +214,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
                                      self._getAnalyseArgs())
         self._insertFunctionStep('createOutputStep')
     
-    # -------------------------- STEPS functions -------------------------------
+    # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self, protId):
         self.info("Relion version:")
         self.runJob("relion_refine --version", "", numberOfMpi=1)
@@ -230,16 +223,17 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
                          self._getExtraPath('input_body.star'))
 
     def _runProgram(self, program, args):
-        params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.iteritems()])
-        prog = program + ('_mpi' if self.numberOfMpi > 1 else '')
-        self.runJob(prog, params)
+        params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.items()])
+        if program == 'relion_refine' and self.numberOfMpi > 1:
+            program += '_mpi'
+        self.runJob(program, params)
 
     def multibodyRefineStep(self, args):
         self._runProgram('relion_refine', args)
 
     def flexAnalysisStep(self, args):
         self._runProgram('relion_flex_analyse', args)
-    
+
     def createOutputStep(self):
         protRefine = self.protRefine.get()
         sampling = protRefine._getInputParticles().getSamplingRate()
@@ -257,11 +251,8 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         vol = self.protRefine.get().outputVolume
         self._defineSourceRelation(vol, volumes)
 
-    # -------------------------- INFO functions --------------------------------
+    # -------------------------- INFO functions -------------------------------
     def _validate(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION.
-        """
         errors = []
         bodyFn = self.bodyStarFile.get()
         if not os.path.exists(bodyFn):
@@ -283,28 +274,26 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
 
     def _citations(self):
         return ['Nakane2018']
-    
+
     def _summary(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION. 
-        """
         summary = []
         return summary
-        
+
     # -------------------------- UTILS functions ------------------------------
     def _loadVolsInfo(self):
         """ Read some information about the produced Relion bodies
         from the *model.star file.
         """
         self._volsInfo = {}
-        modelStar = md.MetaData('model_bodies@' +
-                                self._getFileName('finalModel'))
+        mdTable = Table(fileName=self._getFileName('finalModel'),
+                        tableName='model_bodies')
 
-        for body, row in enumerate(md.iterRows(modelStar)):
-            self._volsInfo[body+1] = row.clone()
+        for body, row in enumerate(mdTable):
+            self._volsInfo[body + 1] = row
 
     def _getNumberOfBodies(self):
-        return int(md.getSize(self._getFileName('input')))
+        table = Table(fileName=self._getFileName('input'))
+        return int(table.size())
 
     def _updateVolume(self, bodyNum, item):
         item.setFileName(self._getFileName('body', body=bodyNum))
@@ -313,15 +302,17 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         item.setHalfMaps([half1, half2])
 
         row = self._volsInfo[bodyNum]
-        item._rlnAccuracyRotations = Float(row.getValue('rlnAccuracyRotations'))
-        item._rlnAccuracyTranslations = Float(row.getValue('rlnAccuracyTranslations'))
+        # TODO: check if the following makes sense for Volume
+        item._rlnAccuracyRotations = Float(row.rlnAccuracyRotations)
+        item._rlnAccuracyTranslations = Float(row.rlnAccuracyTranslations)
 
     def _getRefineArgs(self):
         """ Define all parameters to run relion_refine.
         """
         protRefine = self.protRefine.get()
         protRefine._initialize()
-        fnOptimiser = protRefine._getFileName('optimiser', iter=protRefine._lastIter())
+        fnOptimiser = protRefine._getFileName('optimiser',
+                                              iter=protRefine._lastIter())
         healpix = self.initialAngularSampling.get()
 
         args = {
@@ -341,7 +332,9 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         if protRefine.referenceMask.hasValue():
             tmp = protRefine._getTmpPath()
             newDim = protRefine._getInputParticles().getXDim()
-            relion.convert.convertMask(protRefine.referenceMask.get(), tmp, newDim)
+            newPix = protRefine._getInputParticles().getSamplingRate()
+            convert.convertMask(protRefine.referenceMask.get(), tmp,
+                                newPix, newDim)
 
         self._setComputeArgs(args)
 

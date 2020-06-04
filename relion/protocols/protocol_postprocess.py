@@ -8,7 +8,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -28,17 +28,18 @@
 
 from os.path import exists
 
-import pyworkflow as pw
+import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
-import pyworkflow.em.metadata as md
+from pwem.protocols import ProtAnalysis3D
+from pwem.emlib.image import ImageHandler
+from pwem.objects import Volume
 
-import relion
+import relion.convert as convert
+from relion.convert.metadata import Table
+from relion import Plugin
 
 
-IS_V3 = relion.Plugin.isVersion3Active()
-
-
-class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
+class ProtRelionPostprocess(ProtAnalysis3D):
     """
     Relion post-processing protocol for automated masking,
     overfitting estimation, MTF-correction and B-factor sharpening.
@@ -86,24 +87,32 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
                            "The X-axis of the output FSC plot will use this "
                            "calibrated value.")
 
-        group = form.addGroup('Sharpening')
+        form.addSection(label='Sharpening')
+        group = form.addGroup('MTF')
         group.addParam('mtf', params.FileParam,
-                      label='MTF-curve file',
-                      help='User-provided STAR-file with the MTF-curve '
-                           'of the detector. Use the wizard to load one '
-                           'of the predefined ones provided at:\n'
-                           '- [[https://www3.mrc-lmb.cam.ac.uk/relion/index.php/'
-                           'FAQs#Where_can_I_find_MTF_curves_for_typical_detectors.3F]'
-                           '[Relion\'s Wiki FAQs]]\n'
-                           ' - [[http://www.gatan.com/K3][Gatan\'s website]]\n\n'
-                           'Relion param: *--mtf*')
-        group.addParam('doAutoBfactor', params.BooleanParam, default=True,
+                       label='MTF of the detector',
+                       help='User-provided STAR-file with the MTF-curve '
+                            'of the detector. Use the wizard to load one '
+                            'of the predefined ones provided at:\n'
+                            '- [[https://www3.mrc-lmb.cam.ac.uk/relion/index.php/'
+                            'FAQs#Where_can_I_find_MTF_curves_for_typical_detectors.3F]'
+                            '[Relion\'s Wiki FAQs]]\n'
+                            ' - [[https://www.gatan.com/techniques/cryo-em#MTF][Gatan\'s website]]\n\n'
+                            'Relion param: *--mtf*')
+        if Plugin.IS_GT30():
+            group.addParam('origPixelSize', params.FloatParam,
+                           default=-1.0,
+                           label='Original detector pixel size (A)',
+                           help='This is the original pixel size (in Angstroms)'
+                                ' in the raw (non-super-resolution!) micrographs')
+
+        form.addParam('doAutoBfactor', params.BooleanParam, default=True,
                       label='Estimate B-factor automatically?',
                       help='If set to Yes, then the program will use the '
                            'automated procedure described by Rosenthal and '
                            'Henderson (2003, JMB) to estimate an overall '
                            'B-factor for your map, and sharpen it accordingly.')
-        line = group.addLine('B-factor resolution (A): ',
+        line = form.addLine('B-factor resolution (A): ',
                             condition='doAutoBfactor',
                             help='There are the frequency (in Angstroms), '
                                  'lowest and highest, that will be included in '
@@ -111,10 +120,10 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
                                  'described in Rosenthal and Henderson '
                                  '(2003, JMB).')
         line.addParam('bfactorLowRes', params.FloatParam,
-                      default='10.0', label='low')
+                      default=10.0, label='low')
         line.addParam('bfactorHighRes', params.FloatParam,
-                      default='0.0', label='high')
-        group.addParam('bfactor', params.FloatParam, default=-350,
+                      default=0.0, label='high')
+        form.addParam('bfactor', params.FloatParam, default=-350,
                       condition='not doAutoBfactor',
                       label='Provide B-factor:',
                       help='User-provided B-factor (in A^2) for map '
@@ -124,8 +133,8 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
                            'signal!\n'
                            'Relion param: *--adhoc_bfac*')
 
-        group = form.addGroup('Filtering')
-        group.addParam('skipFscWeighting', params.BooleanParam, default=False,
+        form.addSection(label='Filtering')
+        form.addParam('skipFscWeighting', params.BooleanParam, default=False,
                       label='Skip FSC-weighting for sharpening?',
                       help='If set to No (the default), then the output map '
                            'will be low-pass filtered according to the '
@@ -137,21 +146,21 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
                            'overall resolution as measured by the FSC. In '
                            'such  cases, set this option to Yes and provide '
                            'an ad-hoc filter as described below.')
-        group.addParam('lowRes', params.FloatParam, default=5,
+        form.addParam('lowRes', params.FloatParam, default=5,
                       condition='skipFscWeighting',
-                      label='Low-pass filter (A):',
+                      label='Ad-hoc low-pass filter (A):',
                       help='This option allows one to low-pass filter the map '
                            'at a user-provided frequency (in Angstroms). When '
                            'using a resolution that is higher than the '
                            'gold-standard FSC-reported resolution, take care '
                            'not to interpret noise in the map for signal...')
-        group.addParam('filterEdgeWidth', params.IntParam, default=2,
+        form.addParam('filterEdgeWidth', params.IntParam, default=2,
                       expertLevel=params.LEVEL_ADVANCED,
                       label='Low-pass filter edge width:',
                       help='Width of the raised cosine on the low-pass filter '
                            'edge (in resolution shells)\n'
                            'Relion param: *--filter_edge_width*')
-        group.addParam('randomizeAtFsc', params.FloatParam, default=0.8,
+        form.addParam('randomizeAtFsc', params.FloatParam, default=0.8,
                       expertLevel=params.LEVEL_ADVANCED,
                       label='Randomize phases threshold',
                       help='Randomize phases from the resolution where FSC '
@@ -171,24 +180,25 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
 
     # -------------------------- STEPS functions -------------------------------
     def convertInputStep(self, protId):
-        pw.utils.makePath(self._getInputPath())
+        pwutils.makePath(self._getInputPath())
 
         protRef = self.protRefine.get()
         outVol = protRef.outputVolume
-        dim = outVol.getXDim()
+        newDim = outVol.getXDim()
+        newPix = outVol.getSamplingRate()
         vols = outVol.getHalfMaps().split(',')
         vols.insert(0, outVol.getFileName())
-        ih = pw.em.ImageHandler()
+        ih = ImageHandler()
 
-        relion.convert.convertMask(self.solventMask.get(),
-                                   self._getFileName('mask'), newDim=dim)
+        convert.convertMask(self.solventMask.get(),
+                            self._getFileName('mask'), newPix, newDim)
 
         for vol, key in zip(vols, ['outputVolume', 'half1', 'half2']):
             ih.convert(vol, self._getFileName(key))
 
     def postProcessStep(self, paramDict):
         params = ' '.join(['%s %s' % (k, str(v))
-                           for k, v in self.paramDict.iteritems()])
+                           for k, v in self.paramDict.items()])
 
         program = 'relion_postprocess'
         if self.numberOfMpi > 1:
@@ -197,7 +207,7 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
         self.runJob(program, params)
 
     def createOutputStep(self):
-        volume = pw.em.Volume()
+        volume = Volume()
         volume.setFileName(self._getFileName('outputVolume'))
         vol = self.protRefine.get().outputVolume
         volume.setSamplingRate(self._getOutputPixelSize())
@@ -206,9 +216,6 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
 
     # -------------------------- INFO functions --------------------------------
     def _validate(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION.
-        """
         errors = []
         mtfFile = self.mtf.get()
 
@@ -221,15 +228,13 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
         return ['Chen2013']
 
     def _summary(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION.
-        """
         summary = []
         postStarFn = self._getExtraPath("postprocess.star")
         if exists(postStarFn):
-            mdResol = md.RowMetaData(postStarFn)
-            resol = mdResol.getValue(md.RLN_POSTPROCESS_FINAL_RESOLUTION)
-            summary.append("Final resolution: *%0.2f A*" % resol)
+            table = Table(fileName=postStarFn, tableName='general')
+            row = table[0]
+            summary.append("Final resolution: *%0.2f A*" %
+                           float(row.rlnFinalResolution))
 
         return summary
 
@@ -238,10 +243,7 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
         """ Define all parameters to run relion_postprocess"""
         # It seems that in Relion3 now the input should be the map
         # filename and not the prefix as before
-        if IS_V3:
-            inputFn = self._getFileName('half1')
-        else:
-            inputFn = self._getInputPath("relion")
+        inputFn = self._getFileName('half1')
 
         self.paramDict = {'--i': inputFn,
                           '--o': self._getExtraPath('postprocess'),
@@ -266,6 +268,9 @@ class ProtRelionPostprocess(pw.em.ProtAnalysis3D):
         if self.skipFscWeighting:
             self.paramDict['--skip_fsc_weighting'] = ''
             self.paramDict['--low_pass'] = self.lowRes.get()
+
+        if Plugin.IS_GT30() and self.origPixelSize.get() != -1.0:
+            self.paramDict['--mtf_angpix'] = self.origPixelSize.get()
 
     def _getRelionMapFn(self, fn):
         return fn.split(':')[0]

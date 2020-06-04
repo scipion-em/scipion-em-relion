@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -27,18 +27,20 @@
 import os
 from os.path import join
 
-import pyworkflow as pw
+from pwem.objects import SetOfMicrographs
+from pwem.protocols import EMProtocol
+import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 
-import relion.convert
+import relion.convert as convert
 
 
-class ProtRelionExportCtf(pw.em.EMProtocol):
+class ProtRelionExportCtf(EMProtocol):
     """ Export a SetOfCTF to a Relion STAR file. """
 
     _label = 'export ctf'
     CTF_STAR_FILE = 'micrographs_ctf_%06d.star'
-    
+
     # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
         
@@ -73,22 +75,24 @@ class ProtRelionExportCtf(pw.em.EMProtocol):
         self._insertFunctionStep('writeCtfStarStep')
         
     def writeCtfStarStep(self):
+        pwutils.cleanPath(self._getExportPath())
+        pwutils.makePath(self._getExportPath())
         inputCTF = self.inputCTF.get()
 
-        if self.micrographSource == 0: # same as CTF estimation
+        if self.micrographSource == 0:  # same as CTF estimation
             ctfMicSet = inputCTF.getMicrographs()
         else:
             ctfMicSet = self.inputMicrographs.get()
 
-        micSet = pw.em.SetOfMicrographs(filename=':memory:')
+        micSet = SetOfMicrographs(filename=':memory:')
 
         psd = inputCTF.getFirstItem().getPsdFile()
         hasPsd = psd and os.path.exists(psd)
 
         if hasPsd:
-            psdPath = self._getPath('PSD')
-            pw.utils.makePath(psdPath)
-            print "Writing PSD files to %s" % psdPath
+            psdPath = self._getExportPath('PSD')
+            pwutils.makePath(psdPath)
+            print("Writing PSD files to %s" % psdPath)
 
         for ctf in inputCTF:
             # Get the corresponding micrograph
@@ -100,70 +104,63 @@ class ProtRelionExportCtf(pw.em.EMProtocol):
 
             micFn = mic.getFileName()
             if not os.path.exists(micFn):
-                print "Skipping micrograph %s, it does not exists. " % micFn
+                print("Skipping micrograph %s, it does not exists. " % micFn)
                 continue
 
             mic2 = mic.clone()
             mic2.setCTF(ctf)
             if hasPsd:
                 psdFile = ctf.getPsdFile()
-                newPsdFile = join(psdPath, '%s_psd.mrc' % mic.getMicName())
+                newPsdFile = join(psdPath,
+                                  '%s_psd.mrc' % pwutils.removeExt(mic.getMicName()))
                 if not os.path.exists(psdFile):
-                    print "PSD file %s does not exits" % psdFile
-                    print "Skipping micrograph %s" % micFn
+                    print("PSD file %s does not exits" % psdFile)
+                    print("Skipping micrograph %s" % micFn)
                     continue
-                pw.utils.copyFile(psdFile, newPsdFile)
+                pwutils.copyFile(psdFile, newPsdFile)
+                # PSD path is relative to Export dir
+                newPsdFile = os.path.relpath(newPsdFile, self._getExportPath())
                 ctf.setPsdFile(newPsdFile)
+            else:
+                # remove pointer to non-existing psd file
+                ctf.setPsdFile(None)
             micSet.append(mic2)
 
-        starFile = self._getPath(self.CTF_STAR_FILE % self.getObjId())
-        print "Writing set: %s" % inputCTF
-        print " to: %s" % starFile
+        print("Writing set: %s to: %s" % (inputCTF, self._getStarFile()))
 
-        acq = ctfMicSet.getAcquisition()
-        self.samplingRate = ctfMicSet.getSamplingRate()
-        mag = acq.getMagnification()
-        self.detectorPixelSize = 1e-4 * self.samplingRate * mag
-
-        relion.convert.writeSetOfMicrographs(
-            micSet, starFile,
-            preprocessImageRow=self.preprocessMicrograph)
-
-        # Let's create a link from the project roots to facilitate the import
-        # of the star file into a Relion project
-        pw.utils.createLink(starFile, os.path.basename(starFile))
+        micDir = self._getExportPath('Micrographs')
+        pwutils.makePath(micDir)
+        starWriter = convert.createWriter(rootDir=self._getExportPath(),
+                                    outputDir=micDir,
+                                    useBaseName=True)
+        starWriter.writeSetOfMicrographs(micSet, self._getStarFile())
 
     # -------------------------- INFO functions -------------------------------
 
     def _summary(self):
         summary = []
-        ctfStarFn = self._getPath(self.CTF_STAR_FILE % self.getObjId())
 
-        if os.path.exists(ctfStarFn):
-            summary.append("Output CTF STAR file written to: \n%s" % ctfStarFn)
+        if os.path.exists(self._getStarFile()):
+            summary.append("Output is written to: \n%s\n" %
+                           os.path.abspath(self._getExportPath()))
+            summary.append("Pixel size: *%0.3f*" % self._getPixelSize())
         else:
             summary.append("No output generated yet.")
 
         return summary
-    
-    # -------------------------- UTILS functions ------------------------------
-    def preprocessMicrograph(self, mic, micRow):
-        mag = mic.getAcquisition().getMagnification()
 
-        micRow.setValue('rlnSamplingRate', self.samplingRate)
-        micRow.setValue('rlnMagnification', mag)
-        micRow.setValue('rlnDetectorPixelSize', self.detectorPixelSize)
-        micRow.setValue('rlnCtfImage', mic.getCTF().getPsdFile())
+    # --------------------------- UTILS functions -----------------------------
 
-        ctf = mic.getCTF()
+    def _getExportPath(self, *paths):
+        return os.path.join(self._getPath('Export'), *paths)
 
-        def _setIf(label, attributes):
-            for a in attributes:
-                if ctf.getAttributeValue(a, None) is not None:
-                    micRow.setValue(label, ctf.getAttributeValue(a))
+    def _getStarFile(self):
+        return self._getExportPath(self.CTF_STAR_FILE % self.getObjId())
 
-        # Check if there is maximum resolution information
-        _setIf('rlnCtfMaxResolution', ['_ctffind4_ctfResolution',
-                                       '_gctf_ctfResolution', '_resolution'])
-        _setIf('rlnCtfFigureOfMerit', ['_ctffind4_crossCorrelation',
-                                       '_gctf_crossCorrelation', '_fitQuality'])
+    def _getPixelSize(self):
+        if self.micrographSource == 0:  # same as CTF estimation
+            ctfMicSet = self.inputCTF.get().getMicrographs()
+        else:
+            ctfMicSet = self.inputMicrographs.get()
+
+        return ctfMicSet.getSamplingRate()

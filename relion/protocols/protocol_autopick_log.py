@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -24,32 +24,22 @@
 # *
 # **************************************************************************
 
-import os
 from os.path import relpath
 
 import pyworkflow.protocol.params as params
 from pyworkflow.protocol import STEPS_SERIAL
-from pyworkflow.em.protocol import ProtParticlePickingAuto
-from pyworkflow.em.constants import ALIGN_NONE
-import pyworkflow.utils as pwutils
-import pyworkflow.em.metadata as md
+from pwem.protocols import ProtParticlePickingAuto
 
-import relion
-from .protocol_base import ProtRelionBase
-from relion.convert import (writeSetOfMicrographs, readSetOfCoordinates,
-                            micrographToRow)
+from relion import Plugin
+from .protocol_autopick import ProtRelionAutopickBase
 
 
-class ProtRelionAutopickLoG(ProtParticlePickingAuto, ProtRelionBase):
+class ProtRelionAutopickLoG(ProtRelionAutopickBase):
     """
     This Relion protocol uses 'relion_autopick' program for the
     Laplacian of Gaussian (LoG) option.
     """
     _label = 'auto-picking LoG'
-
-    @classmethod
-    def isDisabled(cls):
-        return not relion.Plugin.isVersion3Active()
 
     def __init__(self, **kwargs):
         ProtParticlePickingAuto.__init__(self, **kwargs)
@@ -74,7 +64,7 @@ class ProtRelionAutopickLoG(ProtParticlePickingAuto, ProtRelionBase):
         group = form.addGroup('Laplacian of Gaussian')
 
         line = group.addLine('Diameter for LoG filter (A)',
-                            help="Min and Max of LoG filter")
+                             help="Min and Max of LoG filter")
 
         line.addParam('minDiameter', params.IntParam, default=200,
                       label='Min')
@@ -83,10 +73,10 @@ class ProtRelionAutopickLoG(ProtParticlePickingAuto, ProtRelionBase):
                       label='Max')
 
         group.addParam('areParticlesWhite', params.BooleanParam,
-                      default=False,
-                      label='Are the particles white?',
-                      help='Set this option to No if the particles are black, '
-                           'and to Yes if the particles are white.')
+                       default=False,
+                       label='Are the particles white?',
+                       help='Set this option to No if the particles are black, '
+                            'and to Yes if the particles are white.')
 
         group.addParam('maxResolution', params.FloatParam, default=20,
                        label='Maximum resolution to consider (A)',
@@ -95,11 +85,25 @@ class ProtRelionAutopickLoG(ProtParticlePickingAuto, ProtRelionBase):
                             'size. Give a negative value to skip downscaling.')
 
         group.addParam('threshold', params.FloatParam, default=0,
-                       label='Adjust default threshold',
+                       label='Adjust default threshold (stddev)',
                        help='Use this to pick more (negative number -> lower '
                             'threshold) or less (positive number -> higher '
                             'threshold) particles compared to the default '
                             'setting.')
+
+        if self.IS_GT30():
+            group.addParam('threshold2', params.FloatParam, default=999,
+                           label='Upper threshold (stddev)',
+                           help='Use this to discard picks with LoG thresholds '
+                                'that are this many standard deviations above '
+                                'the average, e.g. to avoid high contrast '
+                                'contamination like ice and ethane droplets. '
+                                'Good values depend on the contrast of '
+                                'micrographs and need to be interactively '
+                                'explored; for low contrast micrographs, '
+                                'values of ~ 1.5 may be reasonable, but the '
+                                'same value will be too low for high-contrast '
+                                'micrographs.')
 
         form.addParam('extraParams', params.StringParam, default='',
                       label='Additional arguments:',
@@ -130,65 +134,35 @@ class ProtRelionAutopickLoG(ProtParticlePickingAuto, ProtRelionBase):
         """ This method is used by base class to provide the arguments to
         new inserted steps.
         """
-        return [
-            self.getAutopickParams(),
-            self.minDiameter.get(),
-            self.maxDiameter.get(),
-            self.threshold.get()
-        ]
+        args = [
+                self.getAutopickParams(),
+                self.minDiameter.get(),
+                self.maxDiameter.get(),
+                self.threshold.get()
+            ]
 
-    def _pickMicrographsFromStar(self, micStarFile, params,
-                                 minDiameter, maxDiameter, threshold):
+        if self.IS_GT30():
+            args.append(self.threshold2.get())
+
+        return args
+
+    def _pickMicrographsFromStar(self, micStarFile, cwd, params,
+                                 minDiameter, maxDiameter, threshold, threshold2=None):
         """ Launch the 'relion_autopick' for micrographs in the inputStarFile.
          If the input set of complete, the star file will contain all the
          micrographs. If working in streaming, it will be only one micrograph.
         """
-        params += ' --i %s' % relpath(micStarFile, self.getWorkingDir())
+        params += ' --i %s' % relpath(micStarFile, cwd)
         params += ' --LoG_diam_min %0.3f' % minDiameter
         params += ' --LoG_diam_max %0.3f' % maxDiameter
         params += ' --LoG_adjust_threshold %0.3f' % threshold
 
+        if self.IS_GT30():
+            params += ' --LoG_upper_threshold %0.3f' % threshold2
+
         program = self._getProgram('relion_autopick')
 
-        self.runJob(program, params, cwd=self.getWorkingDir())
-
-    def _pickMicrograph(self, mic, *args):
-        """ This method should be invoked only when working in streaming mode.
-        """
-        micRow = md.Row()
-        self._preprocessMicrographRow(mic, micRow)
-        micrographToRow(mic, micRow)
-        self._postprocessMicrographRow(mic, micRow)
-        self._pickMicrographsFromStar(self._getMicStarFile(mic), *args)
-
-    def _pickMicrographList(self, micList, *args):
-        micStar = self._getPath('input_micrographs_%s-%s.star' %
-                                (micList[0].strId(), micList[-1].strId()))
-        writeSetOfMicrographs(micList, micStar,
-                              alignType=ALIGN_NONE,
-                              preprocessImageRow=self._preprocessMicrographRow)
-        self._pickMicrographsFromStar(micStar, *args)
-
-    def _createSetOfCoordinates(self, micSet, suffix=''):
-        """ Override this method to set the box size. """
-        coordSet = ProtParticlePickingAuto._createSetOfCoordinates(self, micSet,
-                                                                   suffix=suffix)
-        coordSet.setBoxSize(self.getBoxSize())
-
-        return coordSet
-
-    def readCoordsFromMics(self, workingDir, micList, coordSet):
-        """ Parse back the output star files and populate the SetOfCoordinates.
-        """
-        template = self._getExtraPath("%s_autopick.star")
-        starFiles = [template % pwutils.removeBaseExt(mic.getFileName())
-                     for mic in micList]
-        readSetOfCoordinates(coordSet, starFiles, micList)
-
-    # -------------------------- STEPS functions -------------------------------
-    def autopickStep(self, micStarFile, params, *args):
-        """ This method is used from the wizard to optimize the parameters. """
-        self._pickMicrographsFromStar(micStarFile, *args)
+        self.runJob(program, params, cwd=cwd)
 
     # -------------------------- INFO functions --------------------------------
     def _validate(self):
@@ -210,68 +184,6 @@ class ProtRelionAutopickLoG(ProtParticlePickingAuto, ProtRelionBase):
     def getBoxSize(self):
         """ Return a reasonable box-size in pixels. """
         return self.boxSize.get()
-                
-    def getInputMicrographsPointer(self):
-        return self.inputMicrographs
 
-    def getInputMicrographs(self):
-        return self.getInputMicrographsPointer().get()
-
-    def getMicrographList(self):
-        """ Return the list of micrographs (either a subset or the full set)
-        that will be used for optimizing the parameters or the picking.
-        """
-        # Use all micrographs only when going for the full picking
-        return self.getInputMicrographs()
-
-    def getCoordsDir(self):
-        return self._getTmpPath('xmipp_coordinates')
-
-    def _writeXmippCoords(self, coordSet):
-        micSet = self.getInputMicrographs()
-        coordPath = self._getTmpPath('xmipp_coordinates')
-        pwutils.cleanPath(coordPath)
-        pwutils.makePath(coordPath)
-        import pyworkflow.em.packages.xmipp3 as xmipp3
-        micPath = micSet.getFileName()
-        xmipp3.writeSetOfCoordinates(coordPath, coordSet, ismanual=False)
-        return micPath, coordPath
-
-    def writeXmippOutputCoords(self):
-        return self._writeXmippCoords(self.outputCoordinates)
-
-    def writeXmippCoords(self):
-        """ Write the SetOfCoordinates as expected by Xmipp
-        to be displayed with its GUI.
-        """
-        micSet = self.getInputMicrographs()
-        coordSet = self._createSetOfCoordinates(micSet)
-        coordSet.setBoxSize(self.getBoxSize())
-        starFiles = [self._getExtraPath(pwutils.removeBaseExt(mic.getFileName())
-                                        + '_autopick.star') for mic in micSet]
-        readSetOfCoordinates(coordSet, starFiles)
-        return self._writeXmippCoords(coordSet)
-
-    def _preprocessMicrographRow(self, img, imgRow):
-        # Temporarly convert the few micrographs to tmp and make sure
-        # they are in 'mrc' format
-        # Get basename and replace extension by 'mrc'
-        newName = pwutils.replaceBaseExt(img.getFileName(), 'mrc')
-        newPath = self._getExtraPath(newName)
-
-        # If the micrographs are in 'mrc' format just create a link
-        # if not, convert to 'mrc'
-        if img.getFileName().endswith('mrc'):
-            pwutils.createLink(img.getFileName(), newPath)
-        else:
-            self._ih.convert(img, newPath)
-        # The command will be launched from the working dir
-        # so, let's make the micrograph path relative to that
-        img.setFileName(os.path.join('extra', newName))
-
-    def _postprocessMicrographRow(self, img, imgRow):
-        imgRow.writeToFile(self._getMicStarFile(img))
-
-    def _getMicStarFile(self, mic):
-        micBase = pwutils.replaceBaseExt(mic.getFileName(), 'star')
-        return self._getExtraPath(micBase)
+    def IS_GT30(self):
+        return Plugin.IS_GT30()

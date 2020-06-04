@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -24,15 +24,18 @@
 # *
 # **************************************************************************
 
-import pyworkflow as pw
-import pyworkflow.em.metadata as md
+from pyworkflow.object import String, Float
+import pwem
+from pwem.protocols import ProtClassify3D
 
 import relion
-import relion.convert
+from relion import Plugin
+import relion.convert as convert
+from relion.convert.metadata import Table
 from .protocol_base import ProtRelionBase
 
 
-class ProtRelionClassify3D(pw.em.ProtClassify3D, ProtRelionBase):
+class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
     """
     Protocol to classify 3D using Relion Bayesian approach.
     Relion employs an empirical Bayesian approach to refinement of (multiple)
@@ -42,11 +45,11 @@ class ProtRelionClassify3D(pw.em.ProtClassify3D, ProtRelionBase):
     """
 
     _label = '3D classification'
-    CHANGE_LABELS = [md.RLN_OPTIMISER_CHANGES_OPTIMAL_ORIENTS, 
-                     md.RLN_OPTIMISER_CHANGES_OPTIMAL_OFFSETS,
-                     md.RLN_OPTIMISER_ACCURACY_ROT,
-                     md.RLN_OPTIMISER_ACCURACY_TRANS,
-                     md.RLN_OPTIMISER_CHANGES_OPTIMAL_CLASSES]
+    CHANGE_LABELS = ['rlnChangesOptimalOrientations',
+                     'rlnChangesOptimalOffsets',
+                     'rlnOverallAccuracyRotations',
+                     'rlnOverallAccuracyTranslationsAngst' if Plugin.IS_GT30() else 'rlnOverallAccuracyTranslations',
+                     'rlnChangesOptimalClasses']
     
     def __init__(self, **args):        
         ProtRelionBase.__init__(self, **args)
@@ -64,9 +67,14 @@ class ProtRelionClassify3D(pw.em.ProtClassify3D, ProtRelionBase):
         if self.doImageAlignment:
             args['--healpix_order'] = self.angularSamplingDeg.get()
             args['--offset_range'] = self.offsetSearchRangePix.get()
-            args['--offset_step']  = self.offsetSearchStepPix.get() * self._getSamplingFactor()
+            args['--offset_step'] = self.offsetSearchStepPix.get() * self._getSamplingFactor()
+
             if self.localAngularSearch:
                 args['--sigma_ang'] = self.localAngularSearchRange.get() / 3.
+
+            if relion.Plugin.IS_GT30() and self.allowCoarserSampling:
+                args['--allow_coarser_sampling'] = ''
+
         else:
             args['--skip_align'] = ''
     
@@ -97,16 +105,10 @@ class ProtRelionClassify3D(pw.em.ProtClassify3D, ProtRelionBase):
     
     # -------------------------- INFO functions -------------------------------
     def _validateNormal(self):
-        """ Should be overwritten in subclasses to 
-        return summary message for NORMAL EXECUTION. 
-        """
         errors = []
         return errors
     
     def _validateContinue(self):
-        """ Should be overwritten in subclasses to
-        return summary messages for CONTINUE EXECUTION.
-        """
         errors = []
         continueRun = self.continueRun.get()
         continueRun._initialize()
@@ -123,14 +125,13 @@ class ProtRelionClassify3D(pw.em.ProtClassify3D, ProtRelionBase):
         return errors
     
     def _summaryNormal(self):
-        """ Should be overwritten in subclasses to 
-        return summary message for NORMAL EXECUTION. 
-        """
         summary = []
         it = self._lastIter()
         if it >= 1:
-            row = md.getFirstRow('model_general@' + self._getFileName('model', iter=it))
-            resol = row.getValue("rlnCurrentResolution")
+            table = Table(fileName=self._getFileName('model', iter=it),
+                          tableName='model_general')
+            row = table[0]
+            resol = float(row.rlnCurrentResolution)
             summary.append("Current resolution: *%0.2f A*" % resol)
         
         summary.append("Input Particles: *%d*\n"
@@ -141,10 +142,7 @@ class ProtRelionClassify3D(pw.em.ProtClassify3D, ProtRelionBase):
         return summary
     
     def _summaryContinue(self):
-        """ Should be overwritten in subclasses to
-        return summary messages for CONTINUE EXECUTION.
-        """
-        summary = []
+        summary = list()
         summary.append("Continue from iteration %01d" % self._getContinueIter())
         return summary
     
@@ -156,45 +154,8 @@ class ProtRelionClassify3D(pw.em.ProtClassify3D, ProtRelionBase):
         return [strline]
     
     # -------------------------- UTILS functions ------------------------------
-    def _loadClassesInfo(self, iteration):
-        """ Read some information about the produced Relion 3D classes
-        from the *model.star file.
-        """
-        self._classesInfo = {}  # store classes info, indexed by class id
-         
-        modelStar = md.MetaData('model_classes@' +
-                                self._getFileName('model', iter=iteration))
-        
-        for classNumber, row in enumerate(md.iterRows(modelStar)):
-            index, fn = relion.convert.relionToLocation(row.getValue('rlnReferenceImage'))
-            # Store info indexed by id, we need to store the row.clone() since
-            # the same reference is used for iteration            
-            self._classesInfo[classNumber+1] = (index, fn, row.clone())
-    
     def _fillClassesFromIter(self, clsSet, iteration):
         """ Create the SetOfClasses3D from a given iteration. """
-        self._loadClassesInfo(iteration)
-        dataStar = self._getFileName('data', iter=iteration)
-        clsSet.classifyItems(updateItemCallback=self._updateParticle,
-                             updateClassCallback=self._updateClass,
-                             itemDataIterator=md.iterRows(dataStar,
-                                                          sortByLabel=md.RLN_IMAGE_ID))
-    
-    def _updateParticle(self, item, row):
-        item.setClassId(row.getValue(md.RLN_PARTICLE_CLASS))
-        item.setTransform(relion.convert.rowToAlignment(row, pw.em.ALIGN_PROJ))
-        
-        item._rlnLogLikeliContribution = pw.em.Float(row.getValue('rlnLogLikeliContribution'))
-        item._rlnMaxValueProbDistribution = pw.em.Float(row.getValue('rlnMaxValueProbDistribution'))
-        item._rlnGroupName = pw.em.String(row.getValue('rlnGroupName'))
+        classLoader = convert.ClassesLoader(self, pwem.ALIGN_PROJ)
+        classLoader.fillClassesFromIter(clsSet, iteration)
 
-    def _updateClass(self, item):
-        classId = item.getObjId()
-        if classId in self._classesInfo:
-            index, fn, row = self._classesInfo[classId]
-            fn += ":mrc"
-            item.setAlignmentProj()
-            item.getRepresentative().setLocation(index, fn)
-            item._rlnClassDistribution = pw.em.Float(row.getValue('rlnClassDistribution'))
-            item._rlnAccuracyRotations = pw.em.Float(row.getValue('rlnAccuracyRotations'))
-            item._rlnAccuracyTranslations = pw.em.Float(row.getValue('rlnAccuracyTranslations'))
