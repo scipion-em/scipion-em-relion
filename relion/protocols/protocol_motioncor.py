@@ -53,7 +53,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
     def __init__(self, **kwargs):
 
         ProtAlignMovies.__init__(self, **kwargs)
-        self.stepsExecutionMode = STEPS_SERIAL
+        # self.stepsExecutionMode = STEPS_SERIAL
 
     def _getConvertExtension(self, filename):
         """ Check whether it is needed to convert to .mrc or not """
@@ -203,7 +203,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         args += "--bin_factor %f --bfactor %d " % (self.binFactor, self.bfactor)
         args += "--angpix %f " % (movie.getSamplingRate())
         args += "--patch_x %d --patch_y %d " % (self.patchX, self.patchY)
-        args += "--j %d " % self.numberOfThreads
+        # args += "--j %d " % self.numberOfThreads
 
         inputMovies = self.inputMovies.get()
         if inputMovies.getGain():
