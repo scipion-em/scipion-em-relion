@@ -127,4 +127,5 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
 
     # -------------------------- Utils functions ------------------------------
     def _postprocessImageRow(self, item, row):
-        item._rlnGroupName = String(row.getValue('rlnGroupName'))
+        if hasattr(row, 'rlnGroupName'):
+            item._rlnGroupName = String(row.rlnGroupName)
