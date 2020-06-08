@@ -141,11 +141,9 @@ class RelionImport:
         pathDict = {}
 
         self.protocol.info('Loading classes info from: %s' % self._modelStarFile)
-        modelMd = md.MetaData('model_classes@' + self._modelStarFile)
-        for classNumber, objId in enumerate(modelMd):
-            row = md.Row()
-            row.readFromMd(modelMd, objId)
-            index, fn = relionToLocation(row.get('rlnReferenceImage'))
+        table = Table(fileName=self._modelStarFile, tableName='model_classes')
+        for classNumber, row in enumerate(table):
+            index, fn = relionToLocation(row.rlnReferenceImage)
 
             if fn in pathDict:
                 newFn = pathDict.get(fn)

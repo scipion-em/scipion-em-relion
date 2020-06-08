@@ -292,10 +292,9 @@ class TestRelion31ImportParticles(pwtests.BaseTest):
                                  )
         self.launchProtocol(prot1)
         self.checkOutput(prot1, 'outputParticles', [])
-        self.checkOutput(prot1, 'outputClasses')
 
     def test_fromClassify2D(self):
-        """ Import an EMX file with Particles and defocus
+        """ Import particles from Classify 2d job star file.
         """
         starFile = self.ds.getFile('Class2D/job013/run_it025_data.star')
         optics = relion.convert.getOpticsFromStar(starFile)
@@ -346,5 +345,3 @@ class TestRelion31ImportParticles(pwtests.BaseTest):
         self.launchProtocol(prot1)
         self.checkOutput(prot1, 'outputParticles', ['outputParticles.hasAlignmentProj()'])
         self.checkOutput(prot1, 'outputClasses')
-
-
