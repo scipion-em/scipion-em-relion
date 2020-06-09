@@ -55,7 +55,7 @@ def createWriter(**kwargs):
     the format='30' argument.
     """
     is30 = kwargs.get('format', '') == '30' or relion.Plugin.IS_30()
-    Writer = convert30.Reader if is30 else convert31.Writer
+    Writer = convert30.Writer if is30 else convert31.Writer
 
     return Writer(**kwargs)
 
