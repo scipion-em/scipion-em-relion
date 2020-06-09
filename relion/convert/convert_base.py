@@ -66,6 +66,7 @@ class WriterBase:
         #self.convertPolicy = kwargs.get('convertPolicy', self.CONVERT_IF_NEEDED)
         self.rootDir = None
         self.outputDir = None
+        self.outputStack = None
         self.useBaseName = False
         self.extensions = ['mrc']
         self.update(['rootDir', 'outputDir', 'userBaseName', 'extensions'],

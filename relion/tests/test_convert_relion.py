@@ -762,6 +762,10 @@ class TestRelionReader(BaseTest):
         cls.ds = DataSet.getDataSet('relion31_tutorial_precalculated')
 
     def test_readSetOfParticles(self):
+        if not Plugin.IS_GT30():
+            print("Skipping test (required Relion > 3.1)")
+            return
+
         partsStar = self.ds.getFile("Extract/job018/particles.star")
         print("<<< Reading star file: \n   %s\n" % partsStar)
         outputSqlite = self.getOutputPath('particles.sqlite')
