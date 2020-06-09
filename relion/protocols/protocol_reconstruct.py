@@ -148,7 +148,8 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         imgStar = self._getFileName('input_particles')
 
         # Pass stack file as None to avoid write the images files
-        convert.writeSetOfParticles(imgSet, imgStar, self._getTmpPath(),
+        convert.writeSetOfParticles(imgSet, imgStar,
+                                    outputDir=self._getTmpPath(),
                                     alignType=ALIGN_PROJ,
                                     fillRandomSubset=True)
 

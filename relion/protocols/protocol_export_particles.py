@@ -96,6 +96,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
         if self._stackType == STACK_ONE:
             outputStack = self._getExportPath('Particles/particles.mrcs')
             pwutils.makePath(self._getExportPath("Particles"))
+
         elif self._stackType == STACK_MULT:
             postprocessImageRow = self._postprocessImageRow
             outputDir = self._getExportPath("Particles")

@@ -64,14 +64,22 @@ class WriterBase:
         self._optics = None
         # Not used now
         #self.convertPolicy = kwargs.get('convertPolicy', self.CONVERT_IF_NEEDED)
-        self.rootDir = kwargs.get('rootDir', None)
-        self.outputDir = kwargs.get('outputDir', None)
-        self.useBaseName = kwargs.get('useBaseName', False)
-        self.extensions = kwargs.get('extensions', ['mrc'])
+        self.rootDir = None
+        self.outputDir = None
+        self.useBaseName = False
+        self.extensions = ['mrc']
+        self.update(['rootDir', 'outputDir', 'userBaseName', 'extensions'],
+                    **kwargs)
         self._ih = ImageHandler()  # used to convert images
         self._filesDict = {}  # used to map file names (converted or linked)
         self._dimensionality = 2
         self._imageSize = None
+
+    def update(self, attrsList, **kwargs):
+        """ Update the some attributes with values from kwargs. """
+        for attr in attrsList:
+            if attr in kwargs:
+                setattr(self, attr, kwargs[attr])
 
     def writeSetOfMovies(self, moviesIterable, starFile, **kwargs):
         pass

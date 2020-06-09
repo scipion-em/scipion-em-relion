@@ -60,16 +60,15 @@ def createWriter(**kwargs):
     return Writer(**kwargs)
 
 
-def writeSetOfParticles(imgSet, starFile, outputDir, **kwargs):
+def writeSetOfParticles(imgSet, starFile, **kwargs):
     """ Convenience function to a SetOfImages as Relion metadata using a Writer.
 
     Params:
         imgSet: the SetOfImages instance.
         starFile: the filename where to write the meta
-        outputDir: where binary files will be converted or linked.
-        filesMapping: this dict will help when there is need to replace images names
 
     Keyword Arguments:
+        outputDir: where binary files will be converted or linked.
         blockName: The name of the data block (default particles)
         fillMagnification: If True set magnification values (default False)
         alignType:

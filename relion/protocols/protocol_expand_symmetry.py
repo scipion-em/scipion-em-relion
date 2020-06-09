@@ -64,7 +64,8 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
     def convertInputStep(self, outputFn):
         """ Create a metadata with the images and geometrical information. """
         convert.writeSetOfParticles(
-            self.inputParticles.get(), outputFn, self._getPath())
+            self.inputParticles.get(), outputFn,
+            outputDir=self._getPath())
 
     def expandSymmetryStep(self, imgsFn):
         outImagesMd = self._getExtraPath('expanded_particles.star')
