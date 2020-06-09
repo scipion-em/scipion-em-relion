@@ -779,7 +779,8 @@ class ProtRelionBase(EMProtocol):
             fillRandomSubset = hasAlign and getattr(self, 'fillRandomSubset', False)
 
             relion.convert.writeSetOfParticles(
-                imgSet, imgStar, self._getExtraPath(),
+                imgSet, imgStar,
+                outputDir=self._getExtraPath(),
                 alignType=alignType,
                 postprocessImageRow=self._postprocessParticleRow,
                 fillRandomSubset=fillRandomSubset)

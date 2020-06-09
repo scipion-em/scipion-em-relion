@@ -218,7 +218,8 @@ class ProtRelionSortParticles(ProtParticles):
         # Write particles star file
         allParticles = self._allParticles(iterate=False)
         convert.writeSetOfParticles(
-            allParticles, imgStar, self._getPath(),
+            allParticles, imgStar,
+            outputDir=self._getPath(),
             postprocessImageRow=self._postProcessImageRow)
 
     def runRelionStep(self, params):

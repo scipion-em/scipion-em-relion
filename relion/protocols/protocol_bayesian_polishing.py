@@ -268,7 +268,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
                     tableCoeffs.writeStar(f, tableName='local_motion_model')
 
         convert.writeSetOfParticles(inputParts, imgStar,
-                                    inputPartsFolder,
+                                    outputDir=inputPartsFolder,
                                     alignType=ALIGN_PROJ,
                                     fillMagnification=True,
                                     fillRandomSubset=True)

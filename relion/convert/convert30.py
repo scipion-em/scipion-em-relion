@@ -48,7 +48,7 @@ class Writer(WriterBase):
     def writeSetOfParticles(self, partsSet, starFile, **kwargs):
         # FIXME: Remove deprecated import
         from .convert_deprecated import _writeSetOfParticles
-        _writeSetOfParticles(partsSet, starFile, self.outputDir, **kwargs)
+        _writeSetOfParticles(partsSet, starFile, **kwargs)
 
     def _writeSetOfMoviesOrMics(self, imgIterable,
                                 starFile, tableName, imgLabelName):

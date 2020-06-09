@@ -124,6 +124,7 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
         return fn.replace(rootDir, outputRoot)
 
     if forceConvert:
+        print("convertBinaryFiles: forceConvert = True")
         mapFunc = convertStack
     elif ext == extension:
         print("convertBinaryFiles: creating soft links.")

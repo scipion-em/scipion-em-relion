@@ -665,7 +665,8 @@ class TestRelionWriter(BaseTest):
         mtfFile = 'mtfFile%d.star'
 
         cleanPath(self.getOutputPath('micrographs.sqlite'))
-        outputMics = SetOfMicrographs(filename=self.getOutputPath('micrographs.sqlite'))
+        micsDb = self.getOutputPath('micrographs.sqlite')
+        outputMics = SetOfMicrographs(filename=micsDb)
         outputMics.setSamplingRate(1.234)
 
         mic = SetOfMicrographs.ITEM_TYPE()
@@ -673,10 +674,11 @@ class TestRelionWriter(BaseTest):
                           sphericalAberration=2,
                           amplitudeContrast=0.1,
                           magnification=60000)
-        acq.opticsGroupName = String()
-        acq.mtfFile = String()
+        acq.opticsGroupName.set('No-GroupName')
+        acq.mtfFile.set('No-MTF')
 
         ctf = CTFModel(defocusU=10000, defocusV=15000, defocusAngle=15)
+        outputMics.setAcquisition(acq)
         mic.setAcquisition(acq)
         mic.setCTF(ctf)
 
@@ -695,6 +697,7 @@ class TestRelionWriter(BaseTest):
             mic.setObjId(None)
             outputMics.append(mic)
 
+        print(">>> Writing micrograph set to: ", micsDb)
         outputMics.write()
 
         return outputMics
@@ -706,11 +709,7 @@ class TestRelionWriter(BaseTest):
         print(">>> Writing to particles db: %s" % outputSqlite)
         outputParts = SetOfParticles(filename=outputSqlite)
         outputParts.setSamplingRate(1.234)
-        acq = Acquisition(magnification=50000,
-                          voltage=200.,
-                          sphericalAberration=1.4,
-                          amplitudeContrast=0.1)
-        outputParts.setAcquisition(acq)
+        outputParts.setAcquisition(micSet.getAcquisition())
 
         part = SetOfParticles.ITEM_TYPE()
         coord = Coordinate()
@@ -763,6 +762,10 @@ class TestRelionReader(BaseTest):
         cls.ds = DataSet.getDataSet('relion31_tutorial_precalculated')
 
     def test_readSetOfParticles(self):
+        if not Plugin.IS_GT30():
+            print("Skipping test (required Relion > 3.1)")
+            return
+
         partsStar = self.ds.getFile("Extract/job018/particles.star")
         print("<<< Reading star file: \n   %s\n" % partsStar)
         outputSqlite = self.getOutputPath('particles.sqlite')

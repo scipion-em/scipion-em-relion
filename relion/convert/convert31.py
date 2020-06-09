@@ -220,13 +220,13 @@ class Writer(WriterBase):
         # Process the first item and create the table based
         # on the generated columns
         self._imgLabelPixelSize = 'rlnImagePixelSize'
+        self.update(['rootDir', 'outputDir', 'outputStack'], **kwargs)
 
         self._optics = OrderedDict()
         partRow = OrderedDict()
         firstPart = partsSet.getFirstItem()
 
         # Convert binaries if required
-        self.outputStack = kwargs.get('outputStack', None)
         if self.outputStack:
             self._relOutputStack = os.path.relpath(self.outputStack,
                                                    os.path.dirname(starFile))

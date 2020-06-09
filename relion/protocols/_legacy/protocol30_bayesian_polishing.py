@@ -248,7 +248,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
             tableMovies.writeStar(f)
 
         convert.writeSetOfParticles(inputParts, imgStar,
-                                    inputPartsFolder,
+                                    outputDir=inputPartsFolder,
                                     alignType=ALIGN_PROJ,
                                     fillMagnification=True,
                                     fillRandomSubset=True)

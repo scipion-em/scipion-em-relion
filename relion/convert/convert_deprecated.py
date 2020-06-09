@@ -482,14 +482,15 @@ def writeSetOfImages(imgSet, filename, imgToFunc,
     mdFn.write('%s@%s' % (blockName, filename))
 
 
-def _writeSetOfParticles(imgSet, starFile,
-                        outputDir, **kwargs):
+def _writeSetOfParticles(imgSet, starFile, **kwargs):
     """ This function will write a SetOfImages as Relion meta
     Params:
         imgSet: the SetOfImages instance.
         starFile: the filename where to write the meta
         filesMapping: this dict will help when there is need to replace images names
     """
+    outputDir = kwargs.get('outputDir', None)
+
     if outputDir is not None:
         filesDict = convertBinaryFiles(imgSet, outputDir)
         kwargs['filesDict'] = filesDict

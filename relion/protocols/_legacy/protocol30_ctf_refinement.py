@@ -143,7 +143,7 @@ class ProtRelionCtfRefinement(ProtParticles):
                   (inputParts.getFileName(), imgStar))
 
         convert.writeSetOfParticles(inputParts, imgStar,
-                                    self._getExtraPath(),
+                                    outputDir=self._getExtraPath(),
                                     alignType=ALIGN_PROJ,
                                     fillMagnification=True,
                                     fillRandomSubset=True)
