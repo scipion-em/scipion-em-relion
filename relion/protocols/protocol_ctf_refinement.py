@@ -29,6 +29,7 @@ import pyworkflow.protocol.params as params
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtParticles
 from pyworkflow.object import Float
+import pwem.emlib.metadata as md
 
 import relion
 import relion.convert as convert
@@ -227,15 +228,19 @@ class ProtRelionCtfRefinement(ProtParticles):
         outImgsFn = self.fileWithRefinedCTFName()
         imgSet.setAlignmentProj()
 
-        tableName = 'particles@' if self.IS_GT30() else ''
-        mdIter = convert.Table.iterRows(tableName + outImgsFn,
-                                        key='rlnImageId')
-        self._optics = convert.getOpticsDict(outImgsFn)
-        callback = self._updateItem31 if self.IS_GT30() else self._updateItem30
-        outImgSet.copyItems(imgSet,
-                            updateItemCallback=callback,
-                            itemDataIterator=mdIter,
-                            doClone=False)
+        if self.IS_GT30():
+            self._optics = convert.getOpticsDict(outImgsFn)
+            mdIter = convert.Table.iterRows('particles@' + outImgsFn,
+                                            key='rlnImageId')
+            outImgSet.copyItems(imgSet,
+                                updateItemCallback=self._updateItem31,
+                                itemDataIterator=mdIter,
+                                doClone=False)
+        else:
+            mdIter = md.iterRows(outImgsFn, sortByLabel=md.RLN_IMAGE_ID)
+            outImgSet.copyItems(imgSet,
+                                updateItemCallback=self._updateItem30,
+                                itemDataIterator=mdIter)
 
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(self.inputParticles, outImgSet)
