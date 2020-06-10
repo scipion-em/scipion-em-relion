@@ -114,12 +114,11 @@ class ProtRelionCompressEstimateGain(ProtProcessMovies):
         return ['Zivanov2019']
 
     def _validate(self):
-        # Check base validation before the specific ones for Motioncor
         errors = []
 
         if not relion.Plugin.getActiveVersion():
-            errors.append("Could not detect the current Relion version. \n"
-                          "RELION_HOME='%s'" % relion.Plugin.getHome())
+            errors = ["Could not detect the current Relion version. \n"
+                      "RELION_HOME='%s'" % relion.Plugin.getHome()]
 
         return errors
 
