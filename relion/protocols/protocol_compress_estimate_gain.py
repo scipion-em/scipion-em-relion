@@ -35,11 +35,11 @@ import relion.convert as convert
 
 class ProtRelionCompressEstimateGain(ProtProcessMovies):
     """
-    Using *relion_convert_to_tiff to compress a set of movies
-    or to estimate the gain that can be used for better compression.
+    Using *relion_convert_to_tiff* to estimate the gain that can be used
+    for better compression.
     """
 
-    _label = 'compress estimate gain'
+    _label = 'estimate gain to compress'
 
     def __init__(self, **kwargs):
         ProtProcessMovies.__init__(self, **kwargs)

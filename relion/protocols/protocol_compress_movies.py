@@ -37,8 +37,7 @@ import relion
 
 class ProtRelionCompressMovies(ProtAlignMovies):
     """
-    Using *relion_convert_to_tiff to compress a set of movies
-    or to estimate the gain that can be used for better compression.
+    Using *relion_convert_to_tiff* to compress a set of movies.
     """
 
     _label = 'compress movies'
