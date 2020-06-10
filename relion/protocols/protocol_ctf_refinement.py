@@ -32,6 +32,8 @@ from pyworkflow.object import Float
 
 import relion
 import relion.convert as convert
+from relion.convert.convert31 import Reader
+
 from ..objects import CtfRefineGlobalInfo
 
 
@@ -228,9 +230,13 @@ class ProtRelionCtfRefinement(ProtParticles):
         tableName = 'particles@' if self.IS_GT30() else ''
         mdIter = convert.Table.iterRows(tableName + outImgsFn,
                                         key='rlnImageId')
+        self._optics = convert.getOpticsDict(outImgsFn)
+        callback = self._updateItem31 if self.IS_GT30() else self._updateItem30
         outImgSet.copyItems(imgSet,
-                            updateItemCallback=self._updateItemCtfBeamTilt,
-                            itemDataIterator=mdIter)
+                            updateItemCallback=callback,
+                            itemDataIterator=mdIter,
+                            doClone=False)
+
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(self.inputParticles, outImgSet)
 
@@ -244,13 +250,18 @@ class ProtRelionCtfRefinement(ProtParticles):
     def createGlobalInfoStep(self):
         self.createGlobalInfo(self.fileWithAnalyzeInfo())
 
-    def _updateItemCtfBeamTilt(self, particle, row):
+    def _updateItem30(self, particle, row):
         particle.setCTF(convert.rowToCtfModel(row))
         # TODO: Add other field from the .star file when other options?
         # check if beamtilt is available and save it
         if hasattr(row, 'rlnBeamTiltX'):
             particle._rlnBeamTiltX = Float(row.rlnBeamTiltX)
             particle._rlnBeamTiltY = Float(row.rlnBeamTiltY)
+
+    def _updateItem31(self, particle, row):
+        Reader.rowToCtf(row, particle.getCTF())
+        Reader.rowToAcquisition(self._optics[row.rlnOpticsGroup],
+                                particle.getAcquisition())
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):

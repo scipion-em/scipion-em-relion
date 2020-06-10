@@ -239,3 +239,12 @@ def getOpticsFromStar(starFile):
     """ Helper function to load the optics row values from the given star file.
     """
     return Table(fileName=starFile, tableName='optics')[0]
+
+
+def getOpticsDict(starFile):
+    """ Return a dictionary with opticsGroupNumber as key and the Optics row
+    as value.
+    """
+    opticsTable = Table(fileName=starFile, tableName='optics')
+    return {o.rlnOpticsGroup: o for o in opticsTable}
+

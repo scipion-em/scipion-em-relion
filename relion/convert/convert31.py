@@ -38,7 +38,7 @@ import pwem.convert.transformations as tfs
 
 from .convert_base import WriterBase, ReaderBase
 from .convert_utils import (convertBinaryFiles, locationToRelion,
-                            relionToLocation)
+                            relionToLocation, getOpticsDict)
 from .metadata import Table
 
 
@@ -348,10 +348,10 @@ class Reader(ReaderBase):
 
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
-        opticsTable = Table(fileName=starFile, tableName='optics')
-        self._optics = {row.rlnOpticsGroup: row for row in opticsTable}
+        self._optics = getOpticsDict(starFile)
 
-        self._pixelSize = getattr(opticsTable[0], 'rlnImagePixelSize', 1.0)
+        self._pixelSize = getattr(self._optics.values()[0],
+                                  'rlnImagePixelSize', 1.0)
         self._invPixelSize = 1. / self._pixelSize
 
         partsReader = Table.Reader(starFile, tableName='particles')
@@ -404,11 +404,11 @@ class Reader(ReaderBase):
             particle.setClassId(row.rlnClassNumber)
 
         if self._setCtf:
-            self._rowToCtf(row, particle.getCTF())
+            self.rowToCtf(row, particle.getCTF())
 
         if self._setAcq:
-            self._rowToAcquisition(self._optics[row.rlnOpticsGroup],
-                                   particle.getAcquisition())
+            self.rowToAcquisition(self._optics[row.rlnOpticsGroup],
+                                  particle.getAcquisition())
 
         self.setParticleTransform(particle, row)
 
@@ -416,13 +416,13 @@ class Reader(ReaderBase):
             for label in self._extraLabels:
                 getattr(particle, '_%s' % label).set(getattr(row, label))
 
-        #self._setAttributes(img, row, self._extraLabels)
         #TODO: coord, partId, micId,
 
         if self._postprocessImageRow:
             self._postprocessImageRow(particle, row)
 
-    def _rowToCtf(self, row, ctf):
+    @staticmethod
+    def rowToCtf(row, ctf):
         """ Create a CTFModel from the row. """
         ctf.setDefocusU(row.rlnDefocusU)
         ctf.setDefocusV(row.rlnDefocusV)
@@ -437,7 +437,8 @@ class Reader(ReaderBase):
         if hasattr(row, 'rlnCtfImage'):
             ctf.setPsdFile(row.rlnCtfImage)
 
-    def _rowToAcquisition(self, optics, acq):
+    @staticmethod
+    def rowToAcquisition(optics, acq):
         acq.setAmplitudeContrast(optics.rlnAmplitudeContrast)
         acq.setSphericalAberration(optics.rlnSphericalAberration)
         acq.setVoltage(optics.rlnVoltage)
