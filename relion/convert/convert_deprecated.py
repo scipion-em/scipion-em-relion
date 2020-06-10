@@ -228,7 +228,7 @@ def rowToAlignment(alignmentRow, alignType):
 
     is2D = alignType == ALIGN_2D
     inverseTransform = alignType == ALIGN_PROJ
-    if alignmentRow.hasAnyColumn(ALIGNMENT_DICT):
+    if alignmentRow.containsAny(ALIGNMENT_DICT):
         alignment = pwem.objects.Transform()
         angles = np.zeros(3)
         shifts = np.zeros(3)
