@@ -201,7 +201,8 @@ class RelionImport:
         acqRow = row = table[0]
 
         if row is None:
-            raise Exception("Cannot import from empty metadata: %s" % self._starFile)
+            raise Exception("Cannot import from empty metadata: %s"
+                            % self._starFile)
 
         if not row.get('rlnOpticsGroup', False):
             self.version30 = True
@@ -213,14 +214,15 @@ class RelionImport:
             row = table[0]
 
         if not row.get(label, False):
-            raise Exception("Label *%s* is missing in metadata: %s" % (label,
-                                                                       self._starFile))
+            raise Exception("Label *%s* is missing in metadata: %s"
+                            % (label, self._starFile))
 
         index, fn = relionToLocation(row.get(label))
         self._imgPath = pwutils.findRootFrom(self._starFile, fn)
 
         if warnings and self._imgPath is None:
-            self.protocol.warning("Binary data was not found from metadata: %s" % self._starFile)
+            self.protocol.warning("Binary data was not found from metadata: %s"
+                                  % self._starFile)
 
         if (self._starFile.endswith('_data.star') and
                 self._getModelFile(self._starFile)):

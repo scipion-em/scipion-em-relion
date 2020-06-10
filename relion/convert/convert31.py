@@ -38,7 +38,7 @@ import pwem.convert.transformations as tfs
 
 from .convert_base import WriterBase, ReaderBase
 from .convert_utils import (convertBinaryFiles, locationToRelion,
-                            relionToLocation, getOpticsFromStar)
+                            relionToLocation)
 from .metadata import Table
 
 
