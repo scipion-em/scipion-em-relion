@@ -49,12 +49,12 @@ def objectToRow(obj, row, attrDict, extraLabels=[]):
         extraLabels: a list with extra labels that could be included
             as _xmipp_labelName
     """
-    row.setValue(md.RLN_IMAGE_ENABLED, obj.isEnabled())
+    row.set(md.RLN_IMAGE_ENABLED, obj.isEnabled())
     
     for attr, label in attrDict.items():
         if hasattr(obj, attr):
             valueType = md.label2Python(label)
-            row.setValue(label, valueType(getattr(obj, attr).get()))
+            row.set(label, valueType(getattr(obj, attr).get()))
 
     attrLabels = attrDict.values()
     
@@ -62,7 +62,7 @@ def objectToRow(obj, row, attrDict, extraLabels=[]):
         attrName = '_' + md.label2Str(label)
         if label not in attrLabels and hasattr(obj, attrName):
             value = obj.getAttributeValue(attrName) 
-            row.setValue(label, value)
+            row.set(label, value)
 
 
 def rowToObject(row, obj, attrDict, extraLabels=[]):
@@ -97,7 +97,7 @@ def setObjId(obj, mdRow, label=md.RLN_IMAGE_ID):
 
 
 def setRowId(mdRow, obj, label=md.RLN_IMAGE_ID):
-    mdRow.setValue(label, int(obj.getObjId()))
+    mdRow.set(label, int(obj.getObjId()))
 
 
 def acquisitionToRow(acquisition, ctfRow):
@@ -132,7 +132,7 @@ def ctfModelToRow(ctfModel, ctfRow):
     phaseShift = ctfModel.getPhaseShift()
 
     if phaseShift is not None:
-        ctfRow.setValue(md.RLN_CTF_PHASESHIFT, phaseShift)
+        ctfRow.set(md.RLN_CTF_PHASESHIFT, phaseShift)
 
     objectToRow(ctfModel, ctfRow, CTF_DICT, extraLabels=CTF_EXTRA_LABELS)
     
@@ -193,12 +193,12 @@ def alignmentToRow(alignment, alignmentRow, alignType):
     matrix = alignment.getMatrix()
     shifts, angles = geometryFromMatrix(matrix, inverseTransform)
 
-    alignmentRow.setValue(md.RLN_ORIENT_ORIGIN_X, shifts[0])
-    alignmentRow.setValue(md.RLN_ORIENT_ORIGIN_Y, shifts[1])
+    alignmentRow.set(md.RLN_ORIENT_ORIGIN_X, shifts[0])
+    alignmentRow.set(md.RLN_ORIENT_ORIGIN_Y, shifts[1])
     
     if is2D:
         angle = angles[0] + angles[2]
-        alignmentRow.setValue(md.RLN_ORIENT_PSI, -angle)
+        alignmentRow.set(md.RLN_ORIENT_PSI, -angle)
 
         flip = bool(np.linalg.det(matrix[0:2, 0:2]) < 0)
         if flip:
@@ -211,10 +211,10 @@ def alignmentToRow(alignment, alignmentRow, alignType):
                         "with angles or set 'Consider previous alignment?' "
                         "to No")
     else:
-        alignmentRow.setValue(md.RLN_ORIENT_ORIGIN_Z, shifts[2])
-        alignmentRow.setValue(md.RLN_ORIENT_ROT,  angles[0])
-        alignmentRow.setValue(md.RLN_ORIENT_TILT, angles[1])
-        alignmentRow.setValue(md.RLN_ORIENT_PSI,  angles[2])
+        alignmentRow.set(md.RLN_ORIENT_ORIGIN_Z, shifts[2])
+        alignmentRow.set(md.RLN_ORIENT_ROT,  angles[0])
+        alignmentRow.set(md.RLN_ORIENT_TILT, angles[1])
+        alignmentRow.set(md.RLN_ORIENT_PSI,  angles[2])
         
 
 def rowToAlignment(alignmentRow, alignType):
@@ -228,19 +228,19 @@ def rowToAlignment(alignmentRow, alignType):
 
     is2D = alignType == ALIGN_2D
     inverseTransform = alignType == ALIGN_PROJ
-    if alignmentRow.containsAny(ALIGNMENT_DICT):
+    if alignmentRow.hasAnyColumn(ALIGNMENT_DICT):
         alignment = pwem.objects.Transform()
         angles = np.zeros(3)
         shifts = np.zeros(3)
-        shifts[0] = alignmentRow.getValue(md.RLN_ORIENT_ORIGIN_X, 0.)
-        shifts[1] = alignmentRow.getValue(md.RLN_ORIENT_ORIGIN_Y, 0.)
+        shifts[0] = alignmentRow.get(md.RLN_ORIENT_ORIGIN_X, 0.)
+        shifts[1] = alignmentRow.get(md.RLN_ORIENT_ORIGIN_Y, 0.)
         if not is2D:
-            angles[0] = alignmentRow.getValue(md.RLN_ORIENT_ROT, 0.)
-            angles[1] = alignmentRow.getValue(md.RLN_ORIENT_TILT, 0.)
-            angles[2] = alignmentRow.getValue(md.RLN_ORIENT_PSI, 0.)
-            shifts[2] = alignmentRow.getValue(md.RLN_ORIENT_ORIGIN_Z, 0.)
+            angles[0] = alignmentRow.get(md.RLN_ORIENT_ROT, 0.)
+            angles[1] = alignmentRow.get(md.RLN_ORIENT_TILT, 0.)
+            angles[2] = alignmentRow.get(md.RLN_ORIENT_PSI, 0.)
+            shifts[2] = alignmentRow.get(md.RLN_ORIENT_ORIGIN_Z, 0.)
         else:
-            angles[2] = - alignmentRow.getValue(md.RLN_ORIENT_PSI, 0.)
+            angles[2] = - alignmentRow.get(md.RLN_ORIENT_PSI, 0.)
         M = matrixFromGeometry(shifts, angles, inverseTransform)
         alignment.setMatrix(M)
     else:
@@ -256,10 +256,10 @@ def coordinateToRow(coord, coordRow, copyId=True):
     objectToRow(coord, coordRow, COOR_DICT, extraLabels=COOR_EXTRA_LABELS)
     if coord.getMicName():
         micName = coord.getMicName()
-        coordRow.setValue(md.RLN_MICROGRAPH_NAME, str(micName.replace(" ", "")))
+        coordRow.set(md.RLN_MICROGRAPH_NAME, str(micName.replace(" ", "")))
     else:
         if coord.getMicId():
-            coordRow.setValue(md.RLN_MICROGRAPH_NAME, str(coord.getMicId()))
+            coordRow.set(md.RLN_MICROGRAPH_NAME, str(coord.getMicId()))
 
 
 def rowToCoordinate(coordRow):
@@ -272,13 +272,13 @@ def rowToCoordinate(coordRow):
         micName = None
 
         if coordRow.hasLabel(md.RLN_MICROGRAPH_ID):
-            micId = int(coordRow.getValue(md.RLN_MICROGRAPH_ID))
+            micId = int(coordRow.get(md.RLN_MICROGRAPH_ID))
             coord.setMicId(micId)
             # If RLN_MICROGRAPH_NAME is not present, use the id as a name
             micName = micId
 
         if coordRow.hasLabel(md.RLN_MICROGRAPH_NAME):
-            micName = coordRow.getValue(md.RLN_MICROGRAPH_NAME)
+            micName = coordRow.get(md.RLN_MICROGRAPH_NAME)
 
         coord.setMicName(micName)
 
@@ -301,7 +301,7 @@ def imageToRow(img, imgRow, imgLabel=md.RLN_IMAGE_NAME, **kwargs):
     filesDict = kwargs.get('filesDict', {})
     filename = filesDict.get(fn, fn)
      
-    imgRow.setValue(imgLabel, locationToRelion(index, filename))
+    imgRow.set(imgLabel, locationToRelion(index, filename))
 
     if kwargs.get('writeCtf', True) and img.hasCTF():
         ctfModelToRow(img.getCTF(), imgRow)
@@ -343,23 +343,23 @@ def particleToRow(part, partRow, **kwargs):
     if coord is not None:
         coordinateToRow(coord, partRow, copyId=False)
     if part.hasMicId():
-        partRow.setValue(md.RLN_MICROGRAPH_ID, int(part.getMicId()))
+        partRow.set(md.RLN_MICROGRAPH_ID, int(part.getMicId()))
         # If the row does not contains the micrograph name
         # use a fake micrograph name using id to relion
         # could at least group for CTF using that
         if not partRow.hasLabel(md.RLN_MICROGRAPH_NAME):
-            partRow.setValue(md.RLN_MICROGRAPH_NAME,
+            partRow.set(md.RLN_MICROGRAPH_NAME,
                              'fake_micrograph_%06d.mrc' % part.getMicId())
     if part.hasAttribute('_rlnParticleId'):
-        partRow.setValue(md.RLN_PARTICLE_ID, int(part._rlnParticleId.get()))
+        partRow.set(md.RLN_PARTICLE_ID, int(part._rlnParticleId.get()))
 
     if kwargs.get('fillRandomSubset') and part.hasAttribute('_rlnRandomSubset'):
-        partRow.setValue(md.RLN_PARTICLE_RANDOM_SUBSET,
+        partRow.set(md.RLN_PARTICLE_RANDOM_SUBSET,
                          int(part._rlnRandomSubset.get()))
         if part.hasAttribute('_rlnBeamTiltX'):
-            partRow.setValue('rlnBeamTiltX',
+            partRow.set('rlnBeamTiltX',
                              float(part._rlnBeamTiltX.get()))
-            partRow.setValue('rlnBeamTiltY',
+            partRow.set('rlnBeamTiltY',
                              float(part._rlnBeamTiltY.get()))
 
     imageToRow(part, partRow, md.RLN_IMAGE_NAME, **kwargs)
@@ -376,11 +376,11 @@ def rowToParticle(partRow, particleClass=pwem.objects.Particle, **kwargs):
         preprocessImageRow(img, partRow)
     
     # Decompose Relion filename
-    index, filename = relionToLocation(partRow.getValue(md.RLN_IMAGE_NAME))
+    index, filename = relionToLocation(partRow.get(md.RLN_IMAGE_NAME))
     img.setLocation(index, filename)
     
     if partRow.containsLabel(md.RLN_PARTICLE_CLASS):
-        img.setClassId(partRow.getValue(md.RLN_PARTICLE_CLASS))
+        img.setClassId(partRow.get(md.RLN_PARTICLE_CLASS))
     
     if kwargs.get('readCtf', True):
         img.setCTF(rowToCtfModel(partRow))
@@ -407,11 +407,11 @@ def rowToParticle(partRow, particleClass=pwem.objects.Particle, **kwargs):
     
     # copy micId if available from row to particle
     if partRow.hasLabel(md.RLN_MICROGRAPH_ID):
-        img.setMicId(partRow.getValue(md.RLN_MICROGRAPH_ID))
+        img.setMicId(partRow.get(md.RLN_MICROGRAPH_ID))
     
     # copy particleId if available from row to particle
     if partRow.hasLabel(md.RLN_PARTICLE_ID):
-        img._rlnParticleId = Integer(partRow.getValue(md.RLN_PARTICLE_ID))
+        img._rlnParticleId = Integer(partRow.get(md.RLN_PARTICLE_ID))
     
     # Provide a hook to be used if something is needed to be 
     # done for special cases before converting image to row
@@ -615,18 +615,18 @@ def splitInCTFGroups(imgStar, defocusRange=1000, numParticles=10):
 
     focusGroup = 1
     counter = 0
-    oldDefocusU = mdAll.getValue(md.RLN_CTF_DEFOCUSU, mdAll.firstObject())
+    oldDefocusU = mdAll.get(md.RLN_CTF_DEFOCUSU, mdAll.firstObject())
     groupName = '%s_%06d_%05d' % ('ctfgroup', oldDefocusU, focusGroup)
     for objId in mdAll:
         counter = counter + 1
-        defocusU = mdAll.getValue(md.RLN_CTF_DEFOCUSU, objId)
+        defocusU = mdAll.get(md.RLN_CTF_DEFOCUSU, objId)
         if counter >= numParticles:
             if (defocusU - oldDefocusU) > defocusRange:
                 focusGroup = focusGroup + 1
                 oldDefocusU = defocusU
                 groupName = '%s_%06d_%05d' % ('ctfgroup', oldDefocusU, focusGroup)
                 counter = 0
-        mdAll.setValue(md.RLN_MLMODEL_GROUP_NAME, groupName, objId)
+        mdAll.set(md.RLN_MLMODEL_GROUP_NAME, groupName, objId)
 
     mdAll.write(imgStar)
     mdCount = md.MetaData()
@@ -637,13 +637,13 @@ def splitInCTFGroups(imgStar, defocusRange=1000, numParticles=10):
        
 def prependToFileName(imgRow, prefixPath):
     """ Prepend some root name to imageRow filename. """
-    index, imgPath = relionToLocation(imgRow.getValue(md.RLN_IMAGE_NAME))
+    index, imgPath = relionToLocation(imgRow.get(md.RLN_IMAGE_NAME))
     newLoc = locationToRelion(index, os.path.join(prefixPath, imgPath))
-    imgRow.setValue(md.RLN_IMAGE_NAME, newLoc)
+    imgRow.set(md.RLN_IMAGE_NAME, newLoc)
 
 
 def copyOrLinkFileName(imgRow, prefixDir, outputDir, copyFiles=False):
-    index, imgPath = relionToLocation(imgRow.getValue(md.RLN_IMAGE_NAME))
+    index, imgPath = relionToLocation(imgRow.get(md.RLN_IMAGE_NAME))
     baseName = os.path.basename(imgPath)
     newName = os.path.join(outputDir, baseName)
     if not os.path.exists(newName):
@@ -652,14 +652,14 @@ def copyOrLinkFileName(imgRow, prefixDir, outputDir, copyFiles=False):
         else:
             pwutils.createLink(os.path.join(prefixDir, imgPath), newName)
             
-    imgRow.setValue(md.RLN_IMAGE_NAME, locationToRelion(index, newName))
+    imgRow.set(md.RLN_IMAGE_NAME, locationToRelion(index, newName))
     
 
 def setupCTF(imgRow, sampling):
     """ Do some validations and set some values
     for Relion import.
     """
-    imgRow.setValue(md.MDL_SAMPLINGRATE, sampling)
+    imgRow.set(md.MDL_SAMPLINGRATE, sampling)
     # TODO: check if we want to move this behaviour to setup CTFModel by default
     hasDefocusU = imgRow.containsLabel(md.MDL_CTF_DEFOCUSU)
     hasDefocusV = imgRow.containsLabel(md.MDL_CTF_DEFOCUSV)
@@ -667,13 +667,13 @@ def setupCTF(imgRow, sampling):
     
     if hasDefocusU or hasDefocusV:
         if not hasDefocusU:
-            imgRow.setValue(md.MDL_CTF_DEFOCUSU,
-                            imgRow.getValue(md.MDL_CTF_DEFOCUSV))
+            imgRow.set(md.MDL_CTF_DEFOCUSU,
+                            imgRow.get(md.MDL_CTF_DEFOCUSV))
         if not hasDefocusV:
-            imgRow.setValue(md.MDL_CTF_DEFOCUSV,
-                            imgRow.getValue(md.MDL_CTF_DEFOCUSU))
+            imgRow.set(md.MDL_CTF_DEFOCUSV,
+                            imgRow.get(md.MDL_CTF_DEFOCUSU))
         if not hasDefocusAngle:
-            imgRow.setValue(md.MDL_CTF_DEFOCUS_ANGLE, 0.)
+            imgRow.set(md.MDL_CTF_DEFOCUS_ANGLE, 0.)
 
 
 def createItemMatrix(item, row, align):
@@ -854,8 +854,8 @@ def writeCoordsConfig(configFn, boxSize, state):
     mdata = md.MetaData()
     # Write properties block
     objId = mdata.addObject()
-    mdata.setValue(md.MDL_PICKING_PARTICLE_SIZE, int(boxSize), objId)
-    mdata.setValue(md.MDL_PICKING_STATE, state, objId)
+    mdata.set(md.MDL_PICKING_PARTICLE_SIZE, int(boxSize), objId)
+    mdata.set(md.MDL_PICKING_STATE, state, objId)
     mdata.write('properties@%s' % configFn)
 
 
