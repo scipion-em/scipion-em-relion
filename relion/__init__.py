@@ -99,12 +99,13 @@ class Plugin(pwem.Plugin):
                        url='https://github.com/3dem/relion/archive/3.0.tar.gz',
                        commands=relion_commands,
                        updateCuda=True,
-                       vars=relion_vars)
-
-        env.addPackage('relion', version='3.1',
-                       # url= 'https://github.com/3dem/relion/archive/3.1.tar.gz',
-                       tar='relion-3.1.tgz',
-                       commands=relion_commands,
-                       updateCuda=True,
                        vars=relion_vars,
                        default=True)
+
+        # env.addPackage('relion', version='3.1',
+        #                # url= 'https://github.com/3dem/relion/archive/3.1.tar.gz',
+        #                tar='relion-3.1.tgz',
+        #                commands=relion_commands,
+        #                updateCuda=True,
+        #                vars=relion_vars,
+        #                default=True)

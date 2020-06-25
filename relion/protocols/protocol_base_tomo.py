@@ -27,7 +27,6 @@
 This module contains the protocol base class for Relion protocols
 """
 
-import os
 import re
 from glob import glob
 from os.path import exists, abspath
@@ -39,16 +38,11 @@ from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pyworkflow.utils.path import cleanPath
 
 from pwem.convert.transformations import euler_from_matrix, translation_from_matrix
+
+import relion
 from relion.convert import convertBinaryVol, MASK_FILL_ZERO, Table
 from relion import ANGULAR_SAMPLING_LIST
 from numpy import rad2deg
-
-# JORGE: simulating that the subtomograms contain correctly the tomogram name
-tomoList = [
-    '/home/jjimenez/ScipionUserData/projects/jtest/Runs/000420_ProtImportTomograms/extra/import_64K_defocus_m2_tomo_10_bin1_WBP_CatBinned1.mrc',
-    '/home/jjimenez/ScipionUserData/projects/jtest/Runs/000420_ProtImportTomograms/extra/import_64K_defocus_m2_tomo_12_bin1_WBP_CatBinned1.mrc'
-]
-# JORGE_END
 
 
 class ProtRelionBaseTomo(EMProtocol):
@@ -76,15 +70,6 @@ class ProtRelionBaseTomo(EMProtocol):
         """ This function is mean to be called after the
         working dir for the protocol have been set. (maybe after recovery from mapper)
         """
-        # JORGE_DEBUG
-        fname2 = '/home/jjimenez/ScipionUserData/projects/jtest/Runs/004897_ProtRelionEstimateCTF3D/extra/ctfMRCList.txt'
-        fid = open(fname2)
-        litCTFMRC = [line.replace('\n', '') for line in fid.readlines()]
-        fid.close()
-        for subtomo, ctfMrc in zip(self.inputSubtomograms.get(), litCTFMRC):
-            subtomo.getCoordinate3D()._3dcftMrcFile = params.String(ctfMrc)
-        # JORGE_END
-
         self._createFilenameTemplates()
         self._createIterTemplates()
 
@@ -547,8 +532,7 @@ class ProtRelionBaseTomo(EMProtocol):
         for subtomo in subtomoSet:
             angles, shifts = self._getTransformInfoFromSubtomo(subtomo)
             magn = subtomo.getAcquisition().getMagnification()
-            tomoInd = subtomo.getVolName() - 1
-            rlnMicrographName = tomoList[tomoInd]
+            rlnMicrographName = subtomo.getVolName()
             rlnCoordinateX = subtomo.getCoordinate3D().getX()
             rlnCoordinateY = subtomo.getCoordinate3D().getY()
             rlnCoordinateZ = subtomo.getCoordinate3D().getZ()
@@ -579,7 +563,15 @@ class ProtRelionBaseTomo(EMProtocol):
                              rlnOriginZ
                              )
         # Write the STAR file
-        tomoTable.write(subtomosStar)
+        if relion.Plugin.IS_30():
+            tomoTable.write(subtomosStar)
+        else:
+            tmpTable = self._getTmpPath('tbl.star')
+            tomoTable.write(tmpTable)
+            # Re-write the star file as expected by the current version of Relion, if necessary
+            starFile = abspath(subtomosStar)
+            self.runJob('relion_convert_star',
+                        ' --i %s --o %s' % (tmpTable, starFile))
 
     def runRelionStep(self, params):
         """ Execute the relion steps with the give params. """
@@ -895,8 +887,12 @@ class ProtRelionBaseTomo(EMProtocol):
 
     @ staticmethod
     def _getTransformInfoFromSubtomo(subtomo):
-        # TODO: check if matrix must be inverted to get the correct angles
-        M = subtomo.getTransform().getMatrix()
-        angles = rad2deg(euler_from_matrix(M, axes='szyz'))
-        shifts = -translation_from_matrix(M)
+        angles = [0, 0, 0]
+        shifts = [0, 0, 0]
+        T = subtomo.getTransform()
+        if T:  # Alignment performed before
+            # TODO: check if matrix must be inverted to get the correct angles
+            M = subtomo.getTransform().getMatrix()
+            angles = rad2deg(euler_from_matrix(M, axes='szyz'))
+            shifts = -translation_from_matrix(M)
         return angles, shifts

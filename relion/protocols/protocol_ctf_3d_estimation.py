@@ -25,6 +25,7 @@
 # **************************************************************************
 import glob
 from tomo.protocols import ProtTomoBase
+from relion import Plugin
 from relion.convert import Table
 from os.path import join, abspath
 import pyworkflow.utils.path as pwutils
@@ -60,6 +61,10 @@ class ProtRelionEstimateCTF3D(EMProtocol, ProtTomoBase):
         self.tsExpandedList = []
         self.initialized = False
         self.ctfMRCFileList = []
+
+    @classmethod
+    def isDisabled(cls):
+        return Plugin.IS_30()
 
     # --------------------------- DEFINE param functions --------------------------------------------
     def _defineParams(self, form):
@@ -145,8 +150,6 @@ class ProtRelionEstimateCTF3D(EMProtocol, ProtTomoBase):
         out_coords = self._createSetOfCoordinates3D(self.coordSet)  # Create an empty set of micrographs
         # Copy all the info of the inputs, then the mrc ctf star file attribute will added
         out_coords.copyInfo(self.coordSet)
-        import os
-        fid = open(os.path.abspath(self._getExtraPath('ctfMRCList.txt')), '+w')
         coordCounter = 0
         if self.EstimationMode == CTF3D_PER_VOLUME:
             for tsExp in self.tsExpandedList:
@@ -154,16 +157,13 @@ class ProtRelionEstimateCTF3D(EMProtocol, ProtTomoBase):
                 ctfMrc = tsExp.getCTFMRCList()[0]  # Only one element was created for each TS in per volume case
                 for coord in coords:
                     coord.setObjId(coordCounter + 1)
-                    fid.write('{}\n'.format(ctfMrc))
                     coord._3dcftMrcFile = String(ctfMrc)
                     out_coords.append(coord)
                     coordCounter += 1
         else:
             for coord, ctfMrc in zip(self.coordSet, self.ctfMRCFileList):
-                fid.write('{}\n'.format(ctfMrc))
                 coord._3dcftMrcFile = String(ctfMrc)
                 out_coords.append(coord)
-        fid.close()
 
         self._defineOutputs(outputCoordinates=out_coords)
         self._defineTransformRelation(self.inputCoordinates, out_coords)
@@ -227,18 +227,33 @@ class ProtRelionEstimateCTF3D(EMProtocol, ProtTomoBase):
         nonMatchingTS = []
         remTS = len(self.tsSet)
         remDose = len(matches)
+        tsList = []
         for ts in self.tsSet:
+            tsList.append(ts.clone(ignoreAttrs=[]))
+        tomoList = []
+        for tomo in self.coordSet.getPrecedents():
+            tomoList.append(tomo.clone())
+
+        def getTomoNames(tomoList):
+            return sorted([tomo for tomo in tomoList.getFileName()])
+
+        def getTsIds(tsList):
+            return sorted([ts.getTsId() for ts in tsList])
+
+        tomoList.sort(key=getTomoNames)
+        tsList.sort(key=getTsIds)
+        matches.sort()
+        for ind, ts in enumerate(tsList):
             # This clone command was used to pass the value by value instead of by reference, because
             # all the elements of list self.tsExpandedList were overwritten on each iteration of this loop
-            cts = ts.clone(ignoreAttrs=[])
-            tsId = cts.getTsId().replace('TS_', '')
+            tsId = ts.getTsId().replace('TS_', '')
             remTS -= 1
             for doseFile in matches:
                 if tsId in doseFile:
                     # Get the corresponding subtomograms coordinates
-                    coordList = [coord for coord in self.coordSet if tsId in coord.getVolName()]
+                    coordList = [coord.clone() for coord in self.coordSet.iterCoordinates(volume=tomoList[ind])]
                     # Add to the TS Expanded list
-                    self.tsExpandedList.append(ExtendedTS(cts, DoseFile(doseFile), coordList))
+                    self.tsExpandedList.append(ExtendedTS(ts, DoseFile(doseFile), coordList))
                     matches.remove(doseFile)
                     remDose -= 1
                     break
@@ -388,8 +403,19 @@ class ProtRelionEstimateCTF3D(EMProtocol, ProtTomoBase):
                              0.0,
                              doseWeight,
                              tiltScale)
-        # Write the corresponding CTF star file
-        tomoTable.write(ctf3DStar)
+        # # Write the corresponding CTF star file
+        # tomoTable.write(ctf3DStar)
+
+        # Write the STAR file
+        if Plugin.IS_30():
+            tomoTable.write(ctf3DStar)
+        else:
+            tmpTable = self._getTmpPath('tbl.star')
+            tomoTable.write(tmpTable)
+            # Re-write the star file as expected by the current version of Relion, if necessary
+            starFile = abspath(ctf3DStar)
+            self.runJob('relion_convert_star',
+                        ' --i %s --o %s' % (tmpTable, starFile))
 
         self.tsExpandedList[tsCounter].setCTFStarList(starFileList)
         self.tsExpandedList[tsCounter].setCTFMRCList(mrcFileList)

@@ -33,6 +33,7 @@ from pwem.objects import Volume, ALIGN_PROJ
 from pwem.protocols import ProtRefine3D
 from relion.convert import createItemMatrix
 from relion.protocols.protocol_base_tomo import ProtRelionBaseTomo
+from relion import Plugin
 
 
 class ProtRelionSubtomoRefine3D(ProtRefine3D, ProtRelionBaseTomo):
@@ -49,6 +50,10 @@ leads to objective and high-quality results.
 
     def __init__(self, **args):
         ProtRelionBaseTomo.__init__(self, **args)
+
+    @classmethod
+    def isDisabled(cls):
+        return Plugin.IS_30()
 
     def _initialize(self):
         """ This function is mean to be called after the

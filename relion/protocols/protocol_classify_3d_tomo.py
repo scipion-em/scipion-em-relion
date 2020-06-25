@@ -31,9 +31,11 @@ from os.path import abspath, exists
 
 from pwem.protocols import ProtClassify3D, params
 from .protocol_base_tomo import ProtRelionBaseTomo
+from tomo.protocols import ProtTomoBase
+from relion import Plugin
 
 
-class ProtRelionSubtomoClassif3D(ProtClassify3D, ProtRelionBaseTomo):
+class ProtRelionSubtomoClassif3D(ProtClassify3D, ProtRelionBaseTomo, ProtTomoBase):
     """
     Protocol to classify 3D using Relion. Relion employs an empirical
     Bayesian approach to refinement of (multiple) 3D reconstructions
@@ -46,6 +48,10 @@ class ProtRelionSubtomoClassif3D(ProtClassify3D, ProtRelionBaseTomo):
 
     def __init__(self, **args):
         ProtRelionBaseTomo.__init__(self, **args)
+
+    @classmethod
+    def isDisabled(cls):
+        return Plugin.IS_30()
 
     def _initialize(self):
         """ This function is mean to be called after the
@@ -68,14 +74,14 @@ class ProtRelionSubtomoClassif3D(ProtClassify3D, ProtRelionBaseTomo):
     # --------------------------- STEPS functions --------------------------------------------
     def createOutputStep(self):
         subtomoSet = self._getInputParticles()
-        classes3D = self._createSetOfClasses3D(subtomoSet)
+        classes3D = self._createSetOfClassesSubTomograms(subtomoSet)
         self._fillClassesFromIter(classes3D, self._lastIter())
 
         self._defineOutputs(outputClasses=classes3D)
         self._defineSourceRelation(subtomoSet, classes3D)
 
         # Create a SetOfVolumes and define its relations
-        volumes = self._createSetOfVolumes()
+        volumes = self._createSetOfAverageSubTomograms()
         volumes.setSamplingRate(subtomoSet.getSamplingRate())
 
         for class3D in classes3D:

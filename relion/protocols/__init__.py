@@ -48,15 +48,14 @@ from .protocol_motioncor import ProtRelionMotioncor
 from .protocol_multibody import ProtRelionMultiBody
 from .protocol_symmetrize_volume import ProtRelionSymmetrizeVolume
 
-from .protocol_refine_3d_tomo import ProtRelionSubtomoRefine3D
-from .protocol_classify_3d_tomo import ProtRelionSubtomoClassif3D
-from .protocol_ctf_3d_estimation import ProtRelionEstimateCTF3D
-
 if relion.Plugin.IS_30():
     from ._legacy.protocol30_ctf_refinement import ProtRelionCtfRefinement
     from ._legacy.protocol30_preprocess import ProtRelionPreprocessParticles
     from ._legacy.protocol30_subtract import ProtRelionSubtract
     from ._legacy.protocol30_bayesian_polishing import ProtRelionBayesianPolishing
+    from .protocol_refine_3d_tomo import ProtRelionSubtomoRefine3D
+    from .protocol_classify_3d_tomo import ProtRelionSubtomoClassif3D
+    from .protocol_ctf_3d_estimation import ProtRelionEstimateCTF3D
 else:
     from .protocol_ctf_refinement import ProtRelionCtfRefinement
     from .protocol_preprocess import ProtRelionPreprocessParticles
