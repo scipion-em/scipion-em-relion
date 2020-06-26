@@ -354,16 +354,18 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         micDict, micClose = self._loadMics(self.getInputMicrographs())
         ctfDict, ctfClosed = self._loadCTFs(self.ctfRelations.get())
 
-        # Remove the micrographs that have not CTF
+        # Keep the micrographs that have CTF
         # and set the CTF property for those who have it
+        readyMics = dict()
+
         for micKey, mic in micDict.items():
             if micKey in ctfDict:
+
                 mic.setCTF(ctfDict[micKey])
-            else:
-                del micDict[micKey]
+                readyMics[micKey] = mic
 
         # Return the updated micDict and the closed status
-        return micDict, micClose and ctfClosed
+        return readyMics, micClose and ctfClosed
 
     # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self, micsId, refsId, runType):
