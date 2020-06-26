@@ -31,13 +31,13 @@ newer Relion3.1 routines and old ones.
 """
 
 import os
+from emtable import Table
 
 import pyworkflow.utils as pwutils
 import pwem
 from pwem.emlib.image import ImageHandler
 
 from relion import Plugin
-from relion.convert.metadata import Table
 
 
 def locationToRelion(index, filename):

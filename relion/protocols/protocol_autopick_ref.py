@@ -25,6 +25,7 @@
 # **************************************************************************
 
 from os.path import relpath
+from emtable import Table
 
 import pyworkflow.protocol.params as params
 from pwem.protocols import ProtParticlePickingAuto
@@ -35,7 +36,6 @@ import pyworkflow.utils as pwutils
 from pwem.convert.utils import getSubsetByDefocus
 
 import relion.convert
-from ..convert.metadata import Table
 from ..constants import *
 from .protocol_autopick import ProtRelionAutopickBase
 
