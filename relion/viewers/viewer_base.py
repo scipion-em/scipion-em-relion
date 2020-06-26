@@ -28,6 +28,7 @@
 
 import os
 from math import radians, log
+from emtable import Table
 
 import pyworkflow.protocol.params as params
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
@@ -40,7 +41,6 @@ from pwem.constants import ALIGN_PROJ, NO_INDEX
 from pwem.objects import FSC
 
 from relion import Plugin
-from relion.convert.metadata import Table
 from relion.convert.convert_utils import relionToLocation
 from ..protocols import (ProtRelionClassify2D, ProtRelionClassify3D,
                          ProtRelionRefine3D, ProtRelionInitialModel)

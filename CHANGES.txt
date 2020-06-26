@@ -2,7 +2,7 @@
     - Scipion 3.0.0 support, migration to python 3
     - GPLv3
     - Add Relion 3.1 support, remove relion 2.x support
-    - New STAR file parser
+    - New STAR file parser (emtable package)
     - New protocol to assign optic groups
     - Sort protocol will be deleted soon (gone in relion 3.1)
     - Extract particle movies is gone

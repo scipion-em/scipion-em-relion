@@ -27,6 +27,7 @@
 import os
 from os.path import exists
 from collections import OrderedDict
+from emtable import Table
 
 from pyworkflow.object import Float
 from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_NONE
@@ -36,7 +37,6 @@ import pyworkflow.utils as pwutils
 
 from .convert31 import OpticsGroups
 from .convert_utils import relionToLocation
-from relion.convert.metadata import Table
 #from .convert_deprecated import readSetOfParticles, rowToCoordinate
 
 

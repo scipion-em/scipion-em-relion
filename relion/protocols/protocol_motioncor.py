@@ -27,6 +27,7 @@
 import os
 from math import ceil
 import json
+import emtable as md
 
 import pyworkflow.object as pwobj
 import pyworkflow.protocol.params as params
@@ -40,7 +41,6 @@ from pyworkflow.protocol import STEPS_SERIAL
 
 import relion
 import relion.convert as convert
-import relion.convert.metadata as md
 
 
 class ProtRelionMotioncor(ProtAlignMovies):

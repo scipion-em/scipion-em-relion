@@ -32,6 +32,7 @@ import os
 import io
 import numpy as np
 from collections import OrderedDict
+from emtable import Table
 
 import pyworkflow as pw
 import pwem
@@ -40,7 +41,6 @@ import pwem.convert.transformations as tfs
 from .convert_base import WriterBase, ReaderBase
 from .convert_utils import (convertBinaryFiles, locationToRelion,
                             relionToLocation)
-from .metadata import Table
 
 
 class OpticsGroups:

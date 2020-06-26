@@ -27,6 +27,7 @@
 # **************************************************************************
 
 from os.path import exists
+from emtable import Table
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
@@ -35,7 +36,6 @@ from pwem.emlib.image import ImageHandler
 from pwem.objects import Volume
 
 import relion.convert as convert
-from relion.convert.metadata import Table
 from relion import Plugin
 
 
