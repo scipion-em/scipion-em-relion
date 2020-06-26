@@ -29,6 +29,7 @@
 New conversion functions dealing with Relion3.1 new star files format.
 """
 import os
+import io
 import numpy as np
 from collections import OrderedDict
 
@@ -38,8 +39,131 @@ import pwem.convert.transformations as tfs
 
 from .convert_base import WriterBase, ReaderBase
 from .convert_utils import (convertBinaryFiles, locationToRelion,
-                            relionToLocation, getOpticsDict)
+                            relionToLocation)
 from .metadata import Table
+
+
+class OpticsGroups:
+    """ Store information about optics groups in an indexable way.
+    Existing groups can be accessed by number of name.
+    """
+    def __init__(self, opticsTable):
+        self._dict = OrderedDict()
+        # Also allow indexing by name
+        self._dictName = OrderedDict()
+        # Map optics rows both by name and by number
+        for og in opticsTable:
+            self.__store(og)
+
+    def __store(self, og):
+        self._dict[og.rlnOpticsGroup] = og
+        self._dictName[og.rlnOpticsGroupName] = og
+
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            return self._dict[item]
+        elif isinstance(item, str):
+            return self._dictName[item]
+        raise Exception("Unsupported type '%s' of item '%s'"
+                        % (type(item), item))
+
+    def __contains__(self, item):
+        return item in self._dict or item in self._dictName
+
+    def first(self):
+        """ Return first optics group. """
+        return next(iter(self._dict.values()))
+
+    def update(self, ogId, **kwargs):
+        og = self.__getitem__(ogId)
+        newOg = og._replace(**kwargs)
+        self.__store(newOg)
+
+        return newOg
+
+    def add(self, newOg):
+        self.__store(newOg)
+
+    @staticmethod
+    def fromStar(starFilePath):
+        """ Create an OpticsGroups from a given STAR file.
+        """
+        return OpticsGroups(Table(fileName=starFilePath, tableName='optics'))
+
+    @staticmethod
+    def fromString(stringValue):
+        """ Create an OpticsGroups from string content (STAR format)
+        """
+        f = io.StringIO(stringValue)
+        t = Table()
+        t.readStar(f, tableName='optics')
+        return OpticsGroups(t)
+
+    @staticmethod
+    def fromImages(imageSet):
+        try:
+            acq = imageSet.getAcquisition()
+            return OpticsGroups.fromString(acq.opticsGroupInfo.get())
+        except:
+            return OpticsGroups.create(
+                rlnImagePixelSize=imageSet.getSamplingRate(),
+                rlnImageSize=imageSet.getXDim()
+            )
+
+    @staticmethod
+    def create(**kwargs):
+        opticsString1 = """
+
+# version 30001
+
+data_optics
+
+loop_ 
+_rlnOpticsGroupName #1 
+_rlnOpticsGroup #2 
+_rlnMtfFileName #3 
+_rlnMicrographOriginalPixelSize #4 
+_rlnVoltage #5 
+_rlnSphericalAberration #6 
+_rlnAmplitudeContrast #7 
+_rlnImagePixelSize #8 
+_rlnImageSize #9 
+_rlnImageDimensionality #10 
+opticsGroup1            1 no-mtf.star     0.885000   200.000000     1.400000     0.100000     1.244531          256            2
+        """
+
+        og = OpticsGroups.fromString(opticsString1)
+        og.update(1, **kwargs)
+        return og
+
+    def _write(self, f):
+        # Create columns from the first row
+        items = self.first()._asdict().items()
+        cols = [Table.Column(k, type(v)) for k, v in items]
+        t = Table(columns=cols)
+        for og in self._dict.values():
+            t.addRow(*og)
+        t.writeStar(f, tableName='optics')
+
+    def toString(self):
+        """ Return a string (STAR format) with the current optics groups.
+        """
+        f = io.StringIO()
+        self._write(f)
+        result = f.getvalue()
+        f.close()
+
+        return result
+
+    def toStar(self, starFile):
+        """ Write current optics groups to a given file.
+        """
+        self._write(starFile)
+
+    def toImages(self, imageSet):
+        """ Store the optics groups information in the image acquisition.
+        """
+        imageSet.getAcquisition().opticsGroupInfo.set(self.toString())
 
 
 class Writer(WriterBase):
@@ -70,7 +194,7 @@ class Writer(WriterBase):
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
         self._prefix = tableName[:3]
-        self._optics = OrderedDict()
+        self._optics = None
         micRow = OrderedDict()
         micRow[imgLabelName] = ''  # Just to add label, proper value later
         iterMics = iter(imgIterable)
@@ -80,10 +204,11 @@ class Writer(WriterBase):
         if self._postprocessImageRow:
             self._postprocessImageRow(mic, micRow)
 
-        opticsTable = self._createTableFromDict(list(self._optics.values())[0])
         micsTable = self._createTableFromDict(micRow)
 
         while mic is not None:
+            if self._optics is None:
+                self._optics = OpticsGroups.fromImages(mic)
             micRow[imgLabelName] = self._convert(mic)
             self._micToRow(mic, micRow)
 
@@ -93,49 +218,12 @@ class Writer(WriterBase):
             micsTable.addRow(**micRow)
             mic = next(iterMics, None)
 
-        for opticsDict in self._optics.values():
-            opticsTable.addRow(**opticsDict)
-
         with open(starFile, 'w') as f:
             f.write("# Star file generated with Scipion\n")
             f.write("# version 30001\n")
-            opticsTable.writeStar(f, tableName='optics')
+            self._optics.toStar(f)
             f.write("# version 30001\n")
             micsTable.writeStar(f, tableName=tableName)
-
-    def _getOpticsGroupNumber(self, img):
-        """ Get the optics group number based on acquisition.
-        Params:
-            img: input image, movie, micrograph or particle
-        """
-        # Add now the new Optics Group stuff
-        acq = img.getAcquisition()
-        ogName = acq.opticsGroupName.get() or 'DefaultOpticsGroup'
-        ps = img.getSamplingRate()
-
-        if ogName not in self._optics:
-            ogNumber = len(self._optics) + 1
-            self._optics[ogName] = {
-                'rlnOpticsGroupName': ogName,
-                'rlnOpticsGroup': ogNumber,
-                # FIXME: Check when we need to update the following
-                'rlnMicrographOriginalPixelSize': ps,
-                self._imgLabelPixelSize: ps,
-                'rlnVoltage': acq.getVoltage(),
-                'rlnSphericalAberration': acq.getSphericalAberration(),
-                'rlnAmplitudeContrast': acq.getAmplitudeContrast(),
-                'rlnBeamTiltX': acq.beamTiltX.get() or 0.,
-                'rlnBeamTiltY': acq.beamTiltY.get() or 0.,
-                'rlnImageDimensionality': self._dimensionality,
-                'rlnImageSize': self._imageSize,
-            }
-            mtfFile = acq.mtfFile.get()
-            if mtfFile is not None:
-                self._optics[ogName]['rlnMtfFileName'] = mtfFile
-        else:
-            ogNumber = self._optics[ogName]['rlnOpticsGroup']
-
-        return ogNumber
 
     def _setAttributes(self, obj, row, attributes):
         for attr in attributes:
@@ -147,7 +235,7 @@ class Writer(WriterBase):
         WriterBase._micToRow(self, mic, row)
         # Set additional labels if present
         self._setAttributes(mic, row, self._extraLabels)
-        row['rlnOpticsGroup'] = self._getOpticsGroupNumber(mic)
+        row['rlnOpticsGroup'] = mic.getAttributeValue('_rlnOpticsGroup', 1)
 
     def _align2DToRow(self, alignment, row):
         matrix = alignment.getMatrix()
@@ -212,7 +300,7 @@ class Writer(WriterBase):
         self._setAttributes(part, row, self._extraLabels)
 
         # Add now the new Optics Group stuff
-        row['rlnOpticsGroup'] = self._getOpticsGroupNumber(part)
+        row['rlnOpticsGroup'] = part.getAttributeValue('_rlnOpticsGroup', 1)
 
         self._counter += 1
 
@@ -222,7 +310,7 @@ class Writer(WriterBase):
         self._imgLabelPixelSize = 'rlnImagePixelSize'
         self.update(['rootDir', 'outputDir', 'outputStack'], **kwargs)
 
-        self._optics = OrderedDict()
+        self._optics = OpticsGroups.fromImages(partsSet)
         partRow = OrderedDict()
         firstPart = partsSet.getFirstItem()
 
@@ -276,19 +364,19 @@ class Writer(WriterBase):
         if self._postprocessImageRow:
             self._postprocessImageRow(firstPart, partRow)
 
-        opticsTable = self._createTableFromDict(list(self._optics.values())[0])
         partsTable = self._createTableFromDict(partRow)
         partsTable.addRow(**partRow)
 
         with open(starFile, 'w') as f:
             # Write particles table
             f.write("# Star file generated with Scipion\n")
+            f.write("\n# version 30001\n")
+            self._optics.toStar(f)
             f.write("# version 30001\n")
             # Write header first
             partsWriter = Table.Writer(f)
             partsWriter.writeTableName('particles')
             partsWriter.writeHeader(partsTable.getColumns())
-            #partsTable.writeStar(f, tableName='particles', writeRows=False)
             # Write all rows
             for part in partsSet:
                 self._partToRow(part, partRow)
@@ -296,12 +384,6 @@ class Writer(WriterBase):
                     self._postprocessImageRow(part, partRow)
                 partsWriter.writeRowValues(partRow.values())
                 # partsTable.writeStarLine(f, partRow.values())
-
-            # Write Optics at the end
-            for opticsDict in self._optics.values():
-                opticsTable.addRow(**opticsDict)
-            f.write("\n# version 30001\n")
-            opticsTable.writeStar(f, tableName='optics')
 
 
 class Reader(ReaderBase):
@@ -348,9 +430,9 @@ class Reader(ReaderBase):
 
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
-        self._optics = getOpticsDict(starFile)
+        self._optics = OpticsGroups.fromStar(starFile)
 
-        self._pixelSize = getattr(self._optics.values()[0],
+        self._pixelSize = getattr(self._optics.first(),
                                   'rlnImagePixelSize', 1.0)
         self._invPixelSize = 1. / self._pixelSize
 
@@ -368,10 +450,10 @@ class Reader(ReaderBase):
             particle.setCTF(pwem.objects.CTFModel())
 
         self._setAcq = kwargs.get("readAcquisition", True)
-        if self._setAcq:
-            acq = pwem.objects.Acquisition()
-            acq.setMagnification(kwargs.get('magnification', 10000))
-            particle.setAcquisition(acq)
+
+        acq = pwem.objects.Acquisition()
+        acq.setMagnification(kwargs.get('magnification', 10000))
+        self._optics.toImages(partSet)
 
         if self._extraLabels:
             for label in self._extraLabels:
@@ -380,7 +462,8 @@ class Reader(ReaderBase):
 
         self._rowToPart(firstRow, particle)
         partSet.setSamplingRate(self._pixelSize)
-        partSet.setAcquisition(particle.getAcquisition())
+        partSet.setAcquisition(acq)
+        self._optics.toImages(partSet)
         partSet.append(particle)
 
         for row in partsReader:
@@ -405,10 +488,6 @@ class Reader(ReaderBase):
 
         if self._setCtf:
             self.rowToCtf(row, particle.getCTF())
-
-        if self._setAcq:
-            self.rowToAcquisition(self._optics[row.rlnOpticsGroup],
-                                  particle.getAcquisition())
 
         self.setParticleTransform(particle, row)
 

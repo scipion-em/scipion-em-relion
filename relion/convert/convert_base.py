@@ -35,8 +35,7 @@ import pwem
 from pwem.emlib.image import ImageHandler
 import pyworkflow.utils as pwutils
 
-from .metadata import Table, Column
-from .convert_utils import relionToLocation
+from .metadata import Table
 
 
 class WriterBase:
@@ -143,7 +142,7 @@ class WriterBase:
         the type of the values in the dict.
         """
         return Table(columns=[
-            Column(k, type=type(v)) for k, v in rowDict.items()])
+            Table.Column(k, type=type(v)) for k, v in rowDict.items()])
 
     def _micToRow(self, mic, row):
         row['rlnImageId'] = mic.getObjId()
