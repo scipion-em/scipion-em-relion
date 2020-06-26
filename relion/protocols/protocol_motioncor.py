@@ -264,13 +264,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
                 errors.append("Input movies do not contain the dose per frame, "
                               "dose-weighting can not be performed. ")
 
-        if self.IS_GT30():
-            # We require to have opticsGroup information in acquisition
-            if not acq.getAttributeValue('opticsGroupName', None):
-                errors.append("In Relion > 3.1, you need to run the "
-                              "*relion - assign optics group* to set optics "
-                              "group information. ")
-
         return errors
 
     # ------------------------ Extra BASE functions ---------------------------
