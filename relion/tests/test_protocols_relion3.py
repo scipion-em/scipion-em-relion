@@ -34,6 +34,7 @@ from pyworkflow.utils import copyTree, join, magentaStr
 
 import relion
 import relion.convert
+from relion.convert.convert31 import OpticsGroups
 from relion.protocols import ProtRelionMotioncor, ProtRelionAssignOpticsGroup
 
 CPUS = os.environ.get('SCIPION_TEST_CPUS', 4)
@@ -77,10 +78,12 @@ class Relion3TestProtocolBase(TestWorkflow):
         return protImport
 
     def _runRelionMc(self, protImport, **kwargs):
-        if not relion.Plugin.IS_30():
-            protInput = self._runAssignOptics(protImport)
-        else:
-            protInput = protImport
+        # if not relion.Plugin.IS_30():
+        #     protInput = self._runAssignOptics(protImport)
+        # else:
+        #     protInput = protImport
+
+        protInput = protImport
 
         args = {
             'objLabel': 'relion - motioncor',
@@ -282,7 +285,7 @@ class TestRelion31ImportParticles(pwtests.BaseTest):
             return
 
         starFile = self.ds.getFile('Extract/job018/particles.star')
-        optics = relion.convert.getOpticsFromStar(starFile)
+        optics = OpticsGroups.fromStar(starFile).first()
 
         prot1 = self.newProtocol(emprot.ProtImportParticles,
                                  objLabel='from relion (extract job)',
@@ -301,7 +304,7 @@ class TestRelion31ImportParticles(pwtests.BaseTest):
         if not relion.Plugin.IS_GT30():
             return
         starFile = self.ds.getFile('Class2D/job013/run_it025_data.star')
-        optics = relion.convert.getOpticsFromStar(starFile)
+        optics = OpticsGroups.fromStar(starFile).first()
 
         prot1 = self.newProtocol(emprot.ProtImportParticles,
                                  objLabel='from relion (classify 2d)',
@@ -322,7 +325,7 @@ class TestRelion31ImportParticles(pwtests.BaseTest):
             return
 
         starFile = self.ds.getFile('Refine3D/job019/run_it020_data.star')
-        optics = relion.convert.getOpticsFromStar(starFile)
+        optics = OpticsGroups.fromStar(starFile).first()
 
         prot1 = self.newProtocol(emprot.ProtImportParticles,
                                  objLabel='from relion (refine 3d)',
@@ -342,7 +345,7 @@ class TestRelion31ImportParticles(pwtests.BaseTest):
             return
 
         starFile = self.ds.getFile('Class3D/job016/run_it025_data.star')
-        optics = relion.convert.getOpticsFromStar(starFile)
+        optics = OpticsGroups.fromStar(starFile).first()
 
         prot1 = self.newProtocol(emprot.ProtImportParticles,
                                  objLabel='from relion (classify 3d)',

@@ -27,6 +27,7 @@
 import os
 from math import ceil
 import json
+import emtable as md
 
 import pyworkflow.object as pwobj
 import pyworkflow.protocol.params as params
@@ -40,7 +41,6 @@ from pyworkflow.protocol import STEPS_SERIAL
 
 import relion
 import relion.convert as convert
-import relion.convert.metadata as md
 
 
 class ProtRelionMotioncor(ProtAlignMovies):
@@ -263,13 +263,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
             if dose is None or dose < 0.001:
                 errors.append("Input movies do not contain the dose per frame, "
                               "dose-weighting can not be performed. ")
-
-        if self.IS_GT30():
-            # We require to have opticsGroup information in acquisition
-            if not acq.getAttributeValue('opticsGroupName', None):
-                errors.append("In Relion > 3.1, you need to run the "
-                              "*relion - assign optics group* to set optics "
-                              "group information. ")
 
         return errors
 

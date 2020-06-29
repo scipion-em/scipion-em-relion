@@ -44,6 +44,7 @@ from pyworkflow.utils import magentaStr
 
 from relion import Plugin
 import relion.convert as convert
+from relion.convert.convert31 import OpticsGroups
 
 
 class TestConvertBinaryFiles(BaseTest):
@@ -161,10 +162,10 @@ class TestConvertAnglesBase(BaseTest):
                           sphericalAberration=2,
                           amplitudeContrast=0.1,
                           magnification=60000)
-        acq.opticsGroupName.set('opticsGroup1')
-        acq.mtfFile.set("mtfFile1.star")
+        og = OpticsGroups.create(rlnMtfFileName="mtfFile1.star")
         partSet.setSamplingRate(1.0)
         partSet.setAcquisition(acq)
+        og.toImages(partSet)
         # Populate the SetOfParticles with images
         # taken from images.mrc file
         # and setting the previous alignment parameters
@@ -674,8 +675,9 @@ class TestRelionWriter(BaseTest):
                           sphericalAberration=2,
                           amplitudeContrast=0.1,
                           magnification=60000)
-        acq.opticsGroupName.set('No-GroupName')
-        acq.mtfFile.set('No-MTF')
+
+        og = OpticsGroups.create()
+        fog = og.first()
 
         ctf = CTFModel(defocusU=10000, defocusV=15000, defocusAngle=15)
         outputMics.setAcquisition(acq)
@@ -691,9 +693,19 @@ class TestRelionWriter(BaseTest):
             ctf.setFitQuality(np.random.uniform())
             ctf.setResolution(np.random.uniform(3, 15))
             ogNumber = (i-1) // itemsPerOptics + 1
-            acq.opticsGroupName.set(ogName % ogNumber)
-            acq.mtfFile.set(mtfFile % ogNumber)
 
+            ogDict = {
+                'rlnOpticsGroup': ogNumber,
+                'rlnOpticsGroupName': ogName % ogNumber,
+                'rlnMtfFileName': mtfFile % ogNumber
+            }
+
+            if ogNumber in og:
+                og.update(ogNumber, **ogDict)
+            else:
+                og.add(fog._replace(**ogDict))
+
+            mic.rlnOpticsGroup = ogNumber
             mic.setObjId(None)
             outputMics.append(mic)
 
@@ -782,8 +794,54 @@ class TestRelionReader(BaseTest):
         self.assertEqual(first.getClassId(), 4)
         self.assertTrue(hasattr(first, '_rlnNrOfSignificantSamples'))
 
-        acq = first.getAcquisition()
-        self.assertEqual(acq.mtfFile.get(), 'mtf_k2_200kV.star')
-        self.assertEqual(acq.opticsGroupName.get(), 'opticsGroup1')
+        fog = OpticsGroups.fromImages(partsSet).first()
+        self.assertEqual(fog.rlnMtfFileName, 'mtf_k2_200kV.star')
+        self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')
 
 
+class TestRelionOpticsGroups(BaseTest):
+    @classmethod
+    def setUpClass(cls):
+        setupTestOutput(cls)
+        cls.ds = DataSet.getDataSet('relion31_tutorial_precalculated')
+
+    def test_fromStar(self):
+        if not Plugin.IS_GT30():
+            print("Skipping test (required Relion > 3.1)")
+            return
+
+        partsStar = self.ds.getFile("Extract/job018/particles.star")
+
+        print("<<< Reading optics groups from file: \n   %s\n" % partsStar)
+        og = OpticsGroups.fromStar(partsStar)
+        fog = og.first()
+
+        # acq = first.getAcquisition()
+        self.assertEqual(fog.rlnMtfFileName, 'mtf_k2_200kV.star')
+        self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')
+        self.assertEqual(og['opticsGroup1'], fog)
+
+    def test_string(self):
+        if not Plugin.IS_GT30():
+            print("Skipping test (required Relion > 3.1)")
+            return
+
+        og = OpticsGroups.create(rlnMtfFileName='mtf_k2_200kV.star')
+        fog = og.first()
+
+        # acq = first.getAcquisition()
+        self.assertEqual(fog.rlnMtfFileName, 'mtf_k2_200kV.star')
+        self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')
+        self.assertEqual(og['opticsGroup1'], fog)
+
+        # try update by id
+        og.update(1, rlnMtfFileName="new_mtf_k2.star")
+        # try update by name
+        og.update('opticsGroup1', rlnImageSize=512)
+
+        fog = og.first()
+        # acq = first.getAcquisition()
+        self.assertEqual(fog.rlnMtfFileName, 'new_mtf_k2.star')
+        self.assertEqual(fog.rlnImageSize, 512)
+        self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')
+        self.assertEqual(og['opticsGroup1'], fog)

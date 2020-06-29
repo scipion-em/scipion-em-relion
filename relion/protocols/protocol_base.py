@@ -28,6 +28,7 @@ import os
 import re
 from glob import glob
 from collections import OrderedDict
+from emtable import Table
 
 import pyworkflow.utils as pwutils
 from pyworkflow.protocol.params import (BooleanParam, PointerParam, FloatParam,
@@ -41,7 +42,6 @@ from pwem.objects import SetOfClasses3D
 from pwem.protocols import EMProtocol
 
 import relion.convert
-from relion.convert.metadata import Table
 from relion import Plugin
 from ..constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO
 

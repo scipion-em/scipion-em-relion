@@ -25,6 +25,7 @@
 # **************************************************************************
 
 import os
+from emtable import Table
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
@@ -32,7 +33,6 @@ from pwem.objects import Volume, Float
 from pwem.protocols import ProtAnalysis3D
 
 import relion.convert as convert
-from ..convert.metadata import Table
 from ..constants import ANGULAR_SAMPLING_LIST
 from .protocol_base import ProtRelionBase
 

@@ -29,9 +29,12 @@ import pyworkflow.protocol.params as params
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtParticles
 from pyworkflow.object import Float
+import pwem.emlib.metadata as md
 
 import relion
 import relion.convert as convert
+from relion.convert.convert31 import Reader, OpticsGroups
+
 from ..objects import CtfRefineGlobalInfo
 
 
@@ -225,12 +228,22 @@ class ProtRelionCtfRefinement(ProtParticles):
         outImgsFn = self.fileWithRefinedCTFName()
         imgSet.setAlignmentProj()
 
-        tableName = 'particles@' if self.IS_GT30() else ''
-        mdIter = convert.Table.iterRows(tableName + outImgsFn,
-                                        key='rlnImageId')
-        outImgSet.copyItems(imgSet,
-                            updateItemCallback=self._updateItemCtfBeamTilt,
-                            itemDataIterator=mdIter)
+        if self.IS_GT30():
+            self._optics = convert.getOpticsDict(outImgsFn)
+            mdIter = convert.Table.iterRows('particles@' + outImgsFn,
+                                            key='rlnImageId')
+            outImgSet.copyItems(imgSet,
+                                updateItemCallback=self._updateItem31,
+                                itemDataIterator=mdIter,
+                                doClone=False)
+            og = OpticsGroups.fromStar(outImgsFn)
+            og.toImages(outImgSet)
+        else:
+            mdIter = md.iterRows(outImgsFn, sortByLabel=md.RLN_IMAGE_ID)
+            outImgSet.copyItems(imgSet,
+                                updateItemCallback=self._updateItem30,
+                                itemDataIterator=mdIter)
+
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(self.inputParticles, outImgSet)
 
@@ -244,13 +257,18 @@ class ProtRelionCtfRefinement(ProtParticles):
     def createGlobalInfoStep(self):
         self.createGlobalInfo(self.fileWithAnalyzeInfo())
 
-    def _updateItemCtfBeamTilt(self, particle, row):
+    def _updateItem30(self, particle, row):
         particle.setCTF(convert.rowToCtfModel(row))
         # TODO: Add other field from the .star file when other options?
         # check if beamtilt is available and save it
         if hasattr(row, 'rlnBeamTiltX'):
             particle._rlnBeamTiltX = Float(row.rlnBeamTiltX)
             particle._rlnBeamTiltY = Float(row.rlnBeamTiltY)
+
+    def _updateItem31(self, particle, row):
+        Reader.rowToCtf(row, particle.getCTF())
+        # Reader.rowToAcquisition(self._optics[row.rlnOpticsGroup],
+        #                         particle.getAcquisition())
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):

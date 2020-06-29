@@ -23,6 +23,7 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # ******************************************************************************
+from emtable import Table
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
@@ -33,7 +34,6 @@ from pyworkflow.object import Float
 
 import relion.convert as convert
 from relion.objects import CtfRefineGlobalInfo
-from relion.convert.metadata import Table
 
 
 class ProtRelionCtfRefinement(ProtParticles):
