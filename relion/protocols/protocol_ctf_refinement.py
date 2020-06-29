@@ -33,7 +33,7 @@ import pwem.emlib.metadata as md
 
 import relion
 import relion.convert as convert
-from relion.convert.convert31 import Reader
+from relion.convert.convert31 import Reader, OpticsGroups
 
 from ..objects import CtfRefineGlobalInfo
 
@@ -236,6 +236,8 @@ class ProtRelionCtfRefinement(ProtParticles):
                                 updateItemCallback=self._updateItem31,
                                 itemDataIterator=mdIter,
                                 doClone=False)
+            og = OpticsGroups.fromStar(outImgsFn)
+            og.toImages(outImgSet)
         else:
             mdIter = md.iterRows(outImgsFn, sortByLabel=md.RLN_IMAGE_ID)
             outImgSet.copyItems(imgSet,
@@ -265,8 +267,8 @@ class ProtRelionCtfRefinement(ProtParticles):
 
     def _updateItem31(self, particle, row):
         Reader.rowToCtf(row, particle.getCTF())
-        Reader.rowToAcquisition(self._optics[row.rlnOpticsGroup],
-                                particle.getAcquisition())
+        # Reader.rowToAcquisition(self._optics[row.rlnOpticsGroup],
+        #                         particle.getAcquisition())
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
