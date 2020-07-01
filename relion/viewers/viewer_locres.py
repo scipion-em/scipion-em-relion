@@ -200,7 +200,6 @@ class RelionLocalResViewer(ProtocolViewer):
         scolorStr = scolorStr[:-1]
         if CHIMERAX:
             fhCmd.write("run(session, 'color sample #1 map #2 palette " + scolorStr + "')\n")
-            fhCmd.write("run(session, 'windowsize')\n")
         else:
             fhCmd.write("scolor #0 volume #1 perPixel false cmap " + scolorStr + "\n")
         counter = 0
