@@ -61,6 +61,10 @@ FIT_NO = 0
 FIT_MICS = 1
 FIT_PARTS = 2
 
+# Axis code
+AX_X = 0
+AX_Y = 1
+AX_Z = 2
 
 # Protocol create mask 3d
 MASK_AND = 0
