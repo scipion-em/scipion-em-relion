@@ -545,7 +545,8 @@ Examples:
                 f.write('tile\n')
             view = ChimeraView(cmdFile)
         else:
-            view = ChimeraClientView(volumes[0])
+            vol = volumes[0].replace(':mrc', '')
+            view = ChimeraClientView(vol)
 
         return [view]
 
