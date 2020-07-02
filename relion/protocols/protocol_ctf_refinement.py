@@ -229,7 +229,7 @@ class ProtRelionCtfRefinement(ProtParticles):
         imgSet.setAlignmentProj()
 
         if self.IS_GT30():
-            self._optics = convert.getOpticsDict(outImgsFn)
+            #self._optics = convert.getOpticsDict(outImgsFn)
             mdIter = convert.Table.iterRows('particles@' + outImgsFn,
                                             key='rlnImageId')
             outImgSet.copyItems(imgSet,

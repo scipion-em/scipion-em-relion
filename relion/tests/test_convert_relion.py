@@ -31,7 +31,6 @@ import os
 import subprocess
 import numpy as np
 
-from pyworkflow.object import String
 from pyworkflow.tests import BaseTest, setupTestOutput, DataSet
 from pyworkflow.utils import cleanPath
 from pwem.objects import (SetOfParticles, CTFModel, Acquisition,

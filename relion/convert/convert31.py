@@ -526,7 +526,7 @@ class Reader(ReaderBase):
         """ Set the transform values from the row. """
 
         if ((self._alignType == pwem.ALIGN_NONE) or
-            not row.hasAnyColumn(self.ALIGNMENT_LABELS)):
+                not row.hasAnyColumn(self.ALIGNMENT_LABELS)):
             self.setParticleTransform = self.__setParticleTransformNone
         else:
             # Ensure the Transform object exists

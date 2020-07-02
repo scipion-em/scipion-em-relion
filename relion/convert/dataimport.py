@@ -258,7 +258,7 @@ class RelionImport:
             # Check if we have rot angle -> ALIGN_PROJ,
             # if only psi angle -> ALIGN_2D
             if (row.get('rlnAngleRot', False) and
-                float(row.rlnAngleRot) != 0.0):
+                    float(row.rlnAngleRot) != 0.0):
                 self.alignType = ALIGN_PROJ
             elif (row.get('rlnAnglePsi', False) and
                   float(row.rlnAnglePsi) != 0.0):
