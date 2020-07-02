@@ -31,7 +31,6 @@ import os
 import subprocess
 import numpy as np
 
-from pyworkflow.object import String
 from pyworkflow.tests import BaseTest, setupTestOutput, DataSet
 from pyworkflow.utils import cleanPath
 from pwem.objects import (SetOfParticles, CTFModel, Acquisition,
@@ -40,7 +39,7 @@ from pwem.objects import (SetOfParticles, CTFModel, Acquisition,
 from pwem.emlib.image import ImageHandler
 import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_3D
-from pyworkflow.utils import magentaStr
+from pyworkflow.utils import magentaStr, createLink, replaceExt
 
 from relion import Plugin
 import relion.convert as convert
@@ -131,7 +130,14 @@ class TestConvertAnglesBase(BaseTest):
 
         is2D = alignType == ALIGN_2D
 
-        stackFn = self.dataset.getFile(fileKey)
+        if fileKey == 'alignShiftRotExp':
+            # relion requires mrcs stacks
+            origFn = self.dataset.getFile(fileKey)
+            stackFn = replaceExt(origFn, ".mrcs")
+            createLink(origFn, stackFn)
+        else:
+            stackFn = self.dataset.getFile(fileKey)
+
         partFn1 = self.getOutputPath(fileKey + "_particles1.sqlite")
         mdFn = self.getOutputPath(fileKey + "_particles.star")
         partFn2 = self.getOutputPath(fileKey + "_particles2.sqlite")

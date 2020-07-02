@@ -219,7 +219,7 @@ class TestRelionPicking(TestRelionBase):
             streamingBatchSize=5,
         )
         self.launchProtocol(protPickRef)
-        self._checkOutput(protPickRef, 240, 310)
+        self._checkOutput(protPickRef, 240, 330)
 
 
 class TestRelionClassify2D(TestRelionBase):

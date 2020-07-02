@@ -15,6 +15,7 @@
     - xmipp metadata is gradually replaced by the Table class from new star file parser
     - new protocol to export coordinates to star format
     - new protocol to remove preferential views
+    - new protocol to compress movies
     - many small fixes
 1.0.9: Fixed multibody output bug. Added a test for it.
 1.0.8:

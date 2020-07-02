@@ -538,7 +538,7 @@ Examples:
                 f.write('tile\n')
             view = ChimeraView(cmdFile)
         else:
-            view = ChimeraClientView(volumes[0])
+            view = ChimeraClientView(volumes[0].replace(':mrc', ''))
 
         return [view]
 
@@ -574,8 +574,8 @@ Examples:
                                     "angular distribution", "Input selection")
         # If just one reference we can show the angular distribution
         ref3d = self._refsList[0]
-        volFn = self._getVolumeNames()[0]
-        if not pwutils.exists(volFn.replace(":mrc", "")):
+        volFn = self._getVolumeNames()[0].replace(":mrc", "")
+        if not pwutils.exists(volFn):
             raise Exception("This class is Empty. Please try with other class")
 
         for prefix in prefixes:

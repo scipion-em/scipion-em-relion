@@ -25,7 +25,7 @@
 # **************************************************************************
 from emtable import Table
 
-from pyworkflow.object import String, Integer
+from pyworkflow.object import Integer
 import pwem
 from pwem.objects import Volume, FSC
 from pwem.protocols import ProtRefine3D

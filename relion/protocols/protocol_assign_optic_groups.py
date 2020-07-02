@@ -122,9 +122,9 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
         outputSet.copyInfo(inputSet)
         # Update the acquisition object with new parameters from input
         acq = outputSet.getAcquisition()
-        for attr in ['opticsGroupName', 'mtfFile', 'beamTiltX', 'beamTiltY',
-                     'defectFile']:
-            setattr(acq, attr, getattr(self, attr).clone())
+        #for attr in ['opticsGroupName', 'mtfFile', 'beamTiltX', 'beamTiltY',
+        #             'defectFile']:
+        #    setattr(acq, attr, getattr(self, attr).clone())
 
         # Copy items from input and set the new Optics Group name
         self._outputAcquisition = acq

@@ -129,7 +129,7 @@ _rlnAmplitudeContrast #7
 _rlnImagePixelSize #8 
 _rlnImageSize #9 
 _rlnImageDimensionality #10 
-opticsGroup1            1 no-mtf.star     0.885000   200.000000     1.400000     0.100000     1.244531          256            2
+opticsGroup1            1 no-mtf.star     1.000000   300.000000     2.700000     0.100000     1.000000          256            2
         """
 
         og = OpticsGroups.fromString(opticsString1)
@@ -521,17 +521,12 @@ class Reader(ReaderBase):
         acq.setAmplitudeContrast(optics.rlnAmplitudeContrast)
         acq.setSphericalAberration(optics.rlnSphericalAberration)
         acq.setVoltage(optics.rlnVoltage)
-        acq.opticsGroupName.set(getattr(optics, 'rlnOpticsGroupName', None))
-        acq.beamTiltX.set(getattr(optics, 'rlnBeamTiltX', None))
-        acq.beamTiltY.set(getattr(optics, 'rlnBeamTiltY', None))
-        acq.mtfFile.set(getattr(optics, 'rlnMtfFileName', None))
-        acq.defectFile.set(getattr(optics, 'rlnDefectFile', None))
 
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
 
         if ((self._alignType == pwem.ALIGN_NONE) or
-            not row.hasAnyColumn(self.ALIGNMENT_LABELS)):
+                not row.hasAnyColumn(self.ALIGNMENT_LABELS)):
             self.setParticleTransform = self.__setParticleTransformNone
         else:
             # Ensure the Transform object exists
