@@ -61,9 +61,11 @@ Protocols
 * auto-picking              
 * auto-picking LoG          
 * bayesian polishing        
-* center averages           
+* center averages
+* compress movies
 * create 3d mask            
-* ctf refinement            
+* ctf refinement
+* estimate gain to compress
 * expand symmetry
 * export coordinates
 * export ctf                

@@ -121,4 +121,3 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
             methods += "into %d classes using Relion Classify2d. " % self.numberOfClasses
             methods += 'Output classes: %s' % self.getObjectTag('outputClasses')
         return [methods]
-    
