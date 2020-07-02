@@ -87,10 +87,6 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def defineBinaries(cls, env):
-        # Define FFTW3 path variables
-        relion_vars = {'FFTW_LIB': env.getLibFolder(),
-                       'FFTW_INCLUDE': env.getIncludeFolder()}
-
         relion_commands = [('cmake -DGUI=OFF -DCMAKE_INSTALL_PREFIX=./ .', []),
                            ('make -j %d' % env.getProcessors(),
                             ['bin/relion_refine'])]
@@ -98,13 +94,11 @@ class Plugin(pwem.Plugin):
         env.addPackage('relion', version='3.0',
                        url='https://github.com/3dem/relion/archive/3.0.tar.gz',
                        commands=relion_commands,
-                       updateCuda=True,
-                       vars=relion_vars)
+                       updateCuda=True)
 
         env.addPackage('relion', version='3.1',
                        # url= 'https://github.com/3dem/relion/archive/3.1.tar.gz',
                        tar='relion-3.1.tgz',
                        commands=relion_commands,
                        updateCuda=True,
-                       vars=relion_vars,
                        default=True)

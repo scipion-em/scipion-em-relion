@@ -521,11 +521,6 @@ class Reader(ReaderBase):
         acq.setAmplitudeContrast(optics.rlnAmplitudeContrast)
         acq.setSphericalAberration(optics.rlnSphericalAberration)
         acq.setVoltage(optics.rlnVoltage)
-        acq.opticsGroupName.set(getattr(optics, 'rlnOpticsGroupName', None))
-        acq.beamTiltX.set(getattr(optics, 'rlnBeamTiltX', None))
-        acq.beamTiltY.set(getattr(optics, 'rlnBeamTiltY', None))
-        acq.mtfFile.set(getattr(optics, 'rlnMtfFileName', None))
-        acq.defectFile.set(getattr(optics, 'rlnDefectFile', None))
 
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
