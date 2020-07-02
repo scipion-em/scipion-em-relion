@@ -129,7 +129,7 @@ _rlnAmplitudeContrast #7
 _rlnImagePixelSize #8 
 _rlnImageSize #9 
 _rlnImageDimensionality #10 
-opticsGroup1            1 no-mtf.star     0.885000   200.000000     1.400000     0.100000     1.244531          256            2
+opticsGroup1            1 no-mtf.star     1.000000   300.000000     2.700000     0.100000     1.000000          256            2
         """
 
         og = OpticsGroups.fromString(opticsString1)
