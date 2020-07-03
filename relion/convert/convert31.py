@@ -122,17 +122,16 @@ class OpticsGroups:
 data_optics
 
 loop_ 
-_rlnOpticsGroupName #1 
-_rlnOpticsGroup #2 
-_rlnMtfFileName #3 
-_rlnMicrographOriginalPixelSize #4 
-_rlnVoltage #5 
-_rlnSphericalAberration #6 
-_rlnAmplitudeContrast #7 
-_rlnImagePixelSize #8 
-_rlnImageSize #9 
-_rlnImageDimensionality #10 
-opticsGroup1            1 ""     1.000000   300.000000     2.700000     0.100000     1.000000          256            2
+_rlnOpticsGroupName #1
+_rlnOpticsGroup #2
+_rlnMicrographOriginalPixelSize #3
+_rlnVoltage #4
+_rlnSphericalAberration #5
+_rlnAmplitudeContrast #6
+_rlnImagePixelSize #7
+_rlnImageSize #8
+_rlnImageDimensionality #9
+opticsGroup1            1      1.000000   300.000000     2.700000     0.100000     1.000000          256            2
         """
 
         og = OpticsGroups.fromString(opticsString1)
