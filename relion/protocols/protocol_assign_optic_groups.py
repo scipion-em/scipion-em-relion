@@ -28,6 +28,7 @@ import os
 import pwem
 import pyworkflow.protocol.params as params
 
+from relion.convert.convert31 import OpticsGroups
 from .protocol_base import ProtRelionBase
 
 
@@ -121,22 +122,28 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
         # Copy general info from input set
         outputSet.copyInfo(inputSet)
         # Update the acquisition object with new parameters from input
-        acq = outputSet.getAcquisition()
-        #for attr in ['opticsGroupName', 'mtfFile', 'beamTiltX', 'beamTiltY',
-        #             'defectFile']:
-        #    setattr(acq, attr, getattr(self, attr).clone())
+        acq = inputSet.getAcquisition()
+        outputSet.copyItems(inputSet)
 
-        # Copy items from input and set the new Optics Group name
-        self._outputAcquisition = acq
-        outputSet.copyItems(inputSet, updateItemCallback=self._setOpticsGroupName)
+        og = OpticsGroups.create(
+            rlnVoltage=acq.getVoltage(),
+            rlnSphericalAberration=acq.getSphericalAberration(),
+            rlnAmplitudeContrast=acq.getAmplitudeContrast(),
+            rlnImagePixelSize=inputSet.getSamplingRate(),
+            rlnImageSize=inputSet.getXDim(),
+            rlnOpticsGroupName=self.opticsGroupName.get(),
+            rlnMtfFileName=self.mtfFile.get(),
+            rlnBeamTiltX=self.beamTiltX.get(),
+            rlnBeamTiltY=self.beamTiltY.get(),
+            rlnMicrographDefectFile=self.defectFile.get()  # FIXME: not sure this is useful..
+        )
+        og.toImages(outputSet)
+
         self._defineOutputs(**{outputName: outputSet})
         self._defineTransformRelation(inputSet, outputSet)
     
     # --------------------------- INFO functions ------------------------------
     def _validate(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION. 
-        """
         validateMsgs = []
 
         defectFile = self.defectFile.get()
@@ -153,13 +160,3 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
     
     def _methods(self):
         return []
-
-    # --------------------------- UTILS functions -----------------------------
-    def _setOpticsGroupName(self, item, row):
-        # Take advantage of the fact that the 'item' object is the
-        # used during the iteration in the copyItems, this can be a wrong
-        # assumption if the implementation changes, but I will take the risk
-        # now for the sake of performance and only set the value once
-        if getattr(self, '__firstTime', True):
-            item.setAcquisition(self._outputAcquisition)
-            self.__firstTime = False
