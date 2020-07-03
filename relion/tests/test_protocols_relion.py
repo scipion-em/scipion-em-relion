@@ -442,8 +442,8 @@ class TestRelionPreprocess(TestRelionBase):
                                      "%d and must be  %d x %d" % (xDim, xDim,
                                                                   dims, dims))
         self.assertAlmostEqual(sr, pxSize, delta=0.0001,
-                               msg="Pixel size of your particles are  %0.2f and"
-                               " must be %0.2f" % (sr, pxSize))
+                               msg="Pixel size of your particles are  %0.5f and"
+                               " must be %0.5f" % (sr, pxSize))
 
     def test_NormalizeAndDust(self):
         print(magentaStr("\n==> Testing relion - preprocess particles (norm, remove dust):"))
@@ -616,8 +616,8 @@ class TestRelionPostprocess(TestRelionBase):
                                      "and must be (%d)^3" % (xDim, dims))
 
         self.assertAlmostEqual(sr, pxSize, delta=0.0001,
-                               msg="Pixel size of your volume is %0.2f and"
-                               " must be %0.2f" % (sr, pxSize))
+                               msg="Pixel size of your volume is %0.5f and"
+                               " must be %0.5f" % (sr, pxSize))
 
     def test_postProcess_from_autorefine(self):
         print(magentaStr("\n==> Testing relion - postprocess after refine 3d:"))
@@ -768,8 +768,8 @@ class TestRelionLocalRes(TestRelionBase):
         self.assertEqual(xDim, dims, "The dimension of your volume is (%d)^3 "
                                      "and must be (%d)^3" % (xDim, dims))
         self.assertAlmostEqual(sr, pxSize, delta=0.0001,
-                               msg="Pixel size of your volume is %0.2f and"
-                               " must be %0.2f" % (sr, pxSize))
+                               msg="Pixel size of your volume is %0.5f and"
+                               " must be %0.5f" % (sr, pxSize))
 
     def test_runRelionLocalRes(self):
         protRef = self._createRef3DProtBox("auto-refine")
@@ -877,8 +877,8 @@ class TestRelionCreate3dMask(TestRelionBase):
                                      "and must be (%d)^3" % (xDim, dims))
 
         self.assertAlmostEqual(sr, pxSize, delta=0.0001,
-                               msg="Pixel size of your volume is %0.2f and"
-                               " must be %0.2f" % (sr, pxSize))
+                               msg="Pixel size of your volume is %0.5f and"
+                               " must be %0.5f" % (sr, pxSize))
 
     def test_createMask(self):
         importProt = self.importVolume()
@@ -1239,7 +1239,7 @@ class TestRelionCenterAverages(TestRelionBase):
         self.launchProtocol(protCenter)
 
         conditions = ['outputAverages.getSize()==%d' % inputAvgs.getSize(),
-                      'outputAverages.getSamplingRate() - %f < 0.00001'
+                      'outputAverages.getSamplingRate() - %0.5f < 0.00001'
                       % inputAvgs.getSamplingRate()]
         self.checkOutput(protCenter, 'outputAverages', conditions)
 

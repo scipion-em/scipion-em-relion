@@ -223,7 +223,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         f0, fN = self._getRange(movie)
         args += "--first_frame_sum %d --last_frame_sum %d " % (f0, fN)
         args += "--bin_factor %f --bfactor %d " % (self.binFactor, self.bfactor)
-        args += "--angpix %f " % (movie.getSamplingRate())
+        args += "--angpix %0.5f " % (movie.getSamplingRate())
         args += "--patch_x %d --patch_y %d " % (self.patchX, self.patchY)
         args += "--j %d " % self.numberOfThreads
 

@@ -261,7 +261,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         params += ' --part_dir "." --extract '
         params += ' --extract_size %d' % self.boxSize
         if relion.Plugin.IS_30():
-            params += ' --set_angpix %f' % self._getNewSampling()
+            params += ' --set_angpix %0.5f' % self._getNewSampling()
 
         if self.backDiameter <= 0:
             diameter = self.boxSize.get() * 0.75

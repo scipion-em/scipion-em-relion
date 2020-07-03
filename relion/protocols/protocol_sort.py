@@ -312,7 +312,7 @@ class ProtRelionSortParticles(ProtParticles):
                 angpixRef = self.referenceAverages.get().getSamplingRate()
 
         if angpixRef is not None:
-            args['--angpix_ref'] = '%0.3f' % angpixRef
+            args['--angpix_ref'] = '%0.5f' % angpixRef
 
         if self.doInvert:
             args['--invert'] = ''
