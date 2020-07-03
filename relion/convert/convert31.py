@@ -101,11 +101,14 @@ class OpticsGroups:
 
     @staticmethod
     def fromImages(imageSet):
+        acq = imageSet.getAcquisition()
         try:
-            acq = imageSet.getAcquisition()
             return OpticsGroups.fromString(acq.opticsGroupInfo.get())
         except:
             return OpticsGroups.create(
+                rlnVoltage=acq.getVoltage(),
+                rlnSphericalAberration=acq.getSphericalAberration(),
+                rlnAmplitudeContrast=acq.getAmplitudeContrast(),
                 rlnImagePixelSize=imageSet.getSamplingRate(),
                 rlnImageSize=imageSet.getXDim()
             )
