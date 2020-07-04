@@ -233,6 +233,3 @@ def getVolumesFromPostprocess(postStar):
     return (row.rlnUnfilteredMapHalf1,
             row.rlnUnfilteredMapHalf2,
             row.rlnMaskName)
-
-
-

@@ -41,7 +41,7 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def _defineVariables(cls):
-        cls._defineEmVar(RELION_HOME, 'relion-3.1')
+        cls._defineEmVar(RELION_HOME, 'relion-%s' % V3_1)
 
     @classmethod
     def getEnviron(cls):
@@ -96,9 +96,8 @@ class Plugin(pwem.Plugin):
                        commands=relion_commands,
                        updateCuda=True)
 
-        env.addPackage('relion', version='3.1',
-                       # url= 'https://github.com/3dem/relion/archive/3.1.tar.gz',
-                       tar='relion-3.1.tgz',
+        env.addPackage('relion', version='3.1.0',
+                       url='https://github.com/3dem/relion/archive/3.1.0.tar.gz',
                        commands=relion_commands,
                        updateCuda=True,
                        default=True)
