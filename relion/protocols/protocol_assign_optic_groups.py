@@ -135,7 +135,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
             rlnMtfFileName=self.mtfFile.get(),
             rlnBeamTiltX=self.beamTiltX.get(),
             rlnBeamTiltY=self.beamTiltY.get(),
-            rlnMicrographDefectFile=self.defectFile.get()  # FIXME: not sure this is useful..
+            rlnMicrographDefectFile=self.defectFile.get()  # looks not used by relion 3.1
         )
         og.toImages(outputSet)
 

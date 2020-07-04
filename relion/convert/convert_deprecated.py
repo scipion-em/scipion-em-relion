@@ -441,11 +441,6 @@ def readSetOfParticles(filename, imgSet, rowToFunc=rowToParticle, **kwargs):
     imgSet.setAlignment(kwargs['alignType'])
 
 
-def readSetOfMovieParticles(filename, partSet, **kwargs):
-    readSetOfParticles(filename, partSet,
-                       particleClass=pwem.objects.MovieParticle,
-                       **kwargs)
-
 
 def setOfImagesToMd(imgSet, imgMd, imgToFunc, **kwargs):
     """ This function will fill Relion metadata from a SetOfMicrographs
@@ -592,22 +587,6 @@ def writeSetOfMovies(movieSet, starFile, **kwargs):
     movieMd.write('%s@%s' % (blockName, starFile))
 
 
-def writeSqliteIterData(imgStar, imgSqlite, **kwargs):
-    """ Given a Relion images star file (from some iteration)
-    create the corresponding SetOfParticles (sqlite file)
-    for this iteration. This file can be visualized sorted
-    by the LogLikelihood.
-    """
-    pwutils.cleanPath(imgSqlite)
-    imgSet = pwem.objects.SetOfParticles(filename=imgSqlite)
-    readSetOfParticles(imgStar, imgSet, **kwargs)
-    imgSet.write()
-
-
-def writeSqliteIterClasses(imgStar):
-    pass
-
-
 def splitInCTFGroups(imgStar, defocusRange=1000, numParticles=10):
     """ Add a new colunm in the image star to separate the particles into ctf groups """
     mdAll = md.MetaData(imgStar)
@@ -633,13 +612,6 @@ def splitInCTFGroups(imgStar, defocusRange=1000, numParticles=10):
     mdCount.aggregate(mdAll, md.AGGR_COUNT, md.RLN_MLMODEL_GROUP_NAME,
                       md.RLN_MLMODEL_GROUP_NAME, md.MDL_COUNT)
     print("number of particles per group: ", mdCount)
-
-
-def prependToFileName(imgRow, prefixPath):
-    """ Prepend some root name to imageRow filename. """
-    index, imgPath = relionToLocation(imgRow.get(md.RLN_IMAGE_NAME))
-    newLoc = locationToRelion(index, os.path.join(prefixPath, imgPath))
-    imgRow.set(md.RLN_IMAGE_NAME, newLoc)
 
 
 def copyOrLinkFileName(imgRow, prefixDir, outputDir, copyFiles=False):
@@ -674,10 +646,6 @@ def setupCTF(imgRow, sampling):
                        imgRow.get(md.MDL_CTF_DEFOCUSU))
         if not hasDefocusAngle:
             imgRow.set(md.MDL_CTF_DEFOCUS_ANGLE, 0.)
-
-
-def createItemMatrix(item, row, align):
-    item.setTransform(rowToAlignment(row, alignType=align))
 
 
 def readSetOfCoordinates(coordSet, coordFiles, micList=None):
