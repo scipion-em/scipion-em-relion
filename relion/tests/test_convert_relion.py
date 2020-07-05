@@ -682,7 +682,8 @@ class TestRelionWriter(BaseTest):
                           amplitudeContrast=0.1,
                           magnification=60000)
 
-        og = OpticsGroups.create()
+        og = OpticsGroups.create(rlnMtfFileName='')
+
         fog = og.first()
 
         ctf = CTFModel(defocusU=10000, defocusV=15000, defocusAngle=15)
@@ -832,8 +833,7 @@ class TestRelionOpticsGroups(BaseTest):
             print("Skipping test (required Relion > 3.1)")
             return
 
-        og = OpticsGroups.create()
-        og.addColumns(rlnMtfFileName='mtf_k2_200kV.star')
+        og = OpticsGroups.create(rlnMtfFileName='mtf_k2_200kV.star')
         fog = og.first()
 
         # acq = first.getAcquisition()

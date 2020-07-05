@@ -169,6 +169,9 @@ opticsGroup1            1      1.000000   300.000000     2.700000     0.100000  
         """
 
         og = OpticsGroups.fromString(opticsString1)
+        fog = og.first()
+        newColumns = {k:v for k, v in kwargs.items() if not hasattr(fog, k)}
+        og.addColumns(**newColumns)
         og.update(1, **kwargs)
         return og
 
