@@ -132,11 +132,15 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
             rlnImagePixelSize=inputSet.getSamplingRate(),
             rlnImageSize=inputSet.getXDim(),
             rlnOpticsGroupName=self.opticsGroupName.get(),
-            rlnMtfFileName=self.mtfFile.get(),
             rlnBeamTiltX=self.beamTiltX.get(),
-            rlnBeamTiltY=self.beamTiltY.get(),
-            rlnMicrographDefectFile=self.defectFile.get()  # looks not used by relion 3.1
+            rlnBeamTiltY=self.beamTiltY.get()
         )
+
+        if self.mtfFile.hasValue():
+            og.addColumns(rlnMtfFileName=self.mtfFile.get())
+        if self.defectFile.hasValue():
+            og.addColumns(rlnMicrographDefectFile=self.defectFile.get())
+
         og.toImages(outputSet)
 
         self._defineOutputs(**{outputName: outputSet})
@@ -146,8 +150,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
     def _validate(self):
         validateMsgs = []
 
-        defectFile = self.defectFile.get()
-        if defectFile is not None and not os.path.exists(defectFile):
+        if self.defectFile.hasValue() and not os.path.exists(self.defectFile.get()):
             validateMsgs.append("Defect file not found:\n%s" % self.defectFile.get())
         if self.mtfFile.hasValue() and not os.path.exists(self.mtfFile.get()):
             validateMsgs.append("MTF file not found:\n%s" % self.mtfFile.get())
