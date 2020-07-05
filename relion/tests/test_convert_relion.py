@@ -832,7 +832,8 @@ class TestRelionOpticsGroups(BaseTest):
             print("Skipping test (required Relion > 3.1)")
             return
 
-        og = OpticsGroups.create(rlnMtfFileName='mtf_k2_200kV.star')
+        og = OpticsGroups.create()
+        og.addColumns(rlnMtfFileName='mtf_k2_200kV.star')
         fog = og.first()
 
         # acq = first.getAcquisition()
@@ -851,3 +852,38 @@ class TestRelionOpticsGroups(BaseTest):
         self.assertEqual(fog.rlnImageSize, 512)
         self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')
         self.assertEqual(og['opticsGroup1'], fog)
+
+    def test_add(self):
+        """ Testing adding more groups or columns. """
+        og = OpticsGroups.create()
+
+        og1 = og.first()
+
+        self.assertEqual(len(og), 1)
+        self.assertAlmostEqual(og1.rlnVoltage, 300.)
+
+        og2 = og1._replace(rlnOpticsGroup=2,
+                           rlnOpticsGroupName='opticsGroup2',
+                           rlnVoltage=200.)
+        og.add(og2)
+        og3 = og1._replace(rlnOpticsGroup=3,
+                           rlnOpticsGroupName='opticsGroup3',
+                           rlnVoltage=100.)
+        og.add(og3)
+
+        self.assertEqual(len(og), 3)
+
+        og.addColumns(rlnMtfFileName='mtf_k2_200kV.star')
+
+        self.assertTrue(all(hasattr(ogx, 'rlnMtfFileName') for ogx in og))
+
+        og.update(2, rlnVoltage=300.)
+        og.update(3, rlnVoltage=300.)
+
+        for ogx in og:
+            self.assertAlmostEqual(ogx.rlnVoltage, 300.)
+
+        og.updateAll(rlnVoltage=200.)
+
+        for ogx in og:
+            self.assertAlmostEqual(ogx.rlnVoltage, 200.)

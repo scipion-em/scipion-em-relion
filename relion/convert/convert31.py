@@ -48,6 +48,9 @@ class OpticsGroups:
     Existing groups can be accessed by number of name.
     """
     def __init__(self, opticsTable):
+        self.__fromTable(opticsTable)
+
+    def __fromTable(self, opticsTable):
         self._dict = OrderedDict()
         # Also allow indexing by name
         self._dictName = OrderedDict()
@@ -70,6 +73,16 @@ class OpticsGroups:
     def __contains__(self, item):
         return item in self._dict or item in self._dictName
 
+    def __iter__(self):
+        """ Iterate over all optics groups. """
+        return iter(self._dict.values())
+
+    def __len__(self):
+        return len(self._dict)
+
+    def __str__(self):
+        return self.toString()
+
     def first(self):
         """ Return first optics group. """
         return next(iter(self._dict.values()))
@@ -78,11 +91,32 @@ class OpticsGroups:
         og = self.__getitem__(ogId)
         newOg = og._replace(**kwargs)
         self.__store(newOg)
-
         return newOg
+
+    def updateAll(self, **kwargs):
+        """ Update all Optics Groups with these values. """
+        for og in self:
+            self.update(og.rlnOpticsGroup, **kwargs)
 
     def add(self, newOg):
         self.__store(newOg)
+
+    def addColumns(self, **kwargs):
+        """ Add new columns with default values (type inferred from it). """
+        items = self.first()._asdict().items()
+        cols = [Table.Column(k, type(v)) for k, v in items]
+
+        for k, v in kwargs.items():
+            cols.append(Table.Column(k, type(v)))
+
+        t = Table(columns=cols)
+
+        for og in self._dict.values():
+            values = og._asdict()
+            values.update(kwargs)
+            t.addRow(**values)
+
+        self.__fromTable(t)
 
     @staticmethod
     def fromStar(starFilePath):
