@@ -190,8 +190,9 @@ class Relion2AutopickParams(EmWizard):
         def _preprocessMic(mic, micRow):
             mic.setCTF(micDict[mic.getMicName()].getCTF())
 
-        convert.writeSetOfMicrographs(micSet, micStarFn,
-                                      preprocessImageRow=_preprocessMic)
+        writer = convert.createWriter()
+        writer.writeSetOfMicrographs(micSet, micStarFn,
+                                     preprocessImageRow=_preprocessMic)
 
         # Create a folder in extra to backup the original autopick star files
         backupDir = autopickProt._getExtraPath('wizard-backup')

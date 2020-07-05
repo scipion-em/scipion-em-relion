@@ -198,5 +198,3 @@ class ReaderBase:
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
         pass
-
-

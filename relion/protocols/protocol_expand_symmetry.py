@@ -92,7 +92,8 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
             if Plugin.IS_GT30():
                 mdOptics.writeStar(f, tableName='optics')
 
-        convert.readSetOfParticles(
+        reader = convert.createReader()
+        reader.readSetOfParticles(
             outImagesMd, partSet,
             alignType=ALIGN_PROJ,
             postprocessImageRow=self._postprocessImageRow)
