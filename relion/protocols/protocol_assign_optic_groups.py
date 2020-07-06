@@ -55,7 +55,9 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                       display=params.EnumParam.DISPLAY_LIST,
                       label='Input Optics Groups from',
                       help='Select how to provide information about the optics '
-                           'groups. In the case of *single ')
+                           'groups. In the case of single group provide '
+                           'the parameters below, otherwise you need to provide '
+                           'a star file.')
 
         group = form.addGroup("Optics Group params",
                               condition="inputType == 0")
@@ -111,16 +113,15 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
 
         form.addParam('inputStar', params.FileParam,
                       condition='inputType == 1',
-                      label='Input Star file',
+                      label='Input Star file with optics groups',
                       help='Provide input star file with Optics groups '
-                           'information. The input Star file should contains: \n'
-                           '- *optics* table with values for each group.\n'
-                           '- *micrographs* Table with two columns: \n'
-                           '   * rlnMicrographName with the micName associated to'
-                           '   the input set.'
-                           '   * rlnOpticsGroup with the group associted to this'
-                           '   micrograph.'
-                      )
+                           'information. The input Star file should contain: \n'
+                           '- *data_optics* table with values for each group.\n'
+                           '- *data_micrographs* table with two columns: \n\n'
+                           '\trlnMicrographName with the micName associated to '
+                           'the input set.\n'
+                           '\trlnOpticsGroup with the group number associated '
+                           'to this micrograph.')
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
@@ -151,15 +152,15 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
         # Copy general info from input set
         outputSet.copyInfo(inputSet)
 
-
         if self.inputType == 0:  # single group params
             og = OpticsGroups.fromImages(inputSet)
             outputSet.copyItems(inputSet)
 
             if len(og) > 1:
-                raise Exception("Assigning single optics groups params "
-                                "is valid only when the input contains at "
-                                "most one optics groups. ")
+                raise Exception("Multiple optics groups detected in the input!\n"
+                                "Assigning single optics group params "
+                                "is valid only when the input set contains "
+                                "one optics group.")
 
             acq = inputSet.getAcquisition()
             og = OpticsGroups.create(
@@ -191,9 +192,9 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
             def updateItem(item, row):
                 micName = getMicName(item)
 
-                if not micName in micDict:
+                if micName not in micDict:
                     raise Exception("Micrograph name (aka micName) '%s' was "
-                                    "not found on the 'micrographs' table of "
+                                    "not found in the 'data_micrographs' table of "
                                     "the input star file: %s"
                                     % (micName, inputStar))
 
