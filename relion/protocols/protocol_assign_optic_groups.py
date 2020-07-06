@@ -201,7 +201,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                 ogNumber = micDict[micName]
 
                 if not hasattr(item, '_rlnOpticsGroup'):
-                    item._rlnOpticsGroup = pw.object.Float()
+                    item._rlnOpticsGroup = pw.object.Integer()
 
                 item._rlnOpticsGroup.set(ogNumber)
 
