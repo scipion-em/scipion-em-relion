@@ -34,6 +34,7 @@ import relion
 # the star file format has changed in 3.
 from . import convert30
 from . import convert31
+from . import convert30_tomo
 
 
 def createReader(**kwargs):
@@ -60,6 +61,18 @@ def createWriter(**kwargs):
     return Writer(**kwargs)
 
 
+def createWriterTomo(**kwargs):
+    """ Create a new Writer instance.
+    By default it will create the version (3.1 or older) based on the current
+    plugin binary. It can also be forced to use old format by passing
+    the format='30' argument.
+    """
+    is30 = kwargs.get('format', '') == '30' or relion.Plugin.IS_30()
+    Writer = convert30_tomo.Writer if is30 else None
+
+    return Writer(**kwargs)
+
+
 def writeSetOfParticles(imgSet, starFile, **kwargs):
     """ Convenience function to a SetOfImages as Relion metadata using a Writer.
 
@@ -79,6 +92,27 @@ def writeSetOfParticles(imgSet, starFile, **kwargs):
             Relion3.0 format, if not, it will depends on the binary version
     """
     return createWriter(**kwargs).writeSetOfParticles(imgSet, starFile, **kwargs)
+
+
+def writeSetOfSubtomograms(imgSet, starFile, **kwargs):
+    """ Convenience function to a SetOfImages as Relion metadata using a Writer.
+
+    Params:
+        imgSet: the SetOfImages instance.
+        starFile: the filename where to write the meta
+
+    Keyword Arguments:
+        outputDir: where binary files will be converted or linked.
+        blockName: The name of the data block (default particles)
+        fillMagnification: If True set magnification values (default False)
+        alignType:
+        fillRandomSubset:
+        extraLabels:
+        postprocessImageRow:
+        format: string value to specify STAR format, if '30' it will use
+            Relion3.0 format, if not, it will depends on the binary version
+    """
+    return createWriterTomo(**kwargs).writeSetOfSubtomograms(imgSet, starFile, **kwargs)
 
 
 def readSetOfParticles(starFile, partsSet, **kwargs):

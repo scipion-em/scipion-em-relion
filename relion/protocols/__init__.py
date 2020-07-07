@@ -64,6 +64,7 @@ else:
 from .protocol_refine_3d_tomo import ProtRelionSubtomoRefine3D
 from .protocol_classify_3d_tomo import ProtRelionSubtomoClassif3D
 from .protocol_ctf_3d_estimation import ProtRelionEstimateCTF3D
+from .protocol_tomo_reconstruct import ProtRelionTomoReconstruct
 # FIXME: this has to be imported for tests / wizards to work
 from .protocol_assign_optic_groups import ProtRelionAssignOpticsGroup
 from .protocol_compress_movies import ProtRelionCompressMovies

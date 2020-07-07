@@ -42,7 +42,7 @@ from pwem.convert.transformations import euler_from_matrix, translation_from_mat
 import relion
 from relion.convert import convertBinaryVol, MASK_FILL_ZERO, Table
 from relion import ANGULAR_SAMPLING_LIST
-from numpy import rad2deg
+from numpy import rad2deg, linalg, array, float64
 
 
 class ProtRelionBaseTomo(EMProtocol):
@@ -891,8 +891,24 @@ class ProtRelionBaseTomo(EMProtocol):
         shifts = [0, 0, 0]
         T = subtomo.getTransform()
         if T:  # Alignment performed before
+
             # TODO: check if matrix must be inverted to get the correct angles
             M = subtomo.getTransform().getMatrix()
-            angles = rad2deg(euler_from_matrix(M, axes='szyz'))
-            shifts = -translation_from_matrix(M)
+
+            from relion.convert import geometryFromMatrix
+            calcInv = False
+            _, angles = geometryFromMatrix(M, calcInv)
+            shifts = translation_from_matrix(M)
+            if calcInv:
+                shifts = -shifts
+
+            # # Direct
+            # angles = -rad2deg(euler_from_matrix(M, axes='szyz'))
+            # shifts = translation_from_matrix(M)
+
+            # # Inverse
+            # angularPart = array(M, dtype=float64, copy=False)[:3, :3]
+            # shifts = -translation_from_matrix(M)
+            # angularPart = linalg.inv(angularPart)
+            # angles = -rad2deg(euler_from_matrix(angularPart, axes='szyz'))
         return angles, shifts
