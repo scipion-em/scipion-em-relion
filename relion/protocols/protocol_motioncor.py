@@ -41,6 +41,7 @@ from pyworkflow.protocol import STEPS_SERIAL
 
 import relion
 import relion.convert as convert
+from relion.convert.convert31 import OpticsGroups
 
 
 class ProtRelionMotioncor(ProtAlignMovies):
@@ -210,7 +211,8 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                  '%s_input.star' % self._getMovieRoot(movie))
         pwutils.makePath(os.path.join(movieFolder, 'output'))
 
-        writer = convert.createWriter()
+        og = OpticsGroups.fromImages(self.inputMovies.get())
+        writer = convert.createWriter(optics=og)
         # Let's use only the basename, since we will launch the command
         # from the movieFolder
         movie.setFileName(os.path.basename(movie.getFileName()))
