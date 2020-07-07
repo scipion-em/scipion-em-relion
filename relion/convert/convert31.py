@@ -233,11 +233,12 @@ class Writer(WriterBase):
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
         self._prefix = tableName[:3]
-        self._optics = None
         micRow = OrderedDict()
         micRow[imgLabelName] = ''  # Just to add label, proper value later
         iterMics = iter(imgIterable)
         mic = next(iterMics)
+        if self._optics is None:
+            self._optics = OpticsGroups.fromImages(mic)
         self._imageSize = mic.getXDim()
         self._micToRow(mic, micRow)
         if self._postprocessImageRow:
@@ -246,8 +247,6 @@ class Writer(WriterBase):
         micsTable = self._createTableFromDict(micRow)
 
         while mic is not None:
-            if self._optics is None:
-                self._optics = OpticsGroups.fromImages(mic)
             micRow[imgLabelName] = self._convert(mic)
             self._micToRow(mic, micRow)
 
