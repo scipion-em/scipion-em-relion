@@ -896,7 +896,7 @@ class ProtRelionBaseTomo(EMProtocol):
             M = subtomo.getTransform().getMatrix()
 
             from relion.convert import geometryFromMatrix
-            calcInv = False
+            calcInv = True
             _, angles = geometryFromMatrix(M, calcInv)
             shifts = translation_from_matrix(M)
             if calcInv:

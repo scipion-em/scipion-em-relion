@@ -25,11 +25,16 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+from pwem.emlib.image import ImageHandler
+import pyworkflow.utils as pwutils
+from scipion.install.funcs import mkdir
+
 import relion
-from os.path import abspath
+from os.path import abspath, join
 from pwem.convert.transformations import translation_from_matrix
 from relion.convert import Table
 from .convert_base import WriterBase, ReaderBase
+
 
 
 class Writer(WriterBase):
@@ -47,11 +52,18 @@ class Writer(WriterBase):
     #                                  'micrographs', 'rlnMicrographName')
 
     def writeSetOfSubtomograms(self, subtomoSet, subtomosStar, **kwargs):
-        # # FIXME: Remove deprecated import
-        # from .convert_deprecated import _writeSetOfParticles
-        # _writeSetOfParticles(partsSet, starFile, **kwargs)
+        currentTomo = ''
+        MRC = 'mrc'
+        ih = ImageHandler()
         tomoTable = self._createStarTomoTable()
+        tmpDir = pwutils.getParentFolder(subtomosStar)
         for subtomo in subtomoSet:
+            if pwutils.getExt(subtomo.getFileName()) != '.' + MRC:
+                mrcDir = join(tmpDir, pwutils.removeBaseExt(subtomo.getVolName()))
+                if currentTomo != subtomo.getVolName():
+                    mkdir(mrcDir)
+                mrcFile = join(mrcDir, pwutils.replaceBaseExt(subtomo.getFileName(), MRC))
+                ih.convert(subtomo.getFileName(), mrcFile)
             angles, shifts = self._getTransformInfoFromSubtomo(subtomo)
             magn = subtomo.getAcquisition().getMagnification()
             rlnMicrographName = subtomo.getVolName()
@@ -60,7 +72,7 @@ class Writer(WriterBase):
             rlnCoordinateZ = subtomo.getCoordinate3D().getZ()
             rlnImageName = subtomo.getFileName()
             rlnCtfImage = abspath(self._getCTFFileFromSubtomo(subtomo))
-            rlnMagnification = magn if magn else 10000  # 64000
+            rlnMagnification = magn if magn else 10000 #64000
             rlnDetectorPixelSize = subtomo.getSamplingRate()
             rlnAngleRot = angles[0]
             rlnAngleTilt = angles[1]
@@ -108,8 +120,10 @@ class Writer(WriterBase):
 
     @ staticmethod
     def _getCTFFileFromSubtomo(subtomo):
-        return subtomo.getCoordinate3D()._3dcftMrcFile.get()
-
+        try:
+            return subtomo.getCoordinate3D()._3dcftMrcFile.get()
+        except:
+            return 'Unavailable'
 
     @staticmethod
     def _getTransformInfoFromSubtomo(subtomo):
@@ -122,7 +136,7 @@ class Writer(WriterBase):
             M = subtomo.getTransform().getMatrix()
 
             from relion.convert import geometryFromMatrix
-            calcInv = False
+            calcInv = True
             _, angles = geometryFromMatrix(M, calcInv)
             shifts = translation_from_matrix(M)
             if calcInv:
