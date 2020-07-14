@@ -1,12 +1,12 @@
 # **************************************************************************
 # *
-# * Authors:     J.M. De la Rosa Trevin (delarosatrevin@scilifelab.se) [1]
+# * Authors:     Josue Gomez Blanco (josue.gomez-blanco@mcgill.ca)
 # *
-# * [1] SciLifeLab, Stockholm University
+# * Department of Anatomy and Cell Biology, McGill University
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -24,15 +24,18 @@
 # *
 # **************************************************************************
 
-import pyworkflow.utils as pwutils
+from glob import glob
+
 import pwem
+import pwem.emlib.metadata as md
+from pyworkflow.utils.path import moveFile
 
 from pwem.protocols import ProtProcessParticles
 from pyworkflow.protocol.params import (PointerParam, BooleanParam,
                                         FloatParam, IntParam, Positive)
-from pyworkflow.protocol import STEPS_PARALLEL
+
 import relion.convert as convert
-from .protocol_base import ProtRelionBase
+from ..protocol_base import ProtRelionBase
 
 
 class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
@@ -45,7 +48,6 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
     
     def __init__(self, **args):
         ProtProcessParticles.__init__(self, **args)
-        self.stepsExecutionMode = STEPS_PARALLEL
     
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -112,60 +114,65 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
                       condition='doWindow',
                       label='Window size (px)',
                       help='New particles windows size (in pixels).')
-
-        form.addParallelSection(threads=4, mpi=1)
+        form.addParallelSection(threads=0, mpi=3)
     
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         self._createFilenameTemplates()
-        inputParts = self.inputParticles.get()
         objId = self.inputParticles.get().getObjId()
-        stackFiles = list(inputParts.getFiles())
-        allIds = []
-        args = self._getArgs()
-
-        for stack in sorted(stackFiles):
-            allIds.append(self._insertFunctionStep('processStep', objId,
-                                                   stack, args,
-                                                   prerequisites=[]))
-
-        self._insertFunctionStep('createOutputStep', prerequisites=allIds)
+        self._insertFunctionStep("convertInputStep", objId)
+        self._insertFunctionStep('processStep')
+        self._insertFunctionStep('createOutputStep')
 
     # --------------------------- STEPS functions -----------------------------
-    def _getArgs(self):
-        args = ''
-
+    def convertInputStep(self, particlesId):
+        """ Create the input file in STAR format as expected by Relion.
+        If the input particles comes from Relion, just link the file. 
+        """
+        imgSet = self.inputParticles.get()
+        # Create links to binary files and write the relion .star file
+        convert.writeSetOfParticles(imgSet, self._getFileName('input_star'),
+                                    outputDir=self._getExtraPath(),
+                                    writeAlignment=False,
+                                    postprocessImageRow=self._postprocessImageRow)
+    
+    def processStep(self):
+        # Enter here to generate the star file or to preprocess the images
+        
+        outputRadius = self._getOutputRadius()
+        params = ' --operate_on input_particles.star ' + self._getOutParam()
+        
         if self.doNormalize:
             radius = self.backRadius.get()
             if radius <= 0:
-                radius = self._getOutputRadius()
-            args += ' --norm --bg_radius %d' % radius
-
+                radius = outputRadius
+            params += ' --norm --bg_radius %d' % radius
+        
         if self.doRemoveDust:
             wDust = self.whiteDust.get()
             if wDust > 0:
-                args += ' --white_dust %f' % wDust
+                params += ' --white_dust %f' % wDust
             bDust = self.blackDust.get()
             if bDust > 0:
-                args += ' --black_dust %f' % bDust
-
-        if self.doInvert:
-            args += ' --invert_contrast'
-
-        if self.doScale:
-            args += ' --scale %d' % self.scaleSize
-
-        if self.doWindow:
-            args += ' --window %d' % self.windowSize
-
-        return args
-
-    def processStep(self, objId, stack, args):
-        # Enter here to generate the star file or to preprocess the images
-        stackOut = self._getOutStack(stack)
-        params = '--operate_on %s %s --operate_out %s' % (stack, args, stackOut)
-        self.runJob(self._getProgram('relion_preprocess'), params)
+                params += ' --black_dust %f' % bDust
         
+        if self.doInvert:
+            params += ' --invert_contrast'
+        
+        if self.doScale:
+            params += ' --scale %d' % self.scaleSize.get()
+        
+        if self.doWindow:
+            params += ' --window %d' % self.windowSize.get()
+        
+        self.runJob(self._getProgram('relion_preprocess'),
+                    params, cwd=self._getPath())
+        
+        outputMrcs = glob(self._getPath('*.mrcs.mrcs'))
+        if len(outputMrcs) > 0:
+            partFn = self._getFileName("preprocess_particles")
+            moveFile(outputMrcs[0], partFn)
+    
     def createOutputStep(self):
         inputSet = self.inputParticles.get()
         
@@ -175,19 +182,25 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
             imgSet = self._createSetOfParticles()
         
         imgSet.copyInfo(inputSet)
-
+        outImgsFn = self._getFileName("preprocess_particles_star")
+        
         if self.doScale:
             oldSampling = inputSet.getSamplingRate()
             scaleFactor = self._getScaleFactor(inputSet)
             newSampling = oldSampling * scaleFactor
             imgSet.setSamplingRate(newSampling)
-
-        imgSet.copyItems(inputSet, updateItemCallback=self._setFileName)
+        
+        imgSet.copyItems(inputSet, updateItemCallback=self._setFileName,
+                         itemDataIterator=md.iterRows(outImgsFn,
+                                                      sortByLabel=md.RLN_IMAGE_ID))
         self._defineOutputs(outputParticles=imgSet)
         self._defineTransformRelation(inputSet, imgSet)
     
     # --------------------------- INFO functions ------------------------------
     def _validate(self):
+        """ Should be overwritten in subclasses to
+        return summary message for NORMAL EXECUTION. 
+        """
         validateMsgs = []
 
         if self.doScale and self.scaleSize.get() % 2 != 0:
@@ -273,15 +286,16 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
         scaleFactor = xdim / float(
             self.scaleSize.get() if self.doScale else xdim)
         return scaleFactor
-
-    def _getOutStack(self, stack):
-        """ Return the output stack filename based on the input. """
-        return self._getExtraPath(pwutils.replaceBaseExt(stack, 'mrcs'))
-
-    def _setFileName(self, item, row=None):
-        index, fn = item.getLocation()
-        index = 1 if index == pwem.NO_INDEX else index
-        item.setLocation(index, self._getOutStack(fn))
+    
+    def _getOutParam(self):
+        outParam = '--operate_out '
+        outParam += self._getFileName("preprocess_particles_prefix")
+        return outParam
+    
+    def _setFileName(self, item, row):
+        relionFn = row.getValue(md.RLN_IMAGE_NAME)
+        indx, fn = convert.relionToLocation(relionFn)
+        item.setLocation(indx, self._getPath(fn))
         
         invFactor = 1 / self._getScaleFactor(item)
         

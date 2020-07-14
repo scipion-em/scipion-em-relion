@@ -9,7 +9,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -27,167 +27,23 @@
 # *
 # **************************************************************************
 
-from __future__ import print_function
 import os
 import subprocess
-import numpy
-from pyworkflow.object import Float
+import numpy as np
+
 from pyworkflow.tests import BaseTest, setupTestOutput, DataSet
-from pyworkflow.em.data import (SetOfParticles, CTFModel, Acquisition,
-                                Coordinate, Particle, SetOfVolumes, Transform)
-from pyworkflow.em import ImageHandler
 from pyworkflow.utils import cleanPath
-import pyworkflow.em.metadata as md
-from pyworkflow.em.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_3D
+from pwem.objects import (SetOfParticles, CTFModel, Acquisition,
+                          SetOfMicrographs, Coordinate, Particle,
+                          SetOfVolumes, Transform)
+from pwem.emlib.image import ImageHandler
+import pwem.emlib.metadata as md
+from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_3D
+from pyworkflow.utils import magentaStr, createLink, replaceExt
 
-import relion
-import relion.convert
-
-
-class TestConversions(BaseTest):
-    
-    @classmethod
-    def setUpClass(cls):
-        setupTestOutput(cls)
-        cls.dataset = DataSet.getDataSet('relion_tutorial')  
-        cls.getFile = cls.dataset.getFile
-
-    def test_particlesToStar(self):
-        """ Write a SetOfParticles to Relion star input file. """
-        imgSet = SetOfParticles(filename=self.getOutputPath("particles.sqlite"))
-        n = 10
-        fn = self.getFile('particles_binary')
-        ctfs = [CTFModel(defocusU=10000, defocusV=15000, defocusAngle=15),
-                CTFModel(defocusU=20000, defocusV=25000, defocusAngle=25)]
-        acquisition = Acquisition(magnification=60000, voltage=300,
-                                  sphericalAberration=2., amplitudeContrast=0.07)
-        imgSet.setAcquisition(acquisition)
-        coord = Coordinate()
-        coord.setMicId(1)
-
-        for i in range(n):
-            p = Particle()
-            p.setLocation(i+1, fn)
-            ctf = ctfs[i%2]
-            p.setCTF(ctf)
-            p.setAcquisition(acquisition)
-            p._xmipp_zScore = Float(i)
-            coord.setX(i*10)
-            coord.setY(i*10)
-            p.setCoordinate(coord)
-            imgSet.append(p)
-            
-        fnStar = self.getOutputPath('particles.star')
-        fnStk = self.getOutputPath('particles.stk')
-        
-        print (">>> Writing to file: %s" % fnStar)
-        relion.convert.writeSetOfParticles(imgSet, fnStar, fnStk)
-        
-        mdAll = md.MetaData(fnStar)
-        self.assertTrue(mdAll.containsLabel(md.RLN_IMAGE_COORD_X))
-        self.assertTrue(mdAll.containsLabel(md.RLN_IMAGE_COORD_Y))
-        self.assertFalse(mdAll.containsLabel(md.RLN_SELECT_PARTICLES_ZSCORE))
-        self.assertFalse(mdAll.containsLabel(md.RLN_CTF_PHASESHIFT))
-
-    def test_particlesWithPhaseShiftToStar(self):
-        """ Write a SetOfParticles to Relion star input file. """
-        imgSet = SetOfParticles(filename=self.getOutputPath("particles_ph_sh.sqlite"))
-        n = 10
-        fn = self.getFile('particles_binary')
-        ctfs = [CTFModel(defocusU=10000, defocusV=15000,
-                         defocusAngle=15, phaseShift=90),
-                CTFModel(defocusU=20000, defocusV=25000,
-                         defocusAngle=25, phaseShift=60)]
-        acquisition = Acquisition(magnification=60000, voltage=300,
-                                  sphericalAberration=2.,
-                                  amplitudeContrast=0.07)
-        imgSet.setAcquisition(acquisition)
-        coord = Coordinate()
-        coord.setMicId(1)
-
-        for i in range(n):
-            p = Particle()
-            p.setLocation(i + 1, fn)
-            ctf = ctfs[i % 2]
-            p.setCTF(ctf)
-            p.setAcquisition(acquisition)
-            p._xmipp_zScore = Float(i)
-            coord.setX(i * 10)
-            coord.setY(i * 10)
-            p.setCoordinate(coord)
-            imgSet.append(p)
-
-        fnStar = self.getOutputPath('particles_ph_sh.star')
-        fnStk = self.getOutputPath('particles.stk')
-
-        print (">>> Writing to file: %s" % fnStar)
-        relion.convert.writeSetOfParticles(imgSet, fnStar, fnStk)
-
-        mdAll = md.MetaData(fnStar)
-        self.assertTrue(mdAll.containsLabel(md.RLN_IMAGE_COORD_X))
-        self.assertTrue(mdAll.containsLabel(md.RLN_IMAGE_COORD_Y))
-        self.assertFalse(mdAll.containsLabel(md.RLN_SELECT_PARTICLES_ZSCORE))
-        self.assertTrue(mdAll.containsLabel(md.RLN_CTF_PHASESHIFT))
-
-    def test_particlesFromStar(self):
-        """ Read a set of particles from an .star file.  """
-        fnStar = self.getFile('relion_it020_data')
-        
-        print (">>> Reading star file: ", fnStar)
-        mdAll = md.MetaData(fnStar)
-        goldLabels = ['rlnVoltage', 'rlnDefocusU', 'rlnDefocusV', 
-                      'rlnDefocusAngle', 'rlnSphericalAberration', 
-                      'rlnAmplitudeContrast', 'rlnImageName', 'rlnImageId', 
-                      'rlnCoordinateX', 'rlnCoordinateY', 'rlnMagnificationCorrection',
-                      'rlnNormCorrection', 'rlnMicrographName', 'rlnGroupNumber', 
-                      'rlnOriginX', 'rlnOriginY', 'rlnAngleRot', 'rlnAngleTilt', 
-                      'rlnAnglePsi', 'rlnClassNumber', 'rlnLogLikeliContribution', 
-                      'rlnNrOfSignificantSamples', 'rlnMaxValueProbDistribution']
-        self.assertEqual(goldLabels, [md.label2Str(l) for l in mdAll.getActiveLabels()])
-        self.assertEqual(4700, mdAll.size())
-
-    def test_particlesFromStarNewLabels(self):
-        """ Read a set of particles from an .star file.  """
-        fnStar = self.getFile('relion_it020_data_newlabels')
-
-        print(">>> Reading new star file: ", fnStar)
-
-        goldLabels = ['rlnVoltage', 'rlnDefocusU', 'rlnDefocusV',
-                      'rlnDefocusAngle', 'rlnSphericalAberration',
-                      'rlnAmplitudeContrast', 'rlnImageName', 'rlnImageId',
-                      'rlnCoordinateX', 'rlnCoordinateY',
-                      'rlnMagnificationCorrection',
-                      'rlnNormCorrection', 'rlnMicrographName',
-                      'rlnGroupNumber',
-                      'rlnOriginX', 'rlnOriginY', 'rlnAngleRot', 'rlnAngleTilt',
-                      'rlnAnglePsi', 'rlnClassNumber',
-                      'rlnLogLikeliContribution',
-                      'rlnNrOfSignificantSamples',
-                      'rlnNewLabel']
-
-        # Read the metadata without defining the new label
-        # In this case label should be treated as string
-        mdAll = md.MetaData(fnStar)
-
-        # This should warn about it and tolerate the undefined rlnNewLabel
-        self.assertEqual(goldLabels,
-                         [md.label2Str(l) for l in mdAll.getActiveLabels()])
-
-        value = mdAll.getValue(md.getLabel("rlnNewLabel"), 1)
-        self.assertTrue(isinstance(value, basestring),
-                        "undefined labels are not treated as strings")
-
-        # Define new label reusing existing one
-        # md.addLabelAlias(2, "rlnNewLabel", True, md.LABEL_DOUBLE)
-        newLabel = md.getNewAlias("rlnNewLabel", md.LABEL_DOUBLE)
-        mdAll = md.MetaData(fnStar)
-
-        self.assertEqual(goldLabels,
-                         [md.label2Str(l) for l in mdAll.getActiveLabels()])
-
-        value = mdAll.getValue(newLabel, 1)
-        self.assertTrue(isinstance(value, float),
-                        "Defined label to DOUBLE does not take the type")
+from relion import Plugin
+import relion.convert as convert
+from relion.convert.convert31 import OpticsGroups
 
 
 class TestConvertBinaryFiles(BaseTest):
@@ -202,6 +58,7 @@ class TestConvertBinaryFiles(BaseTest):
         """ In this case the hdf stack files should be converted
         to .stk spider files for Relion.
         """
+        print(magentaStr("\n==> Testing relion - convert hdf files to mrcs:"))
         stackFiles = ['BPV_1386_ptcls.hdf',
                       'BPV_1387_ptcls.hdf',
                       'BPV_1388_ptcls.hdf']
@@ -214,17 +71,14 @@ class TestConvertBinaryFiles(BaseTest):
             partSet.append(particle)
             
         outputDir = self.getOutputPath()
-        
-        filesDict = relion.convert.convertBinaryFiles(partSet, outputDir)
-        
+        filesDict = convert.convertBinaryFiles(partSet, outputDir)
         partSet.close()
-        
-        print (filesDict)
+        print(filesDict)
         
     def test_mrcsLink(self):
         """ In this case just a link with .mrcs extension 
-        should be created
-        """
+        should be created """
+        print(magentaStr("\n==> Testing relion - link mrc stack to mrcs:"))
         stackFile = self.dsEmx.getFile('particles/particles.mrc')
         partSet = SetOfParticles(filename=':memory:')
         
@@ -234,21 +88,20 @@ class TestConvertBinaryFiles(BaseTest):
             partSet.append(particle)
             
         outputDir = self.getOutputPath()
-        
-        filesDict = relion.convert.convertBinaryFiles(partSet, outputDir)
-        
-        print (filesDict)
+        filesDict = convert.convertBinaryFiles(partSet, outputDir)
+        print(filesDict)
 
 
-SHOW_IMAGES  = False # Launch xmipp_showj to open intermediate results
-CLEAN_IMAGES = True # Remove the output temporary files
+SHOW_IMAGES = False  # Launch xmipp_showj to open intermediate results
+CLEAN_IMAGES = True  # Remove the output temporary files
 PRINT_MATRIX = True
-PRINT_FILES  = True
+PRINT_FILES = True
 
 
 def runRelionProgram(cmd):
-    print (">>>", cmd)
-    p = subprocess.Popen(cmd, shell=True, env=relion.Plugin.getEnviron())
+    print(">>>", cmd)
+    cmd = cmd.split()
+    p = subprocess.Popen(cmd, env=Plugin.getEnviron())
     return p.wait()
 
 
@@ -264,20 +117,27 @@ class TestConvertAnglesBase(BaseTest):
 
     def launchTest(self, fileKey, mList, alignType=None, **kwargs):
         """ Helper function to launch similar alignment tests
-        give the EMX transformation matrix.
+        given the EMX transformation matrix.
         Params:
             fileKey: the file where to grab the input stack images.
             mList: the matrix list of transformations
                 (should be the same length of the stack of images)
         """
-        print ("\n")
-        print ("*" * 80)
-        print ("* Launching test: ", fileKey)
-        print ("*" * 80)
+        print("\n")
+        print("*" * 80)
+        print("* Launching test: ", fileKey)
+        print("*" * 80)
 
         is2D = alignType == ALIGN_2D
 
-        stackFn = self.dataset.getFile(fileKey)
+        if fileKey == 'alignShiftRotExp':
+            # relion requires mrcs stacks
+            origFn = self.dataset.getFile(fileKey)
+            stackFn = replaceExt(origFn, ".mrcs")
+            createLink(origFn, stackFn)
+        else:
+            stackFn = self.dataset.getFile(fileKey)
+
         partFn1 = self.getOutputPath(fileKey + "_particles1.sqlite")
         mdFn = self.getOutputPath(fileKey + "_particles.star")
         partFn2 = self.getOutputPath(fileKey + "_particles2.sqlite")
@@ -288,8 +148,6 @@ class TestConvertAnglesBase(BaseTest):
             goldFn = self.dataset.getFile(fileKey + '_Gold_output_relion.mrcs')
         else:
             outputFn = self.getOutputPath(fileKey + "_output.vol")
-            # Once version has this key in the dataset this can be uncommented (v >2.0)
-            #goldFn = self.dataset.getFile(fileKey + 'GoldRln')
             goldFn = self.dataset.getFile("reconstruction/gold/" + fileKey + '_Gold_rln_output.vol')
 
         if PRINT_FILES:
@@ -305,38 +163,47 @@ class TestConvertAnglesBase(BaseTest):
         else:
             partSet = SetOfVolumes(filename=partFn1)
         partSet.setAlignment(alignType)
-        partSet.setAcquisition(Acquisition(voltage=300,
-                                           sphericalAberration=2,
-                                           amplitudeContrast=0.1,
-                                           magnification=60000))
-        # Populate the SetOfParticles with  images
+
+        acq = Acquisition(voltage=300,
+                          sphericalAberration=2,
+                          amplitudeContrast=0.1,
+                          magnification=60000)
+        og = OpticsGroups.create(rlnMtfFileName="mtfFile1.star")
+        partSet.setSamplingRate(1.0)
+        partSet.setAcquisition(acq)
+        og.toImages(partSet)
+        # Populate the SetOfParticles with images
         # taken from images.mrc file
         # and setting the previous alignment parameters
-        aList = [numpy.array(m) for m in mList]
+        aList = [np.array(m) for m in mList]
         for i, a in enumerate(aList):
             p = Particle()
             p.setLocation(i + 1, stackFn)
             p.setTransform(Transform(a))
             partSet.append(p)
         # Write out the .sqlite file and check that are correctly aligned
-        print ("Parset", partFn1)
+        print("Partset", partFn1)
         partSet.printAll()
         partSet.write()
         # Convert to a Xmipp metadata and also check that the images are
         # aligned correctly
         if alignType == ALIGN_2D or alignType == ALIGN_PROJ:
-            relion.convert.writeSetOfParticles(partSet, mdFn,"/tmp", alignType=alignType)
+            starWriter = convert.createWriter()
+            starWriter.writeSetOfParticles(partSet, mdFn, alignType=alignType)
             partSet2 = SetOfParticles(filename=partFn2)
         else:
-            relion.convert.writeSetOfVolumes(partSet, mdFn, alignType=alignType)
+            convert.writeSetOfVolumes(partSet, mdFn, alignType=alignType)
             partSet2 = SetOfVolumes(filename=partFn2)
         # Let's create now another SetOfImages reading back the written
         # Xmipp metadata and check one more time.
         partSet2.copyInfo(partSet)
         if alignType == ALIGN_2D or alignType == ALIGN_PROJ:
-            relion.convert.readSetOfParticles(mdFn, partSet2, alignType=alignType)
+            convert.readSetOfParticles(mdFn, partSet2,
+                                       alignType=alignType)
         else:
-            relion.convert.readSetOfVolumes(mdFn, partSet2, alignType=alignType)
+            convert.readSetOfParticles(mdFn, partSet2,
+                                       rowToFunc=convert.rowToVolume,
+                                       alignType=alignType)
 
         partSet2.write()
 
@@ -344,12 +211,12 @@ class TestConvertAnglesBase(BaseTest):
             for i, img in enumerate(partSet2):
                 m1 = aList[i]
                 m2 = img.getTransform().getMatrix()
-                print ("-" * 5)
-                print (img.getFileName(), img.getIndex())
-                print ('m1:\n', m1, relion.convert.geometryFromMatrix(m1, False))
+                print("-" * 5)
+                print(img.getFileName(), img.getIndex())
+                print('m1:\n', m1, convert.geometryFromMatrix(m1, False))
 
-                print ('m2:\n', m2, relion.convert.geometryFromMatrix(m2, False))
-                # self.assertTrue(numpy.allclose(m1, m2, rtol=1e-2))
+                print('m2:\n', m2, convert.geometryFromMatrix(m2, False))
+                self.assertTrue(np.allclose(m1, m2, rtol=1e-2))
 
         # Launch apply transformation and check result images
         runRelionProgram(self.CMD % locals())
@@ -361,34 +228,29 @@ class TestConvertAnglesBase(BaseTest):
             self.assertTrue(
                 ImageHandler().compareData(goldFn, outputFn, tolerance=0.001),
                 "Different data files:\n>%s\n<%s" % (goldFn, outputFn))
-        # else:
-        #     print colorText.RED + colorText.BOLD + "WARNING: Gold file '%s' missing!!!" % goldFn + colorText.END
-        #
+
         if CLEAN_IMAGES:
-            cleanPath("/tmp/input")
+            cleanPath(outputFn)
 
 
 class TestAlignment(TestConvertAnglesBase):
     IS_ALIGNMENT = True
     CMD = "relion_stack_create  --i %(mdFn)s --o %(outputFnRelion)s --apply_transformation"
 
-    
     def test_isInverse(self):
-        """Consistency between fordwards and backwards geometrical
+        """Consistency between forwards and backwards geometrical
         transformations"""
         def _testInv(matrix):
-            matrix = numpy.array(matrix)
+            matrix = np.array(matrix)
             a = Transform(matrix)
 
             row1 = md.Row()
-            relion.convert.alignmentToRow(a, row1, alignType=ALIGN_2D)
+            convert.alignmentToRow(a, row1, alignType=ALIGN_2D)
 
-            # row2 = md.Row()
-            # relion.convert.alignmentToRow(a, row2, alignType=ALIGN_3D)
             row2 = None
             
             row3 = md.Row()
-            relion.convert.alignmentToRow(a, row3, alignType=ALIGN_PROJ)
+            convert.alignmentToRow(a, row3, alignType=ALIGN_PROJ)
 
             return row1, row2, row3
 
@@ -400,13 +262,6 @@ class TestAlignment(TestConvertAnglesBase):
         self.assertAlmostEqual(row1.getValue(md.RLN_ORIENT_ORIGIN_X), 20., 4)
         self.assertAlmostEqual(row1.getValue(md.RLN_ORIENT_ORIGIN_Y), 0., 4)
         self.assertAlmostEqual(row1.getValue(md.RLN_ORIENT_PSI), 0., 4)
-
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_ORIGIN_X), 20., 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_ORIGIN_Y), 0., 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_ORIGIN_Z), 0., 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_ROT), 0., 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_TILT), 0., 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_PSI), 0., 4)
 
         self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_ORIGIN_X), 20., 4)
         self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_ORIGIN_Y), 0., 4)
@@ -422,13 +277,6 @@ class TestAlignment(TestConvertAnglesBase):
         self.assertAlmostEqual(row1.getValue(md.RLN_ORIENT_ORIGIN_X), -6.8404, 4)
         self.assertAlmostEqual(row1.getValue(md.RLN_ORIENT_ORIGIN_Y), 18.7939, 4)
         self.assertAlmostEqual(row1.getValue(md.RLN_ORIENT_PSI), -20., 4)
-
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_ORIGIN_X), -6.8404, 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_ORIGIN_Y), 18.7939, 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_ORIGIN_Z), 0., 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_ROT), -20., 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_TILT), 0., 4)
-        # self.assertAlmostEqual(row2.getValue(md.RLN_ORIENT_PSI), 0., 4)
 
         self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_ORIGIN_X), -12.8558097352, 4)
         self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_ORIGIN_Y), 15.3209632479, 4)
@@ -467,7 +315,7 @@ class TestAlignment(TestConvertAnglesBase):
         self.launchTest('alignShiftRotExp', mList, alignType=ALIGN_2D)
 
     def aatest_alignShiftRot3D(self):
-        #TODO: 3D alignment not tested since we need a program in Relion
+        # TODO: 3D alignment not tested since we need a program in Relion
         # apply transformation.
         
         """ Check that for a given alignment object,
@@ -490,7 +338,7 @@ class TestAlignment(TestConvertAnglesBase):
                   [0.0, 0.0, 0.0, 1.0]]]
 
         self.launchTest('alignShiftRot3D', mList, alignType=ALIGN_3D)
-    #
+
     def test_alignRotOnly(self):
         """ Check that for a given alignment object,
         the corresponding Xmipp metadata row is generated properly.
@@ -515,7 +363,7 @@ class TestAlignment(TestConvertAnglesBase):
         self.launchTest('alignRotOnly', mList, alignType=ALIGN_2D)
 
     def aatest_alignRotOnly3D(self):
-        #TODO: 3D alignment not tested since we need a program in Relion
+        # TODO: 3D alignment not tested since we need a program in Relion
         """ Check that for a given alignment object,
         the corresponding Xmipp metadata row is generated properly.
         Goal: 3D alignment
@@ -564,7 +412,7 @@ class TestAlignment(TestConvertAnglesBase):
         self.launchTest('alignShiftOnly', mList, alignType=ALIGN_2D)
 
     def aatest_alignShiftOnly3D(self):
-        #TODO: 3D alignment not tested since we need a program in Relion
+        # TODO: 3D alignment not tested since we need a program in Relion
         """ Check that for a given alignment object,
         the corresponding Xmipp metadata row is generated properly.
         Goal: 3D alignment
@@ -626,82 +474,70 @@ class TestReconstruct(TestConvertAnglesBase):
     CMD = "relion_reconstruct --i %(mdFn)s --o %(outputFn)s"
 
     def test_forward_backwards(self):
-        """convert transformation matrixt to xmipp and back"""
+        """convert transformation matrix to xmipp and back"""
 
-        mList = [[[0.71461016, 0.63371837, -0.29619813,  1.],#a1
+        mList = [[[0.71461016, 0.63371837, -0.29619813,  1.],  # a1
                   [-0.61309201, 0.77128059, 0.17101008,  2.],
                   [0.33682409, 0.059391174, 0.93969262,  3.],
                   [0,          0,          0,            1.]],
-                 [[0., 0., -1., 0.],#a2
+                 [[0., 0., -1., 0.],  # a2
                   [0., 1., 0., 0.],
                   [1., 0., 0., 0.],
                   [0., 0., 0., 1.]],
-                 [[0., 1., 0., 0.],#a3
+                 [[0., 1., 0., 0.],  # a3
                   [0., 0., 1., 0.],
                   [1., 0., 0., 0.],
                   [0., 0., 0., 1.]],
-                 [[ 0.22612257, 0.82379508, -0.51983678, 0.],#a4
+                 [[0.22612257, 0.82379508, -0.51983678, 0.],  # a4
                   [-0.88564873, 0.39606407, 0.24240388,  0.],
-                  [ 0.40557978, 0.40557978, 0.81915206,  0.],
-                  [ 0.,          0.,          0.,           1.]],
-                 [[-0.78850311, -0.24329656,-0.56486255,   0.],#a5
-                  [ 0.22753462, -0.96866286, 0.099600501,  0.],
+                  [0.40557978, 0.40557978, 0.81915206,  0.],
+                  [0.,          0.,          0.,           1.]],
+                 [[-0.78850311, -0.24329656, -0.56486255,   0.],  # a5
+                  [0.22753462, -0.96866286, 0.099600501,  0.],
                   [-0.57139379, -0.049990479, 0.81915206,  0.],
                   [0.,            0.,           0.,           1.]],
-                 [[ 1.0, 0.0, 0.0, 0.0],#a6
-                  [ 0.0, 1.0, 0.0, 0.0],
-                  [ 0.0, 0.0, 1.0, 0.0],
-                  [ 0.0, 0.0, 0.0, 1.0]],
-                 [[0., 0., -1., 0.],#a7
+                 [[1.0, 0.0, 0.0, 0.0],  # a6
+                  [0.0, 1.0, 0.0, 0.0],
+                  [0.0, 0.0, 1.0, 0.0],
+                  [0.0, 0.0, 0.0, 1.0]],
+                 [[0., 0., -1., 0.],  # a7
                   [-1., 0., 0.,  0.],
                   [0., 1., 0.,  0.],
                   [0., 0., 0., 1.]]
-                ]
+                 ]
 
-        aList = [numpy.array(m) for m in mList]
+        aList = [np.array(m) for m in mList]
         rowa = md.Row()
         rowb = md.Row()
-        rowb1 = md.Row()
-        rowb2 = md.Row()
-        rowb3 = md.Row()
-        labelList=[md.RLN_ORIENT_ROT
-                  ,md.RLN_ORIENT_TILT
-                  ,md.RLN_ORIENT_PSI
-                  ,md.RLN_ORIENT_ORIGIN_X
-                  ,md.RLN_ORIENT_ORIGIN_Y
-                  ,md.RLN_ORIENT_ORIGIN_Z
-                  ]
+        labelList = [md.RLN_ORIENT_ROT,
+                     md.RLN_ORIENT_TILT,
+                     md.RLN_ORIENT_PSI,
+                     md.RLN_ORIENT_ORIGIN_X,
+                     md.RLN_ORIENT_ORIGIN_Y,
+                     md.RLN_ORIENT_ORIGIN_Z]
+
         for i, a in enumerate(aList):
             a = Transform(aList[i])
-            relion.convert.alignmentToRow(a, rowa, ALIGN_PROJ)
-            b = relion.convert.rowToAlignment(rowa, ALIGN_PROJ)
-            relion.convert.alignmentToRow(b, rowb, ALIGN_PROJ)
-            #same two matrices
-            self.assertTrue(numpy.allclose(a.getMatrix(), b.getMatrix(),
-                                           rtol=1e-2))
+            convert.alignmentToRow(a, rowa, ALIGN_PROJ)
+            b = convert.rowToAlignment(rowa, ALIGN_PROJ)
+            convert.alignmentToRow(b, rowb, ALIGN_PROJ)
+            # same two matrices
+            self.assertTrue(np.allclose(a.getMatrix(), b.getMatrix(),
+                                        rtol=1e-2))
             for label in labelList:
                 auxBtilt = rowb.getValue(label)
                 auxAtilt = rowa.getValue(label)
-                #same two rows
-                self.assertAlmostEqual(auxBtilt, auxAtilt, places=3, msg=None, delta=None)
+                # same two rows
+                self.assertAlmostEqual(auxBtilt, auxAtilt, places=3, msg=None)
 
-            b = relion.convert.rowToAlignment(rowa, ALIGN_PROJ)
-            relion.convert.alignmentToRow(b, rowb, ALIGN_PROJ)
+            b = convert.rowToAlignment(rowa, ALIGN_PROJ)
+            convert.alignmentToRow(b, rowb, ALIGN_PROJ)
             aMatrix = a.getMatrix()
             # aMatrix[0,:] *= -1; aMatrix[2,:] *= -1;
-            #same two matrices with flip
-            print ("aMatrix: \n", aMatrix, "bMatrix: \n", b.getMatrix())
+            # same two matrices with flip
+            print("\naMatrix: \n", aMatrix, "\nbMatrix: \n", b.getMatrix())
             
-            self.assertTrue(numpy.allclose(aMatrix, b.getMatrix(), rtol=1e-2))
-
- #* newrot = rot;
- #* newtilt = tilt + 180;
- #* newpsi = -(180 + psi);
-
- #* newrot = rot + 180;
- #* newtilt = -tilt;
- #* newpsi = -180 + psi;
-
+            self.assertTrue(np.allclose(aMatrix, b.getMatrix(), rtol=1e-2))
 
     def test_reconstRotOnly(self):
         """ Check that for a given alignment object,
@@ -718,35 +554,35 @@ class TestReconstruct(TestConvertAnglesBase):
         mList[5] * (4    8   16)   -> (4,8,16)
         mList[6] * (-8   16   -4)  -> (4,8,16)
         """
-        mList = [[[0.71461016, 0.63371837, -0.29619813,  0.],#a1
+        mList = [[[0.71461016, 0.63371837, -0.29619813,  0.],  # a1
                   [-0.61309201, 0.77128059, 0.17101008,  0.],
                   [0.33682409, 0.059391174, 0.93969262,  0.],
                   [0,          0,          0,            1.]],
-                 [[0., 0., -1., 0.],#a2
+                 [[0., 0., -1., 0.],  # a2
                   [0., 1., 0., 0.],
                   [1., 0., 0., 0.],
                   [0., 0., 0., 1.]],
-                 [[0., 1., 0., 0.],#a3
+                 [[0., 1., 0., 0.],  # a3
                   [0., 0., 1., 0.],
                   [1., 0., 0., 0.],
                   [0., 0., 0., 1.]],
-                 [[ 0.22612257, 0.82379508, -0.51983678, 0.],#a4
+                 [[0.22612257, 0.82379508, -0.51983678, 0.],  # a4
                   [-0.88564873, 0.39606407, 0.24240388,  0.],
-                  [ 0.40557978, 0.40557978, 0.81915206,  0.],
-                  [ 0.,          0.,          0.,           1.]],
-                 [[-0.78850311, -0.24329656,-0.56486255,   0.],#a5
-                  [ 0.22753462, -0.96866286, 0.099600501,  0.],
+                  [0.40557978, 0.40557978, 0.81915206,  0.],
+                  [0.,          0.,          0.,           1.]],
+                 [[-0.78850311, -0.24329656, -0.56486255,   0.],  # a5
+                  [0.22753462, -0.96866286, 0.099600501,  0.],
                   [-0.57139379, -0.049990479, 0.81915206,  0.],
                   [0.,            0.,           0.,           1.]],
-                 [[ 1.0, 0.0, 0.0, 0.0],#a6
-                  [ 0.0, 1.0, 0.0, 0.0],
-                  [ 0.0, 0.0, 1.0, 0.0],
-                  [ 0.0, 0.0, 0.0, 1.0]],
-                 [[0., 0., -1., 0.],#a7
+                 [[1.0, 0.0, 0.0, 0.0],  # a6
+                  [0.0, 1.0, 0.0, 0.0],
+                  [0.0, 0.0, 1.0, 0.0],
+                  [0.0, 0.0, 0.0, 1.0]],
+                 [[0., 0., -1., 0.],  # a7
                   [-1., 0., 0.,  0.],
                   [0., 1., 0.,  0.],
                   [0., 0., 0., 1.]]
-                ]
+                 ]
 
         self.launchTest('reconstRotOnly', mList, alignType=ALIGN_PROJ)
 
@@ -765,35 +601,35 @@ class TestReconstruct(TestConvertAnglesBase):
         mList[5] * 64*(4    8   16)   -> (4,8,16)
         mList[6] * 64*(-0.125000   0.250000  -0.062500)  -> (4,8,16)
         """
-        mList = [[[0.71461016, 0.63371837, -0.29619813,  4.],#a1
+        mList = [[[0.71461016, 0.63371837, -0.29619813,  4.],  # a1
                   [-0.61309201, 0.77128059, 0.17101008,  8.],
                   [0.33682409, 0.059391174, 0.93969262, 12.],
                   [0,          0,          0,            1.]],
-                 [[0., 0., -1., 0.],#a2
+                 [[0., 0., -1., 0.],  # a2
                   [0., 1., 0., 0.],
                   [1., 0., 0., 0.],
                   [0., 0., 0., 1.]],
-                 [[0., 1., 0., 0.],#a3
+                 [[0., 1., 0., 0.],  # a3
                   [0., 0., 1., 4.],
                   [1., 0., 0., 2.],
                   [0., 0., 0., 1.]],
-                 [[ 0.22612257, 0.82379508, -0.51983678, 7.],#a4
+                 [[0.22612257, 0.82379508, -0.51983678, 7.],  # a4
                   [-0.88564873, 0.39606407, 0.24240388,  3.],
-                  [ 0.40557978, 0.40557978, 0.81915206,  4.],
-                  [ 0.,          0.,          0.,           1.]],
-                 [[-0.78850311, -0.24329656,-0.56486255,   5.],#a5
-                  [ 0.22753462, -0.96866286, 0.099600501, -3.],
+                  [0.40557978, 0.40557978, 0.81915206,  4.],
+                  [0.,          0.,          0.,           1.]],
+                 [[-0.78850311, -0.24329656, -0.56486255,   5.],  # a5
+                  [0.22753462, -0.96866286, 0.099600501, -3.],
                   [-0.57139379, -0.049990479, 0.81915206, -2.],
                   [0.,            0.,           0.,           1.]],
-                 [[ 1.0, 0.0, 0.0, 0.0],#a6
-                  [ 0.0, 1.0, 0.0, 0.0],
-                  [ 0.0, 0.0, 1.0, 0.0],
-                  [ 0.0, 0.0, 0.0, 1.0]],
-                 [[0., 0., -1., 0.],#a7
+                 [[1.0, 0.0, 0.0, 0.0],  # a6
+                  [0.0, 1.0, 0.0, 0.0],
+                  [0.0, 0.0, 1.0, 0.0],
+                  [0.0, 0.0, 0.0, 1.0]],
+                 [[0., 0., -1., 0.],  # a7
                   [-1., 0., 0.,  0.],
                   [0., 1., 0.,  0.],
                   [0., 0., 0., 1.]]
-                ]
+                 ]
 
         self.launchTest('reconstRotandShift', mList, alignType=ALIGN_PROJ)
         
@@ -806,14 +642,14 @@ class TestReconstruct(TestConvertAnglesBase):
         """
         # in practice this is irrelevant since no converson with |mat|==-1
         mList = [
-                 [[1., 0., 0., 0.],#a1
+                 [[1., 0., 0., 0.],  # a1
                   [0., 1., 0., 0.],
                   [0., 0., 1., 0.],
                   [0., 0., 0., 1.]],
-                 [[  0.04341204, -0.82959837,  0.5566704,   7.42774284],#-50, -40,-30
-                  [  0.90961589,  0.26325835,  0.3213938, -20.82490128],
-                  [ -0.41317591,  0.49240388,  0.76604444,  3.33947946],
-                  [  0.,          0.,          0.,          1.        ]],
+                 [[0.04341204, -0.82959837,  0.5566704,   7.42774284],  # -50, -40,-30
+                  [0.90961589,  0.26325835,  0.3213938, -20.82490128],
+                  [0.41317591,  0.49240388,  0.76604444,  3.33947946],
+                  [0.,          0.,          0.,          1.]],
                  [[0.04341203,   0.82959837, - 0.5566704, - 7.42774315],
                   [0.90961589, - 0.26325834, - 0.3213938,   20.8249012],
                   [-0.4131759, - 0.49240388, - 0.76604444, - 3.33947923],
@@ -821,3 +657,233 @@ class TestReconstruct(TestConvertAnglesBase):
         ]
 
         self.launchTest('reconstRotandShiftFlip', mList, alignType=ALIGN_PROJ)
+
+
+class TestRelionWriter(BaseTest):
+    @classmethod
+    def setUpClass(cls):
+        setupTestOutput(cls)
+        cls.ds = DataSet.getDataSet('relion_tutorial')
+
+    def _createSetOfMics(self, n=10, nOptics=2):
+        micName = 'BPV_13%02d.mrc'
+        psdName = 'BPV_13%02d_PSD.ctf:mrc'
+        ogName = 'opticsGroup%d'
+        mtfFile = 'mtfFile%d.star'
+
+        cleanPath(self.getOutputPath('micrographs.sqlite'))
+        micsDb = self.getOutputPath('micrographs.sqlite')
+        outputMics = SetOfMicrographs(filename=micsDb)
+        outputMics.setSamplingRate(1.234)
+
+        mic = SetOfMicrographs.ITEM_TYPE()
+        acq = Acquisition(voltage=300,
+                          sphericalAberration=2,
+                          amplitudeContrast=0.1,
+                          magnification=60000)
+
+        og = OpticsGroups.create(rlnMtfFileName='')
+
+        fog = og.first()
+
+        ctf = CTFModel(defocusU=10000, defocusV=15000, defocusAngle=15)
+        outputMics.setAcquisition(acq)
+        mic.setAcquisition(acq)
+        mic.setCTF(ctf)
+
+        itemsPerOptics = n // nOptics
+
+        for i in range(1, n+1):
+            mic.setFileName(micName % i)
+            ctf = mic.getCTF()
+            ctf.setPsdFile(psdName % i)
+            ctf.setFitQuality(np.random.uniform())
+            ctf.setResolution(np.random.uniform(3, 15))
+            ogNumber = (i-1) // itemsPerOptics + 1
+
+            ogDict = {
+                'rlnOpticsGroup': ogNumber,
+                'rlnOpticsGroupName': ogName % ogNumber,
+                'rlnMtfFileName': mtfFile % ogNumber
+            }
+
+            if ogNumber in og:
+                og.update(ogNumber, **ogDict)
+            else:
+                og.add(fog._replace(**ogDict))
+
+            mic.rlnOpticsGroup = ogNumber
+            mic.setObjId(None)
+            outputMics.append(mic)
+
+        print(">>> Writing micrograph set to: ", micsDb)
+        outputMics.write()
+
+        return outputMics
+
+    def _createSetOfParts(self, nMics=10, nOptics=2, partsPerMic=10):
+        micSet = self._createSetOfMics(nMics, nOptics)
+        outputSqlite = self.getOutputPath('particles.sqlite')
+        cleanPath(outputSqlite)
+        print(">>> Writing to particles db: %s" % outputSqlite)
+        outputParts = SetOfParticles(filename=outputSqlite)
+        outputParts.setSamplingRate(1.234)
+        outputParts.setAcquisition(micSet.getAcquisition())
+
+        part = SetOfParticles.ITEM_TYPE()
+        coord = Coordinate()
+
+        for mic in micSet:
+            for i in range(1, partsPerMic+1):
+                part.setLocation(i, mic.getFileName().replace('mrc', 'mrcs'))
+                coord.setPosition(x=np.random.randint(0, 1000),
+                                  y=np.random.randint(0, 1000))
+                coord.setMicrograph(mic)
+                part.setObjId(None)
+                part.setCoordinate(coord)
+                part.setAcquisition(mic.getAcquisition())
+                outputParts.append(part)
+
+        outputParts.write()
+
+        return outputParts
+
+    def test_micrographsToStar(self):
+        """ Write a SetOfParticles to Relion star input file. """
+        outputStar = self.getOutputPath("micrographs.star")
+        outputMics = self._createSetOfMics(10)
+        print(">>> Writing to micrographs: %s" % outputStar)
+        starWriter = convert.createWriter()
+        starWriter.writeSetOfMicrographs(outputMics, outputStar)
+
+    def test_particlesToStar(self):
+        """ Write a SetOfParticles to Relion star input file. """
+        outputStar = self.getOutputPath("particles.star")
+        outputParts = self._createSetOfParts(10, 2, 10)
+        print(">>> Writing to particles star: %s" % outputStar)
+        starWriter = convert.createWriter()
+        starWriter.writeSetOfParticles(outputParts, outputStar)
+
+    def test_particlesImportToStar(self):
+        sqliteFn = self.ds.getFile("import/case2/particles.sqlite")
+        partsSet = SetOfParticles(filename=sqliteFn)
+        partsSet.loadAllProperties()
+        outputStar = self.getOutputPath("particles.star")
+        print(">>> Writing to particles star: %s" % outputStar)
+        starWriter = convert.createWriter()
+        starWriter.writeSetOfParticles(partsSet, outputStar)
+
+
+class TestRelionReader(BaseTest):
+    @classmethod
+    def setUpClass(cls):
+        setupTestOutput(cls)
+        cls.ds = DataSet.getDataSet('relion31_tutorial_precalculated')
+
+    def test_readSetOfParticles(self):
+        if not Plugin.IS_GT30():
+            print("Skipping test (required Relion > 3.1)")
+            return
+
+        partsStar = self.ds.getFile("Extract/job018/particles.star")
+        print("<<< Reading star file: \n   %s\n" % partsStar)
+        outputSqlite = self.getOutputPath('particles.sqlite')
+        cleanPath(outputSqlite)
+        print(">>> Writing to particles db: \n   %s\n" % outputSqlite)
+        partsSet = SetOfParticles(filename=outputSqlite)
+        convert.readSetOfParticles(partsStar, partsSet,
+                                   extraLabels=['rlnNrOfSignificantSamples'])
+        partsSet.write()
+
+        first = partsSet.getFirstItem()
+        first.printAll()
+        self.assertAlmostEqual(first.getSamplingRate(), 1.244531)
+        self.assertEqual(first.getClassId(), 4)
+        self.assertTrue(hasattr(first, '_rlnNrOfSignificantSamples'))
+
+        fog = OpticsGroups.fromImages(partsSet).first()
+        self.assertEqual(fog.rlnMtfFileName, 'mtf_k2_200kV.star')
+        self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')
+
+
+class TestRelionOpticsGroups(BaseTest):
+    @classmethod
+    def setUpClass(cls):
+        setupTestOutput(cls)
+        cls.ds = DataSet.getDataSet('relion31_tutorial_precalculated')
+
+    def test_fromStar(self):
+        if not Plugin.IS_GT30():
+            print("Skipping test (required Relion > 3.1)")
+            return
+
+        partsStar = self.ds.getFile("Extract/job018/particles.star")
+
+        print("<<< Reading optics groups from file: \n   %s\n" % partsStar)
+        og = OpticsGroups.fromStar(partsStar)
+        fog = og.first()
+
+        # acq = first.getAcquisition()
+        self.assertEqual(fog.rlnMtfFileName, 'mtf_k2_200kV.star')
+        self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')
+        self.assertEqual(og['opticsGroup1'], fog)
+
+    def test_string(self):
+        if not Plugin.IS_GT30():
+            print("Skipping test (required Relion > 3.1)")
+            return
+
+        og = OpticsGroups.create(rlnMtfFileName='mtf_k2_200kV.star')
+        fog = og.first()
+
+        # acq = first.getAcquisition()
+        self.assertEqual(fog.rlnMtfFileName, 'mtf_k2_200kV.star')
+        self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')
+        self.assertEqual(og['opticsGroup1'], fog)
+
+        # try update by id
+        og.update(1, rlnMtfFileName="new_mtf_k2.star")
+        # try update by name
+        og.update('opticsGroup1', rlnImageSize=512)
+
+        fog = og.first()
+        # acq = first.getAcquisition()
+        self.assertEqual(fog.rlnMtfFileName, 'new_mtf_k2.star')
+        self.assertEqual(fog.rlnImageSize, 512)
+        self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')
+        self.assertEqual(og['opticsGroup1'], fog)
+
+    def test_add(self):
+        """ Testing adding more groups or columns. """
+        og = OpticsGroups.create()
+
+        og1 = og.first()
+
+        self.assertEqual(len(og), 1)
+        self.assertAlmostEqual(og1.rlnVoltage, 300.)
+
+        og2 = og1._replace(rlnOpticsGroup=2,
+                           rlnOpticsGroupName='opticsGroup2',
+                           rlnVoltage=200.)
+        og.add(og2)
+        og3 = og1._replace(rlnOpticsGroup=3,
+                           rlnOpticsGroupName='opticsGroup3',
+                           rlnVoltage=100.)
+        og.add(og3)
+
+        self.assertEqual(len(og), 3)
+
+        og.addColumns(rlnMtfFileName='mtf_k2_200kV.star')
+
+        self.assertTrue(all(hasattr(ogx, 'rlnMtfFileName') for ogx in og))
+
+        og.update(2, rlnVoltage=300.)
+        og.update(3, rlnVoltage=300.)
+
+        for ogx in og:
+            self.assertAlmostEqual(ogx.rlnVoltage, 300.)
+
+        og.updateAll(rlnVoltage=200.)
+
+        for ogx in og:
+            self.assertAlmostEqual(ogx.rlnVoltage, 200.)

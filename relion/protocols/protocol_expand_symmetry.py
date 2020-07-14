@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -23,14 +23,15 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+from emtable import Table
 
 from pyworkflow.protocol.params import StringParam
-from pyworkflow.em import ALIGN_PROJ
-import pyworkflow.em.metadata as md
-from pyworkflow.em.protocol import ProtProcessParticles
+from pyworkflow.object import String
+from pwem.constants import ALIGN_PROJ
+from pwem.protocols import ProtProcessParticles
 
-import relion
-import relion.convert
+import relion.convert as convert
+from relion import Plugin
 
  
 class ProtRelionExpandSymmetry(ProtProcessParticles):
@@ -38,9 +39,6 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
 
     Given an input set of particles with angular assignment,
     expand the set by applying a pseudo-symmetry.
-
-    Be aware that input symmetry values follow Xmipp conventions as described in:
-    http://xmipp.cnb.csic.es/twiki/bin/view/Xmipp/Symmetry
     """
     _label = 'expand symmetry'
 
@@ -48,8 +46,10 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
     def _defineProcessParams(self, form):
         form.addParam('symmetryGroup', StringParam, default="c1",
                       label='Symmetry group',
-                      help="See http://xmipp.cnb.csic.es/twiki/bin/view/Xmipp/Symmetry"
-                           " for a description of the symmetry groups format in Xmipp.\n")
+                      help='See [[Relion Symmetry][http://www2.mrc-lmb.cam.ac.uk/'
+                           'relion/index.php/Conventions_%26_File_formats#Symmetry]] '
+                           'page for a description of the symmetry format '
+                           'accepted by Relion')
         form.addParallelSection(threads=0, mpi=0)
 
     # -------------------------- INSERT steps functions -----------------------
@@ -63,8 +63,9 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
 
     def convertInputStep(self, outputFn):
         """ Create a metadata with the images and geometrical information. """
-        relion.convert.writeSetOfParticles(
-            self.inputParticles.get(), outputFn, self._getPath())
+        convert.writeSetOfParticles(
+            self.inputParticles.get(), outputFn,
+            outputDir=self._getPath())
 
     def expandSymmetryStep(self, imgsFn):
         outImagesMd = self._getExtraPath('expanded_particles.star')
@@ -78,11 +79,21 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
         partSet.copyInfo(imgSet)
         outImagesMd = self._getExtraPath('expanded_particles.star')
 
-        mdOut = md.MetaData(outImagesMd)
-        mdOut.removeLabel(md.RLN_IMAGE_ID)  # remove repeating rlnImageId in mdOut
-        mdOut.write(outImagesMd, md.MD_OVERWRITE)
+        # remove repeating rlnImageId column
+        tableName = ''
+        if Plugin.IS_GT30():
+            tableName = 'particles'
+            mdOptics = Table(fileName=outImagesMd, tableName='optics')
 
-        relion.convert.readSetOfParticles(
+        mdOut = Table(fileName=outImagesMd, tableName=tableName)
+        mdOut.removeColumns("rlnImageId")
+        with open(outImagesMd, "w") as f:
+            mdOut.writeStar(f, tableName=tableName)
+            if Plugin.IS_GT30():
+                mdOptics.writeStar(f, tableName='optics')
+
+        reader = convert.createReader()
+        reader.readSetOfParticles(
             outImagesMd, partSet,
             alignType=ALIGN_PROJ,
             postprocessImageRow=self._postprocessImageRow)
@@ -117,6 +128,6 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
         return methods
 
     # -------------------------- Utils functions ------------------------------
-    def _postprocessImageRow(self, img, imgRow):
-        relion.convert.setRelionAttributes(
-            img, imgRow, md.RLN_MLMODEL_GROUP_NAME)
+    def _postprocessImageRow(self, item, row):
+        if hasattr(row, 'rlnGroupName'):
+            item._rlnGroupName = String(row.rlnGroupName)

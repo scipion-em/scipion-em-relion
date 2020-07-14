@@ -8,7 +8,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -27,18 +27,15 @@
 # ******************************************************************************
 
 import sys
-import os
 import matplotlib as mpl
 import numpy as np
 
-from pyworkflow.protocol.params import LabelParam
-from pyworkflow.viewer import DESKTOP_TKINTER, WEB_DJANGO, ProtocolViewer
-from pyworkflow.em.viewers.plotter import plt, EmPlotter
-from pyworkflow.em.viewers import ObjectView, DataView
-import pyworkflow.em.viewers.showj as showj
+from pwem.viewers.plotter import plt
+from pyworkflow.viewer import ProtocolViewer
 
-from relion.objects import CtfRefineGlobalInfo
-from relion.protocols import ProtRelionCtfRefinement
+from .viewer_base import *
+from ..objects import CtfRefineGlobalInfo
+from ..protocols import ProtRelionCtfRefinement
 
 
 class ProtCtfRefineViewer(ProtocolViewer):
@@ -61,7 +58,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
         self._env = os.environ.copy()
         showBeamTilt = self.protocol.doBeamtiltEstimation.get()
         form.addSection(label="Results")
-        form.addParam('displayDefocus', LabelParam,
+        form.addParam('displayDefocus', params.LabelParam,
                       label="Show Defocus and Stdev",
                       help="Display the defocus estimation.\n "
                            "Plot defocus difference (Angstroms) vs "
@@ -73,13 +70,13 @@ class ProtCtfRefineViewer(ProtocolViewer):
                            "micrographs)\n"
                            "Home/End keys (move +1000/-1000 micrographs)")
 
-        form.addParam('displayBeamTilt', LabelParam,
+        form.addParam('displayBeamTilt', params.LabelParam,
                       label="Show BeamTilt Images",
                       condition="{}".format(showBeamTilt),
                       help="Display two images: (1) phase differences from "
                            "which this estimate was derived and\n"
                            "(2) the model fitted through it.")
-        form.addParam('displayParticles', LabelParam,
+        form.addParam('displayParticles', params.LabelParam,
                       label="Display Particles",
                       help="See the particles with the new CTF "
                            "and beam tilt values")
@@ -129,7 +126,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
         self.x = [mi.micId.get() for mi in self._micInfoList]
         self.y = [mi.stdev.get() for mi in self._micInfoList]
         self.ax1.scatter(self.x, self.y, s=50, marker='o',
-                               c='blue')
+                         c='blue')
 
     def _visualizeDefocus(self, e=None):
         """Show matplotlib with defocus values."""
@@ -242,13 +239,13 @@ class ProtCtfRefineViewer(ProtocolViewer):
         self.plotter.getColorBar(sc2)
         self.plotter.show()
 
-    def _displayBeamTilt(self, paramName=None):
+    def _displayBeamTilt(self, param=None):
         phaseDifferenceFn = self.protocol.fileWithPhaseDifferenceName()
         modelFitFn = self.protocol.fileWithModelFitterName()
 
         return [DataView(phaseDifferenceFn), DataView(modelFitFn)]
 
-    def createScipionPartView(self, filename, viewParams={}):
+    def createScipionPartView(self, filename):
         inputParticlesId = self.protocol.inputParticles.get().strId()
         labels = 'enabled id _size _filename '
         labels += ' _ctfModel._defocusU _ctfModel._defocusV '
@@ -270,7 +267,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
                           env=self._env,
                           viewParams=viewParams)
 
-    def _displayParticles(self, paramName=None):
+    def _displayParticles(self, param=None):
         views = []
         fn = self.protocol.outputParticles.getFileName()
         v = self.createScipionPartView(fn)

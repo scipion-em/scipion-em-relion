@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -23,14 +23,11 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+import pwem
+from pwem.objects import SetOfClasses2D
+from pwem.protocols import ProtClassify2D
 
-import pyworkflow.em as em
-import pyworkflow.em.metadata as md
-from pyworkflow.em.data import SetOfClasses2D
-from pyworkflow.em.protocol import ProtClassify2D
-
-import relion
-import relion.convert
+import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
 
@@ -51,44 +48,27 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         """
         ProtRelionBase._initialize(self)
         self.ClassFnTemplate = '%(ref)03d@%(rootDir)s/relion_it%(iter)03d_classes.mrcs'
-        
 
-    #--------------------------- INSERT steps functions -----------------------
+    # --------------------------- INSERT steps functions ----------------------
     def _setSamplingArgs(self, args):
         """ Set sampling related params. """
-        # Sampling stuff
         if self.doImageAlignment:
             args['--offset_range'] = self.offsetSearchRangePix.get()
-            args['--offset_step']  = self.offsetSearchStepPix.get() * self._getSamplingFactor()
+            args['--offset_step'] = self.offsetSearchStepPix.get() * self._getSamplingFactor()
             args['--psi_step'] = self.inplaneAngularSamplingDeg.get() * self._getSamplingFactor()
+
+            if self.IS_GT30() and self.allowCoarserSampling:
+                args['--allow_coarser_sampling'] = ''
+
         else:
             args['--skip_align'] = ''
 
-    #--------------------------- STEPS functions ------------------------------
-    def _loadClassesInfo(self, iteration):
-        """ Read some information about the produced Relion 2D classes
-        from the *model.star file.
-        """
-        self._classesInfo = {} # store classes info, indexed by class id
-         
-        modelStar = md.MetaData('model_classes@%s' %
-                                self._getFileName('model', iter=iteration))
-        
-        for classNumber, row in enumerate(md.iterRows(modelStar)):
-            index, fn = relion.convert.relionToLocation(row.getValue('rlnReferenceImage'))
-            # Store info indexed by id, we need to store the row.clone() since
-            # the same reference is used for iteration            
-            self._classesInfo[classNumber+1] = (index, fn, row.clone())
-    
+    # --------------------------- STEPS functions -----------------------------
     def _fillClassesFromIter(self, clsSet, iteration):
         """ Create the SetOfClasses2D from a given iteration. """
-        self._loadClassesInfo(iteration)
-        dataStar = self._getFileName('data', iter=iteration)
-        clsSet.classifyItems(updateItemCallback=self._updateParticle,
-                             updateClassCallback=self._updateClass,
-                             itemDataIterator=md.iterRows(dataStar,
-                                                          sortByLabel=md.RLN_IMAGE_ID))
-        
+        classLoader = convert.ClassesLoader(self, pwem.ALIGN_2D)
+        classLoader.fillClassesFromIter(clsSet, iteration)
+
     def createOutputStep(self):
         partSet = self.inputParticles.get()       
         
@@ -98,17 +78,11 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         self._defineOutputs(outputClasses=classes2D)
         self._defineSourceRelation(self.inputParticles, classes2D)
         
-    #--------------------------- INFO functions -------------------------------
+    # --------------------------- INFO functions ------------------------------
     def _validateNormal(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION. 
-        """
         return []
     
     def _validateContinue(self):
-        """ Should be overwritten in subclasses to
-        return summary messages for CONTINUE EXECUTION.
-        """
         errors = []
         continueRun = self.continueRun.get()
         continueRun._initialize()
@@ -125,10 +99,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         return errors
     
     def _summaryNormal(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION. 
-        """
-        summary = []
+        summary = list()
         summary.append("Input Particles: %s" % self.getObjectTag('inputParticles'))
         summary.append("Classified into *%d* classes." % self.numberOfClasses)
         summary.append("Output set: %s" % self.getObjectTag('outputClasses'))
@@ -136,42 +107,17 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         return summary
     
     def _summaryContinue(self):
-        """ Should be overwritten in subclasses to
-        return summary messages for CONTINUE EXECUTION.
-        """
-        summary = []
+        summary = list()
         summary.append("Continue from iteration %01d" % self._getContinueIter())
         
         return summary
     
     def _methods(self):
         methods = ''
-        
         if hasattr(self, 'outputClasses'):
-            
             methods += "We classified input particles %s (%d items) " % (
                 self.getObjectTag('inputParticles'),
                 self.inputParticles.get().getSize())
             methods += "into %d classes using Relion Classify2d. " % self.numberOfClasses
             methods += 'Output classes: %s' % self.getObjectTag('outputClasses')
         return [methods]
-    
-    #--------------------------- UTILS functions ------------------------------
-    def _updateParticle(self, item, row):
-        item.setClassId(row.getValue(md.RLN_PARTICLE_CLASS))
-        item.setTransform(relion.convert.rowToAlignment(row, em.ALIGN_2D))
-        
-        item._rlnNormCorrection = em.Float(row.getValue('rlnNormCorrection'))
-        item._rlnLogLikeliContribution = em.Float(row.getValue('rlnLogLikeliContribution'))
-        item._rlnMaxValueProbDistribution = em.Float(row.getValue('rlnMaxValueProbDistribution'))
-        item._rlnGroupName = em.String(row.getValue('rlnGroupName'))
-        
-    def _updateClass(self, item):
-        classId = item.getObjId()
-        if classId in self._classesInfo:
-            index, fn, row = self._classesInfo[classId]
-            item.setAlignment2D()
-            item.getRepresentative().setLocation(index, fn)
-            item._rlnclassDistribution = em.Float(row.getValue('rlnClassDistribution'))
-            item._rlnAccuracyRotations = em.Float(row.getValue('rlnAccuracyRotations'))
-            item._rlnAccuracyTranslations = em.Float(row.getValue('rlnAccuracyTranslations'))

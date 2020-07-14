@@ -1,3 +1,22 @@
+3.0.0:
+    - Scipion 3.0.0 support, migration to python 3
+    - GPLv3
+    - Add Relion 3.1 support, remove relion 2.x support
+    - New STAR file parser (emtable package)
+    - New protocol to assign optic groups
+    - Sort protocol will be deleted soon (gone in relion 3.1)
+    - Extract particle movies is gone
+    - Updated drift plot for motioncor, added new plot for drift per frame
+    - convertMask changed so that it uses relion_image_handler to change box/pix size/threshold
+    - movie refinement is gone and fully replaced by bayesian polishing
+    - picker protocols code cleanup
+    - get rid of shell=true in subprocess
+    - refactor viewers code
+    - xmipp metadata is gradually replaced by the Table class from new star file parser
+    - new protocol to export coordinates to star format
+    - new protocol to remove preferential views
+    - new protocol to compress movies
+    - many small fixes
 1.0.9: Fixed multibody output bug. Added a test for it.
 1.0.8:
     - Fixed bug when creating symbolic links from binaries with different root
@@ -25,4 +44,3 @@
 	- updated citations
 	- remove relion 1.4 support
 11-September-2018 - Add pip module file
-

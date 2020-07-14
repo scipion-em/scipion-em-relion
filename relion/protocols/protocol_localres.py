@@ -8,7 +8,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -26,10 +26,12 @@
 # *
 # **************************************************************************
 
-import pyworkflow as pw
+from pwem.emlib.image import ImageHandler
+import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 
 import relion
+import relion.convert
 from .protocol_postprocess import ProtRelionPostprocess
 
 
@@ -49,14 +51,14 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
                  'half1': self._getInputPath("relion_half1_class001_unfil.mrc"),
                  'half2': self._getInputPath("relion_half2_class001_unfil.mrc"),
                  'outputVolume': self._getExtraPath('relion_locres_filtered.mrc'),
-                 'resolMap': self._getExtraPath('relion_locres.mrc')
+                 'resolMap': self._getExtraPath('relion_locres.mrc'),
+                 'solventMask': self._getExtraPath('input_solvent_mask.mrc')
                  }
 
         self._updateFilenamesDict(myDict)
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
-        
         form.addSection(label='Input')
         form.addParam('protRefine', params.PointerParam,
                       pointerClass="ProtRefine3D",
@@ -64,20 +66,17 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
                       help='Select any previous refinement protocol to get the '
                            '3D half maps. Note that it is recommended that the '
                            'refinement protocol uses a gold-standard method.')
-        form.addParam('mtf', params.FileParam,
-                       label='MTF-curve file',
-                       help='User-provided STAR-file with the MTF-curve '
-                            'of the detector.'
-                            'Relion param: <--mtf>')
-        form.addParam('bfactor', params.FloatParam, default=-250,
-                       label='Provide B-factor:',
-                       help='Probably, the overall B-factor as was '
-                            'estimated in the postprocess is a useful '
-                            'value for here. Use negative values for '
-                            'sharpening. Be careful: if you over-sharpen '
-                            'your map, you may end up interpreting '
-                            'noise for signal!')
-        form.addParam('calibratedPixelSize', params.FloatParam, default=0,
+        if self.IS_GT30():
+            form.addParam('solventMask', params.PointerParam,
+                          pointerClass='VolumeMask', allowsNull=True,
+                          label='User-provided solvent mask',
+                          help='Provide a mask with values between 0 and 1 '
+                               'around all domains of the complex. ResMap uses '
+                               'this mask for local resolution calculation. '
+                               'RELION does NOT use this mask for calculation, '
+                               'but makes a histogram of local resolution '
+                               'within this mask.')
+        form.addParam('calibratedPixelSize', params.FloatParam, default=0.,
                       label='Calibrated pixel size (A)',
                       help="Provide the final, calibrated pixel size in "
                            "Angstroms. If 0, the input pixel size will be used. "
@@ -86,6 +85,27 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
                            "the pixel size using the fit to a PDB model. "
                            "The X-axis of the output FSC plot will use this "
                            "calibrated value.")
+        form.addParam('bfactor', params.FloatParam, default=-100.,
+                      label='Provide B-factor:',
+                      help='Probably, the overall B-factor as was '
+                           'estimated in the postprocess is a useful '
+                           'value for here. Use negative values for '
+                           'sharpening. Be careful: if you over-sharpen '
+                           'your map, you may end up interpreting '
+                           'noise for signal!')
+
+        group = form.addGroup('MTF')
+        group.addParam('mtf', params.FileParam,
+                       label='MTF of the detector',
+                       help='User-provided STAR-file with the MTF-curve '
+                            'of the detector.'
+                            'Relion param: <--mtf>')
+        if self.IS_GT30():
+            group.addParam('origPixelSize', params.FloatParam,
+                           default=-1.0,
+                           label='Original detector pixel size (A)',
+                           help='This is the original pixel size (in Angstroms)'
+                                ' in the raw (non-super-resolution!) micrographs')
 
         form.addSection(label='LocalRes')
         form.addParam('Msg', params.LabelParam,
@@ -121,20 +141,24 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
 
     # ------------------------- STEPS functions -------------------------------
     def convertInputStep(self, protId):
-        pw.utils.makePath(self._getInputPath())
+        pwutils.makePath(self._getInputPath())
 
         protRef = self.protRefine.get()
         vol = protRef.outputVolume
+        newDim = vol.getXDim()
+        newPix = vol.getSamplingRate()
         half1, half2 = vol.getHalfMaps().split(',')
-        ih = pw.em.ImageHandler()
+        ih = ImageHandler()
         ih.convert(half1, self._getFileName("half1"))
         ih.convert(half2, self._getFileName("half2"))
 
+        if self.IS_GT30() and self.solventMask.hasValue():
+            relion.convert.convertMask(self.solventMask.get(),
+                                       self._getFileName('solventMask'),
+                                       newPix, newDim)
+
     # -------------------------- INFO functions -------------------------------
     def _summary(self):
-        """ Should be overwritten in subclasses to
-        return summary message for NORMAL EXECUTION. 
-        """
         summary = []
         if not hasattr(self, 'outputVolume'):
             summary.append("Output volume not ready yet.")
@@ -150,11 +174,7 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
         volume = self.protRefine.get().outputVolume
         # It seems that in Relion3 now the input should be the map
         # filename and not the prefix as before
-        if relion.Plugin.isVersion3Active():
-            inputFn = self._getFileName('half1')
-        else:
-            inputFn = self._getInputPath("relion")
-        
+        inputFn = self._getFileName('half1')
         cps = self.calibratedPixelSize.get()
         angpix = cps if cps > 0 else volume.getSamplingRate()
 
@@ -174,6 +194,17 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
         mtfFile = self.mtf.get()
         if mtfFile:
             self.paramDict['--mtf'] = mtfFile
+        if self.IS_GT30() and self.origPixelSize.get() != -1.0:
+            self.paramDict['--mtf_angpix'] = self.origPixelSize.get()
+
+        if self.IS_GT30() and self.solventMask.hasValue():
+            self.paramDict['--mask'] = self._getFileName('solventMask')
 
     def _getRelionMapFn(self, fn):
         return fn.split(':')[0]
+
+    def _getMaskFn(self):
+        return self._getPath('solvent_mask.mrc')
+
+    def IS_GT30(self):
+        return relion.Plugin.IS_GT30()

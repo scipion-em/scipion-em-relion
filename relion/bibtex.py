@@ -7,7 +7,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -33,11 +33,9 @@ volume = "415",
 number = "2",
 pages = "406 - 418",
 year = "2012",
-issn = "0022-2836",
 doi = "http://dx.doi.org/10.1016/j.jmb.2011.11.010",
 url = "http://www.sciencedirect.com/science/article/pii/S0022283611012290",
 author = "Scheres, Sjors H.W.",
-keywords = "cryo-electron microscopy, three-dimensional reconstruction, maximum a posteriori estimation "
 }
 
 @article{Scheres2012b,
@@ -47,11 +45,9 @@ volume = "180",
 number = "3",
 pages = "519 - 530",
 year = "2012",
-issn = "1047-8477",
 doi = "http://dx.doi.org/10.1016/j.jsb.2012.09.006",
 url = "http://www.sciencedirect.com/science/article/pii/S1047847712002481",
 author = "Scheres, Sjors H.W.",
-keywords = "Electron microscopy, Single-particle analysis, Maximum likelihood, Image processing, Software development "
 }
 
 @article{Kimanius2016,
@@ -119,15 +115,13 @@ author = "Nakane, Takanori and Kimanius, Dari and Lindahl, Erik and Scheres, Sjo
 
 @article{Zivanov2019,
 author = "Zivanov, Jasenko and Nakane, Takanori and Scheres, Sjors H. W.",
-title = "{A Bayesian approach to beam-induced motion correction in cryo-EM single-particle analysis}",
+title = "A Bayesian approach to beam-induced motion correction in cryo-EM single-particle analysis",
 journal = "IUCrJ",
 year = "2019",
 volume = "6",
 number = "1",
 pages = "5-17",
 doi = {http://dx.doi.org/10.1107/S205225251801463X},
-abstract = {A new method to estimate the trajectories of particle motion and the amount of cumulative beam damage in electron cryo-microscopy (cryo-EM) single-particle analysis is presented. The motion within the sample is modelled through the use of Gaussian process regression. This allows a prior likelihood that favours spatially and temporally smooth motion to be associated with each hypothetical set of particle trajectories without imposing hard constraints. This formulation enables the {\it a posteriori} likelihood of a set of particle trajectories to be expressed as a product of that prior likelihood and an observation likelihood given by the data, and this {\it a posteriori} likelihood to then be maximized. Since the smoothness prior requires three parameters that describe the statistics of the observed motion, an efficient stochastic method to estimate these parameters is also proposed. Finally, a practical algorithm is proposed that estimates the average amount of cumulative radiation damage as a function of radiation dose and spatial frequency, and then fits relative {\it B} factors to that damage in a robust way. The method is evaluated on three publicly available data sets, and its usefulness is illustrated by comparison with state-of-the-art methods and previously published results. The new method has been implemented as Bayesian polishing in {\it RELION}-3, where it replaces the existing particle-polishing method, as it outperforms the latter in all tests conducted.},
-keywords = {Bayesian particle polishing, beam-induced motion correction, cryo-EM, single-particle analysis, electron cryo-microscopy},
 }
 
 """

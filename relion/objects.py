@@ -8,7 +8,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -27,7 +27,6 @@
 # ******************************************************************************
 
 import numpy as np
-from itertools import izip
 
 import pyworkflow.object as pwobj
 
@@ -39,6 +38,7 @@ class CtfRefineGlobalInfo:
     to Micrographs and Particles CTF information after
     Relion - ctf refinement protocol.
     """
+
     def __init__(self, filename):
         # The classes dict needs to be updated to register local objects
         classesDict = dict(pwobj.__dict__)
@@ -62,8 +62,8 @@ class CtfRefineGlobalInfo:
             dU, dV, _ = p.getCTF().getDefocus()
             return (dU + dV) / 2.0
 
-        for p1, p2 in izip(inputParts.iterItems(orderBy=['_micId', 'id']),
-                           outputParts.iterItems(orderBy=['_micId', 'id'])):
+        for p1, p2 in zip(inputParts.iterItems(orderBy=['_micId', 'id']),
+                          outputParts.iterItems(orderBy=['_micId', 'id'])):
             coord = p1.getCoordinate()
             micId = coord.getMicId()
 
@@ -91,14 +91,14 @@ class CtfRefineGlobalInfo:
         self._infoSet.write()
 
     def getMaxXY(self):
-        """ Return maximum value of  coordinates"""
+        """ Return maximum value of coordinates"""
         mapper = self._infoSet._getMapper()
         # TODO: eventually remove this if
         # since in the future all instances will
         # have _xMax (mar 22nd 2019)
         if mapper.hasProperty('_xMax'):
             return int(mapper.getProperty('_xMax')), \
-                       int(mapper.getProperty('_yMax'))
+                   int(mapper.getProperty('_yMax'))
         else:
             return -1, -1
 

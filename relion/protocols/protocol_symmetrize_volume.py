@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -25,22 +25,17 @@
 # **************************************************************************
 
 import pyworkflow.protocol.params as params
-import pyworkflow.em as em
+import pwem
+from pwem.emlib.image import ImageHandler
+from pwem.protocols import ProtAlignVolume
 
-import relion
-from .protocol_base import ProtRelionBase
 
-
-class ProtRelionSymmetrizeVolume(em.ProtAlignVolume):
+class ProtRelionSymmetrizeVolume(ProtAlignVolume):
     """
     Symmetrize a volume using Relion programs:
         *relion_align_symmetry* and *relion_image_handler*.
     """
     _label = 'symmetrize volume'
-
-    @classmethod
-    def isDisabled(cls):
-        return not relion.Plugin.isVersion3Active()
     
     # --------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
@@ -67,17 +62,19 @@ class ProtRelionSymmetrizeVolume(em.ProtAlignVolume):
         inFn = self._getPath('input_volume.mrc')
         alignedFn = self._getPath('volume_aligned_sym%s.mrc' % sym)
         symFn = self._getPath('volume_sym%s.mrc' % sym)
+        pixSize = self.inputVolume.get().getSamplingRate()
 
-        em.ImageHandler().convert(self.inputVolume.get(), inFn)
+        ImageHandler().convert(self.inputVolume.get(), inFn)
 
         self.runJob("relion_align_symmetry",
-                    "--i %s --o %s --sym %s" % (inFn, alignedFn, sym))
+                    "--i %s --o %s --sym %s --angpix %0.5f" % (
+                        inFn, alignedFn, sym, pixSize))
 
         self.runJob("relion_image_handler",
                     "--i %s --o %s --sym %s" % (alignedFn, symFn, sym))
 
         def _defineOutputVol(name, fn):
-            vol = em.Volume()
+            vol = pwem.objects.Volume()
             vol.copyInfo(self.inputVolume.get())
             vol.setLocation(fn)
             self._defineOutputs(**{name: vol})
