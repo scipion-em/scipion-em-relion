@@ -26,6 +26,7 @@ If applicable, add screenshots to help explain your problem.
 **Desktop (please complete the following information):**
  - Scipion version: [e.g. 2.0.0]
  - Relion plugin version [e.g. 1.0.6] or branch [devel]
+ - Relion binary version [e.g. 3.1.0]
 
 **Additional context**
 Add any other context about the problem here.
