@@ -27,9 +27,8 @@
 from pyworkflow.protocol.params import (PointerParam, FloatParam,  
                                         StringParam, BooleanParam,
                                         EnumParam, IntParam, LEVEL_ADVANCED)
-from pwem.objects import Volume
+
 from pwem.protocols import ProtReconstruct3D
-from pwem.constants import ALIGN_PROJ
 from tomo.objects import Tomogram
 
 import relion.convert as convert

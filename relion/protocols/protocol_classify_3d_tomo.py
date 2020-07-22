@@ -49,9 +49,9 @@ class ProtRelionSubtomoClassif3D(ProtClassify3D, ProtRelionBaseTomo, ProtTomoBas
     def __init__(self, **args):
         ProtRelionBaseTomo.__init__(self, **args)
 
-    @classmethod
-    def isDisabled(cls):
-        return Plugin.IS_30()
+    # @classmethod
+    # def isDisabled(cls):
+    #     return Plugin.IS_30()
 
     def _initialize(self):
         """ This function is mean to be called after the
@@ -73,6 +73,17 @@ class ProtRelionSubtomoClassif3D(ProtClassify3D, ProtRelionBaseTomo, ProtTomoBas
 
     # --------------------------- STEPS functions --------------------------------------------
     def createOutputStep(self):
+        # # JORGE
+        # import os
+        # fname = "/home/jjimenez/Desktop/test_JJ.txt"
+        # if os.path.exists(fname):
+        #     os.remove(fname)
+        # fjj = open(fname, "a+")
+        # fjj.write('JORGE--------->onDebugMode PID {}'.format(os.getpid()))
+        # fjj.close()
+        # import time
+        # time.sleep(10)
+        # # JORGE_END
         subtomoSet = self._getInputParticles()
         classes3D = self._createSetOfClassesSubTomograms(subtomoSet)
         self._fillClassesFromIter(classes3D, self._lastIter())
@@ -190,7 +201,7 @@ class ProtRelionSubtomoClassif3D(ProtClassify3D, ProtRelionBaseTomo, ProtTomoBas
                              itemDataIterator=self.dataTable.__iter__())
 
     def _updateParticle(self, item, row):
-        item.setClassId(int(row.rlnGroupNumber))
+        item.setClassId(int(row.rlnClassNumber))#rlnGroupNumber))
         item._rlnLogLikeliContribution = params.Float(row.rlnLogLikeliContribution)
         item._rlnMaxValueProbDistribution = params.Float(row.rlnMaxValueProbDistribution)
 

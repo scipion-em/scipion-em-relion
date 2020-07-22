@@ -62,9 +62,9 @@ class ProtRelionEstimateCTF3D(EMProtocol, ProtTomoBase):
         self.initialized = False
         self.ctfMRCFileList = []
 
-    @classmethod
-    def isDisabled(cls):
-        return Plugin.IS_30()
+    # @classmethod
+    # def isDisabled(cls):
+    #     return Plugin.IS_30()
 
     # --------------------------- DEFINE param functions --------------------------------------------
     def _defineParams(self, form):
