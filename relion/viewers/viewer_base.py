@@ -31,6 +31,7 @@ from math import radians, log
 from emtable import Table
 
 import pyworkflow.protocol.params as params
+from pwem.viewers.viewer_chimera import ChimeraAngDist
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pyworkflow.viewer import (DESKTOP_TKINTER, WEB_DJANGO)
 import pyworkflow.utils as pwutils
@@ -38,7 +39,7 @@ from pwem.viewers import (EmPlotter, EmProtocolViewer, showj, ChimeraClientView,
                           FscViewer, DataView, ObjectView, ChimeraView,
                           ClassesView, Classes3DView, ChimeraAngDist)
 from pwem.constants import ALIGN_PROJ, NO_INDEX
-from pwem.objects import FSC
+from pwem.objects import FSC, Volume
 
 from relion import Plugin
 from relion.convert.convert_utils import relionToLocation
@@ -190,10 +191,11 @@ Examples:
                            label='Display angular distribution',
                            help='*2D plot*: display angular distribution as interative 2D in matplotlib.\n'
                                 '*chimera*: display angular distribution using Chimera with red spheres.')
-            group.addParam('spheresScale', params.IntParam, default=100,
+            group.addParam('spheresScale', params.IntParam, default=-1,
                            expertLevel=LEVEL_ADVANCED,
-                           label='Spheres size',
-                           help='')
+                           label='Spheres distance',
+                           help='If the value is -1 then this value is equal '
+                                'to 0.75 * xVolDim')
 
             group = form.addGroup('Resolution')
             group.addParam('figure', params.EnumParam, default=0,
