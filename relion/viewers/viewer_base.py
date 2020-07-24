@@ -587,7 +587,13 @@ Examples:
                 self.createAngDistributionSqlite(
                     sqliteFn, nparts,
                     itemDataIterator=self._iterAngles(mdOut))
-            vol = self.protocol.outputVolumes.getFirstItem()
+            if hasattr(self.protocol, 'outputVolumes'):
+                vol = self.protocol.outputVolumes.getFirstItem()
+            elif hasattr(self.protocol, 'outputVolume'):
+                vol = self.protocol.outputVolume
+            else:
+                raise("I do not know how to compute angDist "
+                      "if no volume is present.")
             volOrigin = vol.getOrigin(force=True).getShifts()
             samplingRate = vol.getSamplingRate()
             return  ChimeraAngDist(volFn, self.protocol._getTmpPath(),
