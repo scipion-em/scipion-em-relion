@@ -37,7 +37,7 @@ from pyworkflow.viewer import (DESKTOP_TKINTER, WEB_DJANGO)
 import pyworkflow.utils as pwutils
 from pwem.viewers import (EmPlotter, EmProtocolViewer, showj, ChimeraClientView,
                           FscViewer, DataView, ObjectView, ChimeraView,
-                          ClassesView, Classes3DView)
+                          ClassesView, Classes3DView, ChimeraAngDist)
 from pwem.constants import ALIGN_PROJ, NO_INDEX
 from pwem.objects import FSC, Volume
 
@@ -528,7 +528,7 @@ Examples:
         volumes = self._getVolumeNames()
 
         if len(volumes) > 1:
-            cmdFile = self.protocol._getExtraPath('chimera_volumes.cmd')
+            cmdFile = self.protocol._getExtraPath('chimera_volumes.cxc')
             with open(cmdFile, 'w+') as f:
                 for volFn in volumes:
                     # We assume that the chimera script will be generated
@@ -540,7 +540,7 @@ Examples:
                 f.write('tile\n')
             view = ChimeraView(cmdFile)
         else:
-            view = ChimeraClientView(volumes[0].replace(':mrc', ''))
+            view = ChimeraClientView(volumes[0])
 
         return [view]
 
@@ -576,8 +576,8 @@ Examples:
                                     "angular distribution", "Input selection")
         # If just one reference we can show the angular distribution
         ref3d = self._refsList[0]
-        volFn = self._getVolumeNames()[0].replace(":mrc", "")
-        if not pwutils.exists(volFn):
+        volFn = self._getVolumeNames()[0]
+        if not pwutils.exists(volFn.replace(":mrc", "")):
             raise Exception("This class is Empty. Please try with other class")
 
         for prefix in prefixes:
@@ -589,13 +589,20 @@ Examples:
                 self.createAngDistributionSqlite(
                     sqliteFn, nparts,
                     itemDataIterator=self._iterAngles(mdOut))
-            tmpFilesPath = self.protocol._getTmpPath()
-            volOrigin = self.protocol.outputVolumes.getFirstItem().getShiftsFromOrigin()
-            return ChimeraAngDist(volFn, tmpFilesPath,
-                                  angularDistFile=sqliteFn,
-                                  spheresDistance=radius,
-                                  voxelSize=self.protocol.outputVolumes.getSamplingRate(),
-                                  volOrigin=volOrigin)
+            if hasattr(self.protocol, 'outputVolumes'):
+                vol = self.protocol.outputVolumes.getFirstItem()
+            elif hasattr(self.protocol, 'outputVolume'):
+                vol = self.protocol.outputVolume
+            else:
+                raise("I do not know how to compute angDist "
+                      "if no volume is present.")
+            volOrigin = vol.getOrigin(force=True).getShifts()
+            samplingRate = vol.getSamplingRate()
+            return  ChimeraAngDist(volFn, self.protocol._getTmpPath(),
+                                     voxelSize=samplingRate,
+                                     volOrigin=volOrigin,
+                                     angularDistFile=sqliteFn,
+                                     spheresDistance=radius)
 
     def _createAngDist2D(self, it):
         # Common variables to use
