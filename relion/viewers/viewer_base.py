@@ -36,7 +36,7 @@ from pyworkflow.viewer import (DESKTOP_TKINTER, WEB_DJANGO)
 import pyworkflow.utils as pwutils
 from pwem.viewers import (EmPlotter, EmProtocolViewer, showj, ChimeraClientView,
                           FscViewer, DataView, ObjectView, ChimeraView,
-                          ClassesView, Classes3DView)
+                          ClassesView, Classes3DView, ChimeraAngDist)
 from pwem.constants import ALIGN_PROJ, NO_INDEX
 from pwem.objects import FSC
 
@@ -526,7 +526,7 @@ Examples:
         volumes = self._getVolumeNames()
 
         if len(volumes) > 1:
-            cmdFile = self.protocol._getExtraPath('chimera_volumes.cmd')
+            cmdFile = self.protocol._getExtraPath('chimera_volumes.cxc')
             with open(cmdFile, 'w+') as f:
                 for volFn in volumes:
                     # We assume that the chimera script will be generated
@@ -587,8 +587,12 @@ Examples:
                 self.createAngDistributionSqlite(
                     sqliteFn, nparts,
                     itemDataIterator=self._iterAngles(mdOut))
-
-            return ChimeraClientView(volFn,
+            vol = self.protocol.outputVolumes.getFirstItem()
+            volOrigin = vol.getOrigin(force=True).getShifts()
+            samplingRate = vol.getSamplingRate()
+            return  ChimeraAngDist(volFn, self.protocol._getTmpPath(),
+                                     voxelSize=samplingRate,
+                                     volOrigin=volOrigin,
                                      angularDistFile=sqliteFn,
                                      spheresDistance=radius)
 
