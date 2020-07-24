@@ -25,7 +25,6 @@
 # **************************************************************************
 from emtable import Table
 
-from pyworkflow.object import String, Float
 import pwem
 from pwem.protocols import ProtClassify3D
 

@@ -67,7 +67,7 @@ class ProtRelionSymmetrizeVolume(ProtAlignVolume):
         ImageHandler().convert(self.inputVolume.get(), inFn)
 
         self.runJob("relion_align_symmetry",
-                    "--i %s --o %s --sym %s --angpix %s" % (
+                    "--i %s --o %s --sym %s --angpix %0.5f" % (
                         inFn, alignedFn, sym, pixSize))
 
         self.runJob("relion_image_handler",

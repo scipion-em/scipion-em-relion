@@ -59,7 +59,6 @@ else:
     from .protocol_subtract import ProtRelionSubtract
     from .protocol_bayesian_polishing import ProtRelionBayesianPolishing
 
-
 # New protocol from Relion v3.1:
 # FIXME: this has to be imported for tests / wizards to work
 from .protocol_assign_optic_groups import ProtRelionAssignOpticsGroup

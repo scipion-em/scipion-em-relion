@@ -31,7 +31,6 @@ import os
 import subprocess
 import numpy as np
 
-from pyworkflow.object import String
 from pyworkflow.tests import BaseTest, setupTestOutput, DataSet
 from pyworkflow.utils import cleanPath
 from pwem.objects import (SetOfParticles, CTFModel, Acquisition,
@@ -40,7 +39,7 @@ from pwem.objects import (SetOfParticles, CTFModel, Acquisition,
 from pwem.emlib.image import ImageHandler
 import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_3D
-from pyworkflow.utils import magentaStr
+from pyworkflow.utils import magentaStr, createLink, replaceExt
 
 from relion import Plugin
 import relion.convert as convert
@@ -131,7 +130,14 @@ class TestConvertAnglesBase(BaseTest):
 
         is2D = alignType == ALIGN_2D
 
-        stackFn = self.dataset.getFile(fileKey)
+        if fileKey == 'alignShiftRotExp':
+            # relion requires mrcs stacks
+            origFn = self.dataset.getFile(fileKey)
+            stackFn = replaceExt(origFn, ".mrcs")
+            createLink(origFn, stackFn)
+        else:
+            stackFn = self.dataset.getFile(fileKey)
+
         partFn1 = self.getOutputPath(fileKey + "_particles1.sqlite")
         mdFn = self.getOutputPath(fileKey + "_particles.star")
         partFn2 = self.getOutputPath(fileKey + "_particles2.sqlite")
@@ -676,7 +682,8 @@ class TestRelionWriter(BaseTest):
                           amplitudeContrast=0.1,
                           magnification=60000)
 
-        og = OpticsGroups.create()
+        og = OpticsGroups.create(rlnMtfFileName='')
+
         fog = og.first()
 
         ctf = CTFModel(defocusU=10000, defocusV=15000, defocusAngle=15)
@@ -845,3 +852,38 @@ class TestRelionOpticsGroups(BaseTest):
         self.assertEqual(fog.rlnImageSize, 512)
         self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')
         self.assertEqual(og['opticsGroup1'], fog)
+
+    def test_add(self):
+        """ Testing adding more groups or columns. """
+        og = OpticsGroups.create()
+
+        og1 = og.first()
+
+        self.assertEqual(len(og), 1)
+        self.assertAlmostEqual(og1.rlnVoltage, 300.)
+
+        og2 = og1._replace(rlnOpticsGroup=2,
+                           rlnOpticsGroupName='opticsGroup2',
+                           rlnVoltage=200.)
+        og.add(og2)
+        og3 = og1._replace(rlnOpticsGroup=3,
+                           rlnOpticsGroupName='opticsGroup3',
+                           rlnVoltage=100.)
+        og.add(og3)
+
+        self.assertEqual(len(og), 3)
+
+        og.addColumns(rlnMtfFileName='mtf_k2_200kV.star')
+
+        self.assertTrue(all(hasattr(ogx, 'rlnMtfFileName') for ogx in og))
+
+        og.update(2, rlnVoltage=300.)
+        og.update(3, rlnVoltage=300.)
+
+        for ogx in og:
+            self.assertAlmostEqual(ogx.rlnVoltage, 300.)
+
+        og.updateAll(rlnVoltage=200.)
+
+        for ogx in og:
+            self.assertAlmostEqual(ogx.rlnVoltage, 200.)

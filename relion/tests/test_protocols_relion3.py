@@ -136,30 +136,76 @@ class Relion3TestAssignOptics(Relion3TestProtocolBase):
             for m in movies:
                 self.assertTrue(os.path.exists(m.getFileName()))
 
-    def test_assign(self):
+    def test_single(self):
         if relion.Plugin.IS_30():
             print("This test only makes sense for Relion >= 3.1. Exiting...")
             return
 
-        def _checkAcq(obj):
-            acq = obj.getAcquisition()
-            self.assertEqual(acq.getAttributeValue('opticsGroupName', ''),
-                             self.GROUP_NAME)
-            self.assertEqual(acq.getAttributeValue('mtfFile', ''),
-                             self.MTF_FILE)
+        def _checkAcq(output):
+            og = OpticsGroups.fromImages(output)
+            fog = og.first()
+            self.assertEqual(fog.rlnOpticsGroupName, self.GROUP_NAME)
+            self.assertEqual(os.path.basename(fog.rlnMtfFileName),
+                             os.path.basename(self.MTF_FILE))
 
         print(magentaStr("\n==> Testing relion - assign optics groups:"))
         protRelionAssign = self._runAssignOptics(self.protImport)
         self._checkOutputMovies(protRelionAssign, 3, hasAlignment=False)
         output = protRelionAssign.outputMovies
         _checkAcq(output)
-        _checkAcq(output.getFirstItem())
-
         output.close()
 
         print("Loading db: %s" % os.path.abspath(output.getFileName()))
         moviesSet = SetOfMovies(filename=output.getFileName())
         moviesSet.loadAllProperties()
+
+    def test_fromStar(self):
+        mtfStar = self.getOutputPath('input_mtf.star')
+        f = open(mtfStar, 'w')
+        f.write("""
+data_optics
+
+loop_ 
+_rlnOpticsGroupName #1 
+_rlnOpticsGroup #2 
+_rlnMtfFileName #3 
+_rlnMicrographOriginalPixelSize #4 
+_rlnVoltage #5 
+_rlnSphericalAberration #6 
+_rlnAmplitudeContrast #7 
+_rlnMicrographPixelSize #8 
+opticsGroup1            1 mtf_k2_200kV.star     0.885000   200.000000     1.400000     0.100000     0.885000
+opticsGroup2            2 mtf_k2_200kV.star     0.885000   200.000000     1.400000     0.100000     0.885000
+opticsGroup3            3 mtf_k2_200kV.star     0.885000   200.000000     1.400000     0.100000     0.885000
+
+data_micrographs
+
+loop_
+data_micrographs
+
+loop_ 
+_rlnMicrographName #1 
+_rlnOpticsGroup #2 
+20170629_00025_frameImage.tiff 1
+20170629_00035_frameImage.tiff 2
+20170629_00045_frameImage.tiff 3
+        """)
+        f.close()
+
+        print(magentaStr("\nRunning relion - assign optics groups:"))
+        protAssign = self.newProtocol(ProtRelionAssignOpticsGroup,
+                                      objLabel='assign optics - from star',
+                                      inputSet=self.protImport.outputMovies,
+                                      inputType=1,  # from star file
+                                      inputStar=mtfStar)
+        protAssign = self.launchProtocol(protAssign)
+
+        outputMovies = protAssign.outputMovies
+        og = OpticsGroups.fromImages(outputMovies)
+        self.assertEqual(3, len(og))
+
+        for i, movie in enumerate(outputMovies):
+            self.assertEqual(i + 1, movie.getAttributeValue('_rlnOpticsGroup'))
 
 
 class Relion3TestMotioncor(Relion3TestProtocolBase):

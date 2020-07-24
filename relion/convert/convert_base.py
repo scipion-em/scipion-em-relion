@@ -37,7 +37,6 @@ from pwem.emlib.image import ImageHandler
 import pyworkflow.utils as pwutils
 
 
-
 class WriterBase:
     """ Helper class to convert from Scipion SetOfImages subclasses
     into Relion>3.1 star files (and binaries if conversion needed).
@@ -60,7 +59,7 @@ class WriterBase:
                 might be useful in export protocols.
 
         """
-        self._optics = None
+        self._optics = kwargs.get('optics', None)
         # Not used now
         #self.convertPolicy = kwargs.get('convertPolicy', self.CONVERT_IF_NEEDED)
         self.rootDir = None
@@ -198,5 +197,3 @@ class ReaderBase:
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
         pass
-
-

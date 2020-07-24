@@ -205,7 +205,7 @@ def convertMask(img, outputPath, newPix=None, newDim=None):
     else:
         outFn = outputPath
 
-    params = '--i %s --o %s --angpix %0.3f --rescale_angpix %0.3f' % (
+    params = '--i %s --o %s --angpix %0.5f --rescale_angpix %0.5f' % (
         imgFn, outFn, inPix, outPix)
 
     if newDim is not None:
@@ -233,6 +233,3 @@ def getVolumesFromPostprocess(postStar):
     return (row.rlnUnfilteredMapHalf1,
             row.rlnUnfilteredMapHalf2,
             row.rlnMaskName)
-
-
-

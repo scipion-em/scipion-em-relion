@@ -108,7 +108,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         params = ' --i %s' % self._getFileName('input_particles')
         params += ' --o %s' % self._getFileName('output_volume')
         params += ' --sym %s' % self.symmetryGroup.get()
-        params += ' --angpix %0.3f' % imgSet.getSamplingRate()
+        params += ' --angpix %0.5f' % imgSet.getSamplingRate()
         params += ' --maxres %0.3f' % self.maxRes.get()
         params += ' --pad %0.3f' % self.pad.get()
 

@@ -281,7 +281,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
         args += "--f %s " % postStar
         postprocessTuple = convert.getVolumesFromPostprocess(postStar)
         args += "--m1 %s --m2 %s --mask %s " % postprocessTuple
-        args += "--angpix_ref %0.3f " % postProt.outputVolume.getSamplingRate()
+        args += "--angpix_ref %0.5f " % postProt.outputVolume.getSamplingRate()
         args += "--corr_mic %s " % self._getFileName('input_mics')
         args += "--first_frame %d --last_frame %d " % (self.frame0, self.frameN)
 

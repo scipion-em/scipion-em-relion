@@ -48,6 +48,9 @@ class OpticsGroups:
     Existing groups can be accessed by number of name.
     """
     def __init__(self, opticsTable):
+        self.__fromTable(opticsTable)
+
+    def __fromTable(self, opticsTable):
         self._dict = OrderedDict()
         # Also allow indexing by name
         self._dictName = OrderedDict()
@@ -70,6 +73,16 @@ class OpticsGroups:
     def __contains__(self, item):
         return item in self._dict or item in self._dictName
 
+    def __iter__(self):
+        """ Iterate over all optics groups. """
+        return iter(self._dict.values())
+
+    def __len__(self):
+        return len(self._dict)
+
+    def __str__(self):
+        return self.toString()
+
     def first(self):
         """ Return first optics group. """
         return next(iter(self._dict.values()))
@@ -78,11 +91,32 @@ class OpticsGroups:
         og = self.__getitem__(ogId)
         newOg = og._replace(**kwargs)
         self.__store(newOg)
-
         return newOg
+
+    def updateAll(self, **kwargs):
+        """ Update all Optics Groups with these values. """
+        for og in self:
+            self.update(og.rlnOpticsGroup, **kwargs)
 
     def add(self, newOg):
         self.__store(newOg)
+
+    def addColumns(self, **kwargs):
+        """ Add new columns with default values (type inferred from it). """
+        items = self.first()._asdict().items()
+        cols = [Table.Column(k, type(v)) for k, v in items]
+
+        for k, v in kwargs.items():
+            cols.append(Table.Column(k, type(v)))
+
+        t = Table(columns=cols)
+
+        for og in self._dict.values():
+            values = og._asdict()
+            values.update(kwargs)
+            t.addRow(**values)
+
+        self.__fromTable(t)
 
     @staticmethod
     def fromStar(starFilePath):
@@ -101,11 +135,14 @@ class OpticsGroups:
 
     @staticmethod
     def fromImages(imageSet):
+        acq = imageSet.getAcquisition()
         try:
-            acq = imageSet.getAcquisition()
             return OpticsGroups.fromString(acq.opticsGroupInfo.get())
         except:
             return OpticsGroups.create(
+                rlnVoltage=acq.getVoltage(),
+                rlnSphericalAberration=acq.getSphericalAberration(),
+                rlnAmplitudeContrast=acq.getAmplitudeContrast(),
                 rlnImagePixelSize=imageSet.getSamplingRate(),
                 rlnImageSize=imageSet.getXDim()
             )
@@ -119,20 +156,22 @@ class OpticsGroups:
 data_optics
 
 loop_ 
-_rlnOpticsGroupName #1 
-_rlnOpticsGroup #2 
-_rlnMtfFileName #3 
-_rlnMicrographOriginalPixelSize #4 
-_rlnVoltage #5 
-_rlnSphericalAberration #6 
-_rlnAmplitudeContrast #7 
-_rlnImagePixelSize #8 
-_rlnImageSize #9 
-_rlnImageDimensionality #10 
-opticsGroup1            1 no-mtf.star     0.885000   200.000000     1.400000     0.100000     1.244531          256            2
+_rlnOpticsGroupName #1
+_rlnOpticsGroup #2
+_rlnMicrographOriginalPixelSize #3
+_rlnVoltage #4
+_rlnSphericalAberration #5
+_rlnAmplitudeContrast #6
+_rlnImagePixelSize #7
+_rlnImageSize #8
+_rlnImageDimensionality #9
+opticsGroup1            1      1.000000   300.000000     2.700000     0.100000     1.000000          256            2
         """
 
         og = OpticsGroups.fromString(opticsString1)
+        fog = og.first()
+        newColumns = {k:v for k, v in kwargs.items() if not hasattr(fog, k)}
+        og.addColumns(**newColumns)
         og.update(1, **kwargs)
         return og
 
@@ -194,11 +233,12 @@ class Writer(WriterBase):
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
         self._prefix = tableName[:3]
-        self._optics = None
         micRow = OrderedDict()
         micRow[imgLabelName] = ''  # Just to add label, proper value later
         iterMics = iter(imgIterable)
         mic = next(iterMics)
+        if self._optics is None:
+            self._optics = OpticsGroups.fromImages(mic)
         self._imageSize = mic.getXDim()
         self._micToRow(mic, micRow)
         if self._postprocessImageRow:
@@ -207,8 +247,6 @@ class Writer(WriterBase):
         micsTable = self._createTableFromDict(micRow)
 
         while mic is not None:
-            if self._optics is None:
-                self._optics = OpticsGroups.fromImages(mic)
             micRow[imgLabelName] = self._convert(mic)
             self._micToRow(mic, micRow)
 
@@ -521,17 +559,12 @@ class Reader(ReaderBase):
         acq.setAmplitudeContrast(optics.rlnAmplitudeContrast)
         acq.setSphericalAberration(optics.rlnSphericalAberration)
         acq.setVoltage(optics.rlnVoltage)
-        acq.opticsGroupName.set(getattr(optics, 'rlnOpticsGroupName', None))
-        acq.beamTiltX.set(getattr(optics, 'rlnBeamTiltX', None))
-        acq.beamTiltY.set(getattr(optics, 'rlnBeamTiltY', None))
-        acq.mtfFile.set(getattr(optics, 'rlnMtfFileName', None))
-        acq.defectFile.set(getattr(optics, 'rlnDefectFile', None))
 
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
 
         if ((self._alignType == pwem.ALIGN_NONE) or
-            not row.hasAnyColumn(self.ALIGNMENT_LABELS)):
+                not row.hasAnyColumn(self.ALIGNMENT_LABELS)):
             self.setParticleTransform = self.__setParticleTransformNone
         else:
             # Ensure the Transform object exists

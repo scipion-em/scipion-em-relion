@@ -45,10 +45,7 @@ from relion.convert.convert_utils import relionToLocation
 from ..protocols import (ProtRelionClassify2D, ProtRelionClassify3D,
                          ProtRelionRefine3D, ProtRelionInitialModel)
 from ..constants import *
-try:
-    from chimera.constants import CHIMERAX
-except:
-    CHIMERAX = False
+
 
 class RelionPlotter(EmPlotter):
     """ Class to create several plots. """
@@ -529,11 +526,7 @@ Examples:
         volumes = self._getVolumeNames()
 
         if len(volumes) > 1:
-            if CHIMERAX:
-                cmdFile = self.protocol._getExtraPath('chimera_volumes.cxc')
-            else:
-                cmdFile = self.protocol._getExtraPath('chimera_volumes.cmd')
-
+            cmdFile = self.protocol._getExtraPath('chimera_volumes.cmd')
             with open(cmdFile, 'w+') as f:
                 for volFn in volumes:
                     # We assume that the chimera script will be generated
@@ -545,8 +538,7 @@ Examples:
                 f.write('tile\n')
             view = ChimeraView(cmdFile)
         else:
-            vol = volumes[0].replace(':mrc', '')
-            view = ChimeraClientView(vol)
+            view = ChimeraClientView(volumes[0])
 
         return [view]
 
@@ -595,9 +587,7 @@ Examples:
                 self.createAngDistributionSqlite(
                     sqliteFn, nparts,
                     itemDataIterator=self._iterAngles(mdOut))
-            # TODO: this cannot work since volFn
-            # must be the cxc file
-            # ChimeraAngDistClient
+
             return ChimeraClientView(volFn,
                                      angularDistFile=sqliteFn,
                                      spheresDistance=radius)

@@ -166,7 +166,7 @@ class ProtRelionCtfRefinement(ProtParticles):
         args += "--f %s " % postStar
         args += "--m1 %s --m2 %s --mask %s " % postVols
         args += "--kmin_tilt %0.3f " % self.minResolution
-        args += "--angpix %0.3f " % self.inputParticles.get().getSamplingRate()
+        args += "--angpix %0.5f " % self.inputParticles.get().getSamplingRate()
 
         if self.doCtfFitting:
             args += "--fit_defocus "
