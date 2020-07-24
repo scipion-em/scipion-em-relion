@@ -157,7 +157,7 @@ class RelionLocalResViewer(ProtocolViewer):
         fhCmd.write("from chimerax.core.commands import run\n")
         # import need to place the labels in the proper place
         fhCmd.write("from chimerax.graphics.windowsize import window_size\n")
-        # import needed to cmpute font size in pixels.
+        # import needed to compute font size in pixels.
         fhCmd.write("from PyQt5.QtGui import QFontMetrics\n")
         fhCmd.write("from PyQt5.QtGui import QFont\n")
         fhCmd.write("run(session, 'set bgColor white')\n")
@@ -166,12 +166,9 @@ class RelionLocalResViewer(ProtocolViewer):
 
         sampRate = self.protocol.outputVolume.getSamplingRate()
 
-        counter = 1
-        fhCmd.write("run(session, 'volume #%d voxelSize %s')\n" % (counter, str(sampRate)))
-        counter += 1
-        fhCmd.write("run(session, 'volume #%d voxelSize %s')\n" % (counter, str(sampRate)))
-        fhCmd.write("run(session, 'hide #%d')\n" % counter)
-
+        fhCmd.write("run(session, 'volume #1 voxelSize %s')\n" % (str(sampRate)))
+        fhCmd.write("run(session, 'volume #2 voxelSize %s')\n" % (str(sampRate)))
+        fhCmd.write("run(session, 'hide #2')\n")
 
         scolorStr = ''
         for step, color in zip(stepColors, colorList):
@@ -180,11 +177,6 @@ class RelionLocalResViewer(ProtocolViewer):
         fhCmd.write("run(session, 'color sample #1 map #2 palette " + scolorStr + "')\n")
         counter = 0
         # chimera X has no equivalent to colorkey
-        # be default chimera uses ariel although
-        # the actual font is not very important
-        # since the height is almost the same
-        # for a given size
-        # get font size in pixels
         ptSize = 12
         fhCmd.write('font = QFont("Ariel", %d)\n' % ptSize)
         fhCmd.write('f = QFontMetrics(font)\n')
@@ -194,15 +186,15 @@ class RelionLocalResViewer(ProtocolViewer):
         fhCmd.write("vx,vy=v.window_size\n")
         fhCmd.write("step = ")
         # place labels in right place
-        # unfortunatelly chimera has no colorbar
+        # unfortunately chimera has no color bar
         for step, color in zip(stepColors, colorList):
             step = "%0.2f" % step
             command ='run(session, "2dlabel text ' + step + \
-            ' bgColor ' + color + \
-            ' xpos 0.01 ypos %f' + \
-            ' size ' + str(ptSize) + \
-            '" % ' +\
-           '(%f*_height/vx))\n' % (counter)
+                     ' bgColor ' + color + \
+                     ' xpos 0.01 ypos %f' + \
+                     ' size ' + str(ptSize) + \
+                     '" % ' +\
+                     '(%f*_height/vx))\n' % counter
             fhCmd.write(command)
             counter += 2
         fhCmd.close()
