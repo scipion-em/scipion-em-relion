@@ -102,7 +102,7 @@ class RelionLocalResViewer(ProtocolViewer):
     # showChimera
     # =============================================================================
     def _showChimera(self, param=None):
-        cmdFile = self.protocol._getExtraPath('chimera_local_res.cmd')
+        cmdFile = self.protocol._getExtraPath('chimera_local_res.py')
         self._createChimeraScript(cmdFile)
         view = ChimeraView(cmdFile)
         return [view]
@@ -154,34 +154,49 @@ class RelionLocalResViewer(ProtocolViewer):
         colorList = plotter.getHexColorList(stepColors, self._getColorName())
 
         fnVol = os.path.abspath(self.protocol._getFileName('outputVolume'))
-
-        fhCmd.write("background solid white\n")
-
-        fhCmd.write("open %s\n" % fnVol)
-        fhCmd.write("open %s\n" % imageFile)
+        fhCmd.write("from chimerax.core.commands import run\n")
+        # import need to place the labels in the proper place
+        fhCmd.write("from chimerax.graphics.windowsize import window_size\n")
+        # import needed to compute font size in pixels.
+        fhCmd.write("from PyQt5.QtGui import QFontMetrics\n")
+        fhCmd.write("from PyQt5.QtGui import QFont\n")
+        fhCmd.write("run(session, 'set bgColor white')\n")
+        fhCmd.write("run(session, 'open %s')\n" % fnVol)
+        fhCmd.write("run(session, 'open %s')\n" % imageFile)
 
         sampRate = self.protocol.outputVolume.getSamplingRate()
-        fhCmd.write("volume #0 voxelSize %s\n" % (str(sampRate)))
-        fhCmd.write("volume #1 voxelSize %s\n" % (str(sampRate)))
-        fhCmd.write("volume #1 hide\n")
+
+        fhCmd.write("run(session, 'volume #1 voxelSize %s')\n" % (str(sampRate)))
+        fhCmd.write("run(session, 'volume #2 voxelSize %s')\n" % (str(sampRate)))
+        fhCmd.write("run(session, 'hide #2')\n")
 
         scolorStr = ''
         for step, color in zip(stepColors, colorList):
             scolorStr += '%s,%s:' % (step, color)
         scolorStr = scolorStr[:-1]
-        line = ("scolor #0 volume #1 perPixel false cmap " + scolorStr + "\n")
-        fhCmd.write(line)
-
-        scolorStr2 = ''
+        fhCmd.write("run(session, 'color sample #1 map #2 palette " + scolorStr + "')\n")
+        counter = 0
+        # chimera X has no equivalent to colorkey
+        ptSize = 12
+        fhCmd.write('font = QFont("Ariel", %d)\n' % ptSize)
+        fhCmd.write('f = QFontMetrics(font)\n')
+        fhCmd.write('_height =  1 * f.height()\n')
+        fhCmd.write("v = session.main_view\n")
+        # get window size
+        fhCmd.write("vx,vy=v.window_size\n")
+        fhCmd.write("step = ")
+        # place labels in right place
+        # unfortunately chimera has no color bar
         for step, color in zip(stepColors, colorList):
-            indx = stepColors.index(step)
-            if (indx % 4) != 0:
-                scolorStr2 += '" " %s ' % color
-            else:
-                scolorStr2 += '%s %s ' % (step, color)
-        line = ("colorkey 0.01,0.05 0.02,0.95 labelColor None "
-                + scolorStr2 + " \n")
-        fhCmd.write(line)
+            step = "%0.2f" % step
+            command ='run(session, "2dlabel text ' + step + \
+                     ' bgColor ' + color + \
+                     ' xpos 0.01 ypos %f' + \
+                     ' size ' + str(ptSize) + \
+                     '" % ' +\
+                     '(%f*_height/vx))\n' % counter
+            fhCmd.write(command)
+            counter += 2
         fhCmd.close()
 
     def _getStepColors(self, minRes, maxRes, numberOfColors=13):
