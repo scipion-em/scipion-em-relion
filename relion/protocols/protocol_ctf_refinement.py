@@ -54,14 +54,16 @@ class ProtRelionCtfRefinement(ProtParticles):
             'mag_obs_y': self._getExtraPath("mag_disp_y_optics-group_%(og)d.mrc:mrc"),
             'mag_fit_x': self._getExtraPath("mag_disp_x_fit_optics-group_%(og)d.mrc:mrc"),
             'mag_fit_y': self._getExtraPath("mag_disp_y_fit_optics-group_%(og)d.mrc:mrc"),
-            'aberr_it_fit': self._getExtraPath("aberr_delta-phase_iter-fit_optics-group_%(og)d_N-4.mrc:mrc"),
-            'aberr_lin_fit': self._getExtraPath("aberr_delta-phase_lin-fit_optics-group_%(og)d_N-4.mrc:mrc"),
-            'aberr_residual_fit': self._getExtraPath("aberr_delta-phase_lin-fit_optics-group_%(og)d_N-4_residual.mrc:mrc"),
-            'aberr_phase_obs': self._getExtraPath("aberr_delta-phase_per-pixel_optics-group_%(og)d.mrc:mrc"),
-            'beamtilt_it_fit': self._getExtraPath("beamtilt_delta-phase_iter-fit_optics-group_%(og)d_N-3.mrc:mrc"),
-            'beamtilt_lin_fit': self._getExtraPath("beamtilt_delta-phase_lin-fit_optics-group_%(og)d_N-3.mrc:mrc"),
-            'beamtilt_residual_fit': self._getExtraPath("beamtilt_delta-phase_lin-fit_optics-group_%(og)d_N-3_residual.mrc:mrc"),
-            'beamtilt_phase_obs': self._getExtraPath("beamtilt_delta-phase_per-pixel_optics-group_%(og)d.mrc:mrc")
+            'tetrafoil_it_fit': self._getExtraPath("aberr_delta-phase_iter-fit_optics-group_%(og)d_N-4.mrc:mrc"),
+            'tetrafoil_fit': self._getExtraPath("aberr_delta-phase_lin-fit_optics-group_%(og)d_N-4.mrc:mrc"),
+            'tetrafoil_residual_fit': self._getExtraPath("aberr_delta-phase_lin-fit_optics-group_%(og)d_N-4_residual.mrc:mrc"),
+            'tetrafoil_obs': self._getExtraPath("aberr_delta-phase_per-pixel_optics-group_%(og)d.mrc:mrc"),
+            'beamtilt_it_fit': self._getExtraPath("beamtilt_delta-phase_iter-fit_optics-group_%(og)d.mrc:mrc"),
+            'beamtilt_fit': self._getExtraPath("beamtilt_delta-phase_lin-fit_optics-group_%(og)d.mrc:mrc"),
+            'trefoil_it_fit': self._getExtraPath("beamtilt_delta-phase_iter-fit_optics-group_%(og)d_N-3.mrc:mrc"),
+            'trefoil_fit': self._getExtraPath("beamtilt_delta-phase_lin-fit_optics-group_%(og)d_N-3.mrc:mrc"),
+            'trefoil_residual_fit': self._getExtraPath("beamtilt_delta-phase_lin-fit_optics-group_%(og)d_N-3_residual.mrc:mrc"),
+            'beamtilt_obs': self._getExtraPath("beamtilt_delta-phase_per-pixel_optics-group_%(og)d.mrc:mrc")
         }
 
         self._updateFilenamesDict(myDict)

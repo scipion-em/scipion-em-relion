@@ -58,18 +58,20 @@ class ProtCtfRefineViewer(ProtocolViewer):
     def _defineParams(self, form):
         self._env = os.environ.copy()
         showBeamTilt = self.protocol.doBeamtiltEstimation.get()
+        showTrefoil = self.protocol.doEstimateTrefoil.get()
+        showTetrafoil = self.protocol.doEstimate4thOrder.get()
         showDefocus = self.protocol.doCtfFitting.get()
         showAnisoMag = self.protocol.estimateAnisoMag.get()
 
         form.addSection(label="Results")
         form.addParam('displayAnisoMag', params.LabelParam,
-                      label="Show mag. anisotropy Images",
+                      label="Show X/Y mag. anisotropy estimation",
                       condition="{}".format(showAnisoMag),
-                      help="Display two images: (1) phase differences from "
-                           "which this estimate was derived and\n"
-                           "(2) the model fitted through it.")
+                      help="Display four images (X and Y): (1) phase "
+                           "differences from which this estimate was "
+                           "derived and\n(2) the model fitted through it.")
         form.addParam('displayDefocus', params.LabelParam,
-                      label="Show Defocus and Stdev",
+                      label="Show defocus estimation",
                       condition="{}".format(showDefocus),
                       help="Display the defocus estimation.\n "
                            "Plot defocus difference (Angstroms) vs "
@@ -81,29 +83,46 @@ class ProtCtfRefineViewer(ProtocolViewer):
                            "micrographs)\n"
                            "Home/End keys (move +1000/-1000 micrographs)")
         form.addParam('displayBeamTilt', params.LabelParam,
-                      label="Show BeamTilt Images",
-                      condition="{}".format(showBeamTilt),
+                      label="Show beam tilt estimation",
+                      condition="{} and not {}".format(showBeamTilt, showTrefoil),
+                      help="Display two images: (1) phase differences from "
+                           "which this estimate was derived and\n"
+                           "(2) the model fitted through it.")
+        form.addParam('displayTrefoil', params.LabelParam,
+                      label="Show beam tilt and 3-fold astigmatism estimation",
+                      condition="{}".format(showTrefoil),
+                      help="Display two images: (1) phase differences from "
+                           "which this estimate was derived and\n"
+                           "(2) the model fitted through it.")
+        form.addParam('displayTetrafoil', params.LabelParam,
+                      label="Show 4-fold aberrations estimation",
+                      condition="{}".format(showTetrafoil),
                       help="Display two images: (1) phase differences from "
                            "which this estimate was derived and\n"
                            "(2) the model fitted through it.")
         form.addParam('displayParticles', params.LabelParam,
-                      label="Display Particles",
+                      label="Display particles",
                       help="See the particles with the new CTF "
-                           "and beam tilt values")
+                           "values")
 
     def _getVisualizeDict(self):
         return{
             'displayAnisoMag': self._displayAnisoMag,
             'displayDefocus': self._displayDefocus,
             'displayBeamTilt': self._displayBeamTilt,
+            'displayTrefoil': self._displayTrefoil,
+            'displayTetrafoil': self._displayTetrafoil,
             'displayParticles': self._displayParticles
         }
 
     def _displayAnisoMag(self, param=None):
-        phaseDifferenceFn = self.protocol._getFileName("mag_obs_x", og=1)
-        modelFitFn = self.protocol._getFileName("mag_fit_x", og=1)
+        obs_x = self.protocol._getFileName("mag_obs_x", og=1)
+        obs_y = self.protocol._getFileName("mag_obs_y", og=1)
+        fit_x = self.protocol._getFileName("mag_fit_x", og=1)
+        fit_y = self.protocol._getFileName("mag_fit_y", og=1)
 
-        return [DataView(phaseDifferenceFn), DataView(modelFitFn)]
+        return [DataView(obs_x), DataView(obs_y),
+                DataView(fit_x), DataView(fit_y)]
 
     def _displayDefocus(self, e=None):
         """Show matplotlib with defocus values."""
@@ -152,10 +171,22 @@ class ProtCtfRefineViewer(ProtocolViewer):
         self.show()
 
     def _displayBeamTilt(self, param=None):
-        phaseDifferenceFn = self.protocol._getFileName("beamtilt_phase_obs", og=1)
-        modelFitFn = self.protocol._getFileName("beamtilt_lin_fit", og=1)
+        beamtilt_obs = self.protocol._getFileName("beamtilt_obs", og=1)
+        beamtilt_fit = self.protocol._getFileName("beamtilt_fit", og=1)
 
-        return [DataView(phaseDifferenceFn), DataView(modelFitFn)]
+        return [DataView(beamtilt_obs), DataView(beamtilt_fit)]
+
+    def _displayTrefoil(self, param=None):
+        trefoil_obs = self.protocol._getFileName("beamtilt_obs", og=1)
+        trefoil_fit = self.protocol._getFileName("trefoil_fit", og=1)
+
+        return [DataView(trefoil_obs), DataView(trefoil_fit)]
+
+    def _displayTetrafoil(self, param=None):
+        tetrafoil_obs = self.protocol._getFileName("tetrafoil_obs", og=1)
+        tetrafoil_fit = self.protocol._getFileName("tetrafoil_fit", og=1)
+
+        return [DataView(tetrafoil_obs), DataView(tetrafoil_fit)]
 
     def createScipionPartView(self, filename):
         inputParticlesId = self.protocol.inputParticles.get().strId()
