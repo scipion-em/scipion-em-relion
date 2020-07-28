@@ -360,7 +360,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         if first:
             og = OpticsGroups.fromImages(outputSet)
             og.updateAll(rlnImagePixelSize=self._getNewSampling(),
-                         rlnImageSize=self.getBoxSize())
+                         rlnImageSize=self.getNewImgSize())
             og.toImages(outputSet)
 
         ProtExtractParticles._updateOutputSet(self, outputName, outputSet,
@@ -430,9 +430,8 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         f = self.getScaleFactor()
         return f / self._getDownFactor() if self._doDownsample() else f
 
-    def getBoxSize(self):
-        # This function is needed by the wizard
-        return int(self.getCoords().getBoxSize() * self.getBoxScale())
+    def getNewImgSize(self):
+        return int(self.rescaledSize if self._doDownsample() else self.boxSize)
 
     def _getOutputImgMd(self):
         return self._getPath('images.xmd')

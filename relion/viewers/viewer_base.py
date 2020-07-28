@@ -190,10 +190,11 @@ Examples:
                            label='Display angular distribution',
                            help='*2D plot*: display angular distribution as interative 2D in matplotlib.\n'
                                 '*chimera*: display angular distribution using Chimera with red spheres.')
-            group.addParam('spheresScale', params.IntParam, default=100,
+            group.addParam('spheresScale', params.IntParam, default=-1,
                            expertLevel=LEVEL_ADVANCED,
-                           label='Spheres size',
-                           help='')
+                           label='Spheres distance',
+                           help='If the value is -1 then the distance is set '
+                                'to 0.75 * xVolDim')
 
             group = form.addGroup('Resolution')
             group.addParam('figure', params.EnumParam, default=0,
@@ -564,9 +565,6 @@ Examples:
         # Common variables to use
         nparts = self.protocol.inputParticles.get().getSize()
         radius = self.spheresScale.get()
-        if radius < 0:
-            radius = self.protocol.maskDiameterA.get() / 2
-
         prefixes = self._getPrefixes()
 
         if len(self._refsList) != 1:
@@ -576,7 +574,7 @@ Examples:
         ref3d = self._refsList[0]
         volFn = self._getVolumeNames()[0]
         if not pwutils.exists(volFn.replace(":mrc", "")):
-            raise Exception("This class is Empty. Please try with other class")
+            raise Exception("This class is empty. Please try with another class")
 
         for prefix in prefixes:
             sqliteFn = self.protocol._getFileName('projections',
@@ -589,18 +587,15 @@ Examples:
                     itemDataIterator=self._iterAngles(mdOut))
             if hasattr(self.protocol, 'outputVolumes'):
                 vol = self.protocol.outputVolumes.getFirstItem()
-            elif hasattr(self.protocol, 'outputVolume'):
-                vol = self.protocol.outputVolume
             else:
-                raise("I do not know how to compute angDist "
-                      "if no volume is present.")
+                vol = self.protocol.outputVolume
             volOrigin = vol.getOrigin(force=True).getShifts()
             samplingRate = vol.getSamplingRate()
-            return  ChimeraAngDist(volFn, self.protocol._getTmpPath(),
-                                     voxelSize=samplingRate,
-                                     volOrigin=volOrigin,
-                                     angularDistFile=sqliteFn,
-                                     spheresDistance=radius)
+            return ChimeraAngDist(volFn, self.protocol._getTmpPath(),
+                                  voxelSize=samplingRate,
+                                  volOrigin=volOrigin,
+                                  angularDistFile=sqliteFn,
+                                  spheresDistance=radius)
 
     def _createAngDist2D(self, it):
         # Common variables to use
