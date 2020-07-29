@@ -26,17 +26,20 @@
 """
 This module contains the protocol for 3d refinement with Relion.
 """
+import glob
 from os import remove
-from os.path import abspath, exists
+from os.path import abspath, exists, getmtime
 
-from pwem.objects import Volume, ALIGN_PROJ
+from pwem.objects import Volume, ALIGN_PROJ, FSC, Integer
 from pwem.protocols import ProtRefine3D
-from relion.convert import createItemMatrix
+from relion.convert import createItemMatrix, Table, createReader, pwem, convert31
 from relion.protocols.protocol_base_tomo import ProtRelionBaseTomo
-from relion import Plugin
+
+from tomo.objects import AverageSubTomogram
+from tomo.protocols import ProtTomoBase
 
 
-class ProtRelionSubtomoRefine3D(ProtRefine3D, ProtRelionBaseTomo):
+class ProtRelionSubtomoRefine3D(ProtRefine3D, ProtRelionBaseTomo, ProtTomoBase):
     """Protocol to refine a 3D map using Relion. Relion employs an empirical
 Bayesian approach to refinement of (multiple) 3D reconstructions
 or 2D class averages in electron cryo-microscopy (cryo-EM). Many
@@ -80,19 +83,40 @@ leads to objective and high-quality results.
             if not joinHalves in self.extraParams.get():
                 args['--low_resol_join_halves'] = 40
 
+            if self.IS_GT30() and self.useFinerSamplingFaster:
+                args['--auto_ignore_angles'] = ''
+                args['--auto_resol_angles'] = ''
+
     # --------------------------- STEPS functions --------------------------------------------
     def createOutputStep(self):
 
-        imgSet = self._getInputParticles()
-        vol = Volume()
-        vol.setFileName(self._getExtraPath('relion_refined_volume.mrc'))
-        vol.setSamplingRate(imgSet.getSamplingRate())
+        subtomoSet = self._getInputParticles()
+        vol = AverageSubTomogram()
+        vol.setFileName(self._getExtraPath('relion_class001.mrc'))
+        vol.setSamplingRate(subtomoSet.getSamplingRate())
+        pattern = '*it*half%s_class*.mrc'
+        half1 = self._getLastFileName(self._getExtraPath(pattern % 1))
+        half2 = self._getLastFileName(self._getExtraPath(pattern % 2))
+        vol.setHalfMaps([half1, half2])
+
+        outSubtomoSet = self._createSetOfSubTomograms()
+        outSubtomoSet.copyInfo(subtomoSet)
+        self._fillDataFromIter(outSubtomoSet, self._lastIter())
 
         self._defineOutputs(outputVolume=vol)
-        self._defineSourceRelation(imgSet, vol)
+        self._defineSourceRelation(subtomoSet, vol)
+        self._defineOutputs(outputParticles=outSubtomoSet)
+        self._defineTransformRelation(subtomoSet, outSubtomoSet)
 
-        if self.keepOnlyLastIterFiles:
-            self._cleanUndesiredFiles()
+        fsc = FSC(objLabel=self.getRunName())
+        fn = self._getExtraPath("relion_model.star")
+        table = Table(fileName=fn, tableName='model_class_1')
+        resolution_inv = table.getColumnValues('rlnResolution')
+        frc = table.getColumnValues('rlnGoldStandardFsc')
+        fsc.setData(resolution_inv, frc)
+
+        self._defineOutputs(outputFSC=fsc)
+        self._defineSourceRelation(vol, fsc)
 
     # --------------------------- INFO functions --------------------------------------------
     def _validateNormal(self):
@@ -197,3 +221,34 @@ leads to objective and high-quality results.
                         remove(mrcFile)
                     if exists(bildFile):
                         remove(bildFile)
+
+    def _fillDataFromIter(self, subtomoClassesSet, iteration):
+        # tableName = 'particles@' if self.IS_GT30() else ''
+        dataStar = self._getFileName('data', iter=iteration)
+        # imgSet.setAlignmentProj()
+        for item in subtomoClassesSet:
+            item.setAlignmentProj()
+        # with open(dataStar) as fid:
+        #     self.dataTable.readStar(fid)
+        self.reader = convert31.Reader(alignType=pwem.ALIGN_PROJ,
+                                       pixelSize=subtomoClassesSet.getSamplingRate())
+
+        mdIter = Table.iterRows(dataStar, key='rlnImageName')
+        subtomoClassesSet.copyItems(self._getInputParticles(),
+                                    doClone=False,
+                                    updateItemCallback=self._updateParticle,
+                                    itemDataIterator=mdIter)
+
+    def _updateParticle(self, particle, row):
+        self.reader.setParticleTransform(particle, row)
+
+        if not hasattr(particle, '_rlnRandomSubset'):
+            particle._rlnRandomSubset = Integer()
+
+        particle._rlnRandomSubset.set(row.rlnRandomSubset)
+
+    @staticmethod
+    def _getLastFileName(pattern):
+        files = glob.glob(pattern)
+        files.sort(key=getmtime)
+        return files[-1]

@@ -32,7 +32,6 @@ from os.path import abspath, exists
 from pwem.protocols import ProtClassify3D, params
 from .protocol_base_tomo import ProtRelionBaseTomo
 from tomo.protocols import ProtTomoBase
-from relion import Plugin
 
 
 class ProtRelionSubtomoClassif3D(ProtClassify3D, ProtRelionBaseTomo, ProtTomoBase):
@@ -73,17 +72,6 @@ class ProtRelionSubtomoClassif3D(ProtClassify3D, ProtRelionBaseTomo, ProtTomoBas
 
     # --------------------------- STEPS functions --------------------------------------------
     def createOutputStep(self):
-        # # JORGE
-        # import os
-        # fname = "/home/jjimenez/Desktop/test_JJ.txt"
-        # if os.path.exists(fname):
-        #     os.remove(fname)
-        # fjj = open(fname, "a+")
-        # fjj.write('JORGE--------->onDebugMode PID {}'.format(os.getpid()))
-        # fjj.close()
-        # import time
-        # time.sleep(10)
-        # # JORGE_END
         subtomoSet = self._getInputParticles()
         classes3D = self._createSetOfClassesSubTomograms(subtomoSet)
         self._fillClassesFromIter(classes3D, self._lastIter())

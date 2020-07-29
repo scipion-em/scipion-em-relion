@@ -40,9 +40,8 @@ from pyworkflow.utils.path import cleanPath
 from pwem.convert.transformations import euler_from_matrix, translation_from_matrix
 
 import relion
-from relion.convert import convertBinaryVol, MASK_FILL_ZERO, Table
+from relion.convert import convertBinaryVol, MASK_FILL_ZERO, Table, writeSetOfSubtomograms
 from relion import ANGULAR_SAMPLING_LIST
-from numpy import rad2deg, linalg, array, float64
 
 
 class ProtRelionBaseTomo(EMProtocol):
@@ -527,51 +526,7 @@ class ProtRelionBaseTomo(EMProtocol):
         subtomoSet = self._getInputParticles()
         subtomosStar = self._getFileName('input_star')
         self.info("Converting set from '%s' into '%s'" % (subtomoSet.getFileName(), subtomosStar))
-
-        tomoTable = self._createStarTomoTable()
-        for subtomo in subtomoSet:
-            angles, shifts = self._getTransformInfoFromSubtomo(subtomo)
-            magn = subtomo.getAcquisition().getMagnification()
-            rlnMicrographName = subtomo.getVolName()
-            rlnCoordinateX = subtomo.getCoordinate3D().getX()
-            rlnCoordinateY = subtomo.getCoordinate3D().getY()
-            rlnCoordinateZ = subtomo.getCoordinate3D().getZ()
-            rlnImageName = subtomo.getFileName()
-            rlnCtfImage = abspath(self._getCTFFileFromSubtomo(subtomo))
-            rlnMagnification = magn if magn else 10000 #64000
-            rlnDetectorPixelSize = subtomo.getSamplingRate()
-            rlnAngleRot = angles[0]
-            rlnAngleTilt = angles[1]
-            rlnAnglePsi = angles[2]
-            rlnOriginX = shifts[0]
-            rlnOriginY = shifts[1]
-            rlnOriginZ = shifts[2]
-            # Add row to the table which will be used to generate the STAR file
-            tomoTable.addRow(rlnMicrographName,
-                             rlnCoordinateX,
-                             rlnCoordinateY,
-                             rlnCoordinateZ,
-                             rlnImageName,
-                             rlnCtfImage,
-                             rlnMagnification,
-                             rlnDetectorPixelSize,
-                             rlnAngleRot,
-                             rlnAngleTilt,
-                             rlnAnglePsi,
-                             rlnOriginX,
-                             rlnOriginY,
-                             rlnOriginZ
-                             )
-        # Write the STAR file
-        if relion.Plugin.IS_30():
-            tomoTable.write(subtomosStar)
-        else:
-            tmpTable = self._getTmpPath('tbl.star')
-            tomoTable.write(tmpTable)
-            # Re-write the star file as expected by the current version of Relion, if necessary
-            starFile = abspath(subtomosStar)
-            self.runJob('relion_convert_star',
-                        ' --i %s --o %s' % (tmpTable, starFile))
+        writeSetOfSubtomograms(subtomoSet, subtomosStar)
 
     def runRelionStep(self, params):
         """ Execute the relion steps with the give params. """
@@ -864,51 +819,8 @@ class ProtRelionBaseTomo(EMProtocol):
             return float(self.modelTable._rows[0].rlnCurrentResolution)
 
     @ staticmethod
-    def _createStarTomoTable():
-        return Table(columns=['rlnMicrographName',
-                              'rlnCoordinateX',
-                              'rlnCoordinateY',
-                              'rlnCoordinateZ',
-                              'rlnImageName',
-                              'rlnCtfImage',
-                              'rlnMagnification',
-                              'rlnDetectorPixelSize',
-                              'rlnAngleRot',
-                              'rlnAngleTilt',
-                              'rlnAnglePsi',
-                              'rlnOriginX',
-                              'rlnOriginY',
-                              'rlnOriginZ',
-                              ])
-
-    @ staticmethod
     def _getCTFFileFromSubtomo(subtomo):
         return subtomo.getCoordinate3D()._3dcftMrcFile.get()
 
-    @ staticmethod
-    def _getTransformInfoFromSubtomo(subtomo):
-        angles = [0, 0, 0]
-        shifts = [0, 0, 0]
-        T = subtomo.getTransform()
-        if T:  # Alignment performed before
-
-            # TODO: check if matrix must be inverted to get the correct angles
-            M = subtomo.getTransform().getMatrix()
-
-            from relion.convert import geometryFromMatrix
-            calcInv = True
-            _, angles = geometryFromMatrix(M, calcInv)
-            shifts = translation_from_matrix(M)
-            if calcInv:
-                shifts = -shifts
-
-            # # Direct
-            # angles = -rad2deg(euler_from_matrix(M, axes='szyz'))
-            # shifts = translation_from_matrix(M)
-
-            # # Inverse
-            # angularPart = array(M, dtype=float64, copy=False)[:3, :3]
-            # shifts = -translation_from_matrix(M)
-            # angularPart = linalg.inv(angularPart)
-            # angles = -rad2deg(euler_from_matrix(angularPart, axes='szyz'))
-        return angles, shifts
+    def IS_GT30(self):
+        return relion.Plugin.IS_GT30()

@@ -28,12 +28,12 @@
 from pwem.emlib.image import ImageHandler
 import pyworkflow.utils as pwutils
 from scipion.install.funcs import mkdir
-
+import numpy as np
 import relion
 from os.path import abspath, join
-from pwem.convert.transformations import translation_from_matrix
+from pwem.convert.transformations import translation_from_matrix, euler_from_matrix
 from relion.convert import Table
-from .convert_base import WriterBase, ReaderBase
+from .convert_base import WriterBase
 
 
 
@@ -42,14 +42,6 @@ class Writer(WriterBase):
     with star file format previous to Relion>3.1, but providing the same
      interface as the new Writer class.
     """
-
-    # def writeSetOfMovies(self, moviesIterable, starFile):
-    #     self._writeSetOfMoviesOrMics(moviesIterable, starFile,
-    #                                  'movies', 'rlnMicrographMovieName')
-    #
-    # def writeSetOfMicrographs(self, micsIterable, starFile):
-    #     self._writeSetOfMoviesOrMics(micsIterable, starFile,
-    #                                  'micrographs', 'rlnMicrographName')
 
     def writeSetOfSubtomograms(self, subtomoSet, subtomosStar, **kwargs):
         currentTomo = ''
@@ -99,6 +91,13 @@ class Writer(WriterBase):
         # Write the STAR file
         if relion.Plugin.IS_30():
             tomoTable.write(subtomosStar)
+        # else:
+        #     tmpTable = self._getTmpPath('tbl.star')
+        #     tomoTable.write(tmpTable)
+        #     # Re-write the star file as expected by the current version of Relion, if necessary
+        #     starFile = abspath(subtomosStar)
+        #     self.runJob('relion_convert_star',
+        #                 ' --i %s --o %s' % (tmpTable, starFile))
 
     @ staticmethod
     def _createStarTomoTable():
@@ -126,31 +125,20 @@ class Writer(WriterBase):
             return 'Unavailable'
 
     @staticmethod
-    def _getTransformInfoFromSubtomo(subtomo):
+    def _getTransformInfoFromSubtomo(subtomo, calcInv=True):
         angles = [0, 0, 0]
         shifts = [0, 0, 0]
         T = subtomo.getTransform()
+
         if T:  # Alignment performed before
-
-            # TODO: check if matrix must be inverted to get the correct angles
             M = subtomo.getTransform().getMatrix()
-
-            from relion.convert import geometryFromMatrix
-            calcInv = True
-            _, angles = geometryFromMatrix(M, calcInv)
             shifts = translation_from_matrix(M)
             if calcInv:
                 shifts = -shifts
+                M = np.linalg.inv(M)
 
-            # # Direct
-            # angles = -rad2deg(euler_from_matrix(M, axes='szyz'))
-            # shifts = translation_from_matrix(M)
+            angles = -np.rad2deg(euler_from_matrix(M, axes='szyz'))
 
-            # # Inverse
-            # angularPart = array(M, dtype=float64, copy=False)[:3, :3]
-            # shifts = -translation_from_matrix(M)
-            # angularPart = linalg.inv(angularPart)
-            # angles = -rad2deg(euler_from_matrix(angularPart, axes='szyz'))
         return angles, shifts
 
 
