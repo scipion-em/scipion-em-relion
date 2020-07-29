@@ -23,16 +23,15 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+from emtable import Table
 
-from pyworkflow.object import String, Integer
-
+from pyworkflow.object import Integer
 import pwem
 from pwem.objects import Volume, FSC
 from pwem.protocols import ProtRefine3D
 
 from relion import Plugin
 import relion.convert as convert
-from relion.convert.metadata import Table
 from .protocol_base import ProtRelionBase
 
 

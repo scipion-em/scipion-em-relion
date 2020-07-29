@@ -142,7 +142,7 @@ class ProtRelionSubtract(ProtOperateParticles):
         volume = self.inputVolume.get()
         volFn = convert.convertBinaryVol(volume,
                                          self._getExtraPath())
-        params = ' --i %s --subtract_exp --angpix %0.3f' % (volFn,
+        params = ' --i %s --subtract_exp --angpix %0.5f' % (volFn,
                                                             volume.getSamplingRate())
 
         if self.refMask.hasValue():

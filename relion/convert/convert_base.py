@@ -30,13 +30,11 @@ New conversion functions dealing with Relion3.1 new star files format.
 """
 
 import os
+from emtable import Table
 
 import pwem
 from pwem.emlib.image import ImageHandler
 import pyworkflow.utils as pwutils
-
-from .metadata import Table, Column
-from .convert_utils import relionToLocation
 
 
 class WriterBase:
@@ -61,7 +59,7 @@ class WriterBase:
                 might be useful in export protocols.
 
         """
-        self._optics = None
+        self._optics = kwargs.get('optics', None)
         # Not used now
         #self.convertPolicy = kwargs.get('convertPolicy', self.CONVERT_IF_NEEDED)
         self.rootDir = None
@@ -143,7 +141,7 @@ class WriterBase:
         the type of the values in the dict.
         """
         return Table(columns=[
-            Column(k, type=type(v)) for k, v in rowDict.items()])
+            Table.Column(k, type=type(v)) for k, v in rowDict.items()])
 
     def _micToRow(self, mic, row):
         row['rlnImageId'] = mic.getObjId()
@@ -199,5 +197,3 @@ class ReaderBase:
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
         pass
-
-

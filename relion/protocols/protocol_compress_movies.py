@@ -29,7 +29,7 @@ import os
 import pyworkflow.protocol.params as params
 import pyworkflow.utils as pwutils
 from pwem.protocols import ProtAlignMovies
-from pwem.objects import Image, MovieAlignment
+from pwem.objects import MovieAlignment
 from pyworkflow.protocol import STEPS_PARALLEL
 
 import relion

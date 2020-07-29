@@ -35,7 +35,7 @@ RELION_CUDA_LIB = 'RELION_CUDA_LIB'
 
 # Supported versions:
 V3_0 = '3.0'
-V3_1 = '3.1'
+V3_1 = '3.1.0'
 
 MASK_FILL_ZERO = 0
 MASK_FILL_NOISE = 1
@@ -61,6 +61,10 @@ FIT_NO = 0
 FIT_MICS = 1
 FIT_PARTS = 2
 
+# Axis code
+AX_X = 0
+AX_Y = 1
+AX_Z = 2
 
 # Protocol create mask 3d
 MASK_AND = 0
@@ -82,8 +86,6 @@ ANGDIST_CHIMERA = 1
 
 VOLUME_SLICES = 0
 VOLUME_CHIMERA = 1
-
-CHIMERADATAVIEW = 0
 
 CLASSES_ALL = 0
 CLASSES_SEL = 1
@@ -112,133 +114,6 @@ COLOR_CHOICES[COLOR_GIST_NCAR] = 'gist_ncar'
 COLOR_CHOICES[COLOR_GNU_PLOT] = 'gnuplot'
 COLOR_CHOICES[COLOR_GNU_PLOT2] = 'gnuplot2'
 COLOR_CHOICES[COLOR_OTHER] = 'other'
-
-# Axis code
-AX_X = 0
-AX_Y = 1
-AX_Z = 2
-
-# Constant to define the behaviour when
-# dealing with binaries conversion
-
-# Only convert if the format is not supported
-# create link otherwise
-CONVERT_IF_NEEDED = 0
-CONVERT_ALWAYS = 1  # Always convert
-CONVERT_FILENAME = 2  # Only convert the filename
-
-# Map from Xmipp labels to Relion labels names
-XMIPP_RELION_LABELS = {
-    md.MDL_ANGLE_ROT: 'rlnAngleRot',
-    md.MDL_ANGLE_TILT: 'rlnAngleTilt',
-    md.MDL_ANGLE_PSI: 'rlnAnglePsi',
-    md.MDL_AVG_CHANGES_ORIENTATIONS: 'rlnChangesOptimalOrientations',
-    md.MDL_AVG_CHANGES_OFFSETS: 'rlnChangesOptimalOffsets',
-    md.MDL_AVG_CHANGES_CLASSES: 'rlnChangesOptimalClasses',
-    md.MDL_AVGPMAX: 'rlnAveragePmax',
-    md.MDL_CLASS_PERCENTAGE: 'rlnClassDistribution',
-    md.MDL_CTF_CA: 'rlnChromaticAberration',
-    md.MDL_CTF_CONVERGENCE_CONE: 'rlnConvergenceCone',
-    md.MDL_CTF_CS: 'rlnSphericalAberration',
-    md.MDL_CTF_DEFOCUSU: 'rlnDefocusU',
-    md.MDL_CTF_DEFOCUSV: 'rlnDefocusV',
-    md.MDL_CTF_DEFOCUS_ANGLE: 'rlnDefocusAngle',
-    md.MDL_CTF_ENERGY_LOSS: 'rlnEnergyLoss',
-    md.MDL_CTF_LENS_STABILITY: 'rlnLensStability',
-    md.MDL_CTF_LONGITUDINAL_DISPLACEMENT: 'rlnLongitudinalDisplacement',
-    md.MDL_CTF_TRANSVERSAL_DISPLACEMENT: 'rlnTransversalDisplacement',
-    md.MDL_CTF_Q0: 'rlnAmplitudeContrast',
-    md.MDL_CTF_SAMPLING_RATE: 'rlnDetectorPixelSize',
-    md.MDL_CTF_VOLTAGE: 'rlnVoltage',
-    md.MDL_DATATYPE: 'rlnDataType',
-    md.MDL_DEFGROUP: 'rlnGroupNumber',
-    md.MDL_ENABLED: 'rlnEnabled',
-    md.MDL_IMAGE: 'rlnImageName',
-    md.MDL_IMAGE_REF: 'rlnReferenceImage',
-    md.MDL_ITEM_ID: 'rlnImageId',
-    md.MDL_MAXCC: 'rlnLogLikelihood',
-    md.MDL_PSD: 'rlnCtfImage',  # relion 1.3
-    md.MDL_LL: 'rlnLogLikeliContribution',
-    md.MDL_MAGNIFICATION: 'rlnMagnification',
-    md.MDL_MICROGRAPH: 'rlnMicrographName',
-    md.MDL_MICROGRAPH_ID: 'rlnMicrographId',
-    md.MDL_REF: 'rlnClassNumber',
-    md.MDL_RESOLUTION_FREQREAL: 'rlnAngstromResolution',
-    md.MDL_RESOLUTION_FRC: 'rlnGoldStandardFsc',
-    md.MDL_RESOLUTION_FREQ: 'rlnResolution',
-    md.MDL_RESOLUTION_SSNR: 'rlnSsnrMap',
-    md.MDL_RANDOMSEED: 'rlnRandomSubset',
-    md.MDL_SAMPLINGRATE: 'rlnPixelSize',
-    md.MDL_SAMPLINGRATE_ORIGINAL: 'rlnPixelSize',
-    md.MDL_SCALE: 'rlnMagnificationCorrection',
-    md.MDL_SHIFT_X: 'rlnOriginX',
-    md.MDL_SHIFT_Y: 'rlnOriginY',
-    md.MDL_SHIFT_Z: 'rlnOriginZ',
-    md.MDL_PMAX: 'rlnMaxValueProbDistribution',
-    md.MDL_SAMPLINGRATE_X: 'rlnSamplingRateX',
-    md.MDL_SAMPLINGRATE_Y: 'rlnSamplingRateY',
-    md.MDL_SAMPLINGRATE_Z: 'rlnSamplingRateZ',
-    md.MDL_XCOOR: 'rlnCoordinateX',
-    md.MDL_XSIZE: 'rlnImageSizeX',
-    md.MDL_YCOOR: 'rlnCoordinateY',
-    md.MDL_YSIZE: 'rlnImageSizeY',
-    md.MDL_WEIGHT: 'rlnNrOfSignificantSamples',
-    md.MDL_ZSIZE: 'rlnImageSizeZ',
-    # relion 1.3
-    md.MDL_IMAGE2: 'rlnParticleName',
-    md.MDL_IMAGE_ORIGINAL: 'rlnOriginalParticleName',
-    md.MDL_SERIE: 'rlnGroupName'
-}
-
-XMIPP_RELION_LABELS_EXTRA = {
-    # Following labels have no correct matching, just to
-    # pick one with the same datatype
-    md.MDL_ANGLE_Y2: 'rlnOrientationalPriorMode',  # int
-    md.MDL_BLOCK_NUMBER: 'rlnGroupNumber',  # just one
-    md.MDL_COUNT: 'rlnGroupNrParticles',  # just one
-    md.MDL_CTF_CRIT_FITTINGSCORE: 'rlnCtfFigureOfMerit',  # just one
-    md.MDL_CTF_CRIT_NORMALITY: 'rlnNormCorrection',  # just one
-    md.MDL_CTF_CRIT_PSDVARIANCE: 'rlnCtfValue',  # just one
-    md.MDL_CTF_CRIT_PSDCORRELATION90: 'rlnCtfBfactor',  # just one
-    md.MDL_CRYSTAL_CELLX: 'rlnReferenceDimensionality',
-    md.MDL_CRYSTAL_CELLY: 'rlnOriginalImageSize',
-    md.MDL_CRYSTAL_DISAPPEAR_THRE: 'rlnCurrentResolution',
-    md.MDL_PICKING_PARTICLE_SIZE: 'rlnCurrentImageSize',  # int
-    md.MDL_PICKING_AUTOPICKPERCENT: 'rlnPaddingFactor',  # int
-    md.MDL_PICKING_TEMPLATES: 'rlnFourierSpaceInterpolator',  # int
-    md.MDL_COLOR: 'rlnMinRadiusNnInterpolation',  # int
-    md.MDL_DM3_NUMBER_TYPE: 'rlnNrClasses',  # int
-    md.MDL_DM3_SIZE: 'rlnNrGroups',  # int
-    md.MDL_NMA_COLLECTIVITY: 'rlnTau2FudgeFactor',  # double
-    md.MDL_NMA_SCORE: 'rlnNormCorrectionAverage',  # double
-    md.MDL_SIGMAOFFSET: 'rlnSigmaOffsets',  # double
-    md.MDL_MLF_WIENER: 'rlnOrientationDistribution',  # double
-    md.MDL_IDX: 'rlnSpectralIndex',  # int
-    md.MDL_MLF_NOISE: 'rlnSigma2Noise',  # double
-    md.MDL_DM3_TAGNAME: 'rlnGroupName',  # string
-    md.MDL_MLF_SIGNAL: 'rlnGroupScaleCorrection',  # double
-
-    md.MDL_FOM: 'rlnAutopickFigureOfMerit',
-    md.MDL_ZSCORE_SHAPE1: 'rlnAccuracyRotations',
-    md.MDL_ZSCORE_SHAPE2: 'rlnAccuracyTranslations',
-    md.MDL_ZSCORE_SNR1: 'rlnReferenceSigma2',
-    md.MDL_ZSCORE_SNR2: 'rlnReferenceTau2',
-    md.MDL_ZSCORE_RESCOV: 'rlnSpectralOrientabilityContribution',
-
-    # Keep relion 1.3 new labels at the end
-    # just in case we want to keep 1.2 compatibility
-    md.MDL_ANGLE_ROT2: 'rlnAngleRotPrior',
-    md.MDL_ANGLE_TILT2: 'rlnAngleTiltPrior',
-    md.MDL_ANGLE_PSI2: 'rlnAnglePsiPrior',
-    md.MDL_SHIFT_X2: 'rlnOriginXPrior',
-    md.MDL_SHIFT_Y2: 'rlnOriginYPrior',
-    md.MDL_ZSCORE: 'rlnParticleSelectZScore',
-    md.MDL_COUNT2: 'rlnNrOfFrames',
-    # Not the best labels, but just to grab some
-    md.MDL_CLASSIFICATION_DPR_05: 'rlnClassPriorOffsetX',
-    md.MDL_CLASSIFICATION_FRC_05: 'rlnClassPriorOffsetY',
-    # md.MDL_CLASSIFICATION_INTRACLASS_DISTANCE: ''
-}
 
 # This dictionary will be used to map
 # between CTFModel properties and Xmipp labels
@@ -287,26 +162,6 @@ CTF_EXTRA_LABELS = [
 IMAGE_EXTRA_LABELS = [
     md.RLN_SELECT_PARTICLES_ZSCORE,
     md.RLN_IMAGE_FRAME_NR
-]
-
-# Extra labels for movie refinement & polishing
-MOVIE_EXTRA_LABELS = [
-    md.RLN_PARTICLE_NR_FRAMES,
-    md.RLN_PARTICLE_NR_FRAMES_AVG,
-    md.RLN_PARTICLE_MOVIE_RUNNING_AVG,
-    md.RLN_PARTICLE_ORI_NAME,
-    md.RLN_MLMODEL_GROUP_NAME,
-    # the following is required for polishing to work
-    md.RLN_PARTICLE_DLL,
-    md.RLN_PARTICLE_PMAX,
-    md.RLN_IMAGE_NORM_CORRECTION,
-    md.RLN_PARTICLE_NR_SIGNIFICANT_SAMPLES,
-    md.RLN_PARTICLE_RANDOM_SUBSET,
-    md.RLN_ORIENT_ORIGIN_X_PRIOR,
-    md.RLN_ORIENT_ORIGIN_Y_PRIOR,
-    md.RLN_ORIENT_PSI_PRIOR,
-    md.RLN_ORIENT_ROT_PRIOR,
-    md.RLN_ORIENT_TILT_PRIOR
 ]
 
 ALIGNMENT_DICT = OrderedDict([

@@ -25,6 +25,7 @@
 # **************************************************************************
 
 from os.path import relpath
+from emtable import Table
 
 import pyworkflow.protocol.params as params
 from pwem.protocols import ProtParticlePickingAuto
@@ -35,7 +36,6 @@ import pyworkflow.utils as pwutils
 from pwem.convert.utils import getSubsetByDefocus
 
 import relion.convert
-from ..convert.metadata import Table
 from ..constants import *
 from .protocol_autopick import ProtRelionAutopickBase
 
@@ -388,7 +388,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         params = ' --pickname autopick'
         params += ' --odir ""'
         params += ' --particle_diameter %d' % self.particleDiameter
-        params += ' --angpix %0.3f' % self.getInputMicrographs().getSamplingRate()
+        params += ' --angpix %0.5f' % self.getInputMicrographs().getSamplingRate()
         params += ' --shrink %0.3f' % self.shrinkFactor
 
         if self.doGpu:
@@ -402,7 +402,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
             params += ' --healpix_order %s' % self.angularSamplingDeg
 
         ps = self.getInputReferences().getSamplingRate()
-        params += ' --angpix_ref %0.3f' % ps
+        params += ' --angpix_ref %0.5f' % ps
 
         if self.refsHaveInvertedContrast:
             params += ' --invert'

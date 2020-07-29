@@ -27,6 +27,7 @@
 import os
 from os.path import exists
 from collections import OrderedDict
+from emtable import Table
 
 from pyworkflow.object import Float
 from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_NONE
@@ -34,8 +35,8 @@ from pwem.objects import Micrograph
 import pwem.emlib.metadata as md
 import pyworkflow.utils as pwutils
 
-from .convert_utils import relionToLocation, getOpticsFromStar
-from relion.convert.metadata import Table
+from .convert31 import OpticsGroups
+from .convert_utils import relionToLocation
 #from .convert_deprecated import readSetOfParticles, rowToCoordinate
 
 
@@ -208,7 +209,7 @@ class RelionImport:
             self.version30 = True
             self.protocol.warning("Import from Relion version < 3.1 ...")
         else:
-            acqRow = getOpticsFromStar(self._starFile)
+            acqRow = OpticsGroups.fromStar(self._starFile)
             # read particles table
             table = Table(fileName=self._starFile, tableName='particles')
             row = table[0]
@@ -257,7 +258,7 @@ class RelionImport:
             # Check if we have rot angle -> ALIGN_PROJ,
             # if only psi angle -> ALIGN_2D
             if (row.get('rlnAngleRot', False) and
-                float(row.rlnAngleRot) != 0.0):
+                    float(row.rlnAngleRot) != 0.0):
                 self.alignType = ALIGN_PROJ
             elif (row.get('rlnAnglePsi', False) and
                   float(row.rlnAnglePsi) != 0.0):

@@ -27,6 +27,7 @@
 import os
 from math import ceil
 import json
+import emtable as md
 
 import pyworkflow.object as pwobj
 import pyworkflow.protocol.params as params
@@ -40,7 +41,7 @@ from pyworkflow.protocol import STEPS_SERIAL
 
 import relion
 import relion.convert as convert
-import relion.convert.metadata as md
+from relion.convert.convert31 import OpticsGroups
 
 
 class ProtRelionMotioncor(ProtAlignMovies):
@@ -172,6 +173,28 @@ class ProtRelionMotioncor(ProtAlignMovies):
                            "0 means do nothing, 1 means flip Y (upside down) "
                            "and 2 means flip X (left to right).")
 
+        form.addParam('defectFile', params.FileParam, allowsNull=True,
+                      label='Defects file',
+                      help='Location of a UCSF MotionCor2-style '
+                           'defect text file or a defect map that '
+                           'describe the defect pixels on the detector. '
+                           'Each line of a defect text file should contain '
+                           'four numbers specifying x, y, width and height '
+                           'of a defect region. A defect map is an image '
+                           '(MRC or TIFF), where 0 means good and 1 means '
+                           'bad pixels. The coordinate system is the same '
+                           'as the input movie before application of '
+                           'binning, rotation and/or flipping.\n\n'
+                           '_Note that the format of the defect text is '
+                           'DIFFERENT from the defect text produced '
+                           'by SerialEM!_\n One can convert a SerialEM-style '
+                           'defect file into a defect map using IMOD '
+                           'utilities e.g.:\n'
+                           '*clip defect -D defect.txt -f tif movie.tif defect_map.tif*\n'
+                           'See explanations in the SerialEM manual.\n'
+                           'Leave empty if you do not have any defects, '
+                           'or do not want to correct for defects on your detector.')
+
         form.addParallelSection(threads=4, mpi=1)
 
     # --------------------------- STEPS functions -------------------------------
@@ -188,7 +211,8 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                  '%s_input.star' % self._getMovieRoot(movie))
         pwutils.makePath(os.path.join(movieFolder, 'output'))
 
-        writer = convert.createWriter()
+        og = OpticsGroups.fromImages(self.inputMovies.get())
+        writer = convert.createWriter(optics=og)
         # Let's use only the basename, since we will launch the command
         # from the movieFolder
         movie.setFileName(os.path.basename(movie.getFileName()))
@@ -201,7 +225,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         f0, fN = self._getRange(movie)
         args += "--first_frame_sum %d --last_frame_sum %d " % (f0, fN)
         args += "--bin_factor %f --bfactor %d " % (self.binFactor, self.bfactor)
-        args += "--angpix %f " % (movie.getSamplingRate())
+        args += "--angpix %0.5f " % (movie.getSamplingRate())
         args += "--patch_x %d --patch_y %d " % (self.patchX, self.patchY)
         args += "--j %d " % self.numberOfThreads
 
@@ -212,11 +236,8 @@ class ProtRelionMotioncor(ProtAlignMovies):
             args += ' --gain_flip %d ' % self.gainFlip
 
         if self.IS_GT30():
-            acq = inputMovies.getAcquisition()
-            defectFile = acq.getAttributeValue('defectFile', None)
-
-            if defectFile:
-                args += ' --defect_file "%s" ' % defectFile
+            if self.defectFile.get():
+                args += ' --defect_file "%s" ' % self.defectFile.get()
 
             if self._savePsSum():
                 args += ' --grouping_for_ps %d ' % self._calcPsDose()
@@ -263,13 +284,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
             if dose is None or dose < 0.001:
                 errors.append("Input movies do not contain the dose per frame, "
                               "dose-weighting can not be performed. ")
-
-        if self.IS_GT30():
-            # We require to have opticsGroup information in acquisition
-            if not acq.getAttributeValue('opticsGroupName', None):
-                errors.append("In Relion > 3.1, you need to run the "
-                              "*relion - assign optics group* to set optics "
-                              "group information. ")
 
         return errors
 

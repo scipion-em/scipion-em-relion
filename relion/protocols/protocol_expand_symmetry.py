@@ -23,6 +23,7 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+from emtable import Table
 
 from pyworkflow.protocol.params import StringParam
 from pyworkflow.object import String
@@ -30,7 +31,6 @@ from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtProcessParticles
 
 import relion.convert as convert
-from relion.convert.metadata import Table
 from relion import Plugin
 
  
@@ -92,7 +92,8 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
             if Plugin.IS_GT30():
                 mdOptics.writeStar(f, tableName='optics')
 
-        convert.readSetOfParticles(
+        reader = convert.createReader()
+        reader.readSetOfParticles(
             outImagesMd, partSet,
             alignType=ALIGN_PROJ,
             postprocessImageRow=self._postprocessImageRow)

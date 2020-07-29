@@ -23,6 +23,7 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # ******************************************************************************
+from emtable import Table
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
@@ -33,7 +34,6 @@ from pyworkflow.object import Float
 
 import relion.convert as convert
 from relion.objects import CtfRefineGlobalInfo
-from relion.convert.metadata import Table
 
 
 class ProtRelionCtfRefinement(ProtParticles):
@@ -166,7 +166,7 @@ class ProtRelionCtfRefinement(ProtParticles):
         args += "--f %s " % postStar
         args += "--m1 %s --m2 %s --mask %s " % postVols
         args += "--kmin_tilt %0.3f " % self.minResolution
-        args += "--angpix %0.3f " % self.inputParticles.get().getSamplingRate()
+        args += "--angpix %0.5f " % self.inputParticles.get().getSamplingRate()
 
         if self.doCtfFitting:
             args += "--fit_defocus "

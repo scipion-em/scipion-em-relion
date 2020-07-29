@@ -59,7 +59,6 @@ else:
     from .protocol_subtract import ProtRelionSubtract
     from .protocol_bayesian_polishing import ProtRelionBayesianPolishing
 
-
 # New protocol from Relion v3.1:
 from .protocol_refine_3d_tomo import ProtRelionSubtomoRefine3D
 from .protocol_classify_3d_tomo import ProtRelionSubtomoClassif3D
