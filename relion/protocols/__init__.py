@@ -53,6 +53,11 @@ if relion.Plugin.IS_30():
     from ._legacy.protocol30_preprocess import ProtRelionPreprocessParticles
     from ._legacy.protocol30_subtract import ProtRelionSubtract
     from ._legacy.protocol30_bayesian_polishing import ProtRelionBayesianPolishing
+    # Tomography
+    from .protocol_refine_3d_tomo import ProtRelionSubtomoRefine3D
+    from .protocol_classify_3d_tomo import ProtRelionSubtomoClassif3D
+    from .protocol_ctf_3d_estimation import ProtRelionEstimateCTF3D
+    from .protocol_tomo_reconstruct import ProtRelionTomoReconstruct
 else:
     from .protocol_ctf_refinement import ProtRelionCtfRefinement
     from .protocol_preprocess import ProtRelionPreprocessParticles
@@ -60,10 +65,6 @@ else:
     from .protocol_bayesian_polishing import ProtRelionBayesianPolishing
 
 # New protocol from Relion v3.1:
-from .protocol_refine_3d_tomo import ProtRelionSubtomoRefine3D
-from .protocol_classify_3d_tomo import ProtRelionSubtomoClassif3D
-from .protocol_ctf_3d_estimation import ProtRelionEstimateCTF3D
-from .protocol_tomo_reconstruct import ProtRelionTomoReconstruct
 # FIXME: this has to be imported for tests / wizards to work
 from .protocol_assign_optic_groups import ProtRelionAssignOpticsGroup
 from .protocol_compress_movies import ProtRelionCompressMovies

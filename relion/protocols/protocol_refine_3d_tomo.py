@@ -1,6 +1,5 @@
-# **************************************************************************
 # *
-# * Author:     Scipion Team
+# * Authors:     Scipion Team
 # *
 # * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
 # *
@@ -20,7 +19,7 @@
 # * 02111-1307  USA
 # *
 # *  All comments concerning this program package may be sent to the
-# *  e-mail address scipion-users@lists.sourceforge.net
+# *  e-mail address 'scipion-users@lists.sourceforge.net'
 # *
 # **************************************************************************
 """
