@@ -42,6 +42,33 @@ class ProtRelionCtfRefinement(ProtParticles):
     """ Wrapper protocol for the Relion's CTF refinement. """
     _label = 'ctf refinement'
 
+    def _initialize(self):
+        self._createFilenameTemplates()
+
+    def _createFilenameTemplates(self):
+        """ Centralize how files are called. """
+        myDict = {
+            'output_star': self._getExtraPath("particles_ctf_refine.star"),
+            'ctf_sqlite': self._getExtraPath("ctf_analyze.sqlite"),
+            'mag_obs_x': self._getExtraPath("mag_disp_x_optics-group_%(og)d.mrc:mrc"),
+            'mag_obs_y': self._getExtraPath("mag_disp_y_optics-group_%(og)d.mrc:mrc"),
+            'mag_fit_x': self._getExtraPath("mag_disp_x_fit_optics-group_%(og)d.mrc:mrc"),
+            'mag_fit_y': self._getExtraPath("mag_disp_y_fit_optics-group_%(og)d.mrc:mrc"),
+            'tetrafoil_it_fit': self._getExtraPath("aberr_delta-phase_iter-fit_optics-group_%(og)d_N-4.mrc:mrc"),
+            'tetrafoil_fit': self._getExtraPath("aberr_delta-phase_lin-fit_optics-group_%(og)d_N-4.mrc:mrc"),
+            'tetrafoil_residual_fit': self._getExtraPath("aberr_delta-phase_lin-fit_optics-group_%(og)d_N-4_residual.mrc:mrc"),
+            'tetrafoil_obs': self._getExtraPath("aberr_delta-phase_per-pixel_optics-group_%(og)d.mrc:mrc"),
+            'beamtilt_it_fit': self._getExtraPath("beamtilt_delta-phase_iter-fit_optics-group_%(og)d.mrc:mrc"),
+            'beamtilt_fit': self._getExtraPath("beamtilt_delta-phase_lin-fit_optics-group_%(og)d.mrc:mrc"),
+            'trefoil_it_fit': self._getExtraPath("beamtilt_delta-phase_iter-fit_optics-group_%(og)d_N-3.mrc:mrc"),
+            'trefoil_fit': self._getExtraPath("beamtilt_delta-phase_lin-fit_optics-group_%(og)d_N-3.mrc:mrc"),
+            'trefoil_residual_fit': self._getExtraPath("beamtilt_delta-phase_lin-fit_optics-group_%(og)d_N-3_residual.mrc:mrc"),
+            'beamtilt_obs': self._getExtraPath("beamtilt_delta-phase_per-pixel_optics-group_%(og)d.mrc:mrc")
+        }
+
+        self._updateFilenamesDict(myDict)
+
+    # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')
         form.addParam('inputParticles', params.PointerParam,
@@ -164,10 +191,13 @@ class ProtRelionCtfRefinement(ProtParticles):
 
     # -------------------------- STEPS functions ------------------------------
     def _insertAllSteps(self):
+        self._initialize()
         self._insertFunctionStep('convertInputStep')
         self._insertFunctionStep('refineCtfStep')
         self._insertFunctionStep('createOutputStep')
-        self._insertFunctionStep('createGlobalInfoStep')
+
+        if self.doCtfFitting:
+            self._insertFunctionStep('createGlobalInfoStep')
 
     def convertInputStep(self):
         inputParts = self.inputParticles.get()
@@ -225,7 +255,7 @@ class ProtRelionCtfRefinement(ProtParticles):
         imgSet = self.inputParticles.get()
         outImgSet = self._createSetOfParticles()
         outImgSet.copyInfo(imgSet)
-        outImgsFn = self.fileWithRefinedCTFName()
+        outImgsFn = self._getFileName("output_star")
         imgSet.setAlignmentProj()
 
         if self.IS_GT30():
@@ -255,7 +285,7 @@ class ProtRelionCtfRefinement(ProtParticles):
         return ctfInfo
 
     def createGlobalInfoStep(self):
-        self.createGlobalInfo(self.fileWithAnalyzeInfo())
+        self.createGlobalInfo(self._getFileName("ctf_sqlite"))
 
     def _updateItem30(self, particle, row):
         particle.setCTF(convert.rowToCtfModel(row))
@@ -278,20 +308,6 @@ class ProtRelionCtfRefinement(ProtParticles):
     def _validate(self):
         errors = []
         return errors
-
-    def fileWithRefinedCTFName(self):
-        return self._getExtraPath('particles_ctf_refine.star')
-
-    def fileWithPhaseDifferenceName(self):
-        return self._getExtraPath(
-            'beamtilt_delta-phase_per-pixel_class_0.mrc:mrc')
-
-    def fileWithModelFitterName(self):
-        return self._getExtraPath(
-            'beamtilt_delta-phase_lin-fit_class_0.mrc:mrc')
-
-    def fileWithAnalyzeInfo(self):
-        return self._getExtraPath('ctf_analyze.sqlite')
 
     def IS_GT30(self):
         return relion.Plugin.IS_GT30()

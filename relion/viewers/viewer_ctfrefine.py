@@ -46,6 +46,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
 
     def __init__(self,  **kwargs):
         ProtocolViewer.__init__(self,  **kwargs)
+        self.protocol._initialize()
         self._micInfoList = None
         self.xMax = None
         self.yMax = None
@@ -57,9 +58,21 @@ class ProtCtfRefineViewer(ProtocolViewer):
     def _defineParams(self, form):
         self._env = os.environ.copy()
         showBeamTilt = self.protocol.doBeamtiltEstimation.get()
+        showTrefoil = self.protocol.doEstimateTrefoil.get()
+        showTetrafoil = self.protocol.doEstimate4thOrder.get()
+        showDefocus = self.protocol.doCtfFitting.get()
+        showAnisoMag = self.protocol.estimateAnisoMag.get()
+
         form.addSection(label="Results")
+        form.addParam('displayAnisoMag', params.LabelParam,
+                      label="Show X/Y mag. anisotropy estimation",
+                      condition="{}".format(showAnisoMag),
+                      help="Display four images (X and Y): (1) phase "
+                           "differences from which this estimate was "
+                           "derived and\n(2) the model fitted through it.")
         form.addParam('displayDefocus', params.LabelParam,
-                      label="Show Defocus and Stdev",
+                      label="Show defocus estimation",
+                      condition="{}".format(showDefocus),
                       help="Display the defocus estimation.\n "
                            "Plot defocus difference (Angstroms) vs "
                            "position in micrograph\n"
@@ -69,66 +82,49 @@ class ProtCtfRefineViewer(ProtocolViewer):
                            "Page_up/Page_down keys (move +100/-100 "
                            "micrographs)\n"
                            "Home/End keys (move +1000/-1000 micrographs)")
-
         form.addParam('displayBeamTilt', params.LabelParam,
-                      label="Show BeamTilt Images",
-                      condition="{}".format(showBeamTilt),
+                      label="Show beam tilt estimation",
+                      condition="{} and not {}".format(showBeamTilt, showTrefoil),
+                      help="Display two images: (1) phase differences from "
+                           "which this estimate was derived and\n"
+                           "(2) the model fitted through it.")
+        form.addParam('displayTrefoil', params.LabelParam,
+                      label="Show beam tilt and 3-fold astigmatism estimation",
+                      condition="{}".format(showTrefoil),
+                      help="Display two images: (1) phase differences from "
+                           "which this estimate was derived and\n"
+                           "(2) the model fitted through it.")
+        form.addParam('displayTetrafoil', params.LabelParam,
+                      label="Show 4-fold aberrations estimation",
+                      condition="{}".format(showTetrafoil),
                       help="Display two images: (1) phase differences from "
                            "which this estimate was derived and\n"
                            "(2) the model fitted through it.")
         form.addParam('displayParticles', params.LabelParam,
-                      label="Display Particles",
+                      label="Display particles",
                       help="See the particles with the new CTF "
-                           "and beam tilt values")
+                           "values")
 
     def _getVisualizeDict(self):
         return{
-            'displayDefocus': self._visualizeDefocus,
+            'displayAnisoMag': self._displayAnisoMag,
+            'displayDefocus': self._displayDefocus,
             'displayBeamTilt': self._displayBeamTilt,
+            'displayTrefoil': self._displayTrefoil,
+            'displayTetrafoil': self._displayTetrafoil,
             'displayParticles': self._displayParticles
         }
 
-    def onClick(self, event):
-        # try is needed because if clicked outside plot
-        # xdata, ydata are Nonetype
-        try:
-            ix, iy = int(round(event.xdata)), int(round(event.ydata))
-            # once the user has selected a point
-            # he have a pair of float numbers,
-            # search for the closest micrograph
-            # with the right stdev in a neighbourhood
-            if ix <= self.maxMicId:
-                while ix not in self.micDict:
-                    ix += 1
-                iix = self.micDict[ix]
-                start = max(0, iix-40)
-                end = min(iix+40, self.maxMicId)
-                dist = np.sqrt((np.array(self.x[start:end]) - ix) ** 2 +
-                               (np.array(self.y[start:end]) - iy) ** 2)
-                self._currentMicId = self.x[start + np.argmin(dist)]
-                self._oldCurrentMicIndex = self._currentMicIndex
-                self._currentMicIndex = self.micDict[self._currentMicId]
-                self.show()
-        except:
-            pass
+    def _displayAnisoMag(self, param=None):
+        obs_x = self.protocol._getFileName("mag_obs_x", og=1)
+        obs_y = self.protocol._getFileName("mag_obs_y", og=1)
+        fit_x = self.protocol._getFileName("mag_fit_x", og=1)
+        fit_y = self.protocol._getFileName("mag_fit_y", og=1)
 
-    def _displayPlotDefocusStdev(self, e=None):
-        self.fig = self.plotter.getFigure()
-        self.ax1 = self.plotter.createSubPlot("Defocus stdev per Micrograph\n"
-                                              "Click on any point to get the "
-                                              "corresponding micrograph\n "
-                                              "in the defocus plot",
-                                              "# Micrograph", "stdev",
-                                              xpos=1, ypos=1)
-        self.fig.canvas.mpl_connect('button_press_event', self.onClick)
-        self.ax1.grid(True)
-        self.maxMicId = self._micInfoList[-1].micId.get()
-        self.x = [mi.micId.get() for mi in self._micInfoList]
-        self.y = [mi.stdev.get() for mi in self._micInfoList]
-        self.ax1.scatter(self.x, self.y, s=50, marker='o',
-                         c='blue')
+        return [DataView(obs_x), DataView(obs_y),
+                DataView(fit_x), DataView(fit_y)]
 
-    def _visualizeDefocus(self, e=None):
+    def _displayDefocus(self, e=None):
         """Show matplotlib with defocus values."""
         micInfo = self._micInfoList[self._currentMicIndex]
         self._currentMicId = micInfo.micId.get()
@@ -144,7 +140,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
             pass
 
         self.plotter = EmPlotter(windowTitle="CTF Refinement", x=1, y=2)
-        self._displayPlotDefocusStdev()
+        self._plotDefocusStdev()
 
         self.fig = self.plotter.getFigure()
         self.ax2 = self.plotter.createSubPlot(
@@ -173,6 +169,112 @@ class ProtCtfRefineViewer(ProtocolViewer):
             manager.frame.Maximize(True)
 
         self.show()
+
+    def _displayBeamTilt(self, param=None):
+        beamtilt_obs = self.protocol._getFileName("beamtilt_obs", og=1)
+        beamtilt_fit = self.protocol._getFileName("beamtilt_fit", og=1)
+
+        return [DataView(beamtilt_obs), DataView(beamtilt_fit)]
+
+    def _displayTrefoil(self, param=None):
+        trefoil_obs = self.protocol._getFileName("beamtilt_obs", og=1)
+        trefoil_fit = self.protocol._getFileName("trefoil_fit", og=1)
+
+        return [DataView(trefoil_obs), DataView(trefoil_fit)]
+
+    def _displayTetrafoil(self, param=None):
+        tetrafoil_obs = self.protocol._getFileName("tetrafoil_obs", og=1)
+        tetrafoil_fit = self.protocol._getFileName("tetrafoil_fit", og=1)
+
+        return [DataView(tetrafoil_obs), DataView(tetrafoil_fit)]
+
+    def createScipionPartView(self, filename):
+        inputParticlesId = self.protocol.inputParticles.get().strId()
+        labels = 'enabled id _size _filename '
+        labels += ' _ctfModel._defocusU _ctfModel._defocusV '
+
+        if self.protocol.doBeamtiltEstimation:
+            labels += ' _rlnBeamTiltX _rlnBeamTiltY'
+
+        viewParams = {showj.ORDER: labels,
+                      showj.VISIBLE: labels,
+                      showj.MODE: showj.MODE_MD,
+                      showj.RENDER: '_filename',
+                      'labels': 'id',
+                      }
+
+        return ObjectView(self._project,
+                          self.protocol.strId(),
+                          filename,
+                          other=inputParticlesId,
+                          env=self._env,
+                          viewParams=viewParams)
+
+    def _displayParticles(self, param=None):
+        views = []
+        fn = self.protocol.outputParticles.getFileName()
+        v = self.createScipionPartView(fn)
+        views.append(v)
+        return views
+
+    # ------------------- UTILS functions -------------------------
+    def _loadAnalyzeInfo(self):
+        # Only load once
+        if self._micInfoList is None:
+            ctfInfoFn = self.protocol._getFileName("ctf_sqlite")
+            if not os.path.exists(ctfInfoFn):
+                ctfInfo = self.protocol.createGlobalInfo(ctfInfoFn)
+            else:
+                ctfInfo = CtfRefineGlobalInfo(ctfInfoFn)
+            self._micInfoList = [mi.clone() for mi in ctfInfo]
+            self.xMax, self.yMax = ctfInfo.getMaxXY()
+            self.ctfInfoMapper = ctfInfo
+            ctfInfo.close()
+            self.len_micInfoList = len(self._micInfoList)
+            micList = [mi.micId.get() for mi in self._micInfoList]
+            # instead of creating this dict we have
+            # access the mapper and make a query to the database
+            self.micDict = {k: v for v, k in enumerate(micList)}
+
+    def onClick(self, event):
+        # try is needed because if clicked outside plot
+        # xdata, ydata are Nonetype
+        try:
+            ix, iy = int(round(event.xdata)), int(round(event.ydata))
+            # once the user has selected a point
+            # he have a pair of float numbers,
+            # search for the closest micrograph
+            # with the right stdev in a neighbourhood
+            if ix <= self.maxMicId:
+                while ix not in self.micDict:
+                    ix += 1
+                iix = self.micDict[ix]
+                start = max(0, iix-40)
+                end = min(iix+40, self.maxMicId)
+                dist = np.sqrt((np.array(self.x[start:end]) - ix) ** 2 +
+                               (np.array(self.y[start:end]) - iy) ** 2)
+                self._currentMicId = self.x[start + np.argmin(dist)]
+                self._oldCurrentMicIndex = self._currentMicIndex
+                self._currentMicIndex = self.micDict[self._currentMicId]
+                self.show()
+        except:
+            pass
+
+    def _plotDefocusStdev(self, e=None):
+        self.fig = self.plotter.getFigure()
+        self.ax1 = self.plotter.createSubPlot("Defocus stdev per Micrograph\n"
+                                              "Click on any point to get the "
+                                              "corresponding micrograph\n "
+                                              "in the defocus plot",
+                                              "# Micrograph", "stdev",
+                                              xpos=1, ypos=1)
+        self.fig.canvas.mpl_connect('button_press_event', self.onClick)
+        self.ax1.grid(True)
+        self.maxMicId = self._micInfoList[-1].micId.get()
+        self.x = [mi.micId.get() for mi in self._micInfoList]
+        self.y = [mi.stdev.get() for mi in self._micInfoList]
+        self.ax1.scatter(self.x, self.y, s=50, marker='o',
+                         c='blue')
 
     def _getTitle(self, micInfo):
         return ("Use arrows or Page up/Down or Home/End to navigate.\n"
@@ -238,57 +340,3 @@ class ProtCtfRefineViewer(ProtocolViewer):
                                c=micInfo.defocusDiff, s=100, marker='o')
         self.plotter.getColorBar(sc2)
         self.plotter.show()
-
-    def _displayBeamTilt(self, param=None):
-        phaseDifferenceFn = self.protocol.fileWithPhaseDifferenceName()
-        modelFitFn = self.protocol.fileWithModelFitterName()
-
-        return [DataView(phaseDifferenceFn), DataView(modelFitFn)]
-
-    def createScipionPartView(self, filename):
-        inputParticlesId = self.protocol.inputParticles.get().strId()
-        labels = 'enabled id _size _filename '
-        labels += ' _ctfModel._defocusU _ctfModel._defocusV '
-
-        if self.protocol.doBeamtiltEstimation:
-            labels += ' _rlnBeamTiltX _rlnBeamTiltY'
-
-        viewParams = {showj.ORDER: labels,
-                      showj.VISIBLE: labels,
-                      showj.MODE: showj.MODE_MD,
-                      showj.RENDER: '_filename',
-                      'labels': 'id',
-                      }
-
-        return ObjectView(self._project,
-                          self.protocol.strId(),
-                          filename,
-                          other=inputParticlesId,
-                          env=self._env,
-                          viewParams=viewParams)
-
-    def _displayParticles(self, param=None):
-        views = []
-        fn = self.protocol.outputParticles.getFileName()
-        v = self.createScipionPartView(fn)
-        views.append(v)
-        return views
-
-    # ------------------- UTILS functions -------------------------
-    def _loadAnalyzeInfo(self):
-        # Only load once
-        if self._micInfoList is None:
-            ctfInfoFn = self.protocol.fileWithAnalyzeInfo()
-            if not os.path.exists(ctfInfoFn):
-                ctfInfo = self.protocol.createGlobalInfo(ctfInfoFn)
-            else:
-                ctfInfo = CtfRefineGlobalInfo(ctfInfoFn)
-            self._micInfoList = [mi.clone() for mi in ctfInfo]
-            self.xMax, self.yMax = ctfInfo.getMaxXY()
-            self.ctfInfoMapper = ctfInfo
-            ctfInfo.close()
-            self.len_micInfoList = len(self._micInfoList)
-            micList = [mi.micId.get() for mi in self._micInfoList]
-            # instead of creating this dict we have
-            # access the mapper and make a query to the database
-            self.micDict = {k: v for v, k in enumerate(micList)}

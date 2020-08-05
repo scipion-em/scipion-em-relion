@@ -38,16 +38,16 @@ b) Developer's version
 
       scipion installp -p path_to_scipion-em-relion --devel
 
-RELION sources will be downloaded and compiled automatically with the plugin, but you can also link an existing installation. Default installation path assumed is ``software/em/relion-3.1``, if you want to change it, set *RELION_HOME* in ``scipion.conf`` file to the folder where the RELION is installed. If you need to use CUDA different from the one used during Scipion installation (defined by *CUDA_LIB*), you can add *RELION_CUDA_LIB* variable to the config file. Moreover, if you have to use a MPI for Relion different from Scipion MPI, you can set *RELION_MPI_BIN* and *RELION_MPI_LIB* variables in the config file.
+RELION sources will be downloaded and compiled automatically with the plugin, but you can also link an existing installation. Default installation path assumed is ``software/em/relion-3.1.0``, if you want to change it, set *RELION_HOME* in ``scipion.conf`` file to the folder where the RELION is installed. If you need to use CUDA different from the one used during Scipion installation (defined by *CUDA_LIB*), you can add *RELION_CUDA_LIB* variable to the config file. Moreover, if you have to use a MPI for Relion different from Scipion MPI, you can set *RELION_MPI_BIN* and *RELION_MPI_LIB* variables in the config file.
 
 To check the installation, simply run one of the tests. A complete list of tests can be displayed by executing ``scipion test --show --grep relion``
 
 Supported versions
 ------------------
 
-3.0, 3.1
+3.0, 3.1.0
 
-In 2020 the plugin was updated to support the latest RELION 3.1. We discontinued any support for 2.x versions. We are still working towards stable plugin release, so some things might not work yet.
+In 2020 the plugin was updated to support the latest RELION 3.1.0. We discontinued any support for 2.x versions. We are still working towards stable plugin release, so some things might not work yet. Handling optics groups needs more testing, you are welcome to be a volunteer.
 
 Protocols
 ---------

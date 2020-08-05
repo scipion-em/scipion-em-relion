@@ -34,7 +34,7 @@ import pyworkflow.protocol.params as params
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pyworkflow.viewer import (DESKTOP_TKINTER, WEB_DJANGO)
 import pyworkflow.utils as pwutils
-from pwem.viewers import (EmPlotter, EmProtocolViewer, showj, ChimeraClientView,
+from pwem.viewers import (EmPlotter, EmProtocolViewer, showj,
                           FscViewer, DataView, ObjectView, ChimeraView,
                           ClassesView, Classes3DView, ChimeraAngDist)
 from pwem.constants import ALIGN_PROJ, NO_INDEX
@@ -525,22 +525,16 @@ Examples:
     def _showVolumesChimera(self):
         """ Create a chimera script to visualize selected volumes. """
         volumes = self._getVolumeNames()
-
-        if len(volumes) > 1:
-            cmdFile = self.protocol._getExtraPath('chimera_volumes.cxc')
-            with open(cmdFile, 'w+') as f:
-                for volFn in volumes:
-                    # We assume that the chimera script will be generated
-                    # at the same folder than relion volumes
-                    vol = volFn.replace(':mrc', '')
-                    localVol = os.path.basename(vol)
-                    if pwutils.exists(vol):
-                        f.write("open %s\n" % localVol)
-                f.write('tile\n')
-            view = ChimeraView(cmdFile)
-        else:
-            view = ChimeraClientView(volumes[0])
-
+        cmdFile = self.protocol._getExtraPath('chimera_volumes.cxc')
+        with open(cmdFile, 'w+') as f:
+            for vol in volumes:
+                # We assume that the chimera script will be generated
+                # at the same folder as relion volumes
+                localVol = os.path.basename(vol)
+                if os.path.exists(vol):
+                    f.write("open %s\n" % localVol)
+            f.write('tile\n')
+        view = ChimeraView(cmdFile)
         return [view]
 
     # =============================================================================
