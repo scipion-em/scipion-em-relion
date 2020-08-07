@@ -26,6 +26,7 @@
 
 import os
 import json
+from emtable import Table
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
@@ -34,7 +35,6 @@ import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ
 
 import relion.convert as convert
-from relion.convert.metadata import Table
 
 
 class ProtRelionBayesianPolishing(ProtParticles):
@@ -248,7 +248,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
             tableMovies.writeStar(f)
 
         convert.writeSetOfParticles(inputParts, imgStar,
-                                    inputPartsFolder,
+                                    outputDir=inputPartsFolder,
                                     alignType=ALIGN_PROJ,
                                     fillMagnification=True,
                                     fillRandomSubset=True)

@@ -30,13 +30,11 @@ New conversion functions dealing with Relion3.1 new star files format.
 """
 
 import os
+from emtable import Table
 
 import pwem
 from pwem.emlib.image import ImageHandler
 import pyworkflow.utils as pwutils
-
-from .metadata import Table, Column
-from .convert_utils import relionToLocation
 
 
 class WriterBase:
@@ -61,17 +59,26 @@ class WriterBase:
                 might be useful in export protocols.
 
         """
-        self._optics = None
+        self._optics = kwargs.get('optics', None)
         # Not used now
         #self.convertPolicy = kwargs.get('convertPolicy', self.CONVERT_IF_NEEDED)
-        self.rootDir = kwargs.get('rootDir', None)
-        self.outputDir = kwargs.get('outputDir', None)
-        self.useBaseName = kwargs.get('useBaseName', False)
-        self.extensions = kwargs.get('extensions', ['mrc'])
+        self.rootDir = None
+        self.outputDir = None
+        self.outputStack = None
+        self.useBaseName = False
+        self.extensions = ['mrc']
+        self.update(['rootDir', 'outputDir', 'userBaseName', 'extensions'],
+                    **kwargs)
         self._ih = ImageHandler()  # used to convert images
         self._filesDict = {}  # used to map file names (converted or linked)
         self._dimensionality = 2
         self._imageSize = None
+
+    def update(self, attrsList, **kwargs):
+        """ Update the some attributes with values from kwargs. """
+        for attr in attrsList:
+            if attr in kwargs:
+                setattr(self, attr, kwargs[attr])
 
     def writeSetOfMovies(self, moviesIterable, starFile, **kwargs):
         pass
@@ -134,7 +141,7 @@ class WriterBase:
         the type of the values in the dict.
         """
         return Table(columns=[
-            Column(k, type=type(v)) for k, v in rowDict.items()])
+            Table.Column(k, type=type(v)) for k, v in rowDict.items()])
 
     def _micToRow(self, mic, row):
         row['rlnImageId'] = mic.getObjId()
@@ -190,5 +197,3 @@ class ReaderBase:
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
         pass
-
-

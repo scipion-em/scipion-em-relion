@@ -30,7 +30,6 @@ from pwem import *
 from pwem.viewers import CoordinatesObjectView
 from pwem.wizards.wizard import *
 from pyworkflow.gui.browser import FileBrowserWindow
-from scipion.constants import SCIPION_EP
 
 from .constants import *
 import relion.convert as convert
@@ -191,8 +190,9 @@ class Relion2AutopickParams(EmWizard):
         def _preprocessMic(mic, micRow):
             mic.setCTF(micDict[mic.getMicName()].getCTF())
 
-        convert.writeSetOfMicrographs(micSet, micStarFn,
-                                      preprocessImageRow=_preprocessMic)
+        writer = convert.createWriter()
+        writer.writeSetOfMicrographs(micSet, micStarFn,
+                                     preprocessImageRow=_preprocessMic)
 
         # Create a folder in extra to backup the original autopick star files
         backupDir = autopickProt._getExtraPath('wizard-backup')
@@ -323,7 +323,7 @@ class RelionWizLogPickParams(EmWizard):
         writer.writeSetOfMicrographs(micSet, micStarFn)
 
         # params = params.replace('--odir ""', '--odir extra')
-        autopickCmd = "python -m %s relion_autopick " % SCIPION_EP
+        autopickCmd = "emprogram relion_autopick "
         autopickCmd += ' --i input_micrographs.star '
         autopickCmd += params
         autopickCmd += ' --LoG_diam_min %(mind) '
@@ -331,7 +331,7 @@ class RelionWizLogPickParams(EmWizard):
         autopickCmd += ' --LoG_adjust_threshold %(threshold) '
 
         args = {
-            "convert": pwem.join('cmd', 'convert.py'),
+            "convert": 'emconvert',
             'coordsDir': coordsDir,
             'micsSqlite': micSet.getFileName(),
             "minDiameter": minDiameter,

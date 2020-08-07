@@ -28,6 +28,7 @@
 
 import os
 import json
+from emtable import Table
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
@@ -36,7 +37,6 @@ import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ
 
 import relion.convert as convert
-from relion.convert.metadata import Table
 
 
 class ProtRelionBayesianPolishing(ProtParticles):
@@ -268,7 +268,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
                     tableCoeffs.writeStar(f, tableName='local_motion_model')
 
         convert.writeSetOfParticles(inputParts, imgStar,
-                                    inputPartsFolder,
+                                    outputDir=inputPartsFolder,
                                     alignType=ALIGN_PROJ,
                                     fillMagnification=True,
                                     fillRandomSubset=True)
@@ -281,7 +281,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
         args += "--f %s " % postStar
         postprocessTuple = convert.getVolumesFromPostprocess(postStar)
         args += "--m1 %s --m2 %s --mask %s " % postprocessTuple
-        args += "--angpix_ref %0.3f " % postProt.outputVolume.getSamplingRate()
+        args += "--angpix_ref %0.5f " % postProt.outputVolume.getSamplingRate()
         args += "--corr_mic %s " % self._getFileName('input_mics')
         args += "--first_frame %d --last_frame %d " % (self.frame0, self.frameN)
 

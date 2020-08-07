@@ -31,7 +31,6 @@ import os
 import subprocess
 import numpy as np
 
-from pyworkflow.object import String
 from pyworkflow.tests import BaseTest, setupTestOutput, DataSet
 from pyworkflow.utils import cleanPath
 from pwem.objects import (SetOfParticles, CTFModel, Acquisition,
@@ -40,10 +39,11 @@ from pwem.objects import (SetOfParticles, CTFModel, Acquisition,
 from pwem.emlib.image import ImageHandler
 import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_3D
-from pyworkflow.utils import magentaStr
+from pyworkflow.utils import magentaStr, createLink, replaceExt
 
 from relion import Plugin
 import relion.convert as convert
+from relion.convert.convert31 import OpticsGroups
 
 
 class TestConvertBinaryFiles(BaseTest):
@@ -130,7 +130,14 @@ class TestConvertAnglesBase(BaseTest):
 
         is2D = alignType == ALIGN_2D
 
-        stackFn = self.dataset.getFile(fileKey)
+        if fileKey == 'alignShiftRotExp':
+            # relion requires mrcs stacks
+            origFn = self.dataset.getFile(fileKey)
+            stackFn = replaceExt(origFn, ".mrcs")
+            createLink(origFn, stackFn)
+        else:
+            stackFn = self.dataset.getFile(fileKey)
+
         partFn1 = self.getOutputPath(fileKey + "_particles1.sqlite")
         mdFn = self.getOutputPath(fileKey + "_particles.star")
         partFn2 = self.getOutputPath(fileKey + "_particles2.sqlite")
@@ -161,10 +168,10 @@ class TestConvertAnglesBase(BaseTest):
                           sphericalAberration=2,
                           amplitudeContrast=0.1,
                           magnification=60000)
-        acq.opticsGroupName.set('opticsGroup1')
-        acq.mtfFile.set("mtfFile1.star")
+        og = OpticsGroups.create(rlnMtfFileName="mtfFile1.star")
         partSet.setSamplingRate(1.0)
         partSet.setAcquisition(acq)
+        og.toImages(partSet)
         # Populate the SetOfParticles with images
         # taken from images.mrc file
         # and setting the previous alignment parameters
@@ -665,7 +672,8 @@ class TestRelionWriter(BaseTest):
         mtfFile = 'mtfFile%d.star'
 
         cleanPath(self.getOutputPath('micrographs.sqlite'))
-        outputMics = SetOfMicrographs(filename=self.getOutputPath('micrographs.sqlite'))
+        micsDb = self.getOutputPath('micrographs.sqlite')
+        outputMics = SetOfMicrographs(filename=micsDb)
         outputMics.setSamplingRate(1.234)
 
         mic = SetOfMicrographs.ITEM_TYPE()
@@ -673,10 +681,13 @@ class TestRelionWriter(BaseTest):
                           sphericalAberration=2,
                           amplitudeContrast=0.1,
                           magnification=60000)
-        acq.opticsGroupName = String()
-        acq.mtfFile = String()
+
+        og = OpticsGroups.create(rlnMtfFileName='')
+
+        fog = og.first()
 
         ctf = CTFModel(defocusU=10000, defocusV=15000, defocusAngle=15)
+        outputMics.setAcquisition(acq)
         mic.setAcquisition(acq)
         mic.setCTF(ctf)
 
@@ -689,12 +700,23 @@ class TestRelionWriter(BaseTest):
             ctf.setFitQuality(np.random.uniform())
             ctf.setResolution(np.random.uniform(3, 15))
             ogNumber = (i-1) // itemsPerOptics + 1
-            acq.opticsGroupName.set(ogName % ogNumber)
-            acq.mtfFile.set(mtfFile % ogNumber)
 
+            ogDict = {
+                'rlnOpticsGroup': ogNumber,
+                'rlnOpticsGroupName': ogName % ogNumber,
+                'rlnMtfFileName': mtfFile % ogNumber
+            }
+
+            if ogNumber in og:
+                og.update(ogNumber, **ogDict)
+            else:
+                og.add(fog._replace(**ogDict))
+
+            mic.rlnOpticsGroup = ogNumber
             mic.setObjId(None)
             outputMics.append(mic)
 
+        print(">>> Writing micrograph set to: ", micsDb)
         outputMics.write()
 
         return outputMics
@@ -706,11 +728,7 @@ class TestRelionWriter(BaseTest):
         print(">>> Writing to particles db: %s" % outputSqlite)
         outputParts = SetOfParticles(filename=outputSqlite)
         outputParts.setSamplingRate(1.234)
-        acq = Acquisition(magnification=50000,
-                          voltage=200.,
-                          sphericalAberration=1.4,
-                          amplitudeContrast=0.1)
-        outputParts.setAcquisition(acq)
+        outputParts.setAcquisition(micSet.getAcquisition())
 
         part = SetOfParticles.ITEM_TYPE()
         coord = Coordinate()
@@ -763,6 +781,10 @@ class TestRelionReader(BaseTest):
         cls.ds = DataSet.getDataSet('relion31_tutorial_precalculated')
 
     def test_readSetOfParticles(self):
+        if not Plugin.IS_GT30():
+            print("Skipping test (required Relion > 3.1)")
+            return
+
         partsStar = self.ds.getFile("Extract/job018/particles.star")
         print("<<< Reading star file: \n   %s\n" % partsStar)
         outputSqlite = self.getOutputPath('particles.sqlite')
@@ -779,8 +801,89 @@ class TestRelionReader(BaseTest):
         self.assertEqual(first.getClassId(), 4)
         self.assertTrue(hasattr(first, '_rlnNrOfSignificantSamples'))
 
-        acq = first.getAcquisition()
-        self.assertEqual(acq.mtfFile.get(), 'mtf_k2_200kV.star')
-        self.assertEqual(acq.opticsGroupName.get(), 'opticsGroup1')
+        fog = OpticsGroups.fromImages(partsSet).first()
+        self.assertEqual(fog.rlnMtfFileName, 'mtf_k2_200kV.star')
+        self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')
 
 
+class TestRelionOpticsGroups(BaseTest):
+    @classmethod
+    def setUpClass(cls):
+        setupTestOutput(cls)
+        cls.ds = DataSet.getDataSet('relion31_tutorial_precalculated')
+
+    def test_fromStar(self):
+        if not Plugin.IS_GT30():
+            print("Skipping test (required Relion > 3.1)")
+            return
+
+        partsStar = self.ds.getFile("Extract/job018/particles.star")
+
+        print("<<< Reading optics groups from file: \n   %s\n" % partsStar)
+        og = OpticsGroups.fromStar(partsStar)
+        fog = og.first()
+
+        # acq = first.getAcquisition()
+        self.assertEqual(fog.rlnMtfFileName, 'mtf_k2_200kV.star')
+        self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')
+        self.assertEqual(og['opticsGroup1'], fog)
+
+    def test_string(self):
+        if not Plugin.IS_GT30():
+            print("Skipping test (required Relion > 3.1)")
+            return
+
+        og = OpticsGroups.create(rlnMtfFileName='mtf_k2_200kV.star')
+        fog = og.first()
+
+        # acq = first.getAcquisition()
+        self.assertEqual(fog.rlnMtfFileName, 'mtf_k2_200kV.star')
+        self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')
+        self.assertEqual(og['opticsGroup1'], fog)
+
+        # try update by id
+        og.update(1, rlnMtfFileName="new_mtf_k2.star")
+        # try update by name
+        og.update('opticsGroup1', rlnImageSize=512)
+
+        fog = og.first()
+        # acq = first.getAcquisition()
+        self.assertEqual(fog.rlnMtfFileName, 'new_mtf_k2.star')
+        self.assertEqual(fog.rlnImageSize, 512)
+        self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')
+        self.assertEqual(og['opticsGroup1'], fog)
+
+    def test_add(self):
+        """ Testing adding more groups or columns. """
+        og = OpticsGroups.create()
+
+        og1 = og.first()
+
+        self.assertEqual(len(og), 1)
+        self.assertAlmostEqual(og1.rlnVoltage, 300.)
+
+        og2 = og1._replace(rlnOpticsGroup=2,
+                           rlnOpticsGroupName='opticsGroup2',
+                           rlnVoltage=200.)
+        og.add(og2)
+        og3 = og1._replace(rlnOpticsGroup=3,
+                           rlnOpticsGroupName='opticsGroup3',
+                           rlnVoltage=100.)
+        og.add(og3)
+
+        self.assertEqual(len(og), 3)
+
+        og.addColumns(rlnMtfFileName='mtf_k2_200kV.star')
+
+        self.assertTrue(all(hasattr(ogx, 'rlnMtfFileName') for ogx in og))
+
+        og.update(2, rlnVoltage=300.)
+        og.update(3, rlnVoltage=300.)
+
+        for ogx in og:
+            self.assertAlmostEqual(ogx.rlnVoltage, 300.)
+
+        og.updateAll(rlnVoltage=200.)
+
+        for ogx in og:
+            self.assertAlmostEqual(ogx.rlnVoltage, 200.)

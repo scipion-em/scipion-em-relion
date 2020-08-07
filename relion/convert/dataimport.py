@@ -27,6 +27,7 @@
 import os
 from os.path import exists
 from collections import OrderedDict
+from emtable import Table
 
 from pyworkflow.object import Float
 from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_NONE
@@ -34,8 +35,8 @@ from pwem.objects import Micrograph
 import pwem.emlib.metadata as md
 import pyworkflow.utils as pwutils
 
-from .convert_utils import relionToLocation, getOpticsFromStar
-from relion.convert.metadata import Table
+from .convert31 import OpticsGroups
+from .convert_utils import relionToLocation
 #from .convert_deprecated import readSetOfParticles, rowToCoordinate
 
 
@@ -141,11 +142,9 @@ class RelionImport:
         pathDict = {}
 
         self.protocol.info('Loading classes info from: %s' % self._modelStarFile)
-        modelMd = md.MetaData('model_classes@' + self._modelStarFile)
-        for classNumber, objId in enumerate(modelMd):
-            row = md.Row()
-            row.readFromMd(modelMd, objId)
-            index, fn = relionToLocation(row.get('rlnReferenceImage'))
+        table = Table(fileName=self._modelStarFile, tableName='model_classes')
+        for classNumber, row in enumerate(table):
+            index, fn = relionToLocation(row.rlnReferenceImage)
 
             if fn in pathDict:
                 newFn = pathDict.get(fn)
@@ -203,26 +202,28 @@ class RelionImport:
         acqRow = row = table[0]
 
         if row is None:
-            raise Exception("Cannot import from empty metadata: %s" % self._starFile)
+            raise Exception("Cannot import from empty metadata: %s"
+                            % self._starFile)
 
         if not row.get('rlnOpticsGroup', False):
             self.version30 = True
             self.protocol.warning("Import from Relion version < 3.1 ...")
         else:
-            acqRow = getOpticsFromStar(self._starFile)
+            acqRow = OpticsGroups.fromStar(self._starFile)
             # read particles table
             table = Table(fileName=self._starFile, tableName='particles')
             row = table[0]
 
         if not row.get(label, False):
-            raise Exception("Label *%s* is missing in metadata: %s" % (label,
-                                                                       self._starFile))
+            raise Exception("Label *%s* is missing in metadata: %s"
+                            % (label, self._starFile))
 
         index, fn = relionToLocation(row.get(label))
         self._imgPath = pwutils.findRootFrom(self._starFile, fn)
 
         if warnings and self._imgPath is None:
-            self.protocol.warning("Binary data was not found from metadata: %s" % self._starFile)
+            self.protocol.warning("Binary data was not found from metadata: %s"
+                                  % self._starFile)
 
         if (self._starFile.endswith('_data.star') and
                 self._getModelFile(self._starFile)):
@@ -257,7 +258,7 @@ class RelionImport:
             # Check if we have rot angle -> ALIGN_PROJ,
             # if only psi angle -> ALIGN_2D
             if (row.get('rlnAngleRot', False) and
-                float(row.rlnAngleRot) != 0.0):
+                    float(row.rlnAngleRot) != 0.0):
                 self.alignType = ALIGN_PROJ
             elif (row.get('rlnAnglePsi', False) and
                   float(row.rlnAnglePsi) != 0.0):

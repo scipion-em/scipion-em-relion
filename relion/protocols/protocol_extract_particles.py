@@ -26,14 +26,17 @@
 
 import os
 
+from pyworkflow.object import Set, Integer
 import pyworkflow.utils as pwutils
 from pyworkflow.protocol.constants import STATUS_FINISHED
 import pyworkflow.protocol.params as params
+
 from pwem.protocols import ProtExtractParticles
 from pwem.emlib.image import ImageHandler
-from pwem.objects import Particle
+from pwem.objects import Particle, Acquisition
 
 import relion.convert
+from relion.convert.convert31 import OpticsGroups
 from relion.constants import OTHER
 from .protocol_base import ProtRelionBase
 
@@ -42,7 +45,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
     """ Protocol to extract particles using a set of coordinates. """
 
     _label = 'particles extraction'
-    
+
     def __init__(self, **kwargs):
         ProtExtractParticles.__init__(self, **kwargs)
 
@@ -52,7 +55,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                       label='Particle box size (px)',
                       validators=[params.Positive],
                       help='This is size of the boxed particles (in pixels).')
-    
+
         form.addParam('doRescale', params.BooleanParam, default=False,
                       label='Rescale particles?',
                       help='If set to Yes, particles will be re-scaled. '
@@ -133,7 +136,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
 
         return [self._insertFunctionStep('convertInputStep',
                                          self.getInputMicrographs().getObjId())]
-    
+
     def _doNothing(self, *args):
         pass  # used to avoid some streaming functions
 
@@ -141,7 +144,8 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
     def convertInputStep(self, micsId):
         self.info("Relion version:")
         self.runJob("relion_refine --version", "", numberOfMpi=1)
-        self.info("Detected version from config: %s" % relion.Plugin.getActiveVersion())
+        self.info("Detected version from config: %s"
+                  % relion.Plugin.getActiveVersion())
 
     def _convertCoordinates(self, mic, coordList):
         relion.convert.writeMicCoordinates(
@@ -155,8 +159,10 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
     def _extractMicrographList(self, micList, params):
         workingDir = self.getWorkingDir()
         micsStar = self._getMicsStar(micList)
+        og = OpticsGroups.fromImages(self.getInputMicrographs())
         starWriter = relion.convert.createWriter(rootDir=workingDir,
-                                           outputDir=self._getTmpPath())
+                                                 outputDir=self._getTmpPath(),
+                                                 optics=og)
         starWriter.writeSetOfMicrographs(micList, self._getPath(micsStar))
 
         # convert.writeSetOfMicrographs(micList, self._getPath(micsStar),
@@ -179,7 +185,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
     # -------------------------- INFO functions -------------------------------
     def _validate(self):
         errors = []
-        
+
         if self.doNormalize and self.backDiameter > self.boxSize:
             errors.append("Background diameter for normalization should "
                           "be equal or less than the box size.")
@@ -188,31 +194,31 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
             errors.append("Only re-scaling to even-sized images is allowed "
                           "in RELION.")
         return errors
-    
+
     def _citations(self):
         return ['Scheres2012b']
-        
+
     def _summary(self):
         summary = list()
         summary.append("Micrographs source: %s"
                        % self.getEnumText("downsampleType"))
         summary.append("Particle box size: %d" % self.boxSize)
-        
+
         if not hasattr(self, 'outputParticles'):
-            summary.append("Output images not ready yet.") 
+            summary.append("Output images not ready yet.")
         else:
             summary.append("Particles extracted: %d" %
                            self.outputParticles.getSize())
-            
+
         return summary
-    
+
     def _methods(self):
         methodsMsgs = []
 
         if self.getStatus() == STATUS_FINISHED:
             msg = ("A total of %d particles of size %d were extracted"
                    % (self.getOutput().getSize(), self.boxSize))
-            
+
             if self._micsOther():
                 msg += (" from another set of micrographs: %s"
                         % self.getObjectTag('inputMicrographs'))
@@ -261,7 +267,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         params += ' --part_dir "." --extract '
         params += ' --extract_size %d' % self.boxSize
         if relion.Plugin.IS_30():
-            params += ' --set_angpix %f' % self._getNewSampling()
+            params += ' --set_angpix %0.5f' % self._getNewSampling()
 
         if self.backDiameter <= 0:
             diameter = self.boxSize.get() * 0.75
@@ -293,6 +299,18 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         """
         relionToLocation = relion.convert.relionToLocation
         p = Particle()
+        p._rlnOpticsGroup = Integer()
+        acq = self.getInputMicrographs().getAcquisition()
+        # JMRT: Ideally I would like to disable the whole Acquisition for each
+        #       particle row, but the SetOfImages will set it again.
+        #       Another option could be to disable in the set, but then in
+        #       streaming, other protocols might get the wrong optics info
+        pAcq = Acquisition(magnification=acq.getMagnification(),
+                           voltage=acq.getVoltage(),
+                           amplitudeContrast=acq.getAmplitudeContrast(),
+                           sphericalAberration=acq.getSphericalAberration())
+        p.setAcquisition(pAcq)
+
         tmp = self._getTmpPath()
         extra = self._getExtraPath()
 
@@ -301,6 +319,8 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
             coordDict = {self._getPos(c): c
                          for c in self.coordDict[mic.getObjId()]}
             del self.coordDict[mic.getObjId()]
+
+            ogNumber = mic.getAttributeValue('_rlnOpticsGroup', 1)
 
             partsStar = self.__getMicFile(mic, '_extract.star', folder=tmp)
             partsTable = relion.convert.Table(fileName=partsStar)
@@ -327,8 +347,25 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                     p.setCoordinate(coord)
                     p.setMicId(mic.getObjId())
                     p.setCTF(mic.getCTF())
+                    p._rlnOpticsGroup.set(ogNumber)
                     outputParts.append(p)
                     posSet.add(pos)
+
+    def _updateOutputSet(self, outputName, outputSet,
+                         state=Set.STREAM_OPEN):
+        """ Redefine this method to update optics info. """
+
+        first = getattr(self, '_firstUpdate', True)
+
+        if first:
+            og = OpticsGroups.fromImages(outputSet)
+            og.updateAll(rlnImagePixelSize=self._getNewSampling(),
+                         rlnImageSize=self.getNewImgSize())
+            og.toImages(outputSet)
+
+        ProtExtractParticles._updateOutputSet(self, outputName, outputSet,
+                                              state=state)
+        self._firstUpdate = False
 
     def _micsOther(self):
         """ Return True if other micrographs are used for extract. """
@@ -354,7 +391,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
             newSampling *= self._getDownFactor()
 
         return newSampling
-            
+
     def getInputMicrographs(self):
         """ Return the micrographs associated to the SetOfCoordinates or
         Other micrographs. """
@@ -393,9 +430,8 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         f = self.getScaleFactor()
         return f / self._getDownFactor() if self._doDownsample() else f
 
-    def getBoxSize(self):
-        # This function is needed by the wizard
-        return int(self.getCoords().getBoxSize() * self.getBoxScale())
+    def getNewImgSize(self):
+        return int(self.rescaledSize if self._doDownsample() else self.boxSize)
 
     def _getOutputImgMd(self):
         return self._getPath('images.xmd')
@@ -417,7 +453,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         fileName = 'mic_%06d%s' % (mic.getObjId(), ext)
         dirName = folder or self._getExtraPath()
         return os.path.join(dirName, fileName)
-    
+
     def _useCTF(self):
         return self.ctfRelations.hasValue()
 

@@ -25,6 +25,7 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+from emtable import Table
 
 import pwem
 from pwem.protocols import ProtInitialVolume
@@ -37,7 +38,6 @@ from pyworkflow.protocol.params import (PointerParam, FloatParam,
 
 import relion
 import relion.convert as convert
-from relion.convert.metadata import Table
 from .protocol_base import ProtRelionBase
 
 

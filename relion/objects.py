@@ -38,6 +38,7 @@ class CtfRefineGlobalInfo:
     to Micrographs and Particles CTF information after
     Relion - ctf refinement protocol.
     """
+
     def __init__(self, filename):
         # The classes dict needs to be updated to register local objects
         classesDict = dict(pwobj.__dict__)
@@ -62,7 +63,7 @@ class CtfRefineGlobalInfo:
             return (dU + dV) / 2.0
 
         for p1, p2 in zip(inputParts.iterItems(orderBy=['_micId', 'id']),
-                           outputParts.iterItems(orderBy=['_micId', 'id'])):
+                          outputParts.iterItems(orderBy=['_micId', 'id'])):
             coord = p1.getCoordinate()
             micId = coord.getMicId()
 
@@ -97,7 +98,7 @@ class CtfRefineGlobalInfo:
         # have _xMax (mar 22nd 2019)
         if mapper.hasProperty('_xMax'):
             return int(mapper.getProperty('_xMax')), \
-                       int(mapper.getProperty('_yMax'))
+                   int(mapper.getProperty('_yMax'))
         else:
             return -1, -1
 

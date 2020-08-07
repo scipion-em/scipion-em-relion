@@ -134,7 +134,7 @@ class ProtRelionSubtract(ProtOperateParticles):
         imgSet = self.inputParticles.get()
         convert.writeSetOfParticles(
             imgSet, self._getFileName('input_star'),
-            self._getExtraPath(), alignType=ALIGN_PROJ)
+            outputDir=self._getExtraPath(), alignType=ALIGN_PROJ)
     
     def subtractStep(self):
         inputProt = self.inputProtocol.get()

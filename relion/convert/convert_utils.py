@@ -31,13 +31,13 @@ newer Relion3.1 routines and old ones.
 """
 
 import os
+from emtable import Table
 
 import pyworkflow.utils as pwutils
 import pwem
 from pwem.emlib.image import ImageHandler
 
 from relion import Plugin
-from relion.convert.metadata import Table
 
 
 def locationToRelion(index, filename):
@@ -124,6 +124,7 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
         return fn.replace(rootDir, outputRoot)
 
     if forceConvert:
+        print("convertBinaryFiles: forceConvert = True")
         mapFunc = convertStack
     elif ext == extension:
         print("convertBinaryFiles: creating soft links.")
@@ -204,7 +205,7 @@ def convertMask(img, outputPath, newPix=None, newDim=None):
     else:
         outFn = outputPath
 
-    params = '--i %s --o %s --angpix %0.3f --rescale_angpix %0.3f' % (
+    params = '--i %s --o %s --angpix %0.5f --rescale_angpix %0.5f' % (
         imgFn, outFn, inPix, outPix)
 
     if newDim is not None:
@@ -232,9 +233,3 @@ def getVolumesFromPostprocess(postStar):
     return (row.rlnUnfilteredMapHalf1,
             row.rlnUnfilteredMapHalf2,
             row.rlnMaskName)
-
-
-def getOpticsFromStar(starFile):
-    """ Helper function to load the optics row values from the given star file.
-    """
-    return Table(fileName=starFile, tableName='optics')[0]

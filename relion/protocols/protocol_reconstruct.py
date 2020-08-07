@@ -108,7 +108,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         params = ' --i %s' % self._getFileName('input_particles')
         params += ' --o %s' % self._getFileName('output_volume')
         params += ' --sym %s' % self.symmetryGroup.get()
-        params += ' --angpix %0.3f' % imgSet.getSamplingRate()
+        params += ' --angpix %0.5f' % imgSet.getSamplingRate()
         params += ' --maxres %0.3f' % self.maxRes.get()
         params += ' --pad %0.3f' % self.pad.get()
 
@@ -148,7 +148,8 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         imgStar = self._getFileName('input_particles')
 
         # Pass stack file as None to avoid write the images files
-        convert.writeSetOfParticles(imgSet, imgStar, self._getTmpPath(),
+        convert.writeSetOfParticles(imgSet, imgStar,
+                                    outputDir=self._getTmpPath(),
                                     alignType=ALIGN_PROJ,
                                     fillRandomSubset=True)
 

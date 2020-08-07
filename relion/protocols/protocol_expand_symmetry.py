@@ -23,6 +23,7 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+from emtable import Table
 
 from pyworkflow.protocol.params import StringParam
 from pyworkflow.object import String
@@ -30,7 +31,6 @@ from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtProcessParticles
 
 import relion.convert as convert
-from relion.convert.metadata import Table
 from relion import Plugin
 
  
@@ -64,7 +64,8 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
     def convertInputStep(self, outputFn):
         """ Create a metadata with the images and geometrical information. """
         convert.writeSetOfParticles(
-            self.inputParticles.get(), outputFn, self._getPath())
+            self.inputParticles.get(), outputFn,
+            outputDir=self._getPath())
 
     def expandSymmetryStep(self, imgsFn):
         outImagesMd = self._getExtraPath('expanded_particles.star')
@@ -91,7 +92,8 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
             if Plugin.IS_GT30():
                 mdOptics.writeStar(f, tableName='optics')
 
-        convert.readSetOfParticles(
+        reader = convert.createReader()
+        reader.readSetOfParticles(
             outImagesMd, partSet,
             alignType=ALIGN_PROJ,
             postprocessImageRow=self._postprocessImageRow)
@@ -127,4 +129,5 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
 
     # -------------------------- Utils functions ------------------------------
     def _postprocessImageRow(self, item, row):
-        item._rlnGroupName = String(row.getValue('rlnGroupName'))
+        if hasattr(row, 'rlnGroupName'):
+            item._rlnGroupName = String(row.rlnGroupName)
