@@ -203,7 +203,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         args += "--bin_factor %f --bfactor %d " % (self.binFactor, self.bfactor)
         args += "--angpix %f " % (movie.getSamplingRate())
         args += "--patch_x %d --patch_y %d " % (self.patchX, self.patchY)
-        # args += "--j %d " % self.numberOfThreads
+        args += "--j %d " % self.internalThreads
 
         inputMovies = self.inputMovies.get()
         if inputMovies.getGain():
@@ -236,7 +236,8 @@ class ProtRelionMotioncor(ProtAlignMovies):
         if self.extraParams.hasValue():
             args += " " + self.extraParams.get()
 
-        self.runJob(self._getProgram(), args, cwd=movieFolder)
+        self.runJob(self._getProgram(), args, numberOfMpi=self.internalMpi,
+                    cwd=movieFolder)
 
         self._computeExtra(movie)
         self._moveFiles(movie)
@@ -270,6 +271,27 @@ class ProtRelionMotioncor(ProtAlignMovies):
                 errors.append("In Relion > 3.1, you need to run the "
                               "*relion - assign optics group* to set optics "
                               "group information. ")
+
+        # Optimizing the internal/steps threading
+        cores = self.numberOfMpi.get() * self.numberOfThreads
+        bestInternalCores = 8  # Empirical best internal parallelization
+        if cores > bestInternalCores * 2:
+            # Optimizing parallelization
+            rest = [cores % x for x in range(bestInternalCores, 2, -1)]
+            intCores = bestInternalCores - rest.index(min(rest))
+            stepCores = int(cores/intCores)
+        else:  # If few cores, only internal parallelization is the best option
+            intCores = cores
+            stepCores = 1
+
+        if self.numberOfMpi.get() > 1:
+            self.internalMpi = intCores
+            self.numberOfMpi.set(stepCores)
+            self.internalThreads = 1
+        else:
+            self.internalThreads = intCores
+            self.numberOfThreads.set(stepCores)
+            self.internalMpi = 1
 
         return errors
 
@@ -331,7 +353,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
     # --------------------------- UTILS functions -----------------------------
     def _getProgram(self, program='relion_run_motioncorr'):
         """ Get the program name depending on the MPI use or not. """
-        if self.numberOfMpi > 1:
+        if self.internalMpi > 1:
             program += '_mpi'
         return program
 
@@ -574,3 +596,20 @@ def createGlobalAlignmentPlot(meanX, meanY, first, pixSize):
     plotter.tightLayout()
 
     return plotter
+
+
+# +-------------++------------------++-------------------++-------------------+
+# |  available  ||   ONLY INTERNAL  ||    ONLY STEPS     ||     OPTIMIZED     |
+# |    cores    ||     time/step    || time/st | improve || time/st | improve |
+# +-------------++------------------++---------+---------++---------+---------+
+# |      4      ||   12 * 4 =  48s  ||    48s  |  -60 %  ||    48s  |  -60 %  |
+# |      8      ||  8.3 * 8 =  67s  ||    67s  |  -30 %  ||    67s  |  -30 %  |
+# |     10      || 8.4 * 10 =  84s  ||    84s  |   -7 %  ||    84s  |   -7 %  |
+# |     12      || 7.2 * 12 =  86s  ||    86s  |   -4 %  ||    86s  |   -4 %  |
+# |     16      ||   7 * 16 = 120s  ||   120s  |  +28 %  ||   120s  |  +28 %  |
+# |     20      || 5.5 * 24 = 132s  ||   132s  |  +37 %  ||   132s  |  +37 %  |
+# |     24      || 5.5 * 24 = 132s  ||   132s  |  +37 %  ||   132s  |  +37 %  |
+# |     25      || 5.5 * 24 = 132s  ||   132s  |  +37 %  ||   132s  |  +37 %  |
+# |     30      || 5.5 * 24 = 132s  ||   132s  |  +37 %  ||   132s  |  +37 %  |
+# |     40      || 5.5 * 24 = 132s  ||   132s  |  +37 %  ||   132s  |  +37 %  |
+# +-------------++------------------++---------+---------++---------+---------+
