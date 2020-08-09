@@ -165,7 +165,7 @@ class ClassesLoader:
             if self._alignType == pwem.ALIGN_PROJ:
                 fn += ':mrc'  # mark reference as a MRC volume
             item.getRepresentative().setLocation(index, fn)
-            item._rlnclassDistribution = Float(row.rlnClassDistribution)
+            item._rlnClassDistribution = Float(row.rlnClassDistribution)
             item._rlnAccuracyRotations = Float(row.rlnAccuracyRotations)
             if Plugin.IS_GT30():
                 item._rlnAccuracyTranslationsAngst = Float(row.rlnAccuracyTranslationsAngst)
