@@ -220,6 +220,9 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
     def _validate(self):
         validateMsgs = []
 
+        if self.mtfFile.hasValue() and not pwutils.exists(self.mtfFile.get()):
+            validateMsgs.append("MTF file %s does not exist!" % self.mtfFile.get())
+
         return validateMsgs
     
     def _summary(self):
