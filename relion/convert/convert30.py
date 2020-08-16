@@ -26,6 +26,11 @@
 # *
 # **************************************************************************
 
+import numpy as np
+
+import pwem
+import pwem.convert.transformations as tfs
+
 from ..constants import *
 from .convert_base import WriterBase, ReaderBase
 from .convert_deprecated import rowToAlignment, readSetOfParticles
@@ -93,6 +98,15 @@ class Writer(WriterBase):
 
 class Reader(ReaderBase):
 
+    ALIGNMENT_LABELS = [
+        "rlnOriginX",
+        "rlnOriginY",
+        "rlnOriginZ",
+        "rlnAngleRot",
+        "rlnAngleTilt",
+        "rlnAnglePsi",
+    ]
+
     def readSetOfParticles(self, starFile, partsSet, **kwargs):
         """ Convert a star file into a set of particles.
 
@@ -110,4 +124,68 @@ class Reader(ReaderBase):
 
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
-        particle.setTransform(rowToAlignment(row, self._alignType))
+
+        if ((self._alignType == pwem.ALIGN_NONE) or
+                not row.hasAnyColumn(self.ALIGNMENT_LABELS)):
+            self.setParticleTransform = self.__setParticleTransformNone
+        else:
+            # Ensure the Transform object exists
+            self._angles = np.zeros(3)
+            self._shifts = np.zeros(3)
+
+            particle.setTransform(pwem.objects.Transform())
+
+            if self._alignType == pwem.ALIGN_2D:
+                self.setParticleTransform = self.__setParticleTransform2D
+            elif self._alignType == pwem.ALIGN_PROJ:
+                self.setParticleTransform = self.__setParticleTransformProj
+            else:
+                raise Exception("Unexpected alignment type: %s"
+                                % self._alignType)
+
+        # Call again the modified function
+        self.setParticleTransform(particle, row)
+
+    def __setParticleTransformNone(self, particle, row):
+        particle.setTransform(None)
+
+    def __setParticleTransform2D(self, particle, row):
+        angles = self._angles
+        shifts = self._shifts
+        ips = self._invPixelSize
+
+        def _get(label):
+            return float(getattr(row, label, 0.))
+
+        shifts[0] = _get('rlnOriginX') * ips
+        shifts[1] = _get('rlnOriginY') * ips
+        angles[2] = -_get('rlnAnglePsi')
+        radAngles = -np.deg2rad(angles)
+        M = tfs.euler_matrix(radAngles[0], radAngles[1], radAngles[2], 'szyz')
+        M[:3, 3] = shifts[:3]
+        particle.getTransform().setMatrix(M)
+
+    def __setParticleTransformProj(self, particle, row):
+        angles = self._angles
+        shifts = self._shifts
+        ips = self._invPixelSize
+
+        def _get(label):
+            return float(getattr(row, label, 0.))
+
+        shifts[0] = _get('rlnOriginX') * ips
+        shifts[1] = _get('rlnOriginY') * ips
+        shifts[2] = _get('rlnOriginZ') * ips
+
+        angles[0] = _get('rlnAngleRot')
+        angles[1] = _get('rlnAngleTilt')
+        angles[2] = _get('rlnAnglePsi')
+
+        radAngles = -np.deg2rad(angles)
+
+        # TODO: jmrt: Maybe we should test performance and consider if keeping
+        # TODO: the matrix and not creating one everytime will make things faster
+        M = tfs.euler_matrix(radAngles[0], radAngles[1], radAngles[2], 'szyz')
+        M[:3, 3] = -shifts[:3]
+        M = np.linalg.inv(M)
+        particle.getTransform().setMatrix(M)

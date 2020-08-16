@@ -34,9 +34,9 @@ import pyworkflow.protocol.params as params
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pyworkflow.viewer import (DESKTOP_TKINTER, WEB_DJANGO)
 import pyworkflow.utils as pwutils
-from pwem.viewers import (EmPlotter, EmProtocolViewer, showj, ChimeraClientView,
+from pwem.viewers import (EmPlotter, EmProtocolViewer, showj,
                           FscViewer, DataView, ObjectView, ChimeraView,
-                          ClassesView, Classes3DView)
+                          ClassesView, Classes3DView, ChimeraAngDist)
 from pwem.constants import ALIGN_PROJ, NO_INDEX
 from pwem.objects import FSC
 
@@ -190,10 +190,11 @@ Examples:
                            label='Display angular distribution',
                            help='*2D plot*: display angular distribution as interative 2D in matplotlib.\n'
                                 '*chimera*: display angular distribution using Chimera with red spheres.')
-            group.addParam('spheresScale', params.IntParam, default=100,
+            group.addParam('spheresScale', params.IntParam, default=-1,
                            expertLevel=LEVEL_ADVANCED,
-                           label='Spheres size',
-                           help='')
+                           label='Spheres distance',
+                           help='If the value is -1 then the distance is set '
+                                'to 0.75 * xVolDim')
 
             group = form.addGroup('Resolution')
             group.addParam('figure', params.EnumParam, default=0,
@@ -524,22 +525,16 @@ Examples:
     def _showVolumesChimera(self):
         """ Create a chimera script to visualize selected volumes. """
         volumes = self._getVolumeNames()
-
-        if len(volumes) > 1:
-            cmdFile = self.protocol._getExtraPath('chimera_volumes.cmd')
-            with open(cmdFile, 'w+') as f:
-                for volFn in volumes:
-                    # We assume that the chimera script will be generated
-                    # at the same folder than relion volumes
-                    vol = volFn.replace(':mrc', '')
-                    localVol = os.path.basename(vol)
-                    if pwutils.exists(vol):
-                        f.write("open %s\n" % localVol)
-                f.write('tile\n')
-            view = ChimeraView(cmdFile)
-        else:
-            view = ChimeraClientView(volumes[0].replace(':mrc', ''))
-
+        cmdFile = self.protocol._getExtraPath('chimera_volumes.cxc')
+        with open(cmdFile, 'w+') as f:
+            for vol in volumes:
+                # We assume that the chimera script will be generated
+                # at the same folder as relion volumes
+                localVol = os.path.basename(vol)
+                if os.path.exists(vol):
+                    f.write("open %s\n" % localVol)
+            f.write('tile\n')
+        view = ChimeraView(cmdFile)
         return [view]
 
     # =============================================================================
@@ -564,9 +559,6 @@ Examples:
         # Common variables to use
         nparts = self.protocol.inputParticles.get().getSize()
         radius = self.spheresScale.get()
-        if radius < 0:
-            radius = self.protocol.maskDiameterA.get() / 2
-
         prefixes = self._getPrefixes()
 
         if len(self._refsList) != 1:
@@ -574,9 +566,9 @@ Examples:
                                     "angular distribution", "Input selection")
         # If just one reference we can show the angular distribution
         ref3d = self._refsList[0]
-        volFn = self._getVolumeNames()[0].replace(":mrc", "")
-        if not pwutils.exists(volFn):
-            raise Exception("This class is Empty. Please try with other class")
+        volFn = self._getVolumeNames()[0]
+        if not pwutils.exists(volFn.replace(":mrc", "")):
+            raise Exception("This class is empty. Please try with another class")
 
         for prefix in prefixes:
             sqliteFn = self.protocol._getFileName('projections',
@@ -587,10 +579,17 @@ Examples:
                 self.createAngDistributionSqlite(
                     sqliteFn, nparts,
                     itemDataIterator=self._iterAngles(mdOut))
-
-            return ChimeraClientView(volFn,
-                                     angularDistFile=sqliteFn,
-                                     spheresDistance=radius)
+            if hasattr(self.protocol, 'outputVolumes'):
+                vol = self.protocol.outputVolumes.getFirstItem()
+            else:
+                vol = self.protocol.outputVolume
+            volOrigin = vol.getOrigin(force=True).getShifts()
+            samplingRate = vol.getSamplingRate()
+            return ChimeraAngDist(volFn, self.protocol._getTmpPath(),
+                                  voxelSize=samplingRate,
+                                  volOrigin=volOrigin,
+                                  angularDistFile=sqliteFn,
+                                  spheresDistance=radius)
 
     def _createAngDist2D(self, it):
         # Common variables to use

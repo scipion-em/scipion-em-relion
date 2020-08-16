@@ -42,8 +42,8 @@ class ProtRelionCtfRefinement(ProtParticles):
 
     def _defineParams(self, form):
         form.addSection(label='Input')
-        # TODO: conditions on particles?
         form.addParam('inputParticles', params.PointerParam,
+                      pointerCondition='hasAlignmentProj',
                       important=True,
                       label='Input particles',
                       pointerClass='SetOfParticles',
@@ -118,7 +118,7 @@ class ProtRelionCtfRefinement(ProtParticles):
                            'and good signal-to-noise ratios per micrograph.')
         form.addParam('doBeamtiltEstimation', params.BooleanParam,
                       default=False,
-                      label='Perform beamtilt estimation?',
+                      label='Perform beam tilt estimation?',
                       help='If set to Yes, then relion_ctf_refine will also '
                            'estimate the beamtilt over the entire data set. '
                            'This option is only recommended for '
@@ -213,7 +213,6 @@ class ProtRelionCtfRefinement(ProtParticles):
 
     def _updateItemCtfBeamTilt(self, particle, row):
         particle.setCTF(convert.rowToCtfModel(row))
-        # TODO: Add other field from the .star file when other options?
         # check if beamtilt is available and save it
         if row.hasLabel('rlnBeamTiltX'):
             particle._rlnBeamTiltX = Float(row.getValue('rlnBeamTiltX', 0))

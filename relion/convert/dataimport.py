@@ -135,7 +135,10 @@ class RelionImport:
             item.getRepresentative().setLocation(index, fn)
             item._rlnclassDistribution = Float(row.get('rlnClassDistribution'))
             item._rlnAccuracyRotations = Float(row.get('rlnAccuracyRotations'))
-            item._rlnAccuracyTranslations = Float(row.get('rlnAccuracyTranslations'))
+            if self.version30:
+                item._rlnAccuracyTranslations = Float(row.get('rlnAccuracyTranslations'))
+            else:
+                item._rlnAccuracyTranslations = Float(row.get('rlnAccuracyTranslationsAngst'))
 
     def _createClasses(self, partSet):
         self._classesDict = {}  # store classes info, indexed by class id
