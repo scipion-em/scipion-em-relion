@@ -28,12 +28,14 @@
 # *
 # **************************************************************************
 
+import os
 from os.path import join, basename
 import numpy as np
 
 from pyworkflow.object import ObjectWrap, String, Integer
 from pwem.constants import NO_INDEX, ALIGN_2D, ALIGN_3D, ALIGN_PROJ, ALIGN_NONE
 import pwem.convert.transformations as tfs
+from pwem import emlib
 
 from relion.constants import *
 from .convert_utils import *
@@ -589,25 +591,25 @@ def writeSetOfMovies(movieSet, starFile, **kwargs):
 
 def splitInCTFGroups(imgStar, defocusRange=1000, numParticles=10):
     """ Add a new colunm in the image star to separate the particles into ctf groups """
-    mdAll = md.MetaData(imgStar)
+    mdAll = md.MetaData('particles@' + imgStar)
     mdAll.sort(md.RLN_CTF_DEFOCUSU)
 
     focusGroup = 1
     counter = 0
-    oldDefocusU = mdAll.get(md.RLN_CTF_DEFOCUSU, mdAll.firstObject())
+    oldDefocusU = mdAll.getValue(md.RLN_CTF_DEFOCUSU, mdAll.firstObject())
     groupName = '%s_%06d_%05d' % ('ctfgroup', oldDefocusU, focusGroup)
     for objId in mdAll:
         counter = counter + 1
-        defocusU = mdAll.get(md.RLN_CTF_DEFOCUSU, objId)
+        defocusU = mdAll.getValue(md.RLN_CTF_DEFOCUSU, objId)
         if counter >= numParticles:
             if (defocusU - oldDefocusU) > defocusRange:
                 focusGroup = focusGroup + 1
                 oldDefocusU = defocusU
-                groupName = '%s_%06d_%05d' % ('ctfgroup', oldDefocusU, focusGroup)
+                groupName = 'ctfgroup_%06d_%05d' % (oldDefocusU, focusGroup)
                 counter = 0
-        mdAll.set(md.RLN_MLMODEL_GROUP_NAME, groupName, objId)
+        mdAll.setValue(md.RLN_MLMODEL_GROUP_NAME, groupName, objId)
 
-    mdAll.write(imgStar)
+    mdAll.write('particles@' + imgStar, emlib.MD_APPEND)
     mdCount = md.MetaData()
     mdCount.aggregate(mdAll, md.AGGR_COUNT, md.RLN_MLMODEL_GROUP_NAME,
                       md.RLN_MLMODEL_GROUP_NAME, md.MDL_COUNT)

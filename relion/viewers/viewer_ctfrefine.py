@@ -26,6 +26,7 @@
 # *
 # ******************************************************************************
 
+import os
 import sys
 import matplotlib as mpl
 import numpy as np
@@ -64,6 +65,10 @@ class ProtCtfRefineViewer(ProtocolViewer):
         showAnisoMag = self.protocol.estimateAnisoMag.get()
 
         form.addSection(label="Results")
+        form.addParam('useMatplotlib', params.BooleanParam, default=True,
+                      label='Use matplotlib for display',
+                      help='If False, images will be displayed with ImageJ')
+
         form.addParam('displayAnisoMag', params.LabelParam,
                       label="Show X/Y mag. anisotropy estimation",
                       condition="{}".format(showAnisoMag),
@@ -121,8 +126,8 @@ class ProtCtfRefineViewer(ProtocolViewer):
         fit_x = self.protocol._getFileName("mag_fit_x", og=1)
         fit_y = self.protocol._getFileName("mag_fit_y", og=1)
 
-        return [DataView(obs_x), DataView(obs_y),
-                DataView(fit_x), DataView(fit_y)]
+        return self._showImages(obs_x, obs_y, fit_x, fit_y,
+                                title="Anisotropy magnification")
 
     def _displayDefocus(self, e=None):
         """Show matplotlib with defocus values."""
@@ -170,23 +175,47 @@ class ProtCtfRefineViewer(ProtocolViewer):
 
         self.show()
 
+    def _showImages(self, *imgs, **kwargs):
+        title = kwargs.get('title', '')
+        if self.useMatplotlib:
+            return self._showImagesMatplotlib(title, *imgs)
+        else:
+            return [DataView(img) for img in imgs]
+
+    def _showImagesMatplotlib(self, title, *imgs):
+        import mrcfile
+        xdim = 2 if len(imgs) > 2 else 1
+        ydim = 2
+        plotter = EmPlotter(windowTitle=title, x=xdim, y=ydim, figsize=(8, 6))
+        positions = [(1, 1), (1, 2), (2, 1), (2, 2)]
+        for i, img in enumerate(imgs):
+            x, y = positions[i]
+            ax = plotter.createSubPlot("", "x", "y", x, y)
+            with mrcfile.open(img.replace(":mrc", "")) as mrc:
+                im = ax.imshow(mrc.data, cmap='jet')
+
+        return [plotter]
+
     def _displayBeamTilt(self, param=None):
         beamtilt_obs = self.protocol._getFileName("beamtilt_obs", og=1)
         beamtilt_fit = self.protocol._getFileName("beamtilt_fit", og=1)
 
-        return [DataView(beamtilt_obs), DataView(beamtilt_fit)]
+        return self._showImages(beamtilt_obs, beamtilt_fit,
+                                title="Beam Tilt")
 
     def _displayTrefoil(self, param=None):
         trefoil_obs = self.protocol._getFileName("beamtilt_obs", og=1)
         trefoil_fit = self.protocol._getFileName("trefoil_fit", og=1)
 
-        return [DataView(trefoil_obs), DataView(trefoil_fit)]
+        return self._showImages(trefoil_obs, trefoil_fit,
+                                title="Trefoil")
 
     def _displayTetrafoil(self, param=None):
         tetrafoil_obs = self.protocol._getFileName("tetrafoil_obs", og=1)
         tetrafoil_fit = self.protocol._getFileName("tetrafoil_fit", og=1)
 
-        return [DataView(tetrafoil_obs), DataView(tetrafoil_fit)]
+        return self._showImages(tetrafoil_obs, tetrafoil_fit,
+                                title="Tetrafoil")
 
     def createScipionPartView(self, filename):
         inputParticlesId = self.protocol.inputParticles.get().strId()
