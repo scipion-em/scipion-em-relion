@@ -219,8 +219,6 @@ class ProtRelionBayesianPolishing(ProtParticles):
         a0, aN = firstMovie.getAlignment().getRange()
         moviesPixelSize = inputMovies.getSamplingRate()
         binningFactor = inputParts.getSamplingRate() / moviesPixelSize
-        hasLocal = firstMovie.hasAttribute('_rlnMotionModelCoeff')
-        motionMode = 1 if hasLocal else 0
 
         writer = convert.createWriter()
         writer.writeSetOfMicrographs(inputMovies,
@@ -230,16 +228,20 @@ class ProtRelionBayesianPolishing(ProtParticles):
         tableGeneral.addRow(xdim, ydim, ndim, 'movieName',
                             binningFactor, moviesPixelSize,
                             acq.getDosePerFrame(), acq.getDoseInitial(),
-                            acq.getVoltage(), a0, motionMode)
+                            acq.getVoltage(), a0, 0)
         row = tableGeneral[0]
 
         for movie in inputMovies:
-            movieFn = movie.getFileName()
-            movieStar = self._getInputPath(pwutils.replaceBaseExt(movieFn,
-                                                                  'star'))
+            movieStar = self._getMovieStar(movie)
+
             with open(movieStar, 'w') as f:
+                coeffs = json.loads(movie.getAttributeValue('_rlnMotionModelCoeff', '[]'))
+                motionMode = 1 if coeffs else 0
+
                 # Update Movie name
-                tableGeneral[0] = row._replace(rlnMicrographMovieName=movieFn)
+                tableGeneral[0] = row._replace(rlnMicrographMovieName=movie.getFileName(),
+                                               rlnMotionModelVersion=motionMode)
+
                 tableGeneral.writeStar(f, tableName='general', singleRow=True)
                 # Write shifts
                 tableShifts.clearRows()
@@ -260,10 +262,9 @@ class ProtRelionBayesianPolishing(ProtParticles):
                 tableShifts.writeStar(f, tableName='global_shift')
 
                 # Write coefficients
-                if hasLocal:
-                    coeffs = movie.getAttributeValue('_rlnMotionModelCoeff', '')
-                    tableCoeffs.clearRows()
-                    for i, c in enumerate(json.loads(coeffs)):
+                tableCoeffs.clearRows()
+                if coeffs:
+                    for i, c in enumerate(coeffs):
                         tableCoeffs.addRow(i, c)
                     tableCoeffs.writeStar(f, tableName='local_motion_model')
 
@@ -370,13 +371,14 @@ class ProtRelionBayesianPolishing(ProtParticles):
     def _getInputPath(self, *paths):
         return self._getPath('input', *paths)
 
+    def _getMovieStar(self, movie):
+        return self._getInputPath(pwutils.replaceBaseExt(movie.getMicName(),
+                                                         'star'))
+
     def _updatePtcl(self, particle, row):
         newLoc = convert.relionToLocation(row.getValue('rlnImageName'))
         particle.setLocation(newLoc)
 
     def _updateMic(self, mic, row):
-        movieFn = mic.getFileName()
-        movieBase = os.path.basename(movieFn)
-        movieStar = self._getInputPath(pwutils.replaceBaseExt(movieFn, 'star'))
-        row['rlnMicrographName'] = movieBase
-        row['rlnMicrographMetadata'] = movieStar
+        row['rlnMicrographName'] = os.path.basename(mic.getMicName())
+        row['rlnMicrographMetadata'] = self._getMovieStar(mic)
