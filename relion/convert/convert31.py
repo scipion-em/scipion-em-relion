@@ -326,6 +326,9 @@ class Writer(WriterBase):
         if self._setRandomSubset:
             row['rlnRandomSubset'] = part._rlnRandomSubset.get()
 
+        if self._setGroupName:
+            row['rlnGroupName'] = part._rlnGroupName.get()
+
         # Set CTF values
         if self._setCtf:
             self._ctfToRow(part.getCTF(), row)
@@ -366,6 +369,8 @@ class Writer(WriterBase):
         self._preprocessImageRow = kwargs.get('preprocessImageRow', None)
         self._setRandomSubset = (kwargs.get('fillRandomSubset') and
                                  firstPart.hasAttribute('_rlnRandomSubset'))
+
+        self._setGroupName = firstPart.hasAttribute('_rlnGroupName')
 
         self._setCtf = kwargs.get('writeCtf', True) and firstPart.hasCTF()
 

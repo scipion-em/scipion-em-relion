@@ -28,6 +28,7 @@ from .convert_utils import *
 from .convert_deprecated import *
 from .dataimport import *
 import relion
+import math
 
 # Writing of star files will be handle by the Writer class
 # We have a new implementation of it for Relion > 3.1 since
@@ -171,3 +172,74 @@ class ClassesLoader:
                 item._rlnAccuracyTranslationsAngst = Float(row.rlnAccuracyTranslationsAngst)
             else:
                 item._rlnAccuracyTranslations = Float(row.rlnAccuracyTranslations)
+
+
+class DefocusGroups:
+    """ Helper class to create defocus groups for particles. """
+    class Group:
+        """ Single CTF group. """
+        def __init__(self, id):
+            self.id = id
+            self.count = 0
+            self.minDefocus = math.inf
+            self.maxDefocus = -math.inf
+
+        def addDefocus(self, defocus):
+            self.count += 1
+            if defocus < self.minDefocus:
+                self.minDefocus = defocus
+
+            if defocus > self.maxDefocus:
+                self.maxDefocus = defocus
+
+    def __initGroups(self):
+        self._groups = []
+
+    def __addGroup(self):
+        group = self.Group(len(self._groups) + 1)
+        self._groups.append(group)
+        return group
+
+    def __init__(self):
+        self._groups = []
+
+    def __len__(self):
+        return len(self._groups)
+
+    def __iter__(self):
+        return iter(self._groups)
+
+    def __str__(self):
+        s = ">>> Defocus groups: %d\n" % len(self)
+        row_format = u"{:>15}{:>15}{:>10}\n"
+        s += row_format.format("Min (A)", "Max (A)", "Count")
+
+        for group in self._groups:
+            s += row_format.format("%0.3f" % group.minDefocus,
+                                   "%0.3f" % group.maxDefocus,
+                                   group.count)
+        return s
+
+    def splitByDiff(self, inputParts, defocusDiff=1000, minGroupSize=10):
+        self.__initGroups()
+        group = self.__addGroup()
+
+        for part in inputParts.iterItems(orderBy=['_ctfModel._defocusU']):
+            defocus = part.getCTF().getDefocusU()
+            # Only when we reach the min number of particles
+            # and the defocus difference, we create a new group
+            if (group.count >= minGroupSize
+                and (defocus - group.minDefocus > defocusDiff)):
+                group = self.__addGroup()
+
+            group.addDefocus(defocus)
+
+    def getGroup(self, defocus):
+        """ Return the group that this defocus belong. """
+        if (defocus < self._groups[0].minDefocus
+            or defocus > self._groups[-1].maxDefocus):
+            return None
+
+        for group in self._groups:
+            if defocus <= group.maxDefocus:
+                return group

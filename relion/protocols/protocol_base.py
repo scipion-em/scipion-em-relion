@@ -30,6 +30,7 @@ from glob import glob
 from collections import OrderedDict
 from emtable import Table
 
+from pyworkflow.object import String
 import pyworkflow.utils as pwutils
 from pyworkflow.protocol.params import (BooleanParam, PointerParam, FloatParam,
                                         IntParam, EnumParam, StringParam,
@@ -778,6 +779,10 @@ class ProtRelionBase(EMProtocol):
             alignToPrior = hasAlign and getattr(self, 'alignmentAsPriors', False)
             fillRandomSubset = hasAlign and getattr(self, 'fillRandomSubset', False)
 
+            if self.doCtfManualGroups:
+                self._defocusGroups = self.createDefocusGroups()
+                print(self._defocusGroups)
+
             relion.convert.writeSetOfParticles(
                 imgSet, imgStar,
                 outputDir=self._getExtraPath(),
@@ -795,9 +800,6 @@ class ProtRelionBase(EMProtocol):
                 mdParts.write(imgStar, tableName=tableName)
                 if self.IS_GT30():
                     mdOptics.writeStar(imgStar, tableName='optics')
-
-            if self.doCtfManualGroups:
-                self._splitInCTFGroups(imgStar)
 
             if self._getRefArg():
                 self._convertRef()
@@ -1140,13 +1142,6 @@ class ProtRelionBase(EMProtocol):
         """ Should be implemented in subclasses. """
         pass
 
-    def _splitInCTFGroups(self, imgStar):
-        """ Add a new column in the image star to separate the particles
-        into ctf groups """
-        relion.convert.splitInCTFGroups(imgStar,
-                                 self.defocusRange.get(),
-                                 self.numParticles.get())
-
     def _getContinueIter(self):
         continueRun = self.continueRun.get()
 
@@ -1244,13 +1239,10 @@ class ProtRelionBase(EMProtocol):
                     table.writeStar(f)
 
     def _postprocessParticleRow(self, part, partRow):
-        pass
-        # if part.hasAttribute('_rlnGroupName'):
-        #     partRow.setValue(md.RLN_MLMODEL_GROUP_NAME,
-        #                      '%s' % part.getAttributeValue('_rlnGroupName'))
-        # else:
-        #     partRow.setValue(md.RLN_MLMODEL_GROUP_NAME,
-        #                      '%s' % part.getMicId())
+        if self.doCtfManualGroups:
+            groupId = self._defocusGroups.getGroup(part.getCTF().getDefocusU()).id
+            print("Defocus: %f, group_id: %s" % (part.getCTF().getDefocusU(), groupId))
+            partRow['rlnGroupName'] = "ctf_group_%03d" % groupId
 
     def _doSubsets(self):
         return False
@@ -1271,6 +1263,16 @@ class ProtRelionBase(EMProtocol):
         if alignType == pwem.ALIGN_PROJ:
             mdParts.addColumns('rlnAngleRotPrior=rlnAngleRot')
             mdParts.addColumns('rlnAngleTiltPrior=rlnAngleTilt')
+
+    def createDefocusGroups(self):
+        defocusGroups = None
+
+        if self.doCtfManualGroups:
+            defocusGroups = relion.convert.DefocusGroups()
+            defocusGroups.splitByDiff(self._getInputParticles(),
+                                      defocusDiff=self.defocusRange.get(),
+                                      minGroupSize=self.numParticles.get())
+        return defocusGroups
 
     def IS_GT30(self):
         return Plugin.IS_GT30()

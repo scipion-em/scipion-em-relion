@@ -469,7 +469,7 @@ def writeSetOfImages(imgSet, filename, imgToFunc,
     Params:
         imgSet: the set of images to be written (particles,
         micrographs or volumes)
-        filename: the filename where to write the metadata.
+        filename: the filename where to write the metadata.`
         rowFunc: this function can be used to setup the row before
             adding to metadata.
     """
@@ -587,33 +587,6 @@ def writeSetOfMovies(movieSet, starFile, **kwargs):
     setOfImagesToMd(movieSet, movieMd, movieToRow, **kwargs)
     blockName = kwargs.get('blockName', '')
     movieMd.write('%s@%s' % (blockName, starFile))
-
-
-def splitInCTFGroups(imgStar, defocusRange=1000, numParticles=10):
-    """ Add a new colunm in the image star to separate the particles into ctf groups """
-    mdAll = md.MetaData('particles@' + imgStar)
-    mdAll.sort(md.RLN_CTF_DEFOCUSU)
-
-    focusGroup = 1
-    counter = 0
-    oldDefocusU = mdAll.getValue(md.RLN_CTF_DEFOCUSU, mdAll.firstObject())
-    groupName = '%s_%06d_%05d' % ('ctfgroup', oldDefocusU, focusGroup)
-    for objId in mdAll:
-        counter = counter + 1
-        defocusU = mdAll.getValue(md.RLN_CTF_DEFOCUSU, objId)
-        if counter >= numParticles:
-            if (defocusU - oldDefocusU) > defocusRange:
-                focusGroup = focusGroup + 1
-                oldDefocusU = defocusU
-                groupName = 'ctfgroup_%06d_%05d' % (oldDefocusU, focusGroup)
-                counter = 0
-        mdAll.setValue(md.RLN_MLMODEL_GROUP_NAME, groupName, objId)
-
-    mdAll.write('particles@' + imgStar, emlib.MD_APPEND)
-    mdCount = md.MetaData()
-    mdCount.aggregate(mdAll, md.AGGR_COUNT, md.RLN_MLMODEL_GROUP_NAME,
-                      md.RLN_MLMODEL_GROUP_NAME, md.MDL_COUNT)
-    print("number of particles per group: ", mdCount)
 
 
 def copyOrLinkFileName(imgRow, prefixDir, outputDir, copyFiles=False):
