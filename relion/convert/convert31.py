@@ -36,11 +36,21 @@ from emtable import Table
 
 import pyworkflow as pw
 import pwem
+from pwem.objects import Micrograph, SetOfMicrographsBase
 import pwem.convert.transformations as tfs
 
 from .convert_base import WriterBase, ReaderBase
 from .convert_utils import (convertBinaryFiles, locationToRelion,
                             relionToLocation)
+
+
+def getPixelSizeLabel(imageSet):
+    """ Return the proper label for pixel size. """
+    if (isinstance(imageSet, SetOfMicrographsBase)
+        or isinstance(imageSet, Micrograph)):
+        return 'rlnMicrographPixelSize'
+    else:
+        return 'rlnImagePixelSize'
 
 
 class OpticsGroups:
@@ -139,13 +149,14 @@ class OpticsGroups:
         try:
             return OpticsGroups.fromString(acq.opticsGroupInfo.get())
         except:
-            return OpticsGroups.create(
-                rlnVoltage=acq.getVoltage(),
-                rlnSphericalAberration=acq.getSphericalAberration(),
-                rlnAmplitudeContrast=acq.getAmplitudeContrast(),
-                rlnImagePixelSize=imageSet.getSamplingRate(),
-                rlnImageSize=imageSet.getXDim()
-            )
+            params = {
+                'rlnVoltage': acq.getVoltage(),
+                'rlnSphericalAberration': acq.getSphericalAberration(),
+                'rlnAmplitudeContrast': acq.getAmplitudeContrast(),
+                'rlnImageSize': imageSet.getXDim(),
+                getPixelSizeLabel(imageSet): imageSet.getSamplingRate()
+            }
+            return OpticsGroups.create(**params)
 
     @staticmethod
     def create(**kwargs):
@@ -162,10 +173,9 @@ _rlnMicrographOriginalPixelSize #3
 _rlnVoltage #4
 _rlnSphericalAberration #5
 _rlnAmplitudeContrast #6
-_rlnImagePixelSize #7
-_rlnImageSize #8
-_rlnImageDimensionality #9
-opticsGroup1            1      1.000000   300.000000     2.700000     0.100000     1.000000          256            2
+_rlnImageSize #7
+_rlnImageDimensionality #8
+opticsGroup1            1      1.000000   300.000000     2.700000     0.100000     256            2
         """
 
         og = OpticsGroups.fromString(opticsString1)
@@ -228,7 +238,6 @@ class Writer(WriterBase):
         # Process the first item and create the table based
         # on the generated columns
         self._imgLabelName = imgLabelName
-        self._imgLabelPixelSize = 'rlnMicrographPixelSize'
         self._extraLabels = kwargs.get('extraLabels', [])
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
@@ -348,7 +357,6 @@ class Writer(WriterBase):
     def writeSetOfParticles(self, partsSet, starFile, **kwargs):
         # Process the first item and create the table based
         # on the generated columns
-        self._imgLabelPixelSize = 'rlnImagePixelSize'
         self.update(['rootDir', 'outputDir', 'outputStack'], **kwargs)
 
         self._optics = OpticsGroups.fromImages(partsSet)
