@@ -389,7 +389,7 @@ class RelionWizMtfSelector(EmWizard):
         browser.show()
 
 
-class RelionWizMtfSelector(EmWizard):
+class RelionWizCtfGroupsDisplay(EmWizard):
     """ Simple wizard distribution of defocus groups.
     """
     _targets = [(ProtRelionClassify2D, ['defocusRange']),
