@@ -33,9 +33,8 @@ from os.path import join, basename
 import numpy as np
 
 from pyworkflow.object import ObjectWrap, String, Integer
-from pwem.constants import NO_INDEX, ALIGN_2D, ALIGN_3D, ALIGN_PROJ, ALIGN_NONE
+from pwem.constants import ALIGN_2D, ALIGN_3D, ALIGN_PROJ, ALIGN_NONE
 import pwem.convert.transformations as tfs
-from pwem import emlib
 
 from relion.constants import *
 from .convert_utils import *

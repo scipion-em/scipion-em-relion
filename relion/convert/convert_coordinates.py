@@ -34,10 +34,7 @@ import os
 from emtable import Table
 
 import pyworkflow.utils as pwutils
-import pwem
-from pwem.emlib.image import ImageHandler
-
-from relion import Plugin
+from pwem.constants import NO_INDEX
 
 
 def openStar(fn, extraLabels=False):
