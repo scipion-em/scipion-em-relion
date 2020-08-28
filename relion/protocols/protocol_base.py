@@ -993,7 +993,14 @@ class ProtRelionBase(EMProtocol):
         args['--pool'] = self.pooledParticles.get()
 
         if self.doGpu:
-            args['--gpu'] = self.gpusToUse.get()
+            gpuStr = self.gpusToUse.get().strip()
+            if gpuStr:
+                if not gpuStr.startswith('"'):
+                    gpuStr = '"' + gpuStr
+                if not gpuStr.endswith('"'):
+                    gpuStr += '"'
+
+            args['--gpu'] = gpuStr
 
     def _getSamplingFactor(self):
         return 1 if self.oversampling == 0 else 2 * self.oversampling.get()
@@ -1241,7 +1248,6 @@ class ProtRelionBase(EMProtocol):
     def _postprocessParticleRow(self, part, partRow):
         if self.doCtfManualGroups:
             groupId = self._defocusGroups.getGroup(part.getCTF().getDefocusU()).id
-            print("Defocus: %f, group_id: %s" % (part.getCTF().getDefocusU(), groupId))
             partRow['rlnGroupName'] = "ctf_group_%03d" % groupId
 
     def _doSubsets(self):
