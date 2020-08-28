@@ -40,36 +40,6 @@ from pwem.emlib.image import ImageHandler
 from relion import Plugin
 
 
-def readSetOfCoordinates(coordSet, coordFiles, micList=None):
-    """ Read a set of coordinates from given coordinate files
-    associated to some SetOfMicrographs.
-    Params:
-        micSet and coordFiles should have same length and same order.
-        coordSet: empty SetOfCoordinates to be populated.
-    """
-    if micList is None:
-        micList = coordSet.getMicrographs()
-
-    for mic, coordFn in zip(micList, coordFiles):
-
-        if not os.path.exists(coordFn):
-            print("WARNING: Missing coordinates star file: ", coordFn)
-
-        try:
-            readCoordinates(mic, coordFn, coordSet)
-        except Exception:
-            print("WARNING: Error reading coordinates star file: ", coordFn)
-
-
-def readCoordinates(mic, fileName, coordsSet):
-    for row in md.iterRows(fileName):
-        coord = rowToCoordinate(row)
-        coord.setX(coord.getX())
-        coord.setY(coord.getY())
-        coord.setMicrograph(mic)
-        coordsSet.append(coord)
-
-
 def openStar(fn, extraLabels=False):
     # We are going to write metadata directly to file to do it faster
     f = open(fn, 'w')
