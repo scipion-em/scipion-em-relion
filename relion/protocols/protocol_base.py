@@ -30,7 +30,6 @@ from glob import glob
 from collections import OrderedDict
 from emtable import Table
 
-from pyworkflow.object import String
 import pyworkflow.utils as pwutils
 from pyworkflow.protocol.params import (BooleanParam, PointerParam, FloatParam,
                                         IntParam, EnumParam, StringParam,

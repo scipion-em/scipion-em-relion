@@ -26,12 +26,12 @@
 # *
 # ******************************************************************************
 
-import os
 import sys
 import matplotlib as mpl
 import numpy as np
 
 from pwem.viewers.plotter import plt
+from pwem.emlib.image import ImageHandler
 from pyworkflow.viewer import ProtocolViewer
 
 from .viewer_base import *
@@ -183,16 +183,19 @@ class ProtCtfRefineViewer(ProtocolViewer):
             return [DataView(img) for img in imgs]
 
     def _showImagesMatplotlib(self, title, *imgs):
-        import mrcfile
+        ih = ImageHandler()
         xdim = 2 if len(imgs) > 2 else 1
         ydim = 2
         plotter = EmPlotter(windowTitle=title, x=xdim, y=ydim, figsize=(8, 6))
         positions = [(1, 1), (1, 2), (2, 1), (2, 2)]
-        for i, img in enumerate(imgs):
+        for i, imgFn in enumerate(imgs):
             x, y = positions[i]
             ax = plotter.createSubPlot("", "x", "y", x, y)
-            with mrcfile.open(img.replace(":mrc", "")) as mrc:
-                im = ax.imshow(mrc.data, cmap='jet')
+            img = ih.read(imgFn)
+            ax.imshow(img.getData(), cmap='jet')
+
+            #with mrcfile.open(img.replace(":mrc", "")) as mrc:
+            #    im = ax.imshow(mrc.data, cmap='jet')
 
         return [plotter]
 
