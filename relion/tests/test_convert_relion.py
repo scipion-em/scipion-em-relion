@@ -168,7 +168,8 @@ class TestConvertAnglesBase(BaseTest):
                           sphericalAberration=2,
                           amplitudeContrast=0.1,
                           magnification=60000)
-        og = OpticsGroups.create(rlnMtfFileName="mtfFile1.star")
+        og = OpticsGroups.create(rlnMtfFileName="mtfFile1.star",
+                                 rlnImageSize=128)
         partSet.setSamplingRate(1.0)
         partSet.setAcquisition(acq)
         og.toImages(partSet)
@@ -640,7 +641,7 @@ class TestReconstruct(TestConvertAnglesBase):
         a3 -> flip a2
         a4 -> flip a2 (identical to a3)
         """
-        # in practice this is irrelevant since no converson with |mat|==-1
+        # in practice this is irrelevant since no conversion with |mat|==-1
         mList = [
                  [[1., 0., 0., 0.],  # a1
                   [0., 1., 0., 0.],
