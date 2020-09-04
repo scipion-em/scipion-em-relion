@@ -23,17 +23,17 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # ******************************************************************************
+from pwem.viewers import LocalResolutionViewer
 from pwem.viewers.viewer_chimera import mapVolsWithColorkey
+from pwem.wizards import ColorScaleWizardBase
 from pyworkflow.viewer import ProtocolViewer
-from pwem.emlib.image import ImageHandler
 
 from .viewer_base import *
 from ..protocols import ProtRelionLocalRes
 
-binaryCondition = ('(colorMap == %d) ' % COLOR_OTHER)
 
 
-class RelionLocalResViewer(ProtocolViewer):
+class RelionLocalResViewer(LocalResolutionViewer):
     """ Visualization of Relion local resolution results. """
 
     _environments = [DESKTOP_TKINTER, WEB_DJANGO]
@@ -41,25 +41,12 @@ class RelionLocalResViewer(ProtocolViewer):
     _label = 'viewer localres'
 
     def __init__(self, **kwargs):
-        ProtocolViewer.__init__(self, **kwargs)
+        LocalResolutionViewer.__init__(self, **kwargs)
+        self.protocol._createFilenameTemplates()
 
     def _defineParams(self, form):
         form.addSection(label='Visualization')
-        group = form.addGroup('Colored resolution')
-        group.addParam('colorMap', params.EnumParam,
-                       choices=list(COLOR_CHOICES.values()),
-                       default=COLOR_JET,
-                       label='Color map',
-                       help='Select the color map to apply to the resolution '
-                            'map. http://matplotlib.org/1.3.0/examples/color/'
-                            'colormaps_reference.html.')
-        group.addParam('otherColorMap', params.StringParam, default='jet',
-                       condition=binaryCondition,
-                       label='Customized Color map',
-                       help='Name of a color map to apply to the resolution '
-                            'map. Valid names can be found at http://'
-                            'matplotlib.org/1.3.0/examples/color/'
-                            'colormaps_reference.html')
+        groupColor = form.addGroup('Colored resolution')
 
         group = form.addGroup('Slices')
         group.addParam('sliceAxis', params.EnumParam, default=AX_Z,
@@ -68,11 +55,14 @@ class RelionLocalResViewer(ProtocolViewer):
                        label='Slice axis')
         group.addParam('doShowVolumeSlices', params.LabelParam,
                        label="Show volume slices")
-        group.addParam('doShowChimera', params.LabelParam,
+        groupColor.addParam('doShowChimera', params.LabelParam,
                        label="Show colored map in Chimera", default=True)
 
+        _, minRes, maxRes, _ = self.getImgData(self.getResolutionVolumeFileName())
+        ColorScaleWizardBase.defineColorScaleParams(groupColor, defaultHighest=maxRes, defaultLowest=minRes)
+
     def _getVisualizeDict(self):
-        self.protocol._createFilenameTemplates()
+
         return {
             'doShowVolumeSlices': self._showVolumeSlices,
             'doShowChimera': self._showChimera,
@@ -82,8 +72,8 @@ class RelionLocalResViewer(ProtocolViewer):
     # doShowVolumeSlices
     # =============================================================================
     def _showVolumeSlices(self, param=None):
-        imageFile = self.protocol._getFileName('resolMap')
-        imgData, minRes, maxRes, volDim = self._getImgData(imageFile)
+        imageFile = self.getResolutionVolumeFileName()
+        imgData, _, _, _ = self.getImgData(imageFile)
 
         xplotter = RelionPlotter(x=2, y=2, mainTitle="Local Resolution Slices "
                                                      "along %s-axis."
@@ -92,18 +82,32 @@ class RelionLocalResViewer(ProtocolViewer):
             slice = self._getSlice(i + 1, imgData)
             a = xplotter.createSubPlot("Slice %s" % slice, '', '')
             matrix = self._getSliceImage(imgData, i + 1, self._getAxis())
-            plot = xplotter.plotMatrix(a, matrix, minRes, maxRes,
+            plot = xplotter.plotMatrix(a, matrix, self.lowest.get(), self.highest.get(),
                                        cmap=self._getColorName(),
                                        interpolation="nearest")
         xplotter.getColorBar(plot)
         return [xplotter]
 
+    def getResolutionVolumeFileName(self):
+        return self.protocol._getFileName('resolMap')
+
     # =============================================================================
     # showChimera
     # =============================================================================
     def _showChimera(self, param=None):
-        cmdFile = self.protocol._getExtraPath('chimera_local_res.py')
-        self._createChimeraScript(cmdFile)
+
+        fnResVol = self.getResolutionVolumeFileName()
+
+        vol = self.protocol.protRefine.get().outputVolume
+
+        fnOrigMap = vol.getFileName()
+        sampRate = vol.getSamplingRate()
+
+        cmdFile = self.protocol._getExtraPath('chimera_resolution_map.py')
+        self.createChimeraScript(cmdFile, fnResVol, fnOrigMap, sampRate,
+                                 numColors=self.intervals.get(),
+                                 lowResLimit=self.highest.get(),
+                                 highResLimit=self.lowest.get())
         view = ChimeraView(cmdFile)
         return [view]
 
@@ -112,17 +116,6 @@ class RelionLocalResViewer(ProtocolViewer):
     # =============================================================================
     def _getAxis(self):
         return self.getEnumText('sliceAxis')
-
-    def _getImgData(self, imgFile):
-        import numpy as np
-        img = ImageHandler().read(imgFile + ":mrc")
-        imgData = img.getData()
-        voldim = (img.getDimensions())[:-1]
-        maxRes = np.amax(imgData)
-        imgData2 = np.ma.masked_where(imgData < 0.1, imgData, copy=True)
-        minRes = np.amin(imgData2)
-
-        return imgData2, minRes, maxRes, voldim
 
     def _getSlice(self, index, volumeData):
         return int((index + 3) * volumeData.shape[0] / 9)
@@ -137,37 +130,3 @@ class RelionLocalResViewer(ProtocolViewer):
             imgSlice = volumeData[slice, :, :]
         return imgSlice
 
-    def _getColorName(self):
-        if self.colorMap.get() != COLOR_OTHER:
-            return COLOR_CHOICES[self.colorMap.get()]
-        else:
-            return self.otherColorMap.get()
-
-    def _createChimeraScript(self, scriptFile):
-        import pyworkflow.gui.plotter as plotter
-        imageFile = os.path.abspath(self.protocol._getFileName('resolMap'))
-        _, minRes, maxRes, voldim = self._getImgData(imageFile)
-
-        stepColors = self._getStepColors(minRes, maxRes)
-        colorList = plotter.getHexColorList(stepColors, self._getColorName())
-
-        fnVol = os.path.abspath(self.protocol._getFileName('outputVolume'))
-        sampRate = self.protocol.outputVolume.getSamplingRate()
-        mapVolsWithColorkey(fnVol,
-                            imageFile,
-                            stepColors,
-                            colorList,
-                            voldim,
-                            volOrigin=None,
-                            step = -1,
-                            sampling=sampRate,
-                            scriptFileName=scriptFile,
-                            bgColorImage='white',
-                            showAxis=True)
-
-    def _getStepColors(self, minRes, maxRes, numberOfColors=13):
-        inter = (maxRes - minRes) / (numberOfColors - 1)
-        rangeList = []
-        for step in range(0, numberOfColors):
-            rangeList.append(round(minRes + step * inter, 2))
-        return rangeList

@@ -40,6 +40,8 @@ from .protocols import *
 # =============================================================================
 # MASKS
 # =============================================================================
+from .viewers import RelionLocalResViewer
+
 
 class RelionBackRadiusWizard(ParticleMaskRadiusWizard):
     _targets = [(ProtRelionPreprocessParticles, ['backRadius'])]
@@ -387,3 +389,6 @@ class RelionWizMtfSelector(EmWizard):
         browser = FileBrowserWindow("Select the one of the predefined MTF files",
                                     form, mtfDir, onSelect=setPath)
         browser.show()
+
+class RelionColorScaleWizard(ColorScaleWizardBase):
+    _targets = ColorScaleWizardBase.defineTargets(RelionLocalResViewer)
