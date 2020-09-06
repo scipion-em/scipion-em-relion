@@ -31,7 +31,7 @@ import pyworkflow.utils as pwutils
 import pwem
 import pyworkflow.protocol.params as params
 
-from relion.convert.convert31 import OpticsGroups
+from relion.convert.convert31 import OpticsGroups, getPixelSizeLabel
 from .protocol_base import ProtRelionBase
 
 
@@ -163,16 +163,17 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                                 "one optics group.")
 
             acq = inputSet.getAcquisition()
-            og = OpticsGroups.create(
-                rlnVoltage=acq.getVoltage(),
-                rlnSphericalAberration=acq.getSphericalAberration(),
-                rlnAmplitudeContrast=acq.getAmplitudeContrast(),
-                rlnImagePixelSize=inputSet.getSamplingRate(),
-                rlnImageSize=inputSet.getXDim(),
-                rlnOpticsGroupName=self.opticsGroupName.get(),
-                rlnBeamTiltX=self.beamTiltX.get(),
-                rlnBeamTiltY=self.beamTiltY.get()
-            )
+            params = {
+                'rlnVoltage': acq.getVoltage(),
+                'rlnSphericalAberration': acq.getSphericalAberration(),
+                'rlnAmplitudeContrast': acq.getAmplitudeContrast(),
+                getPixelSizeLabel(inputSet): inputSet.getSamplingRate(),
+                'rlnImageSize': inputSet.getXDim(),
+                'rlnOpticsGroupName': self.opticsGroupName.get(),
+                'rlnBeamTiltX': self.beamTiltX.get(),
+                'rlnBeamTiltY': self.beamTiltY.get()
+            }
+            og = OpticsGroups.create(**params)
 
             if self.mtfFile.hasValue():
                 inputMtf = self.mtfFile.get()
@@ -188,6 +189,13 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                                      tableName='micrographs')
             micDict = {row.rlnMicrographName: row.rlnOpticsGroup
                        for row in micTable}
+
+            # check if MTF file exists
+            for i in og:
+                if not pwutils.exists(i.rlnMtfFileName):
+                    self.warning("MTF file %s not found for %s" % (
+                        i.rlnMtfFileName, i.rlnOpticsGroupName
+                    ))
 
             def updateItem(item, row):
                 micName = getMicName(item)
@@ -222,6 +230,9 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
 
         if self.mtfFile.hasValue() and not pwutils.exists(self.mtfFile.get()):
             validateMsgs.append("MTF file %s does not exist!" % self.mtfFile.get())
+
+        if self.defectFile.hasValue() and not pwutils.exists(self.defectFile.get()):
+            validateMsgs.append("Defect file %s does not exist!" % self.defectFile.get())
 
         return validateMsgs
     
