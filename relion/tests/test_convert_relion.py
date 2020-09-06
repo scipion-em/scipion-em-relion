@@ -633,31 +633,6 @@ class TestReconstruct(TestConvertAnglesBase):
                  ]
 
         self.launchTest('reconstRotandShift', mList, alignType=ALIGN_PROJ)
-        
-    def test_reconstRotandShiftFlip(self):
-        """ Check that for a given alignment object,
-        a1 -> reference
-        a2 -> projection at random
-        a3 -> flip a2
-        a4 -> flip a2 (identical to a3)
-        """
-        # in practice this is irrelevant since no conversion with |mat|==-1
-        mList = [
-                 [[1., 0., 0., 0.],  # a1
-                  [0., 1., 0., 0.],
-                  [0., 0., 1., 0.],
-                  [0., 0., 0., 1.]],
-                 [[0.04341204, -0.82959837,  0.5566704,   7.42774284],  # -50, -40,-30
-                  [0.90961589,  0.26325835,  0.3213938, -20.82490128],
-                  [0.41317591,  0.49240388,  0.76604444,  3.33947946],
-                  [0.,          0.,          0.,          1.]],
-                 [[0.04341203,   0.82959837, - 0.5566704, - 7.42774315],
-                  [0.90961589, - 0.26325834, - 0.3213938,   20.8249012],
-                  [-0.4131759, - 0.49240388, - 0.76604444, - 3.33947923],
-                  [0.,           0.,           0.,           1.]],
-        ]
-
-        self.launchTest('reconstRotandShiftFlip', mList, alignType=ALIGN_PROJ)
 
 
 class TestRelionWriter(BaseTest):
