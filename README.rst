@@ -45,9 +45,11 @@ To check the installation, simply run one of the tests. A complete list of tests
 Supported versions
 ------------------
 
-3.0, 3.1.0
+3.1.0
 
-In 2020 the plugin was updated to support the latest RELION 3.1.0. We discontinued any support for 2.x versions. We are still working towards stable plugin release, so some things might not work yet. Handling optics groups needs more testing, you are welcome to be a volunteer.
+We are still working towards stable plugin release, so some things might not work yet. Handling optics groups needs more testing, you are welcome to be a volunteer.
+
+**IMPORTANT**: Relion-3.0 can be used with this plugin but we do not officially support it anymore, i.e. there will be no bugfixes for it.
 
 Protocols
 ---------
