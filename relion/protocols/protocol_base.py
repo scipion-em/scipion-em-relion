@@ -796,9 +796,11 @@ class ProtRelionBase(EMProtocol):
                     mdOptics = Table(fileName=imgStar, tableName='optics')
                 mdParts = Table(fileName=imgStar, tableName=tableName)
                 self._copyAlignAsPriors(mdParts, alignType)
-                mdParts.write(imgStar, tableName=tableName)
-                if self.IS_GT30():
-                    mdOptics.writeStar(imgStar, tableName='optics')
+
+                with open(imgStar, "w") as f:
+                    mdParts.writeStar(f, tableName=tableName)
+                    if self.IS_GT30():
+                        mdOptics.writeStar(f, tableName='optics')
 
             if self._getRefArg():
                 self._convertRef()
