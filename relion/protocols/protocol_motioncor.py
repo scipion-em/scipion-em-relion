@@ -257,10 +257,13 @@ class ProtRelionMotioncor(ProtAlignMovies):
         if self.extraParams.hasValue():
             args += " " + self.extraParams.get()
 
-        self.runJob(self._getProgram(), args, cwd=movieFolder)
+        try:
+            self.runJob(self._getProgram(), args, cwd=movieFolder)
 
-        self._computeExtra(movie)
-        self._moveFiles(movie)
+            self._computeExtra(movie)
+            self._moveFiles(movie)
+        except:
+            print("ERROR: processing movie: ", movie.getFileName())
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
