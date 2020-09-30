@@ -109,7 +109,8 @@ class ProtRelionCtfRefinement(ProtParticles):
                            "first, and the other one second. It might be worth "
                            "repeating the estimation if both are off.")
 
-        group = form.addGroup('CTF')
+        group = form.addGroup('CTF', condition='not estimateAnisoMag')
+
         group.addParam('doCtfFitting', params.BooleanParam, default=False,
                        condition='not estimateAnisoMag',
                        label='Perform CTF parameter fitting?',
@@ -303,6 +304,22 @@ class ProtRelionCtfRefinement(ProtParticles):
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
         summary = []
+        if self.estimateAnisoMag:
+            summary.append("Estimate anisotropic Magnification: *Yes*")
+        else:
+            if self.doCtfFitting:
+                summary.append("CTF parameter fitting: *Yes*")
+                for p in ['fitPhaseShift', 'fitDefocus', 'fitAstig', 'fitBfactor']:
+                    summary.append("   - %s: *%s*" % (self.getParam(p).getLabel(),
+                                                 self.getEnumText(p)))
+
+            if self.doBeamtiltEstimation:
+                trefoil = '*Yes*' if self.doEstimateTrefoil else 'No'
+                summary.append("Estimate beamtilt: *Yes*, trefoil: " + trefoil)
+
+            if self.doEstimate4thOrder:
+                summary.append("Estimate 4th order aberrations: *Yes*")
+
         return summary
 
     def _validate(self):

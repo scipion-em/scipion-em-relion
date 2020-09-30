@@ -125,18 +125,19 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
     
     def _summaryNormal(self):
         summary = []
-        it = self._lastIter()
+        it = self._lastIter() or -1
         if it >= 1:
             table = Table(fileName=self._getFileName('model', iter=it),
                           tableName='model_general')
             row = table[0]
             resol = float(row.rlnCurrentResolution)
             summary.append("Current resolution: *%0.2f A*" % resol)
-        
-        summary.append("Input Particles: *%d*\n"
+
+        inputParts = self.inputParticles.get()
+        sizeStr = 'None' if inputParts is None else inputParts.getSize()
+        summary.append("Input Particles: *%s*\n"
                        "Classified into *%d* 3D classes\n"
-                       % (self.inputParticles.get().getSize(),
-                          self.numberOfClasses.get()))
+                       % (sizeStr, self.numberOfClasses))
         
         return summary
     
