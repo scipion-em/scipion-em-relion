@@ -328,19 +328,26 @@ class ProtRelionBayesianPolishing(ProtParticles):
     def _summary(self):
         summary = []
 
+        def _params(label, *params):
+            summary.append('*%s params:*' % label)
+            summary.append('    Sigma for velocity: %0.3f' % params[0])
+            summary.append('    Sigma for divergence: %0.1f' % params[1])
+            summary.append('    Sigma for acceleration: %0.2f' % params[2])
+
         if self.operation != self.OP_TRAIN:
-            summary.append('Sigma for velocity: %0.3f' % self.sigmaVel)
-            summary.append('Sigma for divergence: %0.1f' % self.sigmaDiv)
-            summary.append('Sigma for acceleration: %0.2f' % self.sigmaAcc)
+            _params('Input', self.sigmaVel, self.sigmaDiv, self.sigmaAcc)
         else:
-            if pwutils.exists(self._getExtraPath('opt_params.txt')):
-                with open(self._getExtraPath('opt_params.txt')) as f:
-                    line = [float(x) for x in f.readline().split()]
-                summary.append('Sigma for velocity: %0.3f' % line[0])
-                summary.append('Sigma for divergence: %0.1f' % line[1])
-                summary.append('Sigma for acceleration: %0.2f' % line[2])
-            else:
+            outputFn = None
+            for fn in ['opt_params.txt', 'opt_params_all_groups.txt']:
+                if os.path.exists(self._getExtraPath(fn)):
+                    outputFn = self._getExtraPath(fn)
+
+            if outputFn is None:
                 summary.append('Output is not ready yet.')
+            else:
+                with open(outputFn) as f:
+                    line = [float(x) for x in f.readline().split()]
+                    _params('Output', *line)
 
         return summary
 
