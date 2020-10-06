@@ -26,7 +26,7 @@
 
 import os
 
-from pyworkflow.object import Set, Integer, CsvList
+from pyworkflow.object import Set, Integer
 import pyworkflow.utils as pwutils
 from pyworkflow.protocol.constants import STATUS_FINISHED
 import pyworkflow.protocol.params as params
@@ -50,12 +50,6 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         ProtExtractParticles.__init__(self, **kwargs)
 
     # -------------------------- DEFINE param functions -----------------------
-    def _defineParams(self, form):
-        ProtExtractParticles._defineParams(self, form)
-        param = form.getParam('inputCoordinates')
-        param.label.set('Input coordinates (or particles)')
-        param.setPointerClass('SetOfCoordinates,SetOfParticles')
-
     def _definePreprocessParams(self, form):
         form.addParam('boxSize', params.IntParam,
                       label='Particle box size (px)',
