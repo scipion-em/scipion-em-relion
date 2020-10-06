@@ -528,6 +528,8 @@ Examples:
         cmdFile = self.protocol._getExtraPath('chimera_volumes.cxc')
         with open(cmdFile, 'w+') as f:
             for vol in volumes:
+                # remove ":mrc" extension needed by xmipp
+                vol = vol.replace(":mrc", "")
                 # We assume that the chimera script will be generated
                 # at the same folder as relion volumes
                 localVol = os.path.basename(vol)
