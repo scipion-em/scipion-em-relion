@@ -30,7 +30,6 @@
 import os
 import subprocess
 import numpy as np
-from pprint import pprint
 
 from pyworkflow.tests import BaseTest, setupTestOutput, DataSet
 from pyworkflow.utils import cleanPath

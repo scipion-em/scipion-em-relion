@@ -434,7 +434,6 @@ class Writer(WriterBase):
             partsWriter.writeTableName('particles')
             partsWriter.writeHeader(partsTable.getColumns())
             # Write all rows
-            from pprint import pprint
             for part in partsSet:
                 self._partToRow(part, partRow)
                 if self._postprocessImageRow:
