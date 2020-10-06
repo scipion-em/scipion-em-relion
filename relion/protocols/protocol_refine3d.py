@@ -144,7 +144,7 @@ leads to objective and high-quality results.
         summary = []
         if not hasattr(self, 'outputVolume'):
             summary.append("Output volume not ready yet.")
-            it = self._lastIter()
+            it = self._lastIter() or -1
             if it >= 1 and it > self._getContinueIter():
                 table = Table(fileName=self._getFileName('half1_model', iter=it),
                               tableName='model_general')

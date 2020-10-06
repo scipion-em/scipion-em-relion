@@ -366,7 +366,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
 
     def _summaryNormal(self):
         summary = []
-        it = self._lastIter()
+        it = self._lastIter() or -1
         if it >= 1:
             table = Table(fileName=self._getFileName('model', iter=it),
                           tableName='model_general')
@@ -376,8 +376,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         return summary
 
     def _summaryContinue(self):
-        summary = list()
-        summary.append("Continue from iteration %01d" % self._getContinueIter())
+        summary = ["Continue from iteration %01d" % self._getContinueIter()]
         return summary
 
     # -------------------------- UTILS functions ------------------------------

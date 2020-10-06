@@ -99,17 +99,16 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         return errors
     
     def _summaryNormal(self):
-        summary = list()
-        summary.append("Input Particles: %s" % self.getObjectTag('inputParticles'))
-        summary.append("Classified into *%d* classes." % self.numberOfClasses)
-        summary.append("Output set: %s" % self.getObjectTag('outputClasses'))
+        summary = [
+            "Input Particles: %s" % self.getObjectTag('inputParticles'),
+            "Classified into *%d* classes." % self.numberOfClasses,
+            "Output set: %s" % self.getObjectTag('outputClasses')
+            ]
         
         return summary
     
     def _summaryContinue(self):
-        summary = list()
-        summary.append("Continue from iteration %01d" % self._getContinueIter())
-        
+        summary = ["Continue from iteration %01d" % self._getContinueIter()]
         return summary
     
     def _methods(self):

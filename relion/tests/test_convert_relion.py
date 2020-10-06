@@ -44,6 +44,7 @@ from pyworkflow.utils import magentaStr, createLink, replaceExt
 from relion import Plugin
 import relion.convert as convert
 from relion.convert.convert31 import OpticsGroups
+from emtable import Table
 
 
 class TestConvertBinaryFiles(BaseTest):
@@ -756,23 +757,30 @@ class TestRelionReader(BaseTest):
         setupTestOutput(cls)
         cls.ds = DataSet.getDataSet('relion31_tutorial_precalculated')
 
+    def __readParticles(self, partsStar, outputSqlite=None, **kwargs):
+        outputSqlite = outputSqlite or self.getOutputPath('particles.sqlite')
+        print("<<< Reading star file: \n   %s\n" % partsStar)
+        cleanPath(outputSqlite)
+        print(">>> Writing to particles db: \n   %s\n" % outputSqlite)
+        partsSet = SetOfParticles(filename=outputSqlite)
+        convert.readSetOfParticles(partsStar, partsSet, **kwargs)
+        return partsSet
+
     def test_readSetOfParticles(self):
+        return
         if not Plugin.IS_GT30():
             print("Skipping test (required Relion > 3.1)")
             return
 
-        partsStar = self.ds.getFile("Extract/job018/particles.star")
-        print("<<< Reading star file: \n   %s\n" % partsStar)
-        outputSqlite = self.getOutputPath('particles.sqlite')
-        cleanPath(outputSqlite)
-        print(">>> Writing to particles db: \n   %s\n" % outputSqlite)
-        partsSet = SetOfParticles(filename=outputSqlite)
-        convert.readSetOfParticles(partsStar, partsSet,
-                                   extraLabels=['rlnNrOfSignificantSamples'])
+        partsSet = self.__readParticles(
+            self.ds.getFile("Extract/job018/particles.star"),
+            extraLabels=['rlnNrOfSignificantSamples']
+        )
         partsSet.write()
 
         first = partsSet.getFirstItem()
         first.printAll()
+
         self.assertAlmostEqual(first.getSamplingRate(), 1.244531)
         self.assertEqual(first.getClassId(), 4)
         self.assertTrue(hasattr(first, '_rlnNrOfSignificantSamples'))
@@ -780,6 +788,44 @@ class TestRelionReader(BaseTest):
         fog = OpticsGroups.fromImages(partsSet).first()
         self.assertEqual(fog.rlnMtfFileName, 'mtf_k2_200kV.star')
         self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')
+
+    def test_readSetOfParticlesAfterCtf(self):
+        if not Plugin.IS_GT30():
+            print("Skipping test (required Relion > 3.1)")
+            return
+
+        starFile = self.ds.getFile("CtfRefine/job023/particles_ctf_refine.star")
+        partsReader = Table.Reader(starFile, tableName='particles')
+        firstRow = partsReader.getRow()
+
+        partsSet = self.__readParticles(starFile)
+        first = partsSet.getFirstItem()
+
+        ogLabels = ['rlnBeamTiltX', 'rlnBeamTiltY']
+        extraLabels = ['rlnCtfBfactor', 'rlnCtfScalefactor', 'rlnPhaseShift']
+        for l in extraLabels:
+            value = getattr(first, '_%s' % l)
+            self.assertIsNotNone(value, "Missing label: %s" % l)
+            self.assertAlmostEqual(getattr(firstRow, l), value)
+
+        fog = OpticsGroups.fromImages(partsSet).first()
+        self.assertTrue(all(hasattr(fog, l) for l in ogLabels))
+
+        # Also test writing and preserving extra labels
+        outputStar = self.getOutputPath('particles.star')
+        print(">>> Writing to particles star: %s" % outputStar)
+        starWriter = convert.createWriter()
+        starWriter.writeSetOfParticles(partsSet, outputStar)
+
+        fog = OpticsGroups.fromStar(outputStar).first()
+        self.assertTrue(all(hasattr(fog, l) for l in ogLabels))
+
+        partsReader = Table.Reader(outputStar, tableName='particles')
+        firstRow = partsReader.getRow()
+        for l in extraLabels:
+            value = getattr(first, '_%s' % l)
+            self.assertIsNotNone(value, "Missing label: %s" % l)
+            self.assertAlmostEqual(getattr(firstRow, l), value)
 
 
 class TestRelionOpticsGroups(BaseTest):
