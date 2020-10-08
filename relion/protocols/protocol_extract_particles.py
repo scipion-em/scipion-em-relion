@@ -33,7 +33,7 @@ import pyworkflow.protocol.params as params
 
 from pwem.protocols import ProtExtractParticles
 from pwem.emlib.image import ImageHandler
-from pwem.objects import Particle, Acquisition
+from pwem.objects import Particle, Acquisition, SetOfParticles
 
 import relion.convert
 from relion.convert.convert31 import OpticsGroups
@@ -50,6 +50,12 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         ProtExtractParticles.__init__(self, **kwargs)
 
     # -------------------------- DEFINE param functions -----------------------
+    def _defineParams(self, form):
+        ProtExtractParticles._defineParams(self, form)
+        param = form.getParam('inputCoordinates')
+        param.label.set('Input coordinates (or particles)')
+        param.setPointerClass('SetOfCoordinates,SetOfParticles')
+
     def _definePreprocessParams(self, form):
         form.addParam('boxSize', params.IntParam,
                       label='Particle box size (px)',
@@ -118,9 +124,23 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         form.addParallelSection(threads=0, mpi=4)
 
     # -------------------------- INSERT steps functions -----------------------
-    def _insertInitialSteps(self):
+    def _insertAllSteps(self):
         self._setupBasicProperties()
+        if self.isInputParticles:
+            self._insertConvertStep()
+            self._insertFunctionStep('extractFromParticlesStep')
+            self._stepsCheck = self._doNothing
+        else:
+            ProtExtractParticles._insertAllSteps(self)
 
+    def _insertConvertStep(self):
+        inputIds = [
+            self.inputCoordinates.get().getObjId(),
+            self.getInputMicrographs().getObjId()
+        ]
+        self._insertFunctionStep('convertInputStep', inputIds)
+
+    def _insertInitialSteps(self):
         # used to convert micrographs if not in .mrc format
         self._ih = ImageHandler()
 
@@ -134,18 +154,25 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                       "not in streaming...changed value to 0 (extract all).")
             self.streamingBatchSize.set(0)
 
-        return [self._insertFunctionStep('convertInputStep',
-                                         self.getInputMicrographs().getObjId())]
+        return [self._insertConvertStep()]
 
     def _doNothing(self, *args):
         pass  # used to avoid some streaming functions
 
     # -------------------------- STEPS functions ------------------------------
-    def convertInputStep(self, micsId):
+    def convertInputStep(self, inputIds):
         self.info("Relion version:")
         self.runJob("relion_refine --version", "", numberOfMpi=1)
         self.info("Detected version from config: %s"
                   % relion.Plugin.getActiveVersion())
+
+    def convertFromParticlesStep(self):
+        if self._isStreamOpen():
+            raise Exception("Extracting from particles does not work in "
+                            "streaming (yet).")
+        if self._micsOther():
+            micList = [mic.clone() for mic in self.getInputMicrographs()]
+
 
     def _convertCoordinates(self, mic, coordList):
         relion.convert.writeMicCoordinates(
@@ -239,12 +266,21 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
     def _setupBasicProperties(self):
         # Set sampling rate (before and after doDownsample) and inputMics
         # according to micsSource type
-        inputCoords = self.getCoords()
-        self.samplingInput = inputCoords.getMicrographs().getSamplingRate()
-        self.samplingMics = self.getInputMicrographs().getSamplingRate()
-        self.samplingFactor = float(self.samplingMics / self.samplingInput)
+        inputSet = self.getInput()
+        self.inputIsParticles = isinstance(inputSet, SetOfParticles)
+        if self.inputIsParticles:
+            self.samplingInput = inputSet.getSamplingRate()
+        else:
+            self.samplingInput = inputSet.getMicrographs().getSamplingRate()
 
-        scale = self.getScaleFactor()
+        if self._micsOther():
+            self.samplingMics = self.inputMicrographs.get().getSamplingRate()
+        else:
+            self.samplingMics = self.samplingInput
+
+        self.samplingFactor = self.samplingInput / self.samplingMics
+
+        scale = self.samplingFactor
         self.debug("Scale: %f" % scale)
         if self.notOne(scale):
             # If we need to scale the box, then we need to scale the coordinates
@@ -383,7 +419,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         return abs(value - 1) > 0.0001
 
     def _getNewSampling(self):
-        newSampling = self.getInputMicrographs().getSamplingRate()
+        newSampling = self.samplingMics
 
         if self._doDownsample():
             # Set new sampling, it should be the input sampling of the used
@@ -395,12 +431,19 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
     def getInputMicrographs(self):
         """ Return the micrographs associated to the SetOfCoordinates or
         Other micrographs. """
-        if not self._micsOther():
-            return self.inputCoordinates.get().getMicrographs()
-        else:
-            return self.inputMicrographs.get()
+        if self._micsOther():
+           return self.inputMicrographs.get()
 
-    def getCoords(self):
+        if not self.inputIsParticles:
+            return self.inputCoordinates.get().getMicrographs()
+
+        # From this point we are dealing with input particles, so we
+        # need to create the input micrographs
+        # Lets keep a reference so it is created only once
+        if not hasattr(self, '_micsFromParticles'):
+            self._micsFromParticles = SetOfMicrographs()
+
+    def getInput(self):
         return self.inputCoordinates.get()
 
     def getOutput(self):
@@ -410,24 +453,13 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         else:
             return None
 
-    def getCoordSampling(self):
-        return
-
-    def getScaleFactor(self):
-        """ Returns the scaling factor that needs to be applied to the input
-        coordinates to adapt for the input micrographs.
-        """
-        coordsSampling = self.getCoords().getMicrographs().getSamplingRate()
-        micsSampling = self.getInputMicrographs().getSamplingRate()
-        return coordsSampling / micsSampling
-
     def getBoxScale(self):
         """ Computing the sampling factor between input and output.
         We should take into account the differences in sampling rate between
         micrographs used for picking and the ones used for extraction.
         The downsampling factor could also affect the resulting scale.
         """
-        f = self.getScaleFactor()
+        f = self.samplingFactor
         return f / self._getDownFactor() if self._doDownsample() else f
 
     def getNewImgSize(self):
@@ -476,10 +508,10 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                                                micList[-1].getObjId())
 
     def _isStreamOpen(self):
-        if self._useCTF():
-            ctfStreamOpen = self.ctfRelations.get().isStreamOpen()
-        else:
-            ctfStreamOpen = False
+        if self._micsOther() and self.inputMicrographs.get().isStreamOpen():
+            return True
 
-        return (self.getInputMicrographs().isStreamOpen() or
-                ctfStreamOpen or self.getCoords().isStreamOpen())
+        if self._useCTF() and self.ctfRelations.get().isStreamOpen():
+            return True
+
+        return self.getInput().isStreamOpen()
