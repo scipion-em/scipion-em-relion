@@ -767,7 +767,6 @@ class TestRelionReader(BaseTest):
         return partsSet
 
     def test_readSetOfParticles(self):
-        return
         if not Plugin.IS_GT30():
             print("Skipping test (required Relion > 3.1)")
             return
