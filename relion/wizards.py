@@ -27,7 +27,7 @@
 # **************************************************************************
 
 from pwem import *
-from pwem.viewers import CoordinatesObjectView
+from pwem.viewers import CoordinatesObjectView, EmPlotter
 from pwem.wizards.wizard import *
 from pyworkflow.gui.browser import FileBrowserWindow
 
@@ -40,6 +40,8 @@ from .protocols import *
 # =============================================================================
 # MASKS
 # =============================================================================
+from .viewers import RelionLocalResViewer
+
 
 class RelionBackRadiusWizard(ParticleMaskRadiusWizard):
     _targets = [(ProtRelionPreprocessParticles, ['backRadius'])]
@@ -387,3 +389,31 @@ class RelionWizMtfSelector(EmWizard):
         browser = FileBrowserWindow("Select the one of the predefined MTF files",
                                     form, mtfDir, onSelect=setPath)
         browser.show()
+
+
+class RelionColorScaleWizard(ColorScaleWizardBase):
+    _targets = ColorScaleWizardBase.defineTargets(RelionLocalResViewer)
+
+
+class RelionWizCtfGroupsDisplay(EmWizard):
+    """ Simple wizard distribution of defocus groups.
+    """
+    _targets = [(ProtRelionClassify2D, ['defocusRange']),
+                (ProtRelionClassify3D, ['defocusRange']),
+                (ProtRelionRefine3D, ['defocusRange'])]
+
+    def show(self, form, *args):
+        prot = form.protocol
+        defocusGroups = prot.createDefocusGroups()
+        print(defocusGroups)
+
+        plotter = EmPlotter(windowTitle='%d Defocus Groups' % len(defocusGroups),
+                            x=1, y=1, figsize=(8, 6))
+        ax = plotter.createSubPlot("", "defocus (A)", "count", 1, 1)
+
+        for group in defocusGroups:
+            ax.bar(group.minDefocus, group.count,
+                   group.maxDefocus - group.minDefocus,
+                   align='edge')
+
+        plotter.show()

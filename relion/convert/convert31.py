@@ -36,11 +36,22 @@ from emtable import Table
 
 import pyworkflow as pw
 import pwem
+from pwem.objects import Micrograph, SetOfMicrographsBase
 import pwem.convert.transformations as tfs
 
 from .convert_base import WriterBase, ReaderBase
 from .convert_utils import (convertBinaryFiles, locationToRelion,
                             relionToLocation)
+from relion.constants import PARTICLE_EXTRA_LABELS
+
+
+def getPixelSizeLabel(imageSet):
+    """ Return the proper label for pixel size. """
+    if (isinstance(imageSet, SetOfMicrographsBase)
+        or isinstance(imageSet, Micrograph)):
+        return 'rlnMicrographPixelSize'
+    else:
+        return 'rlnImagePixelSize'
 
 
 class OpticsGroups:
@@ -139,13 +150,14 @@ class OpticsGroups:
         try:
             return OpticsGroups.fromString(acq.opticsGroupInfo.get())
         except:
-            return OpticsGroups.create(
-                rlnVoltage=acq.getVoltage(),
-                rlnSphericalAberration=acq.getSphericalAberration(),
-                rlnAmplitudeContrast=acq.getAmplitudeContrast(),
-                rlnImagePixelSize=imageSet.getSamplingRate(),
-                rlnImageSize=imageSet.getXDim()
-            )
+            params = {
+                'rlnVoltage': acq.getVoltage(),
+                'rlnSphericalAberration': acq.getSphericalAberration(),
+                'rlnAmplitudeContrast': acq.getAmplitudeContrast(),
+                'rlnImageSize': imageSet.getXDim(),
+                getPixelSizeLabel(imageSet): imageSet.getSamplingRate()
+            }
+            return OpticsGroups.create(**params)
 
     @staticmethod
     def create(**kwargs):
@@ -162,10 +174,9 @@ _rlnMicrographOriginalPixelSize #3
 _rlnVoltage #4
 _rlnSphericalAberration #5
 _rlnAmplitudeContrast #6
-_rlnImagePixelSize #7
-_rlnImageSize #8
-_rlnImageDimensionality #9
-opticsGroup1            1      1.000000   300.000000     2.700000     0.100000     1.000000          256            2
+_rlnImageSize #7
+_rlnImageDimensionality #8
+opticsGroup1            1      1.000000   300.000000     2.700000     0.100000     256            2
         """
 
         og = OpticsGroups.fromString(opticsString1)
@@ -228,7 +239,6 @@ class Writer(WriterBase):
         # Process the first item and create the table based
         # on the generated columns
         self._imgLabelName = imgLabelName
-        self._imgLabelPixelSize = 'rlnMicrographPixelSize'
         self._extraLabels = kwargs.get('extraLabels', [])
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
@@ -263,16 +273,18 @@ class Writer(WriterBase):
             f.write("# version 30001\n")
             micsTable.writeStar(f, tableName=tableName)
 
-    def _setAttributes(self, obj, row, attributes):
+    def _objToRow(self, obj, row, attributes):
+        """ Set some attributes from the object to the row.
+        For performance reasons, it is not validated that each attribute
+        is already in the object, so it should be validated before.
+        """
         for attr in attributes:
-            attrLabel = '_%s' % attributes
-            if hasattr(obj, attrLabel):
-                row[attr] = obj.getAttributeValue(attrLabel)
+            row[attr] = obj.getAttributeValue('_%s' % attr)
 
     def _micToRow(self, mic, row):
         WriterBase._micToRow(self, mic, row)
         # Set additional labels if present
-        self._setAttributes(mic, row, self._extraLabels)
+        self._objToRow(mic, row, self._extraLabels)
         row['rlnOpticsGroup'] = mic.getAttributeValue('_rlnOpticsGroup', 1)
 
     def _align2DToRow(self, alignment, row):
@@ -301,9 +313,7 @@ class Writer(WriterBase):
             row['rlnCoordinateX'] = x
             row['rlnCoordinateY'] = y
             # Add some specify coordinate attributes
-            self._setAttributes(coord, row, ['rlnClassNumber',
-                                             'rlnAutopickFigureOfMerit',
-                                             'rlnAnglePsi'])
+            self._objToRow(coord, row, self._coordLabels)
             micName = coord.getMicName()
             if micName:
                 row['rlnMicrographName'] = str(micName.replace(" ", ""))
@@ -323,9 +333,6 @@ class Writer(WriterBase):
 
         row['rlnImageName'] = locationToRelion(index, fn)
 
-        if self._setRandomSubset:
-            row['rlnRandomSubset'] = part._rlnRandomSubset.get()
-
         # Set CTF values
         if self._setCtf:
             self._ctfToRow(part.getCTF(), row)
@@ -335,7 +342,7 @@ class Writer(WriterBase):
             self._setAlign(part.getTransform(), row)
 
         # Set additional labels if present
-        self._setAttributes(part, row, self._extraLabels)
+        self._objToRow(part, row, self._extraLabels)
 
         # Add now the new Optics Group stuff
         row['rlnOpticsGroup'] = part.getAttributeValue('_rlnOpticsGroup', 1)
@@ -345,7 +352,6 @@ class Writer(WriterBase):
     def writeSetOfParticles(self, partsSet, starFile, **kwargs):
         # Process the first item and create the table based
         # on the generated columns
-        self._imgLabelPixelSize = 'rlnImagePixelSize'
         self.update(['rootDir', 'outputDir', 'outputStack'], **kwargs)
 
         self._optics = OpticsGroups.fromImages(partsSet)
@@ -364,8 +370,7 @@ class Writer(WriterBase):
         # Compute some flags from the first particle...
         # when flags are True, some operations will be applied to all particles
         self._preprocessImageRow = kwargs.get('preprocessImageRow', None)
-        self._setRandomSubset = (kwargs.get('fillRandomSubset') and
-                                 firstPart.hasAttribute('_rlnRandomSubset'))
+
 
         self._setCtf = kwargs.get('writeCtf', True) and firstPart.hasCTF()
 
@@ -387,9 +392,22 @@ class Writer(WriterBase):
         else:
             raise Exception("Invalid value for alignType: %s" % alignType)
 
-        self._extraLabels = kwargs.get('extraLabels', [])
-        self._extraLabels.extend(['rlnParticleSelectZScore',
-                                  'rlnMovieFrameNumber'])
+        extraLabels = kwargs.get('extraLabels', [])
+        extraLabels.extend(PARTICLE_EXTRA_LABELS)
+        if kwargs.get('fillRandomSubset'):
+            extraLabels.append('_rlnRandomSubset')
+
+        self._extraLabels = [l for l in extraLabels
+                             if firstPart.hasAttribute('_%s' % l)]
+
+        coord = firstPart.getCoordinate()
+        self._coordLabels = []
+        if coord is not None:
+            self._coordLabels = [l for l in ['rlnClassNumber',
+                                             'rlnAutopickFigureOfMerit',
+                                             'rlnAnglePsi']
+                                 if coord.hasAttribute('_%s' % l)]
+
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
         self._imageSize = firstPart.getXDim()
@@ -475,10 +493,8 @@ class Reader(ReaderBase):
         self._invPixelSize = 1. / self._pixelSize
 
         partsReader = Table.Reader(starFile, tableName='particles')
-        self._extraLabels = [l for l in kwargs.get('extraLabels', [])
-                             if partsReader.hasColumn(l)]
-        firstRow = partsReader.getRow()
 
+        firstRow = partsReader.getRow()
         self._setClassId = hasattr(firstRow, 'rlnClassNumber')
         self._setCtf = partsReader.hasAllColumns(self.CTF_LABELS[:3])
 
@@ -493,10 +509,12 @@ class Reader(ReaderBase):
         acq.setMagnification(kwargs.get('magnification', 10000))
         self._optics.toImages(partSet)
 
-        if self._extraLabels:
-            for label in self._extraLabels:
-                setattr(particle, '_' + label,
-                        pw.object.ObjectWrap(getattr(firstRow, label)))
+        extraLabels = kwargs.get('extraLabels', [])
+        extraLabels.extend(PARTICLE_EXTRA_LABELS)
+        self._extraLabels = [l for l in extraLabels if partsReader.hasColumn(l)]
+        for label in self._extraLabels:
+            setattr(particle, '_' + label,
+                    pw.object.ObjectWrap(getattr(firstRow, label)))
 
         self._rowToPart(firstRow, particle)
         partSet.setSamplingRate(self._pixelSize)
@@ -529,9 +547,8 @@ class Reader(ReaderBase):
 
         self.setParticleTransform(particle, row)
 
-        if self._extraLabels:
-            for label in self._extraLabels:
-                getattr(particle, '_%s' % label).set(getattr(row, label))
+        for label in self._extraLabels:
+            getattr(particle, '_%s' % label).set(getattr(row, label))
 
         #TODO: coord, partId, micId,
 

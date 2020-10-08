@@ -778,6 +778,10 @@ class ProtRelionBase(EMProtocol):
             alignToPrior = hasAlign and getattr(self, 'alignmentAsPriors', False)
             fillRandomSubset = hasAlign and getattr(self, 'fillRandomSubset', False)
 
+            if self.doCtfManualGroups:
+                self._defocusGroups = self.createDefocusGroups()
+                print(self._defocusGroups)
+
             relion.convert.writeSetOfParticles(
                 imgSet, imgStar,
                 outputDir=self._getExtraPath(),
@@ -792,12 +796,11 @@ class ProtRelionBase(EMProtocol):
                     mdOptics = Table(fileName=imgStar, tableName='optics')
                 mdParts = Table(fileName=imgStar, tableName=tableName)
                 self._copyAlignAsPriors(mdParts, alignType)
-                mdParts.write(imgStar, tableName=tableName)
-                if self.IS_GT30():
-                    mdOptics.writeStar(imgStar, tableName='optics')
 
-            if self.doCtfManualGroups:
-                self._splitInCTFGroups(imgStar)
+                with open(imgStar, "w") as f:
+                    mdParts.writeStar(f, tableName=tableName)
+                    if self.IS_GT30():
+                        mdOptics.writeStar(f, tableName='optics')
 
             if self._getRefArg():
                 self._convertRef()
@@ -889,9 +892,9 @@ class ProtRelionBase(EMProtocol):
             iterMsg = 'No iteration finished yet.'
         summary = [iterMsg]
 
-        if self._getInputParticles().isPhaseFlipped():
-            flipMsg = "Your input images are ctf-phase flipped"
-            summary.append(flipMsg)
+        inputParts = self._getInputParticles()
+        if inputParts is not None and inputParts.isPhaseFlipped():
+            summary.append("Your input images are ctf-phase flipped")
 
         if self.doContinue:
             summary += self._summaryContinue()
@@ -991,7 +994,14 @@ class ProtRelionBase(EMProtocol):
         args['--pool'] = self.pooledParticles.get()
 
         if self.doGpu:
-            args['--gpu'] = self.gpusToUse.get()
+            gpuStr = self.gpusToUse.get().strip()
+            if gpuStr:
+                if not gpuStr.startswith('"'):
+                    gpuStr = '"' + gpuStr
+                if not gpuStr.endswith('"'):
+                    gpuStr += '"'
+
+            args['--gpu'] = gpuStr
 
     def _getSamplingFactor(self):
         return 1 if self.oversampling == 0 else 2 * self.oversampling.get()
@@ -1140,13 +1150,6 @@ class ProtRelionBase(EMProtocol):
         """ Should be implemented in subclasses. """
         pass
 
-    def _splitInCTFGroups(self, imgStar):
-        """ Add a new column in the image star to separate the particles
-        into ctf groups """
-        relion.convert.splitInCTFGroups(imgStar,
-                                 self.defocusRange.get(),
-                                 self.numParticles.get())
-
     def _getContinueIter(self):
         continueRun = self.continueRun.get()
 
@@ -1244,13 +1247,9 @@ class ProtRelionBase(EMProtocol):
                     table.writeStar(f)
 
     def _postprocessParticleRow(self, part, partRow):
-        pass
-        # if part.hasAttribute('_rlnGroupName'):
-        #     partRow.setValue(md.RLN_MLMODEL_GROUP_NAME,
-        #                      '%s' % part.getAttributeValue('_rlnGroupName'))
-        # else:
-        #     partRow.setValue(md.RLN_MLMODEL_GROUP_NAME,
-        #                      '%s' % part.getMicId())
+        if self.doCtfManualGroups:
+            groupId = self._defocusGroups.getGroup(part.getCTF().getDefocusU()).id
+            partRow['rlnGroupName'] = "ctf_group_%03d" % groupId
 
     def _doSubsets(self):
         return False
@@ -1271,6 +1270,16 @@ class ProtRelionBase(EMProtocol):
         if alignType == pwem.ALIGN_PROJ:
             mdParts.addColumns('rlnAngleRotPrior=rlnAngleRot')
             mdParts.addColumns('rlnAngleTiltPrior=rlnAngleTilt')
+
+    def createDefocusGroups(self):
+        defocusGroups = None
+
+        if self.doCtfManualGroups:
+            defocusGroups = relion.convert.DefocusGroups()
+            defocusGroups.splitByDiff(self._getInputParticles(),
+                                      defocusDiff=self.defocusRange.get(),
+                                      minGroupSize=self.numParticles.get())
+        return defocusGroups
 
     def IS_GT30(self):
         return Plugin.IS_GT30()

@@ -172,3 +172,14 @@ ALIGNMENT_DICT = OrderedDict([
     ("_rlnAngleTilt", md.RLN_ORIENT_TILT),
     ("_rlnAnglePsi", md.RLN_ORIENT_PSI)
 ])
+
+
+PARTICLE_EXTRA_LABELS = [
+    'rlnBfactor',
+    'rlnCtfBfactor',
+    'rlnCtfScalefactor',
+    'rlnPhaseShift',
+    'rlnParticleSelectZScore',
+    'rlnMovieFrameNumber',
+    'rlnGroupName'
+]

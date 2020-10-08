@@ -28,11 +28,12 @@
 # *
 # **************************************************************************
 
+import os
 from os.path import join, basename
 import numpy as np
 
 from pyworkflow.object import ObjectWrap, String, Integer
-from pwem.constants import NO_INDEX, ALIGN_2D, ALIGN_3D, ALIGN_PROJ, ALIGN_NONE
+from pwem.constants import ALIGN_2D, ALIGN_3D, ALIGN_PROJ, ALIGN_NONE
 import pwem.convert.transformations as tfs
 
 from relion.constants import *
@@ -288,6 +289,36 @@ def rowToCoordinate(coordRow):
     return coord
 
 
+def readSetOfCoordinates(coordSet, coordFiles, micList=None):
+    """ Read a set of coordinates from given coordinate files
+    associated to some SetOfMicrographs.
+    Params:
+        micSet and coordFiles should have same length and same order.
+        coordSet: empty SetOfCoordinates to be populated.
+    """
+    if micList is None:
+        micList = coordSet.getMicrographs()
+
+    for mic, coordFn in zip(micList, coordFiles):
+
+        if not os.path.exists(coordFn):
+            print("WARNING: Missing coordinates star file: ", coordFn)
+
+        try:
+            readCoordinates(mic, coordFn, coordSet)
+        except Exception:
+            print("WARNING: Error reading coordinates star file: ", coordFn)
+
+
+def readCoordinates(mic, fileName, coordsSet):
+    for row in md.iterRows(fileName):
+        coord = rowToCoordinate(row)
+        coord.setX(coord.getX())
+        coord.setY(coord.getY())
+        coord.setMicrograph(mic)
+        coordsSet.append(coord)
+
+
 def imageToRow(img, imgRow, imgLabel=md.RLN_IMAGE_NAME, **kwargs):
     # Provide a hook to be used if something is needed to be 
     # done for special cases before converting image to row
@@ -467,7 +498,7 @@ def writeSetOfImages(imgSet, filename, imgToFunc,
     Params:
         imgSet: the set of images to be written (particles,
         micrographs or volumes)
-        filename: the filename where to write the metadata.
+        filename: the filename where to write the metadata.`
         rowFunc: this function can be used to setup the row before
             adding to metadata.
     """
@@ -587,33 +618,6 @@ def writeSetOfMovies(movieSet, starFile, **kwargs):
     movieMd.write('%s@%s' % (blockName, starFile))
 
 
-def splitInCTFGroups(imgStar, defocusRange=1000, numParticles=10):
-    """ Add a new colunm in the image star to separate the particles into ctf groups """
-    mdAll = md.MetaData(imgStar)
-    mdAll.sort(md.RLN_CTF_DEFOCUSU)
-
-    focusGroup = 1
-    counter = 0
-    oldDefocusU = mdAll.get(md.RLN_CTF_DEFOCUSU, mdAll.firstObject())
-    groupName = '%s_%06d_%05d' % ('ctfgroup', oldDefocusU, focusGroup)
-    for objId in mdAll:
-        counter = counter + 1
-        defocusU = mdAll.get(md.RLN_CTF_DEFOCUSU, objId)
-        if counter >= numParticles:
-            if (defocusU - oldDefocusU) > defocusRange:
-                focusGroup = focusGroup + 1
-                oldDefocusU = defocusU
-                groupName = '%s_%06d_%05d' % ('ctfgroup', oldDefocusU, focusGroup)
-                counter = 0
-        mdAll.set(md.RLN_MLMODEL_GROUP_NAME, groupName, objId)
-
-    mdAll.write(imgStar)
-    mdCount = md.MetaData()
-    mdCount.aggregate(mdAll, md.AGGR_COUNT, md.RLN_MLMODEL_GROUP_NAME,
-                      md.RLN_MLMODEL_GROUP_NAME, md.MDL_COUNT)
-    print("number of particles per group: ", mdCount)
-
-
 def copyOrLinkFileName(imgRow, prefixDir, outputDir, copyFiles=False):
     index, imgPath = relionToLocation(imgRow.get(md.RLN_IMAGE_NAME))
     baseName = os.path.basename(imgPath)
@@ -648,235 +652,3 @@ def setupCTF(imgRow, sampling):
             imgRow.set(md.MDL_CTF_DEFOCUS_ANGLE, 0.)
 
 
-def readSetOfCoordinates(coordSet, coordFiles, micList=None):
-    """ Read a set of coordinates from given coordinate files
-    associated to some SetOfMicrographs.
-    Params:
-        micSet and coordFiles should have same length and same order.
-        coordSet: empty SetOfCoordinates to be populated.
-    """
-    if micList is None:
-        micList = coordSet.getMicrographs()
-
-    for mic, coordFn in zip(micList, coordFiles):
-
-        if not os.path.exists(coordFn):
-            print("WARNING: Missing coordinates star file: ", coordFn)
-
-        try:
-            readCoordinates(mic, coordFn, coordSet)
-        except Exception:
-            print("WARNING: Error reading coordinates star file: ", coordFn)
-
-
-def readCoordinates(mic, fileName, coordsSet):
-    for row in md.iterRows(fileName):
-        coord = rowToCoordinate(row)
-        coord.setX(coord.getX())
-        coord.setY(coord.getY())
-        coord.setMicrograph(mic)
-        coordsSet.append(coord)
-
-
-def openStar(fn, extraLabels=False):
-    # We are going to write metadata directy to file to do it faster
-    f = open(fn, 'w')
-    s = """
-data_
-
-loop_
-_rlnCoordinateX
-_rlnCoordinateY
-"""
-    if extraLabels:
-        s += "_rlnClassNumber\n"
-        s += "_rlnAutopickFigureOfMerit\n"
-        s += "_rlnAnglePsi\n"
-    f.write(s)
-    return f
-
-
-def writeSetOfCoordinates(posDir, coordSet, getStarFileFunc, scale=1):
-    """ Convert a SetOfCoordinates to Relion star files.
-    Params:
-        posDir: the output directory where to generate the files.
-        coordSet: the input SetOfCoordinates that will be converted.
-         getStarFileFunc: function object that receives the micrograph name
-            and return the coordinates star file (only the base filename).
-        scale: pass a value if the coordinates have a different scale.
-            (for example when extracting from micrographs with a different
-            pixel size than during picking)
-    """
-
-    # Create a dictionary with the pos filenames for each micrograph
-    posDict = {}
-    for mic in coordSet.iterMicrographs():
-        starFile = getStarFileFunc(mic)
-        if starFile is not None:
-            posFn = os.path.basename(starFile)
-            posDict[mic.getObjId()] = join(posDir, posFn)
-
-    f = None
-    lastMicId = None
-
-    extraLabels = coordSet.getFirstItem().hasAttribute('_rlnClassNumber')
-    doScale = abs(scale - 1) > 0.001
-
-    for coord in coordSet.iterItems(orderBy='_micId'):
-        micId = coord.getMicId()
-
-        if micId != lastMicId:
-            if micId not in posDict:
-                print("Warning: micId %s not found" % micId)
-                continue
-            # we need to close previous opened file
-            if f:
-                f.close()
-            f = openStar(posDict[micId], extraLabels)
-            lastMicId = micId
-
-        if doScale:
-            x = coord.getX() * scale
-            y = coord.getY() * scale
-        else:
-            x = coord.getX()
-            y = coord.getY()
-
-        if not extraLabels:
-            f.write("%d %d \n" % (x, y))
-        else:
-            f.write("%d %d %d %0.6f %0.6f\n"
-                    % (x, y,
-                       coord._rlnClassNumber,
-                       coord._rlnAutopickFigureOfMerit,
-                       coord._rlnAnglePsi))
-
-    if f:
-        f.close()
-
-    return posDict.values()
-
-
-def writeSetOfCoordinatesXmipp(posDir, coordSet, ismanual=True, scale=1):
-    """ Write a pos file on metadata format for each micrograph
-    on the coordSet.
-    Params:
-        posDir: the directory where the .pos files will be written.
-        coordSet: the SetOfCoordinates that will be read."""
-
-    boxSize = coordSet.getBoxSize() or 100
-    state = 'Manual' if ismanual else 'Supervised'
-
-    # Create a dictionary with the pos filenames for each micrograph
-    posDict = {}
-    for mic in coordSet.iterMicrographs():
-        micIndex, micFileName = mic.getLocation()
-        micName = os.path.basename(micFileName)
-
-        if micIndex != NO_INDEX:
-            micName = '%06d_at_%s' % (micIndex, micName)
-
-        posFn = join(posDir, pwutils.replaceBaseExt(micName, "pos"))
-        posDict[mic.getObjId()] = posFn
-
-    f = None
-    lastMicId = None
-
-    for coord in coordSet.iterItems(orderBy='_micId'):
-        micId = coord.getMicId()
-
-        if micId != lastMicId:
-            # we need to close previous opened file
-            if f:
-                f.close()
-            f = openMd(posDict[micId], state)
-            lastMicId = micId
-        if scale != 1:
-            x = coord.getX() * scale
-            y = coord.getY() * scale
-        else:
-            x = coord.getX()
-            y = coord.getY()
-        f.write(" %06d   1   %d  %d  %d   %06d\n"
-                % (coord.getObjId(), x, y, 1, micId))
-
-    if f:
-        f.close()
-
-    # Write config.xmd metadata
-    configFn = join(posDir, 'config.xmd')
-    writeCoordsConfig(configFn, int(boxSize), state)
-
-    return posDict.values()
-
-
-def writeCoordsConfig(configFn, boxSize, state):
-    """ Write the config.xmd file needed for Xmipp picker.
-    Params:
-        configFn: The filename were to store the configuration.
-        boxSize: the box size in pixels for extraction.
-        state: picker state
-    """
-    # Write config.xmd metadata
-    print("writeCoordsConfig: state=", state)
-    mdata = md.MetaData()
-    # Write properties block
-    objId = mdata.addObject()
-    mdata.set(md.MDL_PICKING_PARTICLE_SIZE, int(boxSize), objId)
-    mdata.set(md.MDL_PICKING_STATE, state, objId)
-    mdata.write('properties@%s' % configFn)
-
-
-def openMd(fn, state='Manual'):
-    # We are going to write metadata directly to file to do it faster
-    f = open(fn, 'w')
-    ismanual = state == 'Manual'
-    block = 'data_particles' if ismanual else 'data_particles_auto'
-    s = """# XMIPP_STAR_1 *
-#
-data_header
-loop_
- _pickingMicrographState
-%s
-%s
-loop_
- _itemId
- _enabled
- _xcoor
- _ycoor
- _cost
- _micrographId
-""" % (state, block)
-    f.write(s)
-    return f
-
-
-def writeMicCoordinates(mic, coordList, outputFn, getPosFunc=None):
-    """ Write the pos file as expected by Xmipp with the coordinates
-    of a given micrograph.
-    Params:
-        mic: input micrograph.
-        coordList: list of (x, y) pairs of the mic coordinates.
-        outputFn: output filename for the pos file .
-        isManual: if the coordinates are 'Manual' or 'Supervised'
-        getPosFunc: a function to get the positions from the coordinate,
-            it can be useful for scaling the coordinates if needed.
-    """
-    if getPosFunc is None:
-        getPosFunc = lambda coord: coord.getPosition()
-
-    extraLabels = coordList[0].hasAttribute('_rlnClassNumber')
-    f = openStar(outputFn, extraLabels)
-
-    for coord in coordList:
-        x, y = getPosFunc(coord)
-        if not extraLabels:
-            f.write("%d %d \n" % (x, y))
-        else:
-            f.write("%d %d %d %0.6f %0.6f\n"
-                    % (x, y,
-                       coord._rlnClassNumber,
-                       coord._rlnAutopickFigureOfMerit,
-                       coord._rlnAnglePsi))
-
-    f.close()
