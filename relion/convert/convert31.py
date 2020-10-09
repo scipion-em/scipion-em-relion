@@ -106,11 +106,19 @@ class OpticsGroups:
 
     def updateAll(self, **kwargs):
         """ Update all Optics Groups with these values. """
+        missing = {k: v for k, v in kwargs.items() if not self.hasColumn(k)}
+        existing  = {k: v for k, v in kwargs.items() if self.hasColumn(k)}
+
+        self.addColumns(**missing)
+
         for og in self:
-            self.update(og.rlnOpticsGroup, **kwargs)
+            self.update(og.rlnOpticsGroup, **existing)
 
     def add(self, newOg):
         self.__store(newOg)
+
+    def hasColumn(self, colName):
+        return hasattr(self.first(), colName)
 
     def addColumns(self, **kwargs):
         """ Add new columns with default values (type inferred from it). """
