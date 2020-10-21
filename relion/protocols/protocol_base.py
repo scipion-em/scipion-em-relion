@@ -578,6 +578,7 @@ class ProtRelionBase(EMProtocol):
 
         if self.IS_CLASSIFY and self.IS_GT30():
             form.addParam('allowCoarserSampling', BooleanParam,
+                          condition='doImageAlignment',
                           default=False,
                           label='Allow coarser sampling?',
                           help='If set to Yes, the program will use '
