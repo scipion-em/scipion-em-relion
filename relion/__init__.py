@@ -33,6 +33,7 @@ from .constants import *
 
 _logo = "relion_logo.png"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016', 'Zivanov2018']
+_url = "https://github.com/scipion-em/scipion-em-relion"
 
 
 class Plugin(pwem.Plugin):
