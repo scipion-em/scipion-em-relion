@@ -188,10 +188,11 @@ Examples:
                            default=ANGDIST_2DPLOT,
                            display=params.EnumParam.DISPLAY_HLIST,
                            label='Display angular distribution',
-                           help='*2D plot*: display angular distribution as interative 2D in matplotlib.\n'
+                           help='*2D plot*: display angular distribution as interactive 2D in matplotlib.\n'
                                 '*chimera*: display angular distribution using Chimera with red spheres.')
             group.addParam('spheresScale', params.IntParam, default=-1,
                            expertLevel=LEVEL_ADVANCED,
+                           condition='displayAngDist == %d' % ANGDIST_CHIMERA,
                            label='Spheres distance',
                            help='If the value is -1 then the distance is set '
                                 'to 0.75 * xVolDim')
