@@ -572,8 +572,8 @@ class Reader(ReaderBase):
         ctf.setResolution(row.rlnCtfMaxResolution or 0)
         ctf.setFitQuality(row.rlnCtfFigureOfMerit or 0)
 
-        if getattr(row, 'rlnCtfPhaseShift', False):
-            ctf.setPhaseShift(row.rlnCtfPhaseShift)
+        if getattr(row, 'rlnPhaseShift', False):
+            ctf.setPhaseShift(row.rlnPhaseShift)
         ctf.standardize()
 
         if hasattr(row, 'rlnCtfImage'):
