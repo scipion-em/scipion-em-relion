@@ -372,7 +372,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
                               "larger than the extraction size")
 
         if self.operation == self.OP_TRAIN and self.numberOfMpi > 1:
-                errors.append("Parameter estimation is not supported in MPI mode.")
+            errors.append("Parameter estimation is not supported in MPI mode.")
         return errors
 
     # -------------------------- UTILS functions ------------------------------

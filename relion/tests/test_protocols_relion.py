@@ -1337,7 +1337,6 @@ class TestRelionExportCtf(TestRelionBase):
                              "There was a problem when importing ctfs.")
         return protCTF
 
-
     def runImportCtffind4(self):
         print(magentaStr("\n==> Importing data - ctfs (from ctffind)"))
         protCTF = self.newProtocol(ProtImportCTF,

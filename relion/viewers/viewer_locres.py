@@ -32,7 +32,6 @@ from .viewer_base import *
 from ..protocols import ProtRelionLocalRes
 
 
-
 class RelionLocalResViewer(LocalResolutionViewer):
     """ Visualization of Relion local resolution results. """
 
@@ -56,7 +55,7 @@ class RelionLocalResViewer(LocalResolutionViewer):
         group.addParam('doShowVolumeSlices', params.LabelParam,
                        label="Show volume slices")
         groupColor.addParam('doShowChimera', params.LabelParam,
-                       label="Show colored map in Chimera", default=True)
+                            label="Show colored map in Chimera", default=True)
 
         _, minRes, maxRes, _ = self.getImgData(self.getResolutionVolumeFileName())
         ColorScaleWizardBase.defineColorScaleParams(groupColor, defaultHighest=maxRes, defaultLowest=minRes)

@@ -472,7 +472,6 @@ def readSetOfParticles(filename, imgSet, rowToFunc=rowToParticle, **kwargs):
     imgSet.setAlignment(kwargs['alignType'])
 
 
-
 def setOfImagesToMd(imgSet, imgMd, imgToFunc, **kwargs):
     """ This function will fill Relion metadata from a SetOfMicrographs
     Params:
