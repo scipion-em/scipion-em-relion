@@ -164,7 +164,7 @@ class WriterBase:
         phaseShift = ctf.getPhaseShift()
 
         if phaseShift is not None:
-            row['rlnCtfPhaseShift'] = phaseShift
+            row['rlnPhaseShift'] = phaseShift
 
 
 class ReaderBase:

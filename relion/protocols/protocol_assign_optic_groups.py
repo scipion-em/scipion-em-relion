@@ -191,11 +191,12 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                        for row in micTable}
 
             # check if MTF file exists
-            for i in og:
-                if not pwutils.exists(i.rlnMtfFileName):
-                    self.warning("MTF file %s not found for %s" % (
-                        i.rlnMtfFileName, i.rlnOpticsGroupName
-                    ))
+            if og.hasColumn('rlnMtfFileName'):
+                for i in og:
+                    if not pwutils.exists(i.rlnMtfFileName):
+                        self.warning("MTF file %s not found for %s" % (
+                            i.rlnMtfFileName, i.rlnOpticsGroupName
+                        ))
 
             def updateItem(item, row):
                 micName = getMicName(item)

@@ -67,6 +67,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
         form.addSection(label="Results")
         form.addParam('useMatplotlib', params.BooleanParam, default=True,
                       label='Use matplotlib for display',
+                      condition="not {}".format(showDefocus),
                       help='If False, images will be displayed with ImageJ')
 
         form.addParam('displayAnisoMag', params.LabelParam,
