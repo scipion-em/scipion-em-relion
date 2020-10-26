@@ -123,6 +123,9 @@ class ProtRelionReconstruct(ProtReconstruct3D):
             if self.ctfIntactFirstPeak:
                 params += ' --ctf_intact_first_peak'
 
+            if imgSet.isPhaseFlipped():
+                params += ' --ctf_phase_flipped'
+
         if self.extraParams.hasValue():
             params += " " + self.extraParams.get()
 
