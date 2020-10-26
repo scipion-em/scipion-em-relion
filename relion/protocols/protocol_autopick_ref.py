@@ -25,7 +25,6 @@
 # **************************************************************************
 
 from os.path import relpath
-from emtable import Table
 
 import pyworkflow.protocol.params as params
 from pwem.protocols import ProtParticlePickingAuto
@@ -33,7 +32,6 @@ from pwem.constants import RELATION_CTF
 from pwem.emlib.image import ImageHandler
 from pyworkflow.utils.properties import Message
 import pyworkflow.utils as pwutils
-from pwem.convert.utils import getSubsetByDefocus
 
 import relion.convert
 from ..constants import *
@@ -46,21 +44,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
     This Relion protocol uses the 'relion_autopick' program to pick particles
     from micrographs, either using references (2D averages or 3D volumes)
 
-    The picking with this protocol is divided in three steps:
-    1) Run with 'Optimize' option for several (less than 30) micrographs.
-    2) Execute the wizard to refine the picking parameters.
-    3) Run with 'Pick all' option to pick particles from all micrographs.
-
-    The first steps will use internally the option '--write-fom-maps' to write
-    to disk the FOM maps. The expensive part of this calculation is to calculate
-    a probability-based figure-of-merit (related to the cross-correlation
-    coefficient between each rotated reference and all positions in the
-    micrographs. That's why it is only done in an small subset of the
-    micrographs, where one should use representative micrographs for the entire
-    data set, e.g. a high and a low-defocus one, and/or with thin or thick ice.
-
-    Step 2 uses a much cheaper peak-detection algorithm that uses the threshold
-    and minimum distance parameters.
+    The wrapper implementation does not read/write any FOM maps compared to Relion
     """
     _label = 'auto-picking'
 
@@ -81,42 +65,6 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
                       label='CTF estimation',
                       help='Choose some CTF estimation related to the '
                            'input micrographs.')
-
-        form.addParam('runType', params.EnumParam,
-                      default=RUN_OPTIMIZE,
-                      choices=['Optimize params', 'Pick all micrographs'],
-                      display=params.EnumParam.DISPLAY_LIST,
-                      label='Run type: ',
-                      help='Usually, first you should use the *Optimize* mode '
-                           'to compute the FOM maps for a few micrographs and '
-                           'use them to tune the picking parameters using the '
-                           'wizard. After that you can run the job in *Compute*'
-                           ' mode and auto-pick all the micrographs. ')
-
-        group = form.addGroup('Micrographs for optimization',
-                              condition='runType==%d' % RUN_OPTIMIZE)
-
-        group.addParam('micrographsSelection', params.EnumParam,
-                       default=MICS_AUTO,
-                       choices=['automatic selection', 'input subset'],
-                       display=params.EnumParam.DISPLAY_HLIST,
-                       label='Choose micrographs by',
-                       help='If you choose "automatic selection", you only '
-                            'need to provide the number of microgrphs to use '
-                            'and that number will be selected to cover the '
-                            'defocus range. ')
-        group.addParam('micrographsNumber', params.IntParam, default='10',
-                       condition='micrographsSelection==%d' % MICS_AUTO,
-                       label='Micrographs for optimization:',
-                       help='Select the number of micrographs that you want'
-                            'to be used for the parameters optimization. ')
-        group.addParam('micrographsSubset', params.PointerParam,
-                       condition='micrographsSelection==%d' % MICS_SUBSET,
-                       pointerClass='SetOfMicrographs',
-                       label='Subset of micrographs',
-                       help='Choose as input a subset of micrographs that '
-                            'you have previously selected. '
-                            '(Probably covering the defocus range).')
 
         # From Relion 3.+, references can be 2D or 3D
         # need to add these parameters
@@ -306,8 +254,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
     def _insertAllSteps(self):
         self.inputStreaming = self.getInputMicrographs().isStreamOpen()
 
-        if ((self.streamingBatchSize > 0 or self.inputStreaming)
-                and not self.isRunOptimize()):
+        if self.streamingBatchSize > 0 or self.inputStreaming:
             # If the input is in streaming, follow the base class policy
             # about inserting new steps and discovery new input/output
             self.createOutputStep = self._doNothing
@@ -320,8 +267,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
 
             self._insertFunctionStep('convertInputStep',
                                      self.getInputMicrographs().strId(),
-                                     self.getInputReferences().strId(),
-                                     self.runType.get())
+                                     self.getInputReferences().strId())
             nameList = [mic.getMicName() for mic in self.getMicrographList()]
             self._insertFunctionStep('pickMicrographListStep', nameList,
                                      *self._getPickArgs())
@@ -337,8 +283,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         inputRefs = self.getInputReferences()
         convertId = self._insertFunctionStep('convertInputStep',
                                              self.getInputMicrographs().strId(),
-                                             inputRefs.strId(),
-                                             self.runType.get())
+                                             inputRefs.strId())
         return [convertId]
 
     def _doNothing(self, *args):
@@ -366,9 +311,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         return readyMics, micClose and ctfClosed
 
     # -------------------------- STEPS functions ------------------------------
-    def convertInputStep(self, micsId, refsId, runType):
-        # runType is passed as parameter to force a re-execute of this step
-        # if there is a change in the type
+    def convertInputStep(self, micsId, refsId):
         pwutils.makePath(self._getExtraPath('DONE'))  # Required to report finished
 
         inputRefs = self.getInputReferences()
@@ -384,7 +327,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         # - minDistance
         # - maxStd
         params = ' --pickname autopick'
-        params += ' --odir ""'
+        params += ' --odir "./"'
         params += ' --particle_diameter %d' % self.particleDiameter
         params += ' --angpix %0.5f' % self.getInputMicrographs().getSamplingRate()
         params += ' --shrink %0.3f' % self.shrinkFactor
@@ -428,18 +371,17 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         threshold = self.pickingThreshold.get()
         interDist = self.interParticleDistance.get()
         maxStd = self.maxStddevNoise.get()
-        fomParam = ' --write_fom_maps' if self.isRunOptimize() else ''
-        return [basicArgs, threshold, interDist, maxStd, fomParam]
+        return [basicArgs, threshold, interDist, maxStd]
 
     def _pickMicrographsFromStar(self, micStarFile, cwd, params,
-                                 threshold, minDistance, maxStddevNoise, fom):
+                                 threshold, minDistance, maxStddevNoise):
         """ Launch the 'relion_autopick' for micrographs in the inputStarFile.
          If the input set of complete, the star file will contain all the
          micrographs. If working in streaming, it will be only one micrograph.
         """
         params += ' --i %s' % relpath(micStarFile, cwd)
-        params += ' --threshold %0.3f ' % threshold
-        params += ' --min_distance %0.3f %s' % (minDistance, fom)
+        params += ' --threshold %0.3f' % threshold
+        params += ' --min_distance %0.3f' % minDistance
         params += ' --max_stddev_noise %0.3f' % maxStddevNoise
 
         program = self._getProgram('relion_autopick')
@@ -450,26 +392,6 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
     def createOutputStep(self):
         micSet = self.getInputMicrographs()
         outputCoordinatesName = 'outputCoordinates'
-        outputSuffix = ''
-
-        # If in optimization phase, let's create a subset of the micrographs
-        if self.isRunOptimize():
-            outputSuffix = '_subset'
-            outputCoordinatesName = 'outputCoordinatesSubset'
-            micSubSet = self._createSetOfMicrographs(suffix=outputSuffix)
-            micSubSet.copyInfo(micSet)
-            # Use previously written star file for reading the subset of micrographs,
-            micsStar = self._getTmpPath('input_micrographs.star')
-            micsTable = Table(fileName=micsStar, tableName='micrographs')
-
-            for row in micsTable:
-                mic = micSet[int(row.rlnImageId)]
-                micSubSet.append(mic)
-            self._defineOutputs(outputMicrographsSubset=micSubSet)
-            self._defineTransformRelation(self.getInputMicrographsPointer(),
-                                          micSubSet)
-            micSet = micSubSet
-
         coordSet = self._createSetOfCoordinates(micSet)
         self.readCoordsFromMics(None, micSet, coordSet)
 
@@ -498,44 +420,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
             errors.append("References CTF corrected parameter must be set to "
                           "False or set ctf relations.")
 
-        errors.extend(self._validateMicSelection())
-
         return errors
-
-    def _validateMicSelection(self):
-        """ Validate the cases when selecting a subset of micrographs
-        to optimize.
-        """
-        inputMics = self.getInputMicrographs()
-        inputCTFs = self.ctfRelations.get()
-
-        if self.isRunOptimize():
-            if self.micrographsSelection == MICS_AUTO:
-                n = self.micrographsNumber.get()
-                if n < 3 or n > min(30, inputMics.getSize()):
-                    return ['Number of micrographs should be between 3 and '
-                            'min(30, input_size)']
-            else:
-                micSubset = self.micrographsSubset.get()
-                if micSubset is None:
-                    return ['Select the subset of micrographs']
-
-                def missing(mic):
-                    micId = mic.getObjId()
-                    return inputMics[micId] is None or inputCTFs[micId] is None
-
-                if any(missing(mic) for mic in micSubset):
-                    return ['Some selected micrograph IDs are missing from the '
-                            'input micrographs or CTFs.']
-        return []
-
-    def _warnings(self):
-        if not self.isRunOptimize() and not hasattr(self, 'wizardExecuted'):
-                return ['It seems that you have not executed the wizard to '
-                        'optimize the picking parameters. \n'
-                        'Do you want to launch the whole picking anyway?']
-
-        return []
 
     def _summary(self):
         summary = []
@@ -560,9 +445,6 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
     # -------------------------- UTILS functions -------------------------------
     def useInputReferences(self):
         return self.referencesType == REF_AVERAGES
-
-    def isRunOptimize(self):
-        return self.runType == RUN_OPTIMIZE
 
     def getInputDimA(self):
         """ Return the dimension of input references in A. """
@@ -604,16 +486,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         # Use all micrographs only when going for the full picking
         inputMics = self.getInputMicrographs()
 
-        if not self.isRunOptimize():
-            return inputMics
-
-        if self.micrographsSelection == MICS_AUTO:
-            mics = getSubsetByDefocus(self.ctfRelations.get(), inputMics,
-                                      self.micrographsNumber.get())
-        else:  # Subset selection
-            mics = [mic.clone() for mic in self.micrographsSubset.get()]
-
-        return mics
+        return inputMics
 
     def __getMicListPrefix(self, micList):
         n = len(micList)

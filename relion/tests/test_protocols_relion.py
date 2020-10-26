@@ -214,7 +214,6 @@ class TestRelionPicking(TestRelionBase):
             ProtRelion2Autopick,
             inputMicrographs=self.protImportMics.outputMicrographs,
             ctfRelations=protCtf.outputCTF,
-            runType=relion.RUN_COMPUTE,
             inputReferences=protAvg.outputAverages,
             streamingBatchSize=5,
         )

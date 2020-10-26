@@ -53,8 +53,6 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
         self._pickMicrographsFromStar(micStar, micsDir, *args)
         # Move coordinates files to tmp
         os.system('mv %s/*autopick.star %s/' % (micsDir, self._getTmpPath()))
-        if self.isRunOptimize():
-            os.system('mv %s %s/' % (micStar, self._getTmpPath()))
 
     def _createSetOfCoordinates(self, micSet, suffix=''):
         """ Override this method to set the box size. """
@@ -78,9 +76,6 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
         """ Return a reasonable box-size in pixels. """
         return None
 
-    def isRunOptimize(self):
-        return False
-
     def getInputMicrographsPointer(self):
         return self.inputMicrographs
 
@@ -88,10 +83,9 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
         return self.getInputMicrographsPointer().get()
 
     def getMicrographList(self):
-        """ Return the list of micrographs (either a subset or the full set)
+        """ Return the list of micrographs
         that will be used for optimizing the parameters or the picking.
         """
-        # Use all micrographs only when going for the full picking
         return self.getInputMicrographs()
 
     def getCoordsDir(self):
