@@ -367,13 +367,15 @@ Examples:
         tablePMax = Table(columns=labels)
 
         for it in self._getAllIters():
+            if it == 1:  # skip iter1 with Pmax=1
+                continue
             # always list all iterations
             prefix = self.protocol.PREFIXES[0]
             fn = self.protocol._getFileName(prefix + 'model', iter=it)
             table = Table(fileName=fn, tableName='model_general')
             row = table[0]
-            tablePMax.addRow(it, row.rlnAveragePmax,
-                             row.rlnLogLikelihood)
+            tablePMax.addRow(int(it), float(row.rlnAveragePmax),
+                             float(row.rlnLogLikelihood))
 
         fn = self.protocol._getFileName('all_avgPmax')
         with open(fn, 'w') as f:
@@ -383,7 +385,7 @@ Examples:
         xplotter.createSubPlot("Avg PMax per Iterations", "Iterations",
                                "Avg PMax")
         xplotter.plotMd(tablePMax, 'rlnIterationNumber',
-                        'rlnAveragePmax', 'g')
+                        'rlnAveragePmax')
         xplotter.showLegend(['rlnAveragePmax'])
 
         return [self.createDataView(fn), xplotter]
