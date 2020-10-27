@@ -219,7 +219,6 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
                            'in the micrographs.')
 
         form.addParam('refsCtfCorrected', params.BooleanParam, default=True,
-                      condition=refCondition,
                       label='Are References CTF corrected?',
                       help='Set to Yes if the references were created with '
                            'CTF-correction inside RELION.\n'
@@ -227,7 +226,6 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
                            'the CTF information.')
 
         form.addParam('ignoreCTFUntilFirstPeak', params.BooleanParam,
-                      condition=refCondition,
                       default=False,
                       label='Ignore CTFs until first peak?',
                       help='Set this to Yes, only if this option was also used '
@@ -399,7 +397,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         else:  # 3D reference
             params += ' --ref ../../reference_3d.mrc'
             params += ' --sym %s' % self.symmetryGroup
-            params += ' --healpix_order %s' % self.angularSamplingDeg
+            params += ' --healpix_order %d' % (int(self.angularSamplingDeg.get()) + 1)
 
         ps = self.getInputReferences().getSamplingRate()
         params += ' --angpix_ref %0.5f' % ps
@@ -409,6 +407,9 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
 
         if self.refsCtfCorrected:
             params += ' --ctf'
+
+        if self.ignoreCTFUntilFirstPeak:
+            params += ' --ctf_intact_first_peak'
 
         params += ' --ang %d' % self.angularSampling
         # Negative values for filters means no-filter

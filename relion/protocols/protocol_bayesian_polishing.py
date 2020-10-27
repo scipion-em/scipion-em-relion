@@ -220,7 +220,8 @@ class ProtRelionBayesianPolishing(ProtParticles):
         moviesPixelSize = inputMovies.getSamplingRate()
         binningFactor = inputParts.getSamplingRate() / moviesPixelSize
 
-        writer = convert.createWriter()
+        og = convert.OpticsGroups.fromImages(inputMovies)
+        writer = convert.createWriter(optics=og)
         writer.writeSetOfMicrographs(inputMovies,
                                      self._getFileName('input_mics'),
                                      postprocessImageRow=self._updateMic)

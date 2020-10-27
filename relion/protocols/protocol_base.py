@@ -174,7 +174,6 @@ class ProtRelionBase(EMProtocol):
                            'of input particles will be put into the'
                            'star file that is generated.')
         form.addParam('maskDiameterA', IntParam, default=-1,
-                      condition='not doContinue',
                       label='Particle mask diameter (A)',
                       help='The experimental images will be masked with a '
                            'soft circular mask with this <diameter>. '
@@ -289,6 +288,7 @@ class ProtRelionBase(EMProtocol):
                                'when the mask contains only a relatively '
                                'small volume inside the box.')
             form.addParam('isMapAbsoluteGreyScale', BooleanParam, default=False,
+                          condition='not doContinue',
                           label="Is initial 3D map on absolute greyscale?",
                           help='The probabilities are based on squared differences,'
                                ' so that the absolute grey scale is important. \n'
@@ -317,7 +317,7 @@ class ProtRelionBase(EMProtocol):
             self.addSymmetry(form)
 
             form.addParam('initialLowPassFilterA', FloatParam, default=60,
-                          condition='not is2D',
+                          condition='not is2D and not doContinue',
                           label='Initial low-pass filter (A)',
                           help='It is recommended to strongly low-pass filter your '
                                'initial reference map. If it has not yet been '
@@ -477,14 +477,14 @@ class ProtRelionBase(EMProtocol):
                       label='Perform image alignment?', condition="isClassify",
                       help='If set to No, then rather than performing both alignment '
                            'and classification, only classification will be performed. '
-                           'This allows the use of very focused masks.This requires '
+                           'This allows the use of very focused masks. This requires '
                            'that the optimal orientations of all particles are already '
                            'calculated.')
         if self.IS_3D:
             form.addParam('angularSamplingDeg', EnumParam, default=2,
                           choices=ANGULAR_SAMPLING_LIST,
                           label='Initial angular sampling (deg)',
-                          condition='not isClassify or doImageAlignment',
+                          condition='doImageAlignment and (isClassify or not doContinue)',
                           help='There are only a few discrete angular samplings'
                                ' possible because we use the HealPix library to'
                                ' generate the sampling of the first two Euler '
@@ -505,7 +505,7 @@ class ProtRelionBase(EMProtocol):
                                'the sampling rate will be increased \n'
                                'automatically after that.')
         form.addParam('offsetSearchRangePix', FloatParam, default=5,
-                      condition='not isClassify or doImageAlignment',
+                      condition='doImageAlignment and (isClassify or not doContinue)',
                       label='Initial offset range (pix)',
                       help='Probabilities will be calculated only for '
                            'translations in a circle with this radius (in '
@@ -514,7 +514,7 @@ class ProtRelionBase(EMProtocol):
                            'translation for each image in the previous '
                            'iteration.')
         form.addParam('offsetSearchStepPix', FloatParam, default=1.0,
-                      condition='not isClassify or doImageAlignment',
+                      condition='doImageAlignment and (isClassify or not doContinue)',
                       label='Initial offset step (pix)',
                       help='Translations will be sampled with this step-size '
                            '(in pixels). Translational sampling is also done '
@@ -548,6 +548,7 @@ class ProtRelionBase(EMProtocol):
                                    'get higher weights than those further away.')
             else:
                 form.addParam('localSearchAutoSamplingDeg', EnumParam,
+                              condition='not doContinue',
                               default=4, choices=ANGULAR_SAMPLING_LIST,
                               label='Local search from auto-sampling (deg)',
                               help='In the automated procedure to increase the '
@@ -578,6 +579,7 @@ class ProtRelionBase(EMProtocol):
 
         if self.IS_CLASSIFY and self.IS_GT30():
             form.addParam('allowCoarserSampling', BooleanParam,
+                          condition='doImageAlignment',
                           default=False,
                           label='Allow coarser sampling?',
                           help='If set to Yes, the program will use '
@@ -614,6 +616,7 @@ class ProtRelionBase(EMProtocol):
 
     def addSymmetry(self, container):
         container.addParam('symmetryGroup', StringParam, default='c1',
+                           condition='not doContinue',
                            label="Symmetry",
                            help='See [[Relion Symmetry][http://www2.mrc-lmb.cam.ac.uk/'
                            'relion/index.php/Conventions_%26_File_formats#Symmetry]] '
@@ -930,7 +933,7 @@ class ProtRelionBase(EMProtocol):
         args['--i'] = self._getFileName('input_star')
         args['--particle_diameter'] = maskDiameter
 
-        # Since Relion 3.1 --angpix is not longer a valid argument
+        # Since Relion 3.1 --angpix is no longer a valid argument
         if relion.Plugin.IS_30():
             args['--angpix'] = ps
 

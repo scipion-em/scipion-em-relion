@@ -846,6 +846,10 @@ class TestRelionOpticsGroups(BaseTest):
         og = OpticsGroups.fromStar(partsStar)
         fog = og.first()
 
+        # test hasColumn method
+        for colName in ['rlnMtfFileName', 'rlnOpticsGroupName']:
+            self.assertTrue(og.hasColumn(colName))
+
         # acq = first.getAcquisition()
         self.assertEqual(fog.rlnMtfFileName, 'mtf_k2_200kV.star')
         self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')

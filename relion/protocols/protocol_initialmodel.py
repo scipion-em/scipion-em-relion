@@ -91,7 +91,6 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                       label="Input particles",
                       help='Select the input images from the project.')
         form.addParam('maskDiameterA', IntParam, default=-1,
-                      condition='not doContinue',
                       label='Particle mask diameter (A)',
                       help='The experimental images will be masked with a '
                            'soft circular mask with this <diameter>. '
@@ -155,6 +154,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
 
         form.addSection('Optimisation')
         form.addParam('numberOfClasses', IntParam, default=1,
+                      condition='not doContinue',
                       label='Number of classes',
                       help='The number of classes (K) for a multi-reference '
                            'ab initio SGD refinement. These classes will be '
@@ -165,12 +165,14 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                            'iterations.')
 
         form.addParam('doFlattenSolvent', BooleanParam, default=True,
+                      condition='not doContinue',
                       label='Flatten and enforce non-negative solvent?',
                       help='If set to Yes, the job will apply a spherical '
                            'mask and enforce all values in the reference '
                            'to be non-negative.')
 
         form.addParam('symmetryGroup', StringParam, default='c1',
+                      condition='not doContinue',
                       label="Symmetry",
                       help='SGD sometimes works better in C1. If you make an '
                            'initial model in C1 but want to run Class3D/Refine3D '
@@ -208,6 +210,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         self._defineSGD3(form)
 
         form.addParam('sgdNoiseVar', IntParam, default=-1,
+                      condition='not doContinue',
                       expertLevel=LEVEL_ADVANCED,
                       label='Increased noise variance half-life',
                       help='When set to a positive value, the initial '
