@@ -24,9 +24,7 @@
 # *
 # ******************************************************************************
 from pwem.viewers import LocalResolutionViewer
-from pwem.viewers.viewer_chimera import mapVolsWithColorkey
 from pwem.wizards import ColorScaleWizardBase
-from pyworkflow.viewer import ProtocolViewer
 
 from .viewer_base import *
 from ..protocols import ProtRelionLocalRes
@@ -128,4 +126,3 @@ class RelionLocalResViewer(LocalResolutionViewer):
         else:
             imgSlice = volumeData[slice, :, :]
         return imgSlice
-

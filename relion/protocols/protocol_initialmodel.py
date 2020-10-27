@@ -389,6 +389,8 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                      '--oversampling': '1'
                      })
 
+        if self.doFlattenSolvent:
+            args['--flatten_solvent'] = ''
         if not self.doContinue:
             args.update({'--sym': self.symmetryGroup.get()})
 

@@ -159,20 +159,9 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
         self.runJob(program, params, cwd=cwd)
 
     # -------------------------- INFO functions --------------------------------
-    def _validate(self):
-        errors = []
-        return errors
-
-    def _warnings(self):
-        return []
-
     def _summary(self):
         summary = []
         return summary
-
-    def _methods(self):
-        methodsMsgs = []
-        return methodsMsgs
 
     # -------------------------- UTILS functions -------------------------------
     def getBoxSize(self):

@@ -27,13 +27,11 @@
 # **************************************************************************
 
 from pwem import *
-from pwem.viewers import CoordinatesObjectView, EmPlotter
+from pwem.viewers import EmPlotter
 from pwem.wizards.wizard import *
 from pyworkflow.gui.browser import FileBrowserWindow
 
-from .constants import *
 import relion.convert as convert
-from relion import Plugin
 from .protocols import *
 
 
@@ -159,10 +157,6 @@ class RelionVolFilterWizard(FilterVolumesWizard):
             dialog.showWarning("Input volumes", "Select volumes first", form.root)
             
 
-# =============================================================================
-# PICKING
-# =============================================================================
-
 class Relion2PartDiameter(RelionPartMaskDiameterWizard):
     _targets = [(ProtRelion2Autopick, ['particleDiameter'])]
 
@@ -178,91 +172,6 @@ class Relion2PartDiameter(RelionPartMaskDiameterWizard):
             form.showWarning("Please select the input references first. ")
         else:
             RelionPartMaskDiameterWizard.show(self, form)
-        # else:  # Gaussian blobs
-        #     form.showWarning("This wizard only works when using input "
-        #                      "references, not Gaussian blobs. ")
-
-
-class RelionWizLogPickParams(EmWizard):
-    params = ['minDiameter',
-              'maxDiameter',
-              'threshold',
-              'threshold2']
-
-    _targets = [(ProtRelionAutopickLoG, params)]
-
-    def show(self, form):
-        prot = form.protocol
-        project = prot.getProject()
-        micSet = prot.getInputMicrographs()
-
-        if not micSet:
-            form.showWarning("You should select input micrographs "
-                             "before opening the wizard.")
-
-        params, minDiameter, maxDiameter, threshold, threshold2 = prot._getPickArgs()
-
-        micfn = micSet.getFileName()
-        coordsDir = project.getTmpPath(micSet.getName())
-        pwutils.cleanPath(coordsDir)
-        pwutils.makePath(coordsDir)
-
-        pickerProps = os.path.join(coordsDir, 'picker.conf')
-        micStarFn = os.path.join(coordsDir, 'input_micrographs.star')
-
-        writer = convert.createWriter(rootDir=coordsDir,
-                                      outputDir=coordsDir)
-        writer.writeSetOfMicrographs(micSet, micStarFn)
-
-        autopickCmd = "emprogram relion_autopick "
-        autopickCmd += ' --i input_micrographs.star '
-        autopickCmd += params
-        autopickCmd += ' --LoG_diam_min %(mind) '
-        autopickCmd += ' --LoG_diam_max %(maxd) '
-        autopickCmd += ' --LoG_adjust_threshold %(threshold) '
-        autopickCmd += ' --LoG_upper_threshold %(threshold2) '
-
-        args = {
-            "convertCmd": 'emconvert',
-            'coordsDir': coordsDir,
-            'micsSqlite': micSet.getFileName(),
-            "minDiameter": minDiameter,
-            "maxDiameter": maxDiameter,
-            "threshold": threshold,
-            "threshold2": threshold2,
-            "autopickCmd": autopickCmd
-        }
-
-        with open(pickerProps, "w") as f:
-            f.write("""
-            parameters = mind,maxd,threshold,threshold2
-            mind.value = %(minDiameter)s
-            mind.label = Min diam.(A)
-            mind.help = The smallest allowed diameter for the blob-detection algorithm. This should correspond to the smallest size of your particles in Angstroms.
-            maxd.value = %(maxDiameter)s
-            maxd.label = Max diam.(A)
-            maxd.help = The largest allowed diameter for the blob-detection algorithm. This should correspond to the largest size of your particles in Angstroms.
-            threshold.value = %(threshold)s
-            threshold.label = Min threshold
-            threshold2.value = %(threshold2)s
-            threshold2.label = Max threshold
-            runDir = %(coordsDir)s
-            autopickCommand = %(autopickCmd)s
-            convertCommand = %(convertCmd)s --coordinates --from relion --to xmipp --input %(micsSqlite)s --output %(coordsDir)s --extra %(coordsDir)s/
-            hasInitialCoordinates = false
-            doPickAll = true
-            """ % args)
-        process = CoordinatesObjectView(project, micfn, coordsDir, prot,
-                                        mode=CoordinatesObjectView.MODE_AUTOMATIC,
-                                        pickerProps=pickerProps).show()
-        process.wait()
-        myprops = pwutils.readProperties(pickerProps)
-
-        if myprops['applyChanges'] == 'true':
-            form.setVar('minDiameter', myprops['mind.value'])
-            form.setVar('maxDiameter', myprops['maxd.value'])
-            form.setVar('threshold', myprops['threshold.value'])
-            form.setVar('threshold2', myprops['threshold2.value'])
 
 
 class RelionWizMtfSelector(EmWizard):

@@ -205,6 +205,17 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
                             'the feature to eliminate peaks due to high '
                             'background standard deviations.')
 
+        group.addParam('minAvgNoise', params.FloatParam, default=-999,
+                       label='Minimum avg noise:',
+                       help='This is useful to prevent picking in carbon areas,'
+                            ' or areas with big contamination features. Peaks '
+                            'in areas where the background standard deviation '
+                            'in the normalized micrographs is higher than this'
+                            ' value will be ignored. Useful values are '
+                            'probably in the range -0.5 to 0. Set to -999 to '
+                            'switch off the feature to eliminate peaks due to '
+                            'low average background densities.')
+
         group = form.addGroup('Computing')
         group.addParam('shrinkFactor', params.FloatParam, default=0,
                        validators=[params.Range(0, 1, "value should be "
@@ -374,7 +385,8 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         return [basicArgs, threshold, interDist, maxStd]
 
     def _pickMicrographsFromStar(self, micStarFile, cwd, params,
-                                 threshold, minDistance, maxStddevNoise):
+                                 threshold, minDistance,
+                                 maxStddevNoise, minAvgNoise):
         """ Launch the 'relion_autopick' for micrographs in the inputStarFile.
          If the input set of complete, the star file will contain all the
          micrographs. If working in streaming, it will be only one micrograph.
@@ -383,6 +395,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         params += ' --threshold %0.3f' % threshold
         params += ' --min_distance %0.3f' % minDistance
         params += ' --max_stddev_noise %0.3f' % maxStddevNoise
+        params += ' --min_avg_noise %0.3f' % minAvgNoise
 
         program = self._getProgram('relion_autopick')
 
