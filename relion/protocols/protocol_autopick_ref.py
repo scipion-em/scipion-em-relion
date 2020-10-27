@@ -382,7 +382,8 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         threshold = self.pickingThreshold.get()
         interDist = self.interParticleDistance.get()
         maxStd = self.maxStddevNoise.get()
-        return [basicArgs, threshold, interDist, maxStd]
+        minAvg = self.minAvgNoise.get()
+        return [basicArgs, threshold, interDist, maxStd, minAvg]
 
     def _pickMicrographsFromStar(self, micStarFile, cwd, params,
                                  threshold, minDistance,
