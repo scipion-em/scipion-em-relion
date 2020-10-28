@@ -28,8 +28,7 @@
 # *
 # **************************************************************************
 
-import os
-from os.path import join, basename
+from os.path import basename
 import numpy as np
 
 from pyworkflow.object import ObjectWrap, String, Integer
@@ -470,7 +469,6 @@ def readSetOfParticles(filename, imgSet, rowToFunc=rowToParticle, **kwargs):
 
     imgSet.setHasCTF(img.hasCTF())
     imgSet.setAlignment(kwargs['alignType'])
-
 
 
 def setOfImagesToMd(imgSet, imgMd, imgToFunc, **kwargs):

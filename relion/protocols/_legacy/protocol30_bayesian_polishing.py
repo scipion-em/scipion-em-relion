@@ -324,7 +324,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
         errors = []
 
         if self.operation == self.OP_TRAIN and self.numberOfMpi > 1:
-                errors.append("Parameter estimation is not supported in MPI mode.")
+            errors.append("Parameter estimation is not supported in MPI mode.")
         return errors
 
     def _getInputPath(self, *paths):
