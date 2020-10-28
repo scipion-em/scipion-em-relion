@@ -1020,9 +1020,7 @@ class ProtRelionBase(EMProtocol):
         args['--scale'] = ''
         args['--o'] = self._getExtraPath('relion')
         args['--oversampling'] = self.oversampling.get()
-
-        if self.solventFscMask:
-            args['--flatten_solvent'] = ''
+        args['--flatten_solvent'] = ''
 
         if self.IS_CLASSIFY:
             args['--tau2_fudge'] = self.regularisationParamT.get()
