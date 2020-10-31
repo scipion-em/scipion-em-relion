@@ -156,20 +156,19 @@ class OpticsGroups:
     @staticmethod
     def fromImages(imageSet):
         acq = imageSet.getAcquisition()
+        params = {'rlnImageSize': imageSet.getXDim(),
+                  getPixelSizeLabel(imageSet): imageSet.getSamplingRate()}
         try:
             og = OpticsGroups.fromString(acq.opticsGroupInfo.get())
             # always update sampling and image size from the set
-            params = {'rlnImagePixelSize': imageSet.getSamplingRate(),
-                      getPixelSizeLabel(imageSet): imageSet.getXDim()}
-            return og.updateAll(**params)
+            og.updateAll(**params)
+            return og
         except:
-            params = {
+            params.update({
                 'rlnVoltage': acq.getVoltage(),
                 'rlnSphericalAberration': acq.getSphericalAberration(),
                 'rlnAmplitudeContrast': acq.getAmplitudeContrast(),
-                'rlnImageSize': imageSet.getXDim(),
-                getPixelSizeLabel(imageSet): imageSet.getSamplingRate()
-            }
+            })
             return OpticsGroups.create(**params)
 
     @staticmethod
