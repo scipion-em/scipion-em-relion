@@ -63,7 +63,7 @@ class Plugin(pwem.Plugin):
                             }, position=pwutils.Environ.BEGIN)
 
         # Get Relion CUDA library path if defined
-        cudaLib = environ.get(RELION_CUDA_LIB, pwem.Config.CUDA_LIB)
+        cudaLib = cls.getVar(RELION_CUDA_LIB, pwem.Config.CUDA_LIB)
         environ.addLibrary(cudaLib)
 
         if 'RELION_MPI_LIB' in os.environ:
