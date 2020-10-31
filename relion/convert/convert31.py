@@ -157,7 +157,11 @@ class OpticsGroups:
     def fromImages(imageSet):
         acq = imageSet.getAcquisition()
         try:
-            return OpticsGroups.fromString(acq.opticsGroupInfo.get())
+            og = OpticsGroups.fromString(acq.opticsGroupInfo.get())
+            # always update sampling and image size from the set
+            params = {'rlnImagePixelSize': imageSet.getSamplingRate(),
+                      getPixelSizeLabel(imageSet): imageSet.getXDim()}
+            return og.updateAll(**params)
         except:
             params = {
                 'rlnVoltage': acq.getVoltage(),
