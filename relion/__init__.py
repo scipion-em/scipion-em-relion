@@ -30,19 +30,20 @@ import pwem
 
 from .constants import *
 
-
+__version__ = '3.0.0b6'
 _logo = "relion_logo.png"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016', 'Zivanov2018']
-_url = "https://github.com/scipion-em/scipion-em-relion"
 
 
 class Plugin(pwem.Plugin):
     _homeVar = RELION_HOME
     _supportedVersions = [V3_0, V3_1]
+    _url = "https://github.com/scipion-em/scipion-em-relion"
 
     @classmethod
     def _defineVariables(cls):
         cls._defineEmVar(RELION_HOME, 'relion-%s' % V3_1)
+        cls._defineVar(RELION_CUDA_LIB, pwem.Config.CUDA_LIB)
 
     @classmethod
     def getEnviron(cls):
@@ -61,7 +62,7 @@ class Plugin(pwem.Plugin):
                             #'SCIPION_MPI_FLAGS': os.environ.get('RELION_MPI_FLAGS', ''),
                             }, position=pwutils.Environ.BEGIN)
 
-        # Take Scipion CUDA library path
+        # Get Relion CUDA library path if defined
         cudaLib = environ.get(RELION_CUDA_LIB, pwem.Config.CUDA_LIB)
         environ.addLibrary(cudaLib)
 

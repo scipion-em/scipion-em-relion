@@ -28,6 +28,7 @@ import os
 
 import pyworkflow.protocol.params as params
 import pyworkflow.utils as pwutils
+from pyworkflow.constants import VERSION_3_0
 
 import relion.convert as convert
 from .protocol_base import ProtRelionBase
@@ -36,6 +37,7 @@ from .protocol_base import ProtRelionBase
 class ProtRelionExportCoordinates(ProtRelionBase):
     """ Export coordinates from Relion to be used outside Scipion. """
 
+    _lastUpdateVersion = VERSION_3_0
     _label = 'export coordinates'
 
     # --------------------------- DEFINE param functions ----------------------

@@ -33,7 +33,7 @@ import pwem.convert.transformations as tfs
 
 from ..constants import *
 from .convert_base import WriterBase, ReaderBase
-from .convert_deprecated import rowToAlignment, readSetOfParticles
+from .convert_deprecated import readSetOfParticles
 
 
 class Writer(WriterBase):

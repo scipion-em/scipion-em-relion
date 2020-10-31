@@ -311,7 +311,7 @@ class ProtRelionCtfRefinement(ProtParticles):
                 summary.append("CTF parameter fitting: *Yes*")
                 for p in ['fitPhaseShift', 'fitDefocus', 'fitAstig', 'fitBfactor']:
                     summary.append("   - %s: *%s*" % (self.getParam(p).getLabel(),
-                                                 self.getEnumText(p)))
+                                                      self.getEnumText(p)))
 
             if self.doBeamtiltEstimation:
                 trefoil = '*Yes*' if self.doEstimateTrefoil else 'No'
