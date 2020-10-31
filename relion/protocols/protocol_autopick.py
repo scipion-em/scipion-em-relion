@@ -36,6 +36,7 @@ from .protocol_base import ProtRelionBase
 class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
     """ Base class for auto-picking protocols in Relion.
     """
+    _label = None
 
     def _pickMicrograph(self, mic, *args):
         """ This method should be invoked only when working in streaming mode.
