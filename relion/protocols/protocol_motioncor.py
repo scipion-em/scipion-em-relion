@@ -396,7 +396,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                   outputFn=self._getOutputMicThumbnail(movie))
 
         if self.doComputePSD:
-            movieFn = movie.getFileName()
+            movieFn = os.path.join(movieFolder, movie.getFileName())
             aveMicFn = os.path.join(movieFolder,
                                     pwutils.removeBaseExt(movieFn) + "_tmp.mrc")
             self.averageMovie(movie, movieFn, aveMicFn,
