@@ -122,7 +122,8 @@ class ProtRelionMotioncor(ProtAlignMovies):
                       label='Compute micrograph thumbnail?',
                       help='When using this option, we will compute a '
                            'micrograph thumbnail and keep it with the '
-                           'micrograph object for visualization purposes. ')
+                           'micrograph object for visualization purposes.\n\n'
+                           '*IMPORTANT: this requires EMAN2 plugin and binaries.*')
 
         form.addSection("Motion")
         form.addParam('bfactor', params.IntParam, default=150,
