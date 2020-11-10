@@ -30,7 +30,7 @@ import pwem
 
 from .constants import *
 
-__version__ = '3.0.0b6'
+__version__ = '3.0.0b7'
 _logo = "relion_logo.png"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016', 'Zivanov2018']
 
@@ -63,7 +63,7 @@ class Plugin(pwem.Plugin):
                             }, position=pwutils.Environ.BEGIN)
 
         # Get Relion CUDA library path if defined
-        cudaLib = environ.get(RELION_CUDA_LIB, pwem.Config.CUDA_LIB)
+        cudaLib = cls.getVar(RELION_CUDA_LIB, pwem.Config.CUDA_LIB)
         environ.addLibrary(cudaLib)
 
         if 'RELION_MPI_LIB' in os.environ:

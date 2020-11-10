@@ -39,7 +39,7 @@ def useGpu():
     """ Helper function to determine if GPU can be used.
     Return a boolean and a label to be used in protocol's label. """
     environ = pwutils.Environ(os.environ)
-    cudaPath = environ.get('RELION_CUDA_LIB', pwem.Config.CUDA_LIB)
+    cudaPath = Plugin.getVar('RELION_CUDA_LIB', pwem.Config.CUDA_LIB)
 
     if cudaPath and pwutils.existsVariablePaths(cudaPath):
         return True, 'GPU'

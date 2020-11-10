@@ -36,7 +36,7 @@ from emtable import Table
 
 import pyworkflow as pw
 import pwem
-from pwem.objects import Micrograph, SetOfMicrographsBase
+from pwem.objects import Micrograph, SetOfMicrographsBase, SetOfMovies
 import pwem.convert.transformations as tfs
 
 from .convert_base import WriterBase, ReaderBase
@@ -156,16 +156,21 @@ class OpticsGroups:
     @staticmethod
     def fromImages(imageSet):
         acq = imageSet.getAcquisition()
+        params = {'rlnImageSize': imageSet.getXDim(),
+                  getPixelSizeLabel(imageSet): imageSet.getSamplingRate()}
+        if isinstance(imageSet, SetOfMovies):
+            params['rlnMicrographOriginalPixelSize'] = imageSet.getSamplingRate()
         try:
-            return OpticsGroups.fromString(acq.opticsGroupInfo.get())
+            og = OpticsGroups.fromString(acq.opticsGroupInfo.get())
+            # always update sampling and image size from the set
+            og.updateAll(**params)
+            return og
         except:
-            params = {
+            params.update({
                 'rlnVoltage': acq.getVoltage(),
                 'rlnSphericalAberration': acq.getSphericalAberration(),
                 'rlnAmplitudeContrast': acq.getAmplitudeContrast(),
-                'rlnImageSize': imageSet.getXDim(),
-                getPixelSizeLabel(imageSet): imageSet.getSamplingRate()
-            }
+            })
             return OpticsGroups.create(**params)
 
     @staticmethod

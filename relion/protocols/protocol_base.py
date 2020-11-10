@@ -165,8 +165,8 @@ class ProtRelionBase(EMProtocol):
                       label='Consider alignment as priors?',
                       help='If set to Yes, then alignment information from '
                            'input particles will be considered as PRIORS. This '
-                           'option is mandatory if you want to do local '
-                           'searches')
+                           'option can be used to do restricted local '
+                           'search within a range centered around those priors.')
         form.addParam('fillRandomSubset', BooleanParam, default=False,
                       condition='not doContinue and copyAlignment',
                       expertLevel=LEVEL_ADVANCED,

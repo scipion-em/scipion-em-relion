@@ -122,7 +122,8 @@ class ProtRelionMotioncor(ProtAlignMovies):
                       label='Compute micrograph thumbnail?',
                       help='When using this option, we will compute a '
                            'micrograph thumbnail and keep it with the '
-                           'micrograph object for visualization purposes. ')
+                           'micrograph object for visualization purposes.\n\n'
+                           '*IMPORTANT: this requires EMAN2 plugin and binaries.*')
 
         form.addSection("Motion")
         form.addParam('bfactor', params.IntParam, default=150,
@@ -227,6 +228,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         args += "--bin_factor %f --bfactor %d " % (self.binFactor, self.bfactor)
         args += "--angpix %0.5f " % (movie.getSamplingRate())
         args += "--patch_x %d --patch_y %d " % (self.patchX, self.patchY)
+        args += "--group_frames %d " % self.groupFrames
         args += "--j %d " % self.numberOfThreads
 
         inputMovies = self.inputMovies.get()
@@ -250,9 +252,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
             if self.saveNonDW:
                 args += " --save_noDW "
-
-        voltage = movie.getAcquisition().getVoltage()
-        args += "--voltage %d " % voltage
 
         if self.extraParams.hasValue():
             args += " " + self.extraParams.get()
@@ -396,7 +395,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
                                   outputFn=self._getOutputMicThumbnail(movie))
 
         if self.doComputePSD:
-            movieFn = movie.getFileName()
+            movieFn = os.path.join(movieFolder, movie.getFileName())
             aveMicFn = os.path.join(movieFolder,
                                     pwutils.removeBaseExt(movieFn) + "_tmp.mrc")
             self.averageMovie(movie, movieFn, aveMicFn,
@@ -512,14 +511,17 @@ class ProtRelionMotioncor(ProtAlignMovies):
         return 1 if dose_for_ps == 0 else dose_for_ps
 
     def _calcPSSampling(self):
-        """ Copied from relion 3.1 code. """
+        """ Adapted from relion 3.1 code. """
+        movieSet = self.inputMovies.get()
         target_pixel_size = 1.4  # from CTFFIND 4.1
-        ps = self.inputMovies.get().getSamplingRate()
+        ps = movieSet.getSamplingRate()
         ps_angpix = ps * self.binFactor.get()
+        x, y, _ = movieSet.getDimensions()
+        ps_size_square = min(x, y)
         if ps_angpix < target_pixel_size:
-            nx_needed = ceil(512 * ps_angpix / target_pixel_size)
+            nx_needed = ceil(ps_size_square * ps_angpix / target_pixel_size)
             nx_needed += nx_needed % 2
-            ps_angpix = 512 * ps_angpix / nx_needed
+            ps_angpix = ps_size_square * ps_angpix / nx_needed
         return ps_angpix
 
     def _getOutputMicPsName(self, movie):
