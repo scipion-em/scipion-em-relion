@@ -175,5 +175,6 @@ PARTICLE_EXTRA_LABELS = [
     'rlnPhaseShift',
     'rlnParticleSelectZScore',
     'rlnMovieFrameNumber',
-    'rlnGroupName'
+    'rlnGroupName',
+    'rlnGroupNumber'
 ]
