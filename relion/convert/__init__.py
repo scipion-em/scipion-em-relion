@@ -159,14 +159,12 @@ class ClassesLoader:
         if row.get("rlnGroupName", False):
             if not hasattr(item, '_rlnGroupName'):
                 item._rlnGroupName = String()
-            else:
-                item._rlnGroupName.set(row.rlnGroupName)
+            item._rlnGroupName.set(row.rlnGroupName)
 
         if row.get("rlnGroupNumber", False):
             if not hasattr(item, '_rlnGroupNumber'):
                 item._rlnGroupNumber = Integer()
-            else:
-                item._rlnGroupNumber.set(row.rlnGroupNumber)
+            item._rlnGroupNumber.set(row.rlnGroupNumber)
 
     def _updateClass(self, item):
         classId = item.getObjId()
