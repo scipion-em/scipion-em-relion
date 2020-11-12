@@ -145,28 +145,6 @@ class ClassesLoader:
         self._reader.setParticleTransform(item, row)
         self._reader.setParticleExtraAttrs(item, row)
 
-        # # Try to create extra objects only once if item is reused
-        # if not hasattr(item, '_rlnNormCorrection'):
-        #     item._rlnNormCorrection = Float()
-        #     item._rlnLogLikeliContribution = Float()
-        #     item._rlnMaxValueProbDistribution = Float()
-        #     item._rlnNrOfSignificantSamples = Integer()
-        #
-        # item._rlnNormCorrection.set(row.rlnNormCorrection)
-        # item._rlnLogLikeliContribution.set(row.rlnLogLikeliContribution)
-        # item._rlnMaxValueProbDistribution.set(row.rlnMaxValueProbDistribution)
-        # item._rlnNrOfSignificantSamples.set(row.rlnNrOfSignificantSamples)
-        #
-        # if row.get("rlnGroupName", False):
-        #     if not hasattr(item, '_rlnGroupName'):
-        #         item._rlnGroupName = String()
-        #     item._rlnGroupName.set(row.rlnGroupName)
-        #
-        # if row.get("rlnGroupNumber", False):
-        #     if not hasattr(item, '_rlnGroupNumber'):
-        #         item._rlnGroupNumber = Integer()
-        #     item._rlnGroupNumber.set(row.rlnGroupNumber)
-
     def _updateClass(self, item):
         classId = item.getObjId()
         if classId in self._classesInfo:
