@@ -176,5 +176,10 @@ PARTICLE_EXTRA_LABELS = [
     'rlnParticleSelectZScore',
     'rlnMovieFrameNumber',
     'rlnGroupName',
-    'rlnGroupNumber'
+    'rlnGroupNumber',
+    'rlnNormCorrection',
+    'rlnLogLikeliContribution',
+    'rlnMaxValueProbDistribution',
+    'rlnNrOfSignificantSamples',
+    'rlnRandomSubset'
 ]

@@ -479,7 +479,7 @@ class Reader(ReaderBase):
         """
         """
         ReaderBase.__init__(self, **kwargs)
-        self._first = False
+        self._first = True
 
     def readSetOfParticles(self, starFile, partSet, **kwargs):
         """ Convert a star file into a set of particles.
@@ -657,3 +657,22 @@ class Reader(ReaderBase):
         M[:3, 3] = -shifts[:3]
         M = np.linalg.inv(M)
         particle.getTransform().setMatrix(M)
+
+    def setParticleExtraAttrs(self, particle, row, **kwargs):
+        """ Set extra attributes common to most Relion jobs.
+        This func should be used only for updateItemCallback in
+        copyItems/classifyItems methods.
+        """
+        if self._first:
+            extraLabels = kwargs.get('extraLabels', [])
+            extraLabels.extend(PARTICLE_EXTRA_LABELS)
+            self._extraLabels = [l for l in extraLabels if row.hasColumn(l)]
+
+            for label in self._extraLabels:
+                setattr(particle, '_' + label,
+                        pw.object.ObjectWrap(getattr(row, label)))
+
+            self._first = False
+
+        for label in self._extraLabels:
+            getattr(particle, '_%s' % label).set(getattr(row, label))
