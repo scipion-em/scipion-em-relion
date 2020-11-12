@@ -145,8 +145,7 @@ class ProtRelionCtfRefinement(ProtParticles):
         convert.writeSetOfParticles(inputParts, imgStar,
                                     outputDir=self._getExtraPath(),
                                     alignType=ALIGN_PROJ,
-                                    fillMagnification=True,
-                                    fillRandomSubset=True)
+                                    fillMagnification=True)
 
     def _getInputVolumes(self, postStar):
         """ Parse the input volumes: halves and mask

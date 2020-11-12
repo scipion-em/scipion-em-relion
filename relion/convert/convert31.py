@@ -408,9 +408,6 @@ class Writer(WriterBase):
 
         extraLabels = kwargs.get('extraLabels', [])
         extraLabels.extend(PARTICLE_EXTRA_LABELS)
-        if kwargs.get('fillRandomSubset'):
-            extraLabels.append('rlnRandomSubset')
-
         self._extraLabels = [l for l in extraLabels
                              if firstPart.hasAttribute('_%s' % l)]
 

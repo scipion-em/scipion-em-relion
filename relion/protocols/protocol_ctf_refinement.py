@@ -210,8 +210,7 @@ class ProtRelionCtfRefinement(ProtParticles):
         convert.writeSetOfParticles(inputParts, imgStar,
                                     outputDir=self._getExtraPath(),
                                     alignType=ALIGN_PROJ,
-                                    fillMagnification=True,
-                                    fillRandomSubset=True)
+                                    fillMagnification=True)
 
     def refineCtfStep(self):
         args = "--i %s " % self._getPath('input_particles.star')

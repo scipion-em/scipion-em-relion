@@ -74,7 +74,6 @@ def writeSetOfParticles(imgSet, starFile, **kwargs):
         blockName: The name of the data block (default particles)
         fillMagnification: If True set magnification values (default False)
         alignType:
-        fillRandomSubset:
         extraLabels:
         postprocessImageRow:
         format: string value to specify STAR format, if '30' it will use

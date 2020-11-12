@@ -167,13 +167,7 @@ class ProtRelionBase(EMProtocol):
                            'input particles will be considered as PRIORS. This '
                            'option can be used to do restricted local '
                            'search within a range centered around those priors.')
-        form.addParam('fillRandomSubset', BooleanParam, default=False,
-                      condition='not doContinue and copyAlignment',
-                      expertLevel=LEVEL_ADVANCED,
-                      label='Consider random subset value?',
-                      help='If set to Yes, then random subset value '
-                           'of input particles will be put into the'
-                           'star file that is generated.')
+        form.addHidden('fillRandomSubset', BooleanParam, default=True)
         form.addParam('maskDiameterA', IntParam, default=-1,
                       label='Particle mask diameter (A)',
                       help='The experimental images will be masked with a '
@@ -785,7 +779,6 @@ class ProtRelionBase(EMProtocol):
             alignType = imgSet.getAlignment() if copyAlignment else pwem.ALIGN_NONE
             hasAlign = alignType != pwem.ALIGN_NONE
             alignToPrior = hasAlign and getattr(self, 'alignmentAsPriors', False)
-            fillRandomSubset = hasAlign and getattr(self, 'fillRandomSubset', False)
 
             if self.doCtfManualGroups:
                 self._defocusGroups = self.createDefocusGroups()
@@ -795,8 +788,7 @@ class ProtRelionBase(EMProtocol):
                 imgSet, imgStar,
                 outputDir=self._getExtraPath(),
                 alignType=alignType,
-                postprocessImageRow=self._postprocessParticleRow,
-                fillRandomSubset=fillRandomSubset)
+                postprocessImageRow=self._postprocessParticleRow)
 
             if alignToPrior:
                 tableName = ''

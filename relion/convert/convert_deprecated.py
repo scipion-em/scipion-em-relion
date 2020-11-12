@@ -383,7 +383,7 @@ def particleToRow(part, partRow, **kwargs):
     if part.hasAttribute('_rlnParticleId'):
         partRow.set(md.RLN_PARTICLE_ID, int(part._rlnParticleId.get()))
 
-    if kwargs.get('fillRandomSubset') and part.hasAttribute('_rlnRandomSubset'):
+    if part.hasAttribute('_rlnRandomSubset'):
         partRow.set(md.RLN_PARTICLE_RANDOM_SUBSET,
                     int(part._rlnRandomSubset.get()))
         if part.hasAttribute('_rlnBeamTiltX'):
