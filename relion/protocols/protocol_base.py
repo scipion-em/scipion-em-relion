@@ -26,6 +26,7 @@
 
 import os
 import re
+import math
 from glob import glob
 from collections import OrderedDict
 from emtable import Table
@@ -1208,14 +1209,18 @@ class ProtRelionBase(EMProtocol):
         index, fn = inputVol.getLocation()
         return self._getTmpPath(pwutils.replaceBaseExt(fn, '%02d.mrc' % index))
 
-    def _convertVol(self, ih, inputVol):
+    def _convertVol(self, inputVol):
         outputFn = self._convertVolFn(inputVol)
 
         if outputFn:
-            xdim = self._getInputParticles().getXDim()
-            img = ih.read(inputVol)
-            img.scale(xdim, xdim, xdim)
-            img.write(outputFn)
+            oldPix = inputVol.getSamplingRate()
+            newPix = self._getInputParticles().getSamplingRate()
+            newDim = self._getInputParticles().getXDim()
+            if not math.isclose(newPix, oldPix, abs_tol=0.001):
+                relion.convert.convertMask(inputVol, outputFn, newPix=newPix,
+                                           newDim=newDim, threshold=False)
+            else:
+                relion.convert.convertMask(inputVol, outputFn, threshold=False)
 
         return outputFn
 
@@ -1229,11 +1234,11 @@ class ProtRelionBase(EMProtocol):
             if not self.IS_3D_INIT:
                 refVols = self._getReferenceVolumes()
                 if len(refVols) == 1:
-                    self._convertVol(ih, refVols[0])
+                    self._convertVol(refVols[0])
                 else:  # input SetOfVolumes as references
                     table = Table(columns=['rlnReferenceImage'])
                     for vol in refVols:
-                        newVolFn = self._convertVol(ih, vol)
+                        newVolFn = self._convertVol(vol)
                         table.addRow(newVolFn)
                     with open(self._getRefStar(), 'w') as f:
                         table.writeStar(f)

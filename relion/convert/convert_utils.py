@@ -182,7 +182,7 @@ def convertBinaryVol(vol, outputDir):
     return fn
 
 
-def convertMask(img, outputPath, newPix=None, newDim=None):
+def convertMask(img, outputPath, newPix=None, newDim=None, threshold=True):
     """ Convert mask to mrc format read by Relion.
     Params:
         img: input image to be converted.
@@ -198,20 +198,23 @@ def convertMask(img, outputPath, newPix=None, newDim=None):
     index, filename = img.getLocation()
     imgFn = locationToRelion(index, filename)
     inPix = img.getSamplingRate()
-    outPix = inPix if newPix is None else newPix
 
     if os.path.isdir(outputPath):
         outFn = pwutils.join(outputPath, pwutils.replaceBaseExt(imgFn, 'mrc'))
     else:
         outFn = outputPath
 
-    params = '--i %s --o %s --angpix %0.5f --rescale_angpix %0.5f' % (
-        imgFn, outFn, inPix, outPix)
+    params = '--i %s --o %s --angpix %0.5f' % (imgFn, outFn, inPix)
+
+    if newPix is not None:
+        params += ' --rescale_angpix %0.5f' % newPix
 
     if newDim is not None:
         params += ' --new_box %d' % newDim
 
-    params += ' --threshold_above 1 --threshold_below 0'
+    if threshold:
+        params += ' --threshold_above 1 --threshold_below 0'
+
     pwutils.runJob(None, 'relion_image_handler', params, env=Plugin.getEnviron())
 
     return outFn
