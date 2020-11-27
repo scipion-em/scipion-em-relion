@@ -200,7 +200,8 @@ class RelionWizCtfGroupsDisplay(EmWizard):
     """
     _targets = [(ProtRelionClassify2D, ['defocusRange']),
                 (ProtRelionClassify3D, ['defocusRange']),
-                (ProtRelionRefine3D, ['defocusRange'])]
+                (ProtRelionRefine3D, ['defocusRange']),
+                (ProtRelionInitialModel, ['defocusRange'])]
 
     def show(self, form, *args):
         prot = form.protocol

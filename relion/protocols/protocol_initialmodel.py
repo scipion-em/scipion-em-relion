@@ -69,8 +69,6 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         self.maskZero = False
         self.copyAlignment = False
         self.hasReferenceCTFCorrected = False
-        self.doCtfManualGroups = False
-        self.realignMovieFrames = False
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
@@ -151,6 +149,22 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                            'on the CTFs (e.g. 10-20%) often yields better '
                            'results. Therefore, this option is not generally '
                            'recommended.')
+        form.addParam('doCtfManualGroups', BooleanParam, default=False,
+                      label='Do manual grouping ctfs?',
+                      condition='not doContinue',
+                      help='Set this to Yes the CTFs will grouping manually.')
+        form.addParam('defocusRange', FloatParam, default=1000,
+                      label='Defocus range for group creation (in Angstroms)',
+                      condition='doCtfManualGroups and not doContinue',
+                      help='Particles will be grouped by defocus.'
+                           'This parameter is the bin for a histogram.'
+                           'All particles assigned to a bin form a group')
+        form.addParam('numParticles', FloatParam, default=10,
+                      label='minimum size for defocus group',
+                      condition='doCtfManualGroups and not doContinue',
+                      help='If defocus group is smaller than this value, '
+                           'it will be expanded until number of particles '
+                           'per defocus group is reached')
 
         form.addSection('Optimisation')
         form.addParam('numberOfClasses', IntParam, default=1,
