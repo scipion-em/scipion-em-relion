@@ -1175,7 +1175,7 @@ class ProtRelionBase(EMProtocol):
 
     def _getReferenceVolumes(self):
         """ Return a list with all input references.
-        (Could be one or more volumes. ).
+        (Could be one or more volumes).
         """
         inputObj = self.referenceVolume.get()
 

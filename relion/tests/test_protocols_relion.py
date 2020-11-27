@@ -1418,3 +1418,44 @@ class TestRelionRemovePrefViews(TestRelionBase):
                              "There was a problem with remove preferential views protocol.")
         outSize = prot.outputParticles.getSize()
         self.assertEqual(outSize, 4080, "Output size is not 4080!")
+
+
+class TestRelionResizeVolume(TestRelionBase):
+    @classmethod
+    def setUpClass(cls):
+        setupTestProject(cls)
+        cls.ds = DataSet.getDataSet('relion_tutorial')
+
+    def importVolume(self):
+        print(magentaStr("\n==> Importing data - volume:"))
+        volFn = self.ds.getFile('import/refine3d/extra/relion_class001.mrc')
+        protVol = self.newProtocol(ProtImportVolumes,
+                                   objLabel='import volume',
+                                   filesPath=volFn,
+                                   samplingRate=3)
+        self.launchProtocol(protVol)
+        return protVol
+
+    def _validations(self, vol, dims, pxSize):
+        self.assertIsNotNone(vol, "There was a problem with crop/resize "
+                                  "volumes protocol")
+        xDim = vol.getXDim()
+        sr = vol.getSamplingRate()
+        self.assertEqual(xDim, dims, "The dimension of your volume is (%d)^3 "
+                                     "and must be (%d)^3" % (xDim, dims))
+
+        self.assertAlmostEqual(sr, pxSize, delta=0.0001,
+                               msg="Pixel size of your volume is %0.5f and"
+                               " must be %0.5f" % (sr, pxSize))
+
+    def test_resizeVol(self):
+        importProt = self.importVolume()
+        resizeProt = self.newProtocol(ProtRelionResizeVolume,
+                                      doRescale=True, rescaleSamplingRate=1.5,
+                                      doResize=True, resizeSize=128)
+        vol = importProt.outputVolume
+        resizeProt.inputVolumes.set(vol)
+        print(magentaStr("\n==> Testing relion - crop/resize volumes:"))
+        self.launchProtocol(resizeProt)
+
+        self._validations(resizeProt.outputVol, 128, 1.5)

@@ -68,8 +68,6 @@ Supported versions
 
 3.1.0
 
-We are still working towards stable plugin release, so some things might not work yet. Handling optics groups needs more testing, you are welcome to be a volunteer.
-
 **IMPORTANT**: Relion-3.0 can be used with this plugin but we do not officially support it anymore, i.e. there will be no bugfixes for it.
 
 Protocols
