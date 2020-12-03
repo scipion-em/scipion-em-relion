@@ -136,7 +136,6 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
                            'automatically from the templates themselves.')
 
         form.addParam('lowpassFilterRefs', params.IntParam, default=20,
-                      condition=refCondition,
                       label='Lowpass filter references (A)',
                       help='Lowpass filter that will be applied to the '
                            'references before template matching. \n'
