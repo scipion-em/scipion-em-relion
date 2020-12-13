@@ -403,7 +403,7 @@ class ProtRelionBase(EMProtocol):
                                'division of the data into random subsets during '
                                'the first iteration.')
             # Default T is 2 for 2D but 4 for 3D in Relion GUI
-            form.addParam('regularisationParamT', IntParam,
+            form.addParam('regularisationParamT', FloatParam,
                           default=2 if self.IS_2D else 4,
                           label='Regularisation parameter T',
                           help='Bayes law strictly determines the relative '
