@@ -37,7 +37,6 @@ import pyworkflow.utils as pwutils
 
 from .convert31 import OpticsGroups
 from .convert_utils import relionToLocation
-#from .convert_deprecated import readSetOfParticles, rowToCoordinate
 
 
 class FileTransform:
