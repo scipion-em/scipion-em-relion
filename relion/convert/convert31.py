@@ -633,6 +633,10 @@ class Reader(ReaderBase):
         M[:3, 3] = shifts[:3]
         particle.getTransform().setMatrix(M)
 
+    def setPixelSize(self, pixelSize):
+        self._pixelSize = pixelSize
+        self._invPixelSize = 1. / self._pixelSize
+
     def __setParticleTransformProj(self, particle, row):
         angles = self._angles
         shifts = self._shifts
