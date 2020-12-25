@@ -574,8 +574,8 @@ class Reader(ReaderBase):
         ctf.setDefocusU(row.rlnDefocusU)
         ctf.setDefocusV(row.rlnDefocusV)
         ctf.setDefocusAngle(row.rlnDefocusAngle)
-        ctf.setResolution(row.rlnCtfMaxResolution or 0)
-        ctf.setFitQuality(row.rlnCtfFigureOfMerit or 0)
+        ctf.setResolution(row.get('rlnCtfMaxResolution', 0))
+        ctf.setFitQuality(row.get('rlnCtfFigureOfMerit', 0))
 
         if getattr(row, 'rlnPhaseShift', False):
             ctf.setPhaseShift(row.rlnPhaseShift)
