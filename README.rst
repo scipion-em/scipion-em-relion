@@ -33,6 +33,10 @@ This plugin provide wrappers around several programs of `RELION <https://www3.mr
 .. |devel| image:: http://scipion-test.cnb.csic.es:9980/badges/relion_devel.svg
 .. |support| image:: http://scipion-test.cnb.csic.es:9980/badges/relion_support.svg
 
+**IMPORTANT!**
+
+    If you have imported movies with a gain file in **DM4** format, you need to **flip the gain reference upside-down** in the motion correction protocol! (`bug details <https://github.com/I2PC/xmippCore/issues/39>`_)
+
 
 Installation
 ------------
