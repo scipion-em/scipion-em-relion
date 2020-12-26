@@ -116,7 +116,7 @@ class WriterBase:
         ext = pwutils.getExt(imageFn)[1:]
         if ext in self.extensions:
             finalExt = ext
-            convertFunc = pwutils.createLink
+            convertFunc = pwutils.createAbsLink
         else:
             finalExt = self.extensions[0]
             convertFunc = self._ih.convert
@@ -127,7 +127,7 @@ class WriterBase:
             newName = "%s_%06d.%s" % (self._prefix, image.getObjId(), finalExt)
 
         newPath = os.path.join(self.outputDir, newName)
-        convertFunc(imageFn, newPath)
+        convertFunc(os.path.abspath(imageFn), newPath)
         # If there is a rootDir defined, we should return the path relative
         # to that location, probably to be used from the star file
         if self.rootDir is not None:
