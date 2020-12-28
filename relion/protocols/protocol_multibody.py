@@ -304,7 +304,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         row = self._volsInfo[bodyNum]
         # TODO: check if the following makes sense for Volume
         item._rlnAccuracyRotations = Float(row.rlnAccuracyRotations)
-        item._rlnAccuracyTranslations = Float(row.rlnAccuracyTranslationsAngst)
+        item._rlnAccuracyTranslationsAngst = Float(row.rlnAccuracyTranslationsAngst)
 
     def _getRefineArgs(self):
         """ Define all parameters to run relion_refine.
