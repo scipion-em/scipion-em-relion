@@ -132,17 +132,8 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
         mapFunc = replaceRoot
         # FIXME: There is a bug in pwutils.createLink when input is a single folder
         # pwutils.createLink(rootDir, outputRoot)
-        # relativeOutput = os.path.join(os.path.relpath(rootDir, outputRoot), rootDir)
-        # If the rootDir is a prefix in the outputRoot (usually Runs)
-        # we need to prepend that basename to make the link works
-        if rootDir in outputRoot:
-            relativeOutput = os.path.join(os.path.relpath(rootDir, outputRoot),
-                                          os.path.basename(rootDir))
-        else:
-            relativeOutput = os.path.relpath(rootDir,
-                                             os.path.dirname(outputRoot))
         if not os.path.exists(outputRoot):
-            os.symlink(relativeOutput, outputRoot)
+            os.symlink(os.path.abspath(rootDir), outputRoot)
     elif ext == 'mrc' and extension == 'mrcs':
         print("convertBinaryFiles: creating soft links (mrcs -> mrc).")
         mapFunc = createBinaryLink
