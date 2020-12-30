@@ -26,19 +26,19 @@
 # *
 # **************************************************************************
 
-from pwem import *
+from pwem.constants import UNIT_PIXEL, UNIT_ANGSTROM
 from pwem.viewers import EmPlotter
-from pwem.wizards.wizard import *
+from pwem.wizards.wizard import (ParticleMaskRadiusWizard, FilterVolumesWizard,
+                                 EmWizard, ColorScaleWizardBase)
 from pyworkflow.gui.browser import FileBrowserWindow
 
 import relion.convert as convert
 from .protocols import *
-
+from .viewers import RelionLocalResViewer
 
 # =============================================================================
 # MASKS
 # =============================================================================
-from .viewers import RelionLocalResViewer
 
 
 class RelionBackRadiusWizard(ParticleMaskRadiusWizard):

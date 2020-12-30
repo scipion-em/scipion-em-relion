@@ -24,7 +24,6 @@
 # *
 # **************************************************************************
 
-import os
 import re
 import math
 from glob import glob
@@ -37,9 +36,9 @@ from pyworkflow.protocol.params import (BooleanParam, PointerParam, FloatParam,
                                         LabelParam, PathParam)
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 
-import pwem
+from pwem.constants import ALIGN_PROJ, ALIGN_NONE
 from pwem.emlib.image import ImageHandler
-from pwem.objects import SetOfClasses3D
+from pwem.objects import SetOfClasses3D, SetOfParticles, SetOfVolumes, Volume
 from pwem.protocols import EMProtocol
 
 import relion.convert
@@ -130,7 +129,7 @@ class ProtRelionBase(EMProtocol):
         self._iterTemplate = self._getFileName('data', iter=0).replace('000', '???')
         # Iterations will be identify by _itXXX_ where XXX is the iteration number
         # and is restricted to only 3 digits.
-        self._iterRegex = re.compile('_it(\d{3,3})_')
+        self._iterRegex = re.compile('_it(\d{3})_')
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineConstants(self):
@@ -1124,7 +1123,7 @@ class ProtRelionBase(EMProtocol):
         if clean:
             pwutils.cleanPath(data_classes)
 
-        if not os.path.exists(data_classes):
+        if not pwutils.exists(data_classes):
             clsSet = self.OUTPUT_TYPE(filename=data_classes)
             clsSet.setImages(self.inputParticles.get())
             self._fillClassesFromIter(clsSet, it)
@@ -1141,8 +1140,8 @@ class ProtRelionBase(EMProtocol):
         """ Sort the it??.data.star file by the maximum likelihood. """
         data_sqlite = self._getFileName('data_scipion', iter=it)
 
-        if not os.path.exists(data_sqlite):
-            iterImgSet = pwem.objects.SetOfParticles(filename=data_sqlite)
+        if not pwutils.exists(data_sqlite):
+            iterImgSet = SetOfParticles(filename=data_sqlite)
             iterImgSet.copyInfo(self._getInputParticles())
             self._fillDataFromIter(iterImgSet, it)
             iterImgSet.write()
@@ -1179,9 +1178,9 @@ class ProtRelionBase(EMProtocol):
         """
         inputObj = self.referenceVolume.get()
 
-        if isinstance(inputObj, pwem.objects.Volume):
+        if isinstance(inputObj, Volume):
             return [inputObj]
-        elif isinstance(inputObj, pwem.objects.SetOfVolumes):
+        elif isinstance(inputObj, SetOfVolumes):
             return [vol.clone() for vol in inputObj]
         else:
             raise Exception("Invalid input reference of class: %s"

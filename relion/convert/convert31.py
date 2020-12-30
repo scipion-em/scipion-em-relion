@@ -34,9 +34,10 @@ import numpy as np
 from collections import OrderedDict
 from emtable import Table
 
-import pyworkflow as pw
-import pwem
-from pwem.objects import Micrograph, SetOfMicrographsBase, SetOfMovies
+from pyworkflow.object import ObjectWrap
+from pwem.constants import ALIGN_NONE, ALIGN_PROJ, ALIGN_2D, ALIGN_3D
+from pwem.objects import (Micrograph, SetOfMicrographsBase, SetOfMovies,
+                          Particle, CTFModel, Acquisition, Transform)
 import pwem.convert.transformations as tfs
 
 from .convert_base import WriterBase, ReaderBase
@@ -390,18 +391,18 @@ class Writer(WriterBase):
 
         alignType = kwargs.get('alignType', partsSet.getAlignment())
 
-        if alignType == pwem.ALIGN_2D:
+        if alignType == ALIGN_2D:
             self._setAlign = self._align2DToRow
-        elif alignType == pwem.ALIGN_PROJ:
+        elif alignType == ALIGN_PROJ:
             self._setAlign = self._alignProjToRow
-        elif alignType == pwem.ALIGN_3D:
+        elif alignType == ALIGN_3D:
             raise Exception(
                 "3D alignment conversion for Relion not implemented. "
                 "It seems the particles were generated with an incorrect "
                 "alignment type. You may either re-launch the protocol that "
                 "generates the particles with angles or set 'Consider previous"
                 " alignment?' to No")
-        elif alignType == pwem.ALIGN_NONE:
+        elif alignType == ALIGN_NONE:
             self._setAlign = None
         else:
             raise Exception("Invalid value for alignType: %s" % alignType)
@@ -492,7 +493,7 @@ class Reader(ReaderBase):
 
         """
         self._preprocessImageRow = kwargs.get('preprocessImageRow', None)
-        self._alignType = kwargs.get('alignType', pwem.ALIGN_NONE)
+        self._alignType = kwargs.get('alignType', ALIGN_NONE)
 
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
@@ -508,14 +509,14 @@ class Reader(ReaderBase):
         self._setClassId = hasattr(firstRow, 'rlnClassNumber')
         self._setCtf = partsReader.hasAllColumns(self.CTF_LABELS[:3])
 
-        particle = pwem.objects.Particle()
+        particle = Particle()
 
         if self._setCtf:
-            particle.setCTF(pwem.objects.CTFModel())
+            particle.setCTF(CTFModel())
 
         self._setAcq = kwargs.get("readAcquisition", True)
 
-        acq = pwem.objects.Acquisition()
+        acq = Acquisition()
         acq.setMagnification(kwargs.get('magnification', 10000))
         self._optics.toImages(partSet)
 
@@ -524,7 +525,7 @@ class Reader(ReaderBase):
         self._extraLabels = [l for l in extraLabels if partsReader.hasColumn(l)]
         for label in self._extraLabels:
             setattr(particle, '_' + label,
-                    pw.object.ObjectWrap(getattr(firstRow, label)))
+                    ObjectWrap(getattr(firstRow, label)))
 
         self._rowToPart(firstRow, particle)
         partSet.setSamplingRate(self._pixelSize)
@@ -590,7 +591,7 @@ class Reader(ReaderBase):
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
 
-        if ((self._alignType == pwem.ALIGN_NONE) or
+        if ((self._alignType == ALIGN_NONE) or
                 not row.hasAnyColumn(self.ALIGNMENT_LABELS)):
             self.setParticleTransform = self.__setParticleTransformNone
         else:
@@ -598,11 +599,11 @@ class Reader(ReaderBase):
             self._angles = np.zeros(3)
             self._shifts = np.zeros(3)
 
-            particle.setTransform(pwem.objects.Transform())
+            particle.setTransform(Transform())
 
-            if self._alignType == pwem.ALIGN_2D:
+            if self._alignType == ALIGN_2D:
                 self.setParticleTransform = self.__setParticleTransform2D
-            elif self._alignType == pwem.ALIGN_PROJ:
+            elif self._alignType == ALIGN_PROJ:
                 self.setParticleTransform = self.__setParticleTransformProj
             else:
                 raise Exception("Unexpected alignment type: %s"
@@ -667,7 +668,7 @@ class Reader(ReaderBase):
 
             for label in self._extraLabels:
                 setattr(particle, '_' + label,
-                        pw.object.ObjectWrap(getattr(row, label)))
+                        ObjectWrap(getattr(row, label)))
 
             self._first = False
 

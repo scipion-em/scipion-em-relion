@@ -32,7 +32,7 @@ New conversion functions dealing with Relion3.1 new star files format.
 import os
 from emtable import Table
 
-import pwem
+from pwem.constants import ALIGN_NONE
 from pwem.emlib.image import ImageHandler
 import pyworkflow.utils as pwutils
 
@@ -175,7 +175,7 @@ class ReaderBase:
     def __init__(self, **kwargs):
         """
         """
-        self._alignType = kwargs.get('alignType', pwem.ALIGN_NONE)
+        self._alignType = kwargs.get('alignType', ALIGN_NONE)
         self._pixelSize = kwargs.get('pixelSize', 1.0)
         self._invPixelSize = 1. / self._pixelSize
 

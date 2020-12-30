@@ -34,7 +34,7 @@ import os
 from emtable import Table
 
 import pyworkflow.utils as pwutils
-import pwem
+from pwem.constants import NO_INDEX
 from pwem.emlib.image import ImageHandler
 
 from relion import Plugin
@@ -44,7 +44,7 @@ def locationToRelion(index, filename):
     """ Convert an index and filename location
     to a string with @ as expected in Relion.
     """
-    if index != pwem.NO_INDEX:
+    if index != NO_INDEX:
         return "%06d@%s" % (index, filename)
 
     return filename
@@ -57,7 +57,7 @@ def relionToLocation(filename):
         indexStr, fn = filename.split('@')
         return int(indexStr), str(fn)
     else:
-        return pwem.NO_INDEX, str(filename)
+        return NO_INDEX, str(filename)
 
 
 def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
@@ -130,10 +130,7 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
         print("convertBinaryFiles: creating soft links.")
         print("   Root: %s -> %s" % (outputRoot, rootDir))
         mapFunc = replaceRoot
-        # FIXME: There is a bug in pwutils.createLink when input is a single folder
-        # pwutils.createLink(rootDir, outputRoot)
-        if not os.path.exists(outputRoot):
-            os.symlink(os.path.abspath(rootDir), outputRoot)
+        pwutils.createAbsLink(os.path.abspath(rootDir), outputRoot)
     elif ext == 'mrc' and extension == 'mrcs':
         print("convertBinaryFiles: creating soft links (mrcs -> mrc).")
         mapFunc = createBinaryLink

@@ -26,7 +26,7 @@
 from emtable import Table
 
 from pyworkflow.object import Integer
-import pwem
+from pwem.constants import ALIGN_PROJ
 from pwem.objects import Volume, FSC
 from pwem.protocols import ProtRefine3D
 
@@ -168,7 +168,7 @@ leads to objective and high-quality results.
         tableName = 'particles@' if self.IS_GT30() else ''
         outImgsFn = self._getFileName('data', iter=iteration)
         imgSet.setAlignmentProj()
-        self.reader = convert.createReader(alignType=pwem.ALIGN_PROJ,
+        self.reader = convert.createReader(alignType=ALIGN_PROJ,
                                            pixelSize=imgSet.getSamplingRate())
 
         mdIter = Table.iterRows(tableName + outImgsFn, key='rlnImageId')

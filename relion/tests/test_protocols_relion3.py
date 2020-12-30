@@ -27,10 +27,10 @@
 import os
 
 import pyworkflow.tests as pwtests
+from pyworkflow.utils import copyTree, join, magentaStr
 import pwem.protocols as emprot
 from pwem.tests.workflows import TestWorkflow
 from pwem.objects import SetOfMovies
-from pyworkflow.utils import copyTree, join, magentaStr
 
 import relion
 import relion.convert

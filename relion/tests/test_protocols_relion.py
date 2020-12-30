@@ -24,11 +24,13 @@
 # *
 # **************************************************************************
 
-from pyworkflow.tests import *
+from pyworkflow.tests import BaseTest
 from pyworkflow.plugin import Domain
-from pwem.protocols import *
 from pyworkflow.protocol.constants import STATUS_FINISHED
 from pyworkflow.utils import magentaStr
+from pwem import Config
+from pwem.objects import SetOfParticles, Volume
+from pwem.protocols import *
 
 from ..protocols import *
 from ..convert import *
@@ -39,7 +41,7 @@ def useGpu():
     """ Helper function to determine if GPU can be used.
     Return a boolean and a label to be used in protocol's label. """
     environ = pwutils.Environ(os.environ)
-    cudaPath = Plugin.getVar('RELION_CUDA_LIB', pwem.Config.CUDA_LIB)
+    cudaPath = Plugin.getVar('RELION_CUDA_LIB', Config.CUDA_LIB)
 
     if cudaPath and pwutils.existsVariablePaths(cudaPath):
         return True, 'GPU'
@@ -350,7 +352,7 @@ class TestRelionRefine(TestRelionBase):
         def _checkAsserts(relionRefine):
             relionRefine._initialize()  # Load filename templates
             dataSqlite = relionRefine._getIterData(3)
-            outImgSet = pwem.objects.SetOfParticles(filename=dataSqlite)
+            outImgSet = SetOfParticles(filename=dataSqlite)
             
             self.assertIsNotNone(relionRefine.outputVolume,
                                  "There was a problem with Relion autorefine")
@@ -409,7 +411,7 @@ class TestRelionInitialModel(TestRelionBase):
         def _checkAsserts(relionProt):
             relionProt._initialize()  # Load filename templates
             dataSqlite = relionProt._getIterData(relionProt._lastIter())
-            outImgSet = pwem.objects.SetOfParticles(filename=dataSqlite)
+            outImgSet = SetOfParticles(filename=dataSqlite)
 
             self.assertIsNotNone(relionProt.outputVolume,
                                  "There was a problem with Relion initial model")
@@ -589,7 +591,7 @@ class TestRelionPostprocess(TestRelionBase):
         elif protClassName.startswith('EmanProtRefine'):
             prot.input3DReference.set(outputVol)
 
-        volume = pwem.objects.Volume()
+        volume = Volume()
         volume.setFileName(prot._getExtraPath('test.mrc'))
         pxSize = prot.inputParticles.get().getSamplingRate()
         volume.setSamplingRate(pxSize)
@@ -750,7 +752,7 @@ class TestRelionLocalRes(TestRelionBase):
         prot.inputParticles.set(self.protImport.outputParticles)
         prot.referenceVolume.set(self.importVolume().outputVolume)
 
-        volume = pwem.objects.Volume()
+        volume = Volume()
         volume.setFileName(prot._getExtraPath('test.mrc'))
         pxSize = prot.inputParticles.get().getSamplingRate()
         volume.setSamplingRate(pxSize)

@@ -32,14 +32,13 @@ import subprocess
 import numpy as np
 
 from pyworkflow.tests import BaseTest, setupTestOutput, DataSet
-from pyworkflow.utils import cleanPath
+from pyworkflow.utils import cleanPath, magentaStr, createLink, replaceExt
 from pwem.objects import (SetOfParticles, CTFModel, Acquisition,
                           SetOfMicrographs, Coordinate, Particle,
                           SetOfVolumes, Transform)
 from pwem.emlib.image import ImageHandler
 import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_3D
-from pyworkflow.utils import magentaStr, createLink, replaceExt
 
 from relion import Plugin
 import relion.convert as convert

@@ -337,7 +337,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
         else:
             outputFn = None
             for fn in ['opt_params.txt', 'opt_params_all_groups.txt']:
-                if os.path.exists(self._getExtraPath(fn)):
+                if pwutils.exists(self._getExtraPath(fn)):
                     outputFn = self._getExtraPath(fn)
 
             if outputFn is None:
