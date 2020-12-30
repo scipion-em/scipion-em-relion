@@ -24,6 +24,7 @@
 # *
 # **************************************************************************
 import os
+import emtable
 
 from pyworkflow.object import Integer
 import pyworkflow.utils as pwutils
