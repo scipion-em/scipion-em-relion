@@ -24,7 +24,7 @@
 # *
 # **************************************************************************
 
-from pyworkflow.tests import BaseTest
+from pyworkflow.tests import BaseTest, setupTestProject, DataSet
 from pyworkflow.plugin import Domain
 from pyworkflow.protocol.constants import STATUS_FINISHED
 from pyworkflow.utils import magentaStr

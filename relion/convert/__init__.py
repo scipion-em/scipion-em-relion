@@ -24,12 +24,16 @@
 # *
 # **************************************************************************
 
+import math
+
+from pwem.constants import ALIGN_PROJ
+
 from .convert_utils import *
 from .convert_deprecated import *
 from .convert_coordinates import *
 from .dataimport import *
 import relion
-import math
+
 
 # Writing of star files will be handle by the Writer class
 # We have a new implementation of it for Relion > 3.1 since
@@ -149,7 +153,7 @@ class ClassesLoader:
         if classId in self._classesInfo:
             index, fn, row = self._classesInfo[classId]
             item.setAlignment(self._alignType)
-            if self._alignType == pwem.ALIGN_PROJ:
+            if self._alignType == ALIGN_PROJ:
                 fn += ':mrc'  # mark reference as a MRC volume
             item.getRepresentative().setLocation(index, fn)
             item._rlnClassDistribution = Float(row.rlnClassDistribution)

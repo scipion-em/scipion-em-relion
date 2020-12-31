@@ -24,6 +24,8 @@
 # *
 # **************************************************************************
 
+import os
+
 import pyworkflow.utils as pwutils
 import pwem
 

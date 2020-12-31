@@ -776,8 +776,8 @@ class ProtRelionBase(EMProtocol):
 
             # Pass stack file as None to avoid write the images files
             # If copyAlignment is set to False pass alignType to ALIGN_NONE
-            alignType = imgSet.getAlignment() if copyAlignment else pwem.ALIGN_NONE
-            hasAlign = alignType != pwem.ALIGN_NONE
+            alignType = imgSet.getAlignment() if copyAlignment else ALIGN_NONE
+            hasAlign = alignType != ALIGN_NONE
             alignToPrior = hasAlign and getattr(self, 'alignmentAsPriors', False)
 
             if self.doCtfManualGroups:
@@ -1274,7 +1274,7 @@ class ProtRelionBase(EMProtocol):
             mdParts.addColumns('rlnOriginYPrior=rlnOriginY')
         mdParts.addColumns('rlnAnglePsiPrior=rlnAnglePsi')
 
-        if alignType == pwem.ALIGN_PROJ:
+        if alignType == ALIGN_PROJ:
             mdParts.addColumns('rlnAngleRotPrior=rlnAngleRot')
             mdParts.addColumns('rlnAngleTiltPrior=rlnAngleTilt')
 
