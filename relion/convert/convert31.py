@@ -80,7 +80,7 @@ class OpticsGroups:
             return self._dict[item]
         elif isinstance(item, str):
             return self._dictName[item]
-        raise Exception("Unsupported type '%s' of item '%s'"
+        raise TypeError("Unsupported type '%s' of item '%s'"
                         % (type(item), item))
 
     def __contains__(self, item):
@@ -396,7 +396,7 @@ class Writer(WriterBase):
         elif alignType == ALIGN_PROJ:
             self._setAlign = self._alignProjToRow
         elif alignType == ALIGN_3D:
-            raise Exception(
+            raise NotImplementedError(
                 "3D alignment conversion for Relion not implemented. "
                 "It seems the particles were generated with an incorrect "
                 "alignment type. You may either re-launch the protocol that "
@@ -405,7 +405,7 @@ class Writer(WriterBase):
         elif alignType == ALIGN_NONE:
             self._setAlign = None
         else:
-            raise Exception("Invalid value for alignType: %s" % alignType)
+            raise TypeError("Invalid value for alignType: %s" % alignType)
 
         extraLabels = kwargs.get('extraLabels', [])
         extraLabels.extend(PARTICLE_EXTRA_LABELS)
@@ -606,7 +606,7 @@ class Reader(ReaderBase):
             elif self._alignType == ALIGN_PROJ:
                 self.setParticleTransform = self.__setParticleTransformProj
             else:
-                raise Exception("Unexpected alignment type: %s"
+                raise TypeError("Unexpected alignment type: %s"
                                 % self._alignType)
 
         # Call again the modified function

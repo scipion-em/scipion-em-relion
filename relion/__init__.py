@@ -60,7 +60,7 @@ class Plugin(pwem.Plugin):
         if binPath not in environ['PATH']:
             environ.update({'PATH': binPath,
                             'LD_LIBRARY_PATH': libPath,
-                            #'SCIPION_MPI_FLAGS': os.environ.get('RELION_MPI_FLAGS', ''),
+                            # 'SCIPION_MPI_FLAGS': os.environ.get('RELION_MPI_FLAGS', ''),
                             }, position=pwutils.Environ.BEGIN)
 
         # Get Relion CUDA library path if defined

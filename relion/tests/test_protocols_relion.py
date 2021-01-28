@@ -40,7 +40,6 @@ from ..constants import *
 def useGpu():
     """ Helper function to determine if GPU can be used.
     Return a boolean and a label to be used in protocol's label. """
-    environ = pwutils.Environ(os.environ)
     cudaPath = Plugin.getVar('RELION_CUDA_LIB', Config.CUDA_LIB)
 
     if cudaPath and pwutils.existsVariablePaths(cudaPath):
@@ -804,7 +803,6 @@ class TestRelionLocalRes(TestRelionBase):
             protMask = self.newProtocol(ProtRelionCreateMask3D,
                                         inputVolume=protRef.outputVolume,
                                         initialLowPassFilterA=30)
-            #protMask.inputVolume.set(protRef.outputVolume)
             self.launchProtocol(protMask)
 
             print(magentaStr("\n==> Testing relion - local resolution (with mask):"))
@@ -812,7 +810,6 @@ class TestRelionLocalRes(TestRelionBase):
                                         objLabel='relion localres (with mask)',
                                         protRefine=protRef,
                                         solventMask=protMask.outputMask)
-            #postProt.setObjLabel('relion local resolution (with mask)')
             self.launchProtocol(restProt)
 
 

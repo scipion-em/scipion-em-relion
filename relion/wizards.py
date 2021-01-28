@@ -83,7 +83,7 @@ class RelionPartMaskDiameterWizard(RelionBackRadiusWizard):
     def _getParameters(self, protocol):
         protParams = RelionBackRadiusWizard._getParameters(self, protocol)
         # adjust to from diameter to radius
-        protParams['value'] = protParams['value'] / 2
+        protParams['value'] /= 2
 
         return protParams
 
@@ -212,7 +212,7 @@ class RelionWizCtfGroupsDisplay(EmWizard):
         print(defocusGroups)
 
         plotter = EmPlotter(windowTitle='%d Defocus Groups' % len(defocusGroups),
-                            x=1, y=1, figsize=(8, 6))
+                            figsize=(8, 6))
         ax = plotter.createSubPlot("", "defocus (A)", "count", 1, 1)
 
         for group in defocusGroups:

@@ -26,8 +26,6 @@
 
 import math
 
-from pwem.constants import ALIGN_PROJ
-
 from .convert_utils import *
 from .convert_deprecated import *
 from .convert_coordinates import *

@@ -140,7 +140,7 @@ class Reader(ReaderBase):
             elif self._alignType == pwem.ALIGN_PROJ:
                 self.setParticleTransform = self.__setParticleTransformProj
             else:
-                raise Exception("Unexpected alignment type: %s"
+                raise TypeError("Unexpected alignment type: %s"
                                 % self._alignType)
 
         # Call again the modified function

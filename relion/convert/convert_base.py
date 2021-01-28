@@ -61,7 +61,7 @@ class WriterBase:
         """
         self._optics = kwargs.get('optics', None)
         # Not used now
-        #self.convertPolicy = kwargs.get('convertPolicy', self.CONVERT_IF_NEEDED)
+        # self.convertPolicy = kwargs.get('convertPolicy', self.CONVERT_IF_NEEDED)
         self.rootDir = None
         self.outputDir = None
         self.outputStack = None

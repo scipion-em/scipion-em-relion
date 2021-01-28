@@ -76,7 +76,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
     def _defineParams(self, form):
         form.addSection(label='Input')
         form.addParam('inputMovies', params.PointerParam, pointerClass='SetOfMovies',
-                      important=True,  # pointerCondition='hasAlignment',
+                      important=True,
                       label='Input ALIGNED movies',
                       help='Provide a set of movies that have at '
                            'least global alignment information.')

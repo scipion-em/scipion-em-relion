@@ -836,7 +836,7 @@ class ProtRelionBase(EMProtocol):
                               "image dimensions!")
 
             # if doing scaling, the input is not on abs greyscale
-            if self.getAttributeValue('referenceVolume', None):
+            if self.getAttributeValue('referenceVolume'):
                 volX = self._getReferenceVolumes()[0].getXDim()
                 ptclX = self._getInputParticles().getXDim()
                 if (ptclX != volX) and self.isMapAbsoluteGreyScale:
@@ -945,16 +945,15 @@ class ProtRelionBase(EMProtocol):
             if self.limitResolEStep > 0:
                 args['--strict_highres_exp'] = self.limitResolEStep.get()
 
-        if self.IS_3D:
-            if not self.IS_3D_INIT:
-                if not self.isMapAbsoluteGreyScale:
-                    args['--firstiter_cc'] = ''
-                args['--ini_high'] = self.initialLowPassFilterA.get()
-                args['--sym'] = self.symmetryGroup.get()
-                if self.IS_GT30():
-                    # We use the same pixel size as input particles, since
-                    # we convert anyway the input volume to match same size
-                    args['--ref_angpix'] = ps
+        if self.IS_3D and not self.IS_3D_INIT:
+            if not self.isMapAbsoluteGreyScale:
+                args['--firstiter_cc'] = ''
+            args['--ini_high'] = self.initialLowPassFilterA.get()
+            args['--sym'] = self.symmetryGroup.get()
+            if self.IS_GT30():
+                # We use the same pixel size as input particles, since
+                # we convert anyway the input volume to match same size
+                args['--ref_angpix'] = ps
 
         refArg = self._getRefArg()
         if refArg:
