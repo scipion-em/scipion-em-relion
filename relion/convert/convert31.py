@@ -358,7 +358,6 @@ class Writer(WriterBase):
             self._setAlign(part.getTransform(), row)
 
         # Set additional labels if present
-        print("EXECUTING _OBJTOROW for: ", self._extraLabels)
         self._objToRow(part, row, self._extraLabels)
 
         # Add now the new Optics Group stuff

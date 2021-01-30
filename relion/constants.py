@@ -170,7 +170,6 @@ ALIGNMENT_DICT = OrderedDict([
 
 
 PARTICLE_EXTRA_LABELS = [
-    'rlnBfactor',
     'rlnCtfBfactor',
     'rlnCtfScalefactor',
     'rlnPhaseShift',
