@@ -358,6 +358,7 @@ class Writer(WriterBase):
             self._setAlign(part.getTransform(), row)
 
         # Set additional labels if present
+        print("EXECUTING _OBJTOROW for: ", self._extraLabels)
         self._objToRow(part, row, self._extraLabels)
 
         # Add now the new Optics Group stuff
@@ -655,22 +656,3 @@ class Reader(ReaderBase):
         M[:3, 3] = -shifts[:3]
         M = np.linalg.inv(M)
         particle.getTransform().setMatrix(M)
-
-    def setParticleExtraAttrs(self, particle, row, **kwargs):
-        """ Set extra attributes common to most Relion jobs.
-        This func should be used only for updateItemCallback in
-        copyItems/classifyItems methods.
-        """
-        if self._first:
-            extraLabels = kwargs.get('extraLabels', [])
-            extraLabels.extend(PARTICLE_EXTRA_LABELS)
-            self._extraLabels = [l for l in extraLabels if row.hasColumn(l)]
-
-            for label in self._extraLabels:
-                setattr(particle, '_' + label,
-                        ObjectWrap(getattr(row, label)))
-
-            self._first = False
-
-        for label in self._extraLabels:
-            getattr(particle, '_%s' % label).set(getattr(row, label))

@@ -174,13 +174,7 @@ PARTICLE_EXTRA_LABELS = [
     'rlnCtfBfactor',
     'rlnCtfScalefactor',
     'rlnPhaseShift',
-    'rlnParticleSelectZScore',
-    'rlnMovieFrameNumber',
     'rlnGroupName',
     'rlnGroupNumber',
-    'rlnNormCorrection',
-    'rlnLogLikeliContribution',
-    'rlnMaxValueProbDistribution',
-    'rlnNrOfSignificantSamples',
     'rlnRandomSubset'
 ]

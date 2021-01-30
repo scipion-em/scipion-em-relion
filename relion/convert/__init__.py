@@ -144,7 +144,6 @@ class ClassesLoader:
     def _updateParticle(self, item, row):
         item.setClassId(row.rlnClassNumber)
         self._reader.setParticleTransform(item, row)
-        self._reader.setParticleExtraAttrs(item, row)
 
     def _updateClass(self, item):
         classId = item.getObjId()
