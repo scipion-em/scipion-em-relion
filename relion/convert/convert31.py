@@ -515,10 +515,8 @@ class Reader(ReaderBase):
             particle.setCTF(CTFModel())
 
         self._setAcq = kwargs.get("readAcquisition", True)
-
         acq = Acquisition()
         acq.setMagnification(kwargs.get('magnification', 10000))
-        self._optics.toImages(partSet)
 
         extraLabels = kwargs.get('extraLabels', [])
         extraLabels.extend(PARTICLE_EXTRA_LABELS)
@@ -575,7 +573,7 @@ class Reader(ReaderBase):
         ctf.setResolution(row.get('rlnCtfMaxResolution', 0))
         ctf.setFitQuality(row.get('rlnCtfFigureOfMerit', 0))
 
-        if getattr(row, 'rlnPhaseShift', False):
+        if hasattr(row, 'rlnPhaseShift'):
             ctf.setPhaseShift(row.rlnPhaseShift)
         ctf.standardize()
 
