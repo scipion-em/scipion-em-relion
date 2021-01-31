@@ -567,7 +567,7 @@ class Reader(ReaderBase):
         self.setParticleTransform(particle, row)
 
         for label in self._extraLabels:
-            getattr(particle, '_%s' % label).set(getattr(row, label))
+            getattr(particle, '_' + label).set(getattr(row, label))
 
         # TODO: coord, partId, micId,
 

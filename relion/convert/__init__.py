@@ -145,6 +145,15 @@ class ClassesLoader:
         item.setClassId(row.rlnClassNumber)
         self._reader.setParticleTransform(item, row)
 
+        if self._reader._first:
+            self._extraLabels = [l for l in PARTICLE_EXTRA_LABELS if row.hasColumn(l)]
+            for label in self._extraLabels:
+                setattr(item, '_' + label, ObjectWrap(getattr(row, label)))
+            self._reader._first = False
+        else:
+            for label in self._extraLabels:
+                getattr(item, '_' + label).set(getattr(row, label))
+
     def _updateClass(self, item):
         classId = item.getObjId()
         if classId in self._classesInfo:
