@@ -173,8 +173,7 @@ class PostprocessViewer(ProtocolViewer):
     # =========================================================================
     def _showGuinier(self, paramName=None):
         xplotter = RelionPlotter(windowTitle='Guinier Plot')
-        a = xplotter.createSubPlot("", 'Angstroms^-2', 'log(Amplitude)',
-                                   yformat=False)
+        a = xplotter.createSubPlot("", 'Angstroms^-2', 'log(Amplitude)')
         legends = []
         modelStar = self.protocol._getExtraPath('postprocess.star')
         for label in self._getGuinerLabels():

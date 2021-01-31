@@ -25,7 +25,6 @@
 # **************************************************************************
 
 import os
-from os.path import exists
 from collections import OrderedDict
 from emtable import Table
 
@@ -37,7 +36,6 @@ import pyworkflow.utils as pwutils
 
 from .convert31 import OpticsGroups
 from .convert_utils import relionToLocation
-#from .convert_deprecated import readSetOfParticles, rowToCoordinate
 
 
 class FileTransform:
@@ -187,12 +185,12 @@ class RelionImport:
         """
         modelStarFile = dataStar.replace('_data.star', '_model.star')
 
-        if exists(modelStarFile):
+        if pwutils.exists(modelStarFile):
             result = modelStarFile
         else:
             modelHalfStarFile = self._starFile.replace('_data.star',
                                                        '_half1_model.star')
-            if exists(modelHalfStarFile):
+            if pwutils.exists(modelHalfStarFile):
                 result = modelHalfStarFile
             else:
                 result = None
@@ -236,7 +234,7 @@ class RelionImport:
             classDimensionality = int(modelRow.rlnReferenceDimensionality)
             self._optimiserFile = self._starFile.replace('_data.star',
                                                          '_optimiser.star')
-            if not exists(self._optimiserFile):
+            if not pwutils.exists(self._optimiserFile):
                 autoRefine = int(modelRow.rlnNrClasses) == 1
             else:
                 optimiserRow = Table(fileName=self._optimiserFile,
@@ -363,7 +361,7 @@ class RelionImport:
                     micName = prot._getExtraPath('fake_micrograph%6d' % micId)
                 else:
                     if not len(self.micDict):  # first time
-                        if os.path.exists(os.path.join(imgPath, micName)):
+                        if pwutils.exists(os.path.join(imgPath, micName)):
                             micRoot = imgPath
                         else:
                             micRoot = pwutils.findRootFrom(self._starFile,

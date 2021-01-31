@@ -87,7 +87,7 @@ class RelionPlotter(EmPlotter):
             if nbins is in args then and histogram over y data is made
         """
         table = Table(fileName=mdFilename)
-        self.plotMd(table, mdLabelX, mdLabelY, color='g', **args)
+        self.plotMd(table, mdLabelX, mdLabelY, **args)
 
 
 def protected_show(showFunc):
@@ -650,8 +650,7 @@ Examples:
         for prefix in prefixes:
             for ref3d in self._refsList:
                 plot_title = 'Resolution SSNR %s, for Class %s' % (prefix, ref3d)
-                a = xplotter.createSubPlot(plot_title,
-                                           'Angstroms^-1', 'log(SSNR)', yformat=False)
+                a = xplotter.createSubPlot(plot_title, 'Angstroms^-1', 'log(SSNR)')
                 blockName = 'model_class_%d' % ref3d
                 for it in self._iterations:
                     fn = self._getModelStar(prefix, it)

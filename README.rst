@@ -33,6 +33,10 @@ This plugin provide wrappers around several programs of `RELION <https://www3.mr
 .. |devel| image:: http://scipion-test.cnb.csic.es:9980/badges/relion_devel.svg
 .. |support| image:: http://scipion-test.cnb.csic.es:9980/badges/relion_support.svg
 
+**IMPORTANT!**
+
+    If you have imported movies with a gain file in **DM4** format, you need to **flip the gain reference upside-down** in the motion correction protocol! (`bug details <https://github.com/I2PC/xmippCore/issues/39>`_)
+
 
 Installation
 ------------
@@ -67,8 +71,6 @@ Supported versions
 ------------------
 
 3.1.0
-
-We are still working towards stable plugin release, so some things might not work yet. Handling optics groups needs more testing, you are welcome to be a volunteer.
 
 **IMPORTANT**: Relion-3.0 can be used with this plugin but we do not officially support it anymore, i.e. there will be no bugfixes for it.
 

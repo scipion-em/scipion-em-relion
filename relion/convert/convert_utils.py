@@ -34,7 +34,7 @@ import os
 from emtable import Table
 
 import pyworkflow.utils as pwutils
-import pwem
+from pwem.constants import NO_INDEX
 from pwem.emlib.image import ImageHandler
 
 from relion import Plugin
@@ -44,7 +44,7 @@ def locationToRelion(index, filename):
     """ Convert an index and filename location
     to a string with @ as expected in Relion.
     """
-    if index != pwem.NO_INDEX:
+    if index != NO_INDEX:
         return "%06d@%s" % (index, filename)
 
     return filename
@@ -57,7 +57,7 @@ def relionToLocation(filename):
         indexStr, fn = filename.split('@')
         return int(indexStr), str(fn)
     else:
-        return pwem.NO_INDEX, str(filename)
+        return NO_INDEX, str(filename)
 
 
 def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
@@ -130,19 +130,7 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
         print("convertBinaryFiles: creating soft links.")
         print("   Root: %s -> %s" % (outputRoot, rootDir))
         mapFunc = replaceRoot
-        # FIXME: There is a bug in pwutils.createLink when input is a single folder
-        # pwutils.createLink(rootDir, outputRoot)
-        # relativeOutput = os.path.join(os.path.relpath(rootDir, outputRoot), rootDir)
-        # If the rootDir is a prefix in the outputRoot (usually Runs)
-        # we need to prepend that basename to make the link works
-        if rootDir in outputRoot:
-            relativeOutput = os.path.join(os.path.relpath(rootDir, outputRoot),
-                                          os.path.basename(rootDir))
-        else:
-            relativeOutput = os.path.relpath(rootDir,
-                                             os.path.dirname(outputRoot))
-        if not os.path.exists(outputRoot):
-            os.symlink(relativeOutput, outputRoot)
+        pwutils.createAbsLink(os.path.abspath(rootDir), outputRoot)
     elif ext == 'mrc' and extension == 'mrcs':
         print("convertBinaryFiles: creating soft links (mrcs -> mrc).")
         mapFunc = createBinaryLink
@@ -182,7 +170,7 @@ def convertBinaryVol(vol, outputDir):
     return fn
 
 
-def convertMask(img, outputPath, newPix=None, newDim=None):
+def convertMask(img, outputPath, newPix=None, newDim=None, threshold=True):
     """ Convert mask to mrc format read by Relion.
     Params:
         img: input image to be converted.
@@ -198,20 +186,23 @@ def convertMask(img, outputPath, newPix=None, newDim=None):
     index, filename = img.getLocation()
     imgFn = locationToRelion(index, filename)
     inPix = img.getSamplingRate()
-    outPix = inPix if newPix is None else newPix
 
     if os.path.isdir(outputPath):
         outFn = pwutils.join(outputPath, pwutils.replaceBaseExt(imgFn, 'mrc'))
     else:
         outFn = outputPath
 
-    params = '--i %s --o %s --angpix %0.5f --rescale_angpix %0.5f' % (
-        imgFn, outFn, inPix, outPix)
+    params = '--i %s --o %s --angpix %0.5f' % (imgFn, outFn, inPix)
+
+    if newPix is not None:
+        params += ' --rescale_angpix %0.5f' % newPix
 
     if newDim is not None:
         params += ' --new_box %d' % newDim
 
-    params += ' --threshold_above 1 --threshold_below 0'
+    if threshold:
+        params += ' --threshold_above 1 --threshold_below 0'
+
     pwutils.runJob(None, 'relion_image_handler', params, env=Plugin.getEnviron())
 
     return outFn

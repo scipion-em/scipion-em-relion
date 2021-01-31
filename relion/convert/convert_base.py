@@ -32,7 +32,7 @@ New conversion functions dealing with Relion3.1 new star files format.
 import os
 from emtable import Table
 
-import pwem
+from pwem.constants import ALIGN_NONE
 from pwem.emlib.image import ImageHandler
 import pyworkflow.utils as pwutils
 
@@ -61,7 +61,7 @@ class WriterBase:
         """
         self._optics = kwargs.get('optics', None)
         # Not used now
-        #self.convertPolicy = kwargs.get('convertPolicy', self.CONVERT_IF_NEEDED)
+        # self.convertPolicy = kwargs.get('convertPolicy', self.CONVERT_IF_NEEDED)
         self.rootDir = None
         self.outputDir = None
         self.outputStack = None
@@ -116,7 +116,7 @@ class WriterBase:
         ext = pwutils.getExt(imageFn)[1:]
         if ext in self.extensions:
             finalExt = ext
-            convertFunc = pwutils.createLink
+            convertFunc = pwutils.createAbsLink
         else:
             finalExt = self.extensions[0]
             convertFunc = self._ih.convert
@@ -127,7 +127,7 @@ class WriterBase:
             newName = "%s_%06d.%s" % (self._prefix, image.getObjId(), finalExt)
 
         newPath = os.path.join(self.outputDir, newName)
-        convertFunc(imageFn, newPath)
+        convertFunc(os.path.abspath(imageFn), newPath)
         # If there is a rootDir defined, we should return the path relative
         # to that location, probably to be used from the star file
         if self.rootDir is not None:
@@ -145,9 +145,6 @@ class WriterBase:
 
     def _micToRow(self, mic, row):
         row['rlnImageId'] = mic.getObjId()
-
-        if mic.hasCTF():
-            self._ctfToRow(mic.getCTF(), row)
 
     def _ctfToRow(self, ctf, row):
         psd = ctf.getPsdFile()
@@ -175,7 +172,7 @@ class ReaderBase:
     def __init__(self, **kwargs):
         """
         """
-        self._alignType = kwargs.get('alignType', pwem.ALIGN_NONE)
+        self._alignType = kwargs.get('alignType', ALIGN_NONE)
         self._pixelSize = kwargs.get('pixelSize', 1.0)
         self._invPixelSize = 1. / self._pixelSize
 

@@ -24,12 +24,12 @@
 # *
 # **************************************************************************
 import os
-
 import emtable
-import pyworkflow as pw
+
+from pyworkflow.object import Integer
 import pyworkflow.utils as pwutils
-import pwem
 import pyworkflow.protocol.params as params
+from pwem.objects import SetOfMovies, SetOfParticles, SetOfMicrographs
 
 from relion import Plugin
 from relion.convert.convert31 import OpticsGroups, getPixelSizeLabel
@@ -164,13 +164,13 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
 
         getMicName = lambda item: item.getMicName()
 
-        if isinstance(inputSet, pwem.objects.SetOfMovies):
+        if isinstance(inputSet, SetOfMovies):
             outputSet = self._createSetOfMovies()
             outputName = 'outputMovies'
-        elif isinstance(inputSet, pwem.objects.SetOfMicrographs):
+        elif isinstance(inputSet, SetOfMicrographs):
             outputSet = self._createSetOfMicrographs()
             outputName = 'outputMicrographs'
-        elif isinstance(inputSet, pwem.objects.SetOfParticles):
+        elif isinstance(inputSet, SetOfParticles):
             outputSet = self._createSetOfParticles()
             outputName = 'outputParticles'
             getMicName = lambda item: item.getCoordinate().getMicName()
@@ -251,7 +251,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                 ogNumber = micDict[micName]
 
                 if not hasattr(item, '_rlnOpticsGroup'):
-                    item._rlnOpticsGroup = pw.object.Integer()
+                    item._rlnOpticsGroup = Integer()
 
                 item._rlnOpticsGroup.set(ogNumber)
 

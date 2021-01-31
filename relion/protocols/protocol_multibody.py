@@ -24,7 +24,6 @@
 # *
 # **************************************************************************
 
-import os
 from emtable import Table
 
 import pyworkflow.utils as pwutils
@@ -255,16 +254,16 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
     def _validate(self):
         errors = []
         bodyFn = self.bodyStarFile.get()
-        if not os.path.exists(bodyFn):
+        if not pwutils.exists(bodyFn):
             errors.append("Input body star file %s does not exist." % bodyFn)
         else:
             table = Table(fileName=bodyFn)
             missing = []
             for row in table:
-                if not os.path.exists(row.rlnBodyMaskName):
+                if not pwutils.exists(row.rlnBodyMaskName):
                     missing.append(row.rlnBodyMaskName)
                 ref = getattr(row, 'rlnBodyReferenceName', 'None')
-                if ref != 'None' and not os.path.exists(ref):
+                if ref != 'None' and not pwutils.exists(ref):
                     missing.append(ref)
             if missing:
                 errors.append("Missing files from input star file: ")
@@ -304,7 +303,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         row = self._volsInfo[bodyNum]
         # TODO: check if the following makes sense for Volume
         item._rlnAccuracyRotations = Float(row.rlnAccuracyRotations)
-        item._rlnAccuracyTranslations = Float(row.rlnAccuracyTranslations)
+        item._rlnAccuracyTranslationsAngst = Float(row.rlnAccuracyTranslationsAngst)
 
     def _getRefineArgs(self):
         """ Define all parameters to run relion_refine.

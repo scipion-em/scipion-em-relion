@@ -76,7 +76,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
     def _defineParams(self, form):
         form.addSection(label='Input')
         form.addParam('inputMovies', params.PointerParam, pointerClass='SetOfMovies',
-                      important=True,  # pointerCondition='hasAlignment',
+                      important=True,
                       label='Input ALIGNED movies',
                       help='Provide a set of movies that have at '
                            'least global alignment information.')
@@ -282,8 +282,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
         convert.writeSetOfParticles(inputParts, imgStar,
                                     outputDir=inputPartsFolder,
                                     alignType=ALIGN_PROJ,
-                                    fillMagnification=True,
-                                    fillRandomSubset=True)
+                                    fillMagnification=True)
 
     def trainOrPolishStep(self, operation):
         postProt = self.inputPostprocess.get()
@@ -348,7 +347,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
         else:
             outputFn = None
             for fn in ['opt_params.txt', 'opt_params_all_groups.txt']:
-                if os.path.exists(self._getExtraPath(fn)):
+                if pwutils.exists(self._getExtraPath(fn)):
                     outputFn = self._getExtraPath(fn)
 
             if outputFn is None:

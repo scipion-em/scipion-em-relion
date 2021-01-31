@@ -160,6 +160,6 @@ class ProtRelionCompressMovies(ProtAlignMovies):
         inputGainProt = self.inputGainProt.get()
         if inputGainProt is not None:
             inputGain = inputGainProt.getOutputGain()
-            if os.path.exists(inputGain):
+            if pwutils.exists(inputGain):
                 return inputGain
         return None

@@ -250,8 +250,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
         convert.writeSetOfParticles(inputParts, imgStar,
                                     outputDir=inputPartsFolder,
                                     alignType=ALIGN_PROJ,
-                                    fillMagnification=True,
-                                    fillRandomSubset=True)
+                                    fillMagnification=True)
 
     def trainOrPolishStep(self, operation):
         args = "--i %s " % self._getPath('input_particles.star')

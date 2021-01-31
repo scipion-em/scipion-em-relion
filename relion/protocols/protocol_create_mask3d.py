@@ -24,6 +24,8 @@
 # *
 # **************************************************************************
 
+import math
+
 import pyworkflow.protocol.params as params
 from pwem.protocols import ProtCreateMask3D
 from pwem.objects import VolumeMask
@@ -166,7 +168,7 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
             pixVol1 = self.inputVolume.get().getSamplingRate()
             pixVol2 = self.inputVolume2.get().getSamplingRate()
 
-            if pixVol1 != pixVol2:
+            if not math.isclose(pixVol1, pixVol2, abs_tol=0.001):
                 errors.append('Pixel size should be the same for both input volumes.')
 
         return errors
