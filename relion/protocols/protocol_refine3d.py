@@ -177,4 +177,3 @@ leads to objective and high-quality results.
 
     def _updateParticle(self, particle, row):
         self.reader.setParticleTransform(particle, row)
-        self.reader.setParticleExtraAttrs(particle, row)
