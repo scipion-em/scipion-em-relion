@@ -304,10 +304,11 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
             args = "%s %s " % (gainFn, self._getPath(os.path.basename(gainFn)))
 
             if flip:
-                args += "--process xform.flip:axis=%s " % ("y" if flip==1 else "x")
+                # flip axis Y - left to right
+                args += "--process xform.flip:axis=%s " % ("y" if flip.get() == 2 else "x")
 
             if rotation:
-                args += "--rotate %d " % (rotation * 90)
+                args += "--rotate %d " % (rotation.get() * 90)
 
             from pwem import Domain
             eman2 = Domain.importFromPlugin('eman2')
