@@ -255,10 +255,9 @@ class Writer(WriterBase):
         # Process the first item and create the table based
         # on the generated columns
         self._imgLabelName = imgLabelName
-        self._extraLabels = kwargs.get('extraLabels', [])
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
-
         self._prefix = tableName[:3]
+
         micRow = OrderedDict()
         micRow[imgLabelName] = ''  # Just to add label, proper value later
         iterMics = iter(imgIterable)
@@ -266,6 +265,12 @@ class Writer(WriterBase):
         if self._optics is None:
             self._optics = OpticsGroups.fromImages(mic)
         self._imageSize = mic.getXDim()
+        self._setCtf = mic.hasCTF()
+
+        extraLabels = kwargs.get('extraLabels', [])
+        self._extraLabels = [l for l in extraLabels
+                             if mic.hasAttribute('_%s' % l)]
+
         self._micToRow(mic, micRow)
         if self._postprocessImageRow:
             self._postprocessImageRow(mic, micRow)
@@ -299,6 +304,11 @@ class Writer(WriterBase):
 
     def _micToRow(self, mic, row):
         WriterBase._micToRow(self, mic, row)
+
+        # Set CTF values
+        if self._setCtf:
+            self._ctfToRow(mic.getCTF(), row)
+
         # Set additional labels if present
         self._objToRow(mic, row, self._extraLabels)
         row['rlnOpticsGroup'] = mic.getAttributeValue('_rlnOpticsGroup', 1)
@@ -328,7 +338,7 @@ class Writer(WriterBase):
             x, y = coord.getPosition()
             row['rlnCoordinateX'] = x
             row['rlnCoordinateY'] = y
-            # Add some specify coordinate attributes
+            # Add some specific coordinate attributes
             self._objToRow(coord, row, self._coordLabels)
             micName = coord.getMicName()
             if micName:

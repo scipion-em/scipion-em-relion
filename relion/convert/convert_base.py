@@ -146,9 +146,6 @@ class WriterBase:
     def _micToRow(self, mic, row):
         row['rlnImageId'] = mic.getObjId()
 
-        if mic.hasCTF():
-            self._ctfToRow(mic.getCTF(), row)
-
     def _ctfToRow(self, ctf, row):
         psd = ctf.getPsdFile()
         if psd:
