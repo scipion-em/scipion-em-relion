@@ -166,4 +166,4 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
         if self.doRescale:
             return self.rescaleSamplingRate.get()
         else:
-            return self.inputVolume.get().getSamplingRate()
+            return self.inputVolumes.get().getSamplingRate()
