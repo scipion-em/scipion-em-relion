@@ -394,7 +394,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
         parts = self.inputParticles.get()
         movies = self.inputMovies.get()
 
-        if self.rescaledSize.get() != -1:
+        if self.rescaledSize.get() == -1:
             # no scale or window, return particle pix size
             return parts.getSamplingRate()
         else:
