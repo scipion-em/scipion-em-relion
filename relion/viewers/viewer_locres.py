@@ -53,9 +53,9 @@ class RelionLocalResViewer(LocalResolutionViewer):
 
         groupColor = form.addGroup('Colored resolution')
         groupColor.addParam('volume', params.EnumParam, default=1,
-                      choices=['from 3D refinement', 'locally filtered'],
-                      display=params.EnumParam.DISPLAY_HLIST,
-                      label="Which volume to color?")
+                            choices=['from 3D refinement', 'locally filtered'],
+                            display=params.EnumParam.DISPLAY_HLIST,
+                            label="Which volume to color?")
 
         _, minRes, maxRes, _ = self.getImgData(self.getResolutionVolumeFileName())
         ColorScaleWizardBase.defineColorScaleParams(groupColor,

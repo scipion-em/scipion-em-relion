@@ -193,7 +193,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
             # check if MTF file exists
             if og.hasColumn('rlnMtfFileName'):
                 for i in og:
-                    if not pwutils.exists(i.rlnMtfFileName):
+                    if not os.path.exists(i.rlnMtfFileName):
                         self.warning("MTF file %s not found for %s" % (
                             i.rlnMtfFileName, i.rlnOpticsGroupName
                         ))
@@ -229,10 +229,10 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
     def _validate(self):
         validateMsgs = []
 
-        if self.mtfFile.hasValue() and not pwutils.exists(self.mtfFile.get()):
+        if self.mtfFile.hasValue() and not os.path.exists(self.mtfFile.get()):
             validateMsgs.append("MTF file %s does not exist!" % self.mtfFile.get())
 
-        if self.defectFile.hasValue() and not pwutils.exists(self.defectFile.get()):
+        if self.defectFile.hasValue() and not os.path.exists(self.defectFile.get()):
             validateMsgs.append("Defect file %s does not exist!" % self.defectFile.get())
 
         return validateMsgs

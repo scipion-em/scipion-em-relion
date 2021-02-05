@@ -33,7 +33,6 @@ from emtable import Table
 import pyworkflow.protocol.params as params
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pyworkflow.viewer import (DESKTOP_TKINTER, WEB_DJANGO)
-import pyworkflow.utils as pwutils
 from pwem.viewers import (EmPlotter, EmProtocolViewer, showj,
                           FscViewer, DataView, ObjectView, ChimeraView,
                           ClassesView, Classes3DView, ChimeraAngDist)
@@ -324,7 +323,7 @@ Examples:
 
         for it in self._iterations:
             fn = self.protocol._getIterData(it, alignType=ALIGN_PROJ)
-            if not pwutils.exists(fn):
+            if not os.path.exists(fn):
                 raise Exception("Missing data star file '%s'. \n"
                                 "Plese select a valid iteration. "
                                 % fn)
@@ -339,7 +338,7 @@ Examples:
 
         for it in self._iterations:
             optimiserFile = self.protocol._getFileName('optimiser', iter=it)
-            if not pwutils.exists(optimiserFile):
+            if not os.path.exists(optimiserFile):
                 raise Exception("Missing optimiser file '%s'. \n"
                                 "Plese select a valid iteration. "
                                 % optimiserFile)
@@ -481,7 +480,7 @@ Examples:
         print("Computing average changes in offset, angles, and class membership")
         for it in self._getAllIters():
             fn = self.protocol._getFileName('optimiser', iter=it)
-            if not pwutils.exists(fn):
+            if not os.path.exists(fn):
                 continue
             print("Computing data for iteration; %03d" % it)
             fn = self.protocol._getFileName('optimiser', iter=it)
@@ -515,7 +514,7 @@ Examples:
         files = []
         volumes = self._getVolumeNames()
         for volFn in volumes:
-            if not pwutils.exists(volFn.replace(':mrc', '')):
+            if not os.path.exists(volFn.replace(':mrc', '')):
                 raise Exception("Missing volume file: %s\n Please select "
                                 "a valid class or iteration number."
                                 % volFn)
@@ -572,14 +571,14 @@ Examples:
         # If just one reference we can show the angular distribution
         ref3d = self._refsList[0]
         volFn = self._getVolumeNames()[0]
-        if not pwutils.exists(volFn.replace(":mrc", "")):
+        if not os.path.exists(volFn.replace(":mrc", "")):
             raise Exception("This class is empty. Please try with another class")
 
         for prefix in prefixes:
             sqliteFn = self.protocol._getFileName('projections',
                                                   iter=it, ref3d=ref3d,
                                                   half=prefix)
-            if not pwutils.exists(sqliteFn):
+            if not os.path.exists(sqliteFn):
                 mdOut = self._getMdOut(it, prefix, ref3d)
                 self.createAngDistributionSqlite(
                     sqliteFn, nparts,
@@ -619,7 +618,7 @@ Examples:
                     title = 'class %d' % ref3d
                 sqliteFn = self.protocol._getFileName('projections',
                                                       iter=it, ref3d=ref3d, half=prefix)
-                if not pwutils.exists(sqliteFn):
+                if not os.path.exists(sqliteFn):
                     self.createAngDistributionSqlite(sqliteFn, nparts,
                                                      itemDataIterator=self._iterAngles(
                                                          self._getMdOut(it, prefix, ref3d)))
@@ -627,7 +626,7 @@ Examples:
 
         for prefix in prefixes:
             dataStar = self._getDataStar(prefix, it)
-            if pwutils.exists(dataStar):
+            if os.path.exists(dataStar):
                 return plotter
             else:
                 return
@@ -654,7 +653,7 @@ Examples:
                 blockName = 'model_class_%d' % ref3d
                 for it in self._iterations:
                     fn = self._getModelStar(prefix, it)
-                    if pwutils.exists(fn):
+                    if os.path.exists(fn):
                         self._plotSSNR(a, fn, blockName, 'iter %d' % it)
                 xplotter.legend()
                 a.grid(True)
@@ -693,7 +692,7 @@ Examples:
         fscSet = self.protocol._createSetOfFSCs()
         for it in self._iterations:
             model_star = self._getModelStar('half1_', it)
-            if pwutils.exists(model_star):
+            if os.path.exists(model_star):
                 fsc = self._plotFSC(None, model_star, 'iter %d' % it)
                 fscSet.append(fsc)
         fscViewer.visualize(fscSet)
@@ -805,7 +804,7 @@ Examples:
         iterations = range(self.firstIter, self.lastIter + 1)
 
         return [it for it in iterations
-                if pwutils.exists(self.protocol._getFileName('optimiser',
+                if os.path.exists(self.protocol._getFileName('optimiser',
                                                              iter=it))]
 
     def _formatFreq(self, value, pos):
@@ -864,7 +863,7 @@ Examples:
                 for prefix in prefixes:
                     volFn = self.protocol._getFileName(prefix + 'volume',
                                                        iter=it, ref3d=ref3d)
-                    if pwutils.exists(volFn.replace(':mrc', '')):
+                    if os.path.exists(volFn.replace(':mrc', '')):
                         vols.append(volFn)
                     else:
                         raise Exception("Volume %s does not exists. \n"

@@ -29,7 +29,7 @@ from pyworkflow.plugin import Domain
 from pyworkflow.protocol.constants import STATUS_FINISHED
 from pyworkflow.utils import magentaStr
 from pwem import Config
-from pwem.objects import SetOfParticles, Volume
+from pwem.objects import SetOfParticles
 from pwem.protocols import *
 
 from ..protocols import *
@@ -42,7 +42,7 @@ def useGpu():
     Return a boolean and a label to be used in protocol's label. """
     cudaPath = Plugin.getVar('RELION_CUDA_LIB', Config.CUDA_LIB)
 
-    if cudaPath and pwutils.existsVariablePaths(cudaPath):
+    if cudaPath and os.path.exists(cudaPath):
         return True, 'GPU'
     else:
         return False, 'CPU'

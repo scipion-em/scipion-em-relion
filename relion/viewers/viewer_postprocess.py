@@ -149,7 +149,7 @@ class PostprocessViewer(ProtocolViewer):
 
         modelStar = self.protocol._getExtraPath('postprocess.star')
         for label in self._getFSCLabels():
-            if pwutils.exists(modelStar):
+            if os.path.exists(modelStar):
                 legend = self._getLegend(label)
                 fsc = self._plotFSC(None, modelStar, label, legend)
                 fscSet.append(fsc)
@@ -177,7 +177,7 @@ class PostprocessViewer(ProtocolViewer):
         legends = []
         modelStar = self.protocol._getExtraPath('postprocess.star')
         for label in self._getGuinerLabels():
-            if pwutils.exists(modelStar):
+            if os.path.exists(modelStar):
                 self._plotGuinier(a, modelStar, label)
                 legends.append(self._getGuinerLegend(label))
 

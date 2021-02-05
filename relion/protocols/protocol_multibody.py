@@ -24,6 +24,7 @@
 # *
 # **************************************************************************
 
+import os
 from emtable import Table
 
 import pyworkflow.utils as pwutils
@@ -254,16 +255,16 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
     def _validate(self):
         errors = []
         bodyFn = self.bodyStarFile.get()
-        if not pwutils.exists(bodyFn):
+        if not os.path.exists(bodyFn):
             errors.append("Input body star file %s does not exist." % bodyFn)
         else:
             table = Table(fileName=bodyFn)
             missing = []
             for row in table:
-                if not pwutils.exists(row.rlnBodyMaskName):
+                if not os.path.exists(row.rlnBodyMaskName):
                     missing.append(row.rlnBodyMaskName)
                 ref = getattr(row, 'rlnBodyReferenceName', 'None')
-                if ref != 'None' and not pwutils.exists(ref):
+                if ref != 'None' and not os.path.exists(ref):
                     missing.append(ref)
             if missing:
                 errors.append("Missing files from input star file: ")
