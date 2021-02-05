@@ -108,6 +108,7 @@ class ClassesLoader:
     def __init__(self, protocol, alignType):
         self._protocol = protocol
         self._alignType = alignType
+        self._reader = None  # Will be created later
 
     def _loadClassesInfo(self, iteration):
         """ Read some information about the produced Relion 3D classes
@@ -144,6 +145,12 @@ class ClassesLoader:
     def _updateParticle(self, item, row):
         item.setClassId(row.rlnClassNumber)
         self._reader.setParticleTransform(item, row)
+
+        if getattr(self, '__updatingFirst', True):
+            self._reader.createExtraLabels(item, row, PARTICLE_EXTRA_LABELS)
+            self.__updatingFirst = False
+        else:
+            self._reader.setExtraLabels(item, row)
 
     def _updateClass(self, item):
         classId = item.getObjId()

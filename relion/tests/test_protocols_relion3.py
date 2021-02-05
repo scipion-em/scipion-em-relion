@@ -27,7 +27,7 @@
 import os
 
 import pyworkflow.tests as pwtests
-from pyworkflow.utils import copyTree, join, magentaStr
+from pyworkflow.utils import copyTree, magentaStr
 import pwem.protocols as emprot
 from pwem.tests.workflows import TestWorkflow
 from pwem.objects import SetOfMovies
@@ -43,7 +43,7 @@ GPUS = os.environ.get('SCIPION_TEST_GPUS', 2)
 
 class Relion3TestProtocolBase(TestWorkflow):
     GROUP_NAME = "opticsGroupTest"
-    MTF_FILE = join(os.path.dirname(relion.convert.__file__), 'mtfs',
+    MTF_FILE = os.path.join(os.path.dirname(relion.convert.__file__), 'mtfs',
                     'mtf_k2_300_ec.star')
 
     @classmethod

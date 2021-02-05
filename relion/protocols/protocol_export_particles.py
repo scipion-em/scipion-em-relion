@@ -125,7 +125,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
     def _summary(self):
         summary = []
 
-        if pwutils.exists(self._getStarFile()):
+        if os.path.exists(self._getStarFile()):
             summary.append("Output is written to: \n%s\n" %
                            os.path.abspath(self._getExportPath()))
             summary.append("Pixel size: *%0.3f*" % self._getPixelSize())

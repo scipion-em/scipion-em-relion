@@ -25,12 +25,14 @@
 # **************************************************************************
 from emtable import Table
 
+from pyworkflow.object import ObjectWrap
 from pwem.constants import ALIGN_PROJ
 from pwem.objects import Volume, FSC
 from pwem.protocols import ProtRefine3D
 
 from relion import Plugin
 import relion.convert as convert
+from ..constants import PARTICLE_EXTRA_LABELS
 from .protocol_base import ProtRelionBase
 
 
@@ -177,3 +179,9 @@ leads to objective and high-quality results.
 
     def _updateParticle(self, particle, row):
         self.reader.setParticleTransform(particle, row)
+
+        if getattr(self, '__updatingFirst', True):
+            self.reader.createExtraLabels(particle, row, PARTICLE_EXTRA_LABELS)
+            self.__updatingFirst = False
+        else:
+            self.reader.setExtraLabels(particle, row)

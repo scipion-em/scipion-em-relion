@@ -26,6 +26,7 @@
 # *
 # **************************************************************************
 
+import os
 from emtable import Table
 
 import pyworkflow.utils as pwutils
@@ -218,7 +219,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
         errors = []
         mtfFile = self.mtf.get()
 
-        if mtfFile and not pwutils.exists(mtfFile):
+        if mtfFile and not os.path.exists(mtfFile):
             errors.append("Missing MTF-file '%s'" % mtfFile)
 
         return errors
@@ -229,7 +230,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
     def _summary(self):
         summary = []
         postStarFn = self._getExtraPath("postprocess.star")
-        if pwutils.exists(postStarFn):
+        if os.path.exists(postStarFn):
             table = Table(fileName=postStarFn, tableName='general')
             row = table[0]
             summary.append("Final resolution: *%0.2f A*" %

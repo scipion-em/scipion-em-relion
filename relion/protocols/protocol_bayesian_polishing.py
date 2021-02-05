@@ -321,6 +321,8 @@ class ProtRelionBayesianPolishing(ProtParticles):
         imgSet = self.inputParticles.get()
         outImgSet = self._createSetOfParticles()
         outImgSet.copyInfo(imgSet)
+        pixSize = self._getOutputPixSize()
+        outImgSet.setSamplingRate(pixSize)
 
         outImgsFn = md.MetaData('particles@' + self._getFileName('shiny'))
         rowIterator = md.SetMdIterator(outImgsFn, sortByLabel=md.RLN_IMAGE_ID,
@@ -347,7 +349,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
         else:
             outputFn = None
             for fn in ['opt_params.txt', 'opt_params_all_groups.txt']:
-                if pwutils.exists(self._getExtraPath(fn)):
+                if os.path.exists(self._getExtraPath(fn)):
                     outputFn = self._getExtraPath(fn)
 
             if outputFn is None:
@@ -379,7 +381,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
                               "larger than the extraction size")
 
         if self.operation == self.OP_TRAIN and self.numberOfMpi > 1:
-            errors.append("Parameter estimation is not supported in MPI mode.")
+            errors.append("MPI is not supported for parameters estimation.")
         return errors
 
     # -------------------------- UTILS functions ------------------------------
@@ -397,3 +399,18 @@ class ProtRelionBayesianPolishing(ProtParticles):
     def _updateMic(self, mic, row):
         row['rlnMicrographName'] = os.path.basename(mic.getMicName())
         row['rlnMicrographMetadata'] = self._getMovieStar(mic)
+
+    def _getOutputPixSize(self):
+        parts = self.inputParticles.get()
+        movies = self.inputMovies.get()
+
+        if self.rescaledSize.get() == -1:
+            # no scale or window, return particle pix size
+            return parts.getSamplingRate()
+        else:
+            if self.rescaledSize.get() == self.extrSize.get():
+                # window only, return movie pix size
+                return movies.getSamplingRate()
+            else:
+                # rescale and window
+                return movies.getSamplingRate() * self.extrSize.get() / self.rescaledSize.get()

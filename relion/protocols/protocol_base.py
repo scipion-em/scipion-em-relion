@@ -24,6 +24,7 @@
 # *
 # **************************************************************************
 
+import os
 import re
 import math
 from glob import glob
@@ -1122,7 +1123,7 @@ class ProtRelionBase(EMProtocol):
         if clean:
             pwutils.cleanPath(data_classes)
 
-        if not pwutils.exists(data_classes):
+        if not os.path.exists(data_classes):
             clsSet = self.OUTPUT_TYPE(filename=data_classes)
             clsSet.setImages(self.inputParticles.get())
             self._fillClassesFromIter(clsSet, it)
@@ -1139,7 +1140,7 @@ class ProtRelionBase(EMProtocol):
         """ Sort the it??.data.star file by the maximum likelihood. """
         data_sqlite = self._getFileName('data_scipion', iter=it)
 
-        if not pwutils.exists(data_sqlite):
+        if not os.path.exists(data_sqlite):
             iterImgSet = SetOfParticles(filename=data_sqlite)
             iterImgSet.copyInfo(self._getInputParticles())
             self._fillDataFromIter(iterImgSet, it)
