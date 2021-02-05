@@ -241,7 +241,7 @@ class ProtRelionSubtract(ProtOperateParticles):
             tmp = self._getTmpPath()
             newDim = self._getInputParticles().getXDim()
             newPix = self._getInputParticles().getSamplingRate()
-            maskFn = convert.convertMask(self.refMask.get(), tmp, newPix, newDim)
+            maskFn = convert.convertMaskThreshold(self.refMask.get(), tmp, newPix, newDim)
             params += ' --mask %s' % maskFn
 
         if self._getInputParticles().isPhaseFlipped():
@@ -341,8 +341,8 @@ class ProtRelionSubtract(ProtOperateParticles):
         if self.isRelionInput:
             # FIXME: check if other attrs need saving
             particle._rlnRandomSubset = Integer(row.rlnRandomSubset)
+            self.reader.setParticleTransform(particle, row)
         particle._rlnImageOriginalName = String(row.rlnImageOriginalName)
-        self.reader.setParticleTransform(particle, row)
         newFn = row.rlnImageName
         newLoc = convert.relionToLocation(newFn)
         particle.setLocation(newLoc)
