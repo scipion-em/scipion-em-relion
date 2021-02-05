@@ -34,7 +34,7 @@ import numpy as np
 from collections import OrderedDict
 from emtable import Table
 
-from pyworkflow.object import ObjectWrap
+
 from pwem.constants import ALIGN_NONE, ALIGN_PROJ, ALIGN_2D, ALIGN_3D
 from pwem.objects import (Micrograph, SetOfMicrographsBase, SetOfMovies,
                           Particle, CTFModel, Acquisition, Transform)
@@ -528,12 +528,8 @@ class Reader(ReaderBase):
         acq = Acquisition()
         acq.setMagnification(kwargs.get('magnification', 10000))
 
-        extraLabels = kwargs.get('extraLabels', [])
-        extraLabels.extend(PARTICLE_EXTRA_LABELS)
-        self._extraLabels = [l for l in extraLabels if partsReader.hasColumn(l)]
-        for label in self._extraLabels:
-            setattr(particle, '_' + label,
-                    ObjectWrap(getattr(firstRow, label)))
+        extraLabels = kwargs.get('extraLabels', []) + PARTICLE_EXTRA_LABELS
+        self.createExtraLabels(particle, firstRow, extraLabels)
 
         self._rowToPart(firstRow, particle)
         partSet.setSamplingRate(self._pixelSize)
@@ -565,9 +561,7 @@ class Reader(ReaderBase):
             self.rowToCtf(row, particle.getCTF())
 
         self.setParticleTransform(particle, row)
-
-        for label in self._extraLabels:
-            getattr(particle, '_' + label).set(getattr(row, label))
+        self.setExtraLabels(particle, row)
 
         # TODO: coord, partId, micId,
 

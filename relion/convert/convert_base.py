@@ -32,9 +32,11 @@ New conversion functions dealing with Relion3.1 new star files format.
 import os
 from emtable import Table
 
+import pyworkflow.utils as pwutils
+from pyworkflow.object import ObjectWrap
+
 from pwem.constants import ALIGN_NONE
 from pwem.emlib.image import ImageHandler
-import pyworkflow.utils as pwutils
 
 
 class WriterBase:
@@ -175,6 +177,7 @@ class ReaderBase:
         self._alignType = kwargs.get('alignType', ALIGN_NONE)
         self._pixelSize = kwargs.get('pixelSize', 1.0)
         self._invPixelSize = 1. / self._pixelSize
+        self._extraLabels = []
 
     def readSetOfParticles(self, starFile, partsSet, **kwargs):
         """ Convert a star file into a set of particles.
@@ -194,3 +197,23 @@ class ReaderBase:
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
         pass
+
+    def createExtraLabels(self, item, row, extraLabels):
+        """ Create new Objects for each extra label if contained in
+        the columnObj. It will set the self._extraLabels property.
+        Args:
+            item: Object item that will have new extra labels objects
+            row: column object that should have a method hasColumn
+            extraLabels: list of label names that will be set if present
+                in columnObj
+        """
+        self._extraLabels = [l for l in extraLabels if row.hasColumn(l)]
+        for label in self._extraLabels:
+            setattr(item, '_' + label,
+                    ObjectWrap(getattr(row, label)))
+
+    def setExtraLabels(self, item, row):
+        """ Set values for already computed extraLabels with
+        self.createExtraLabels. """
+        for label in self._extraLabels:
+            getattr(item, '_' + label).set(getattr(row, label))
