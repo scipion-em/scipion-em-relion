@@ -487,7 +487,6 @@ class Reader(ReaderBase):
         """
         """
         ReaderBase.__init__(self, **kwargs)
-        self._first = True
 
     def readSetOfParticles(self, starFile, partSet, **kwargs):
         """ Convert a star file into a set of particles.

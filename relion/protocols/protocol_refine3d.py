@@ -180,11 +180,8 @@ leads to objective and high-quality results.
     def _updateParticle(self, particle, row):
         self.reader.setParticleTransform(particle, row)
 
-        if self.reader._first:
-            self._extraLabels = [l for l in PARTICLE_EXTRA_LABELS if row.hasColumn(l)]
-            for label in self._extraLabels:
-                setattr(particle, '_' + label, ObjectWrap(getattr(row, label)))
-            self.reader._first = False
+        if getattr(self, '__updatingFirst', True):
+            self.reader.createExtraLabels(particle, row, PARTICLE_EXTRA_LABELS)
+            self.__updatingFirst = False
         else:
-            for label in self._extraLabels:
-                getattr(particle, '_' + label).set(getattr(row, label))
+            self.reader.setExtraLabels(particle, row)
