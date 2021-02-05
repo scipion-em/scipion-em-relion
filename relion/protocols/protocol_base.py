@@ -55,6 +55,7 @@ class ProtRelionBase(EMProtocol):
     some of the function have a template pattern approach to define the behaviour
     depending on the case.
     """
+    _label = None
     IS_CLASSIFY = True
     IS_2D = False
     IS_3D_INIT = False
@@ -164,8 +165,8 @@ class ProtRelionBase(EMProtocol):
                       label='Consider alignment as priors?',
                       help='If set to Yes, then alignment information from '
                            'input particles will be considered as PRIORS. This '
-                           'option is mandatory if you want to do local '
-                           'searches')
+                           'option can be used to do restricted local '
+                           'search within a range centered around those priors.')
         form.addParam('fillRandomSubset', BooleanParam, default=False,
                       condition='not doContinue and copyAlignment',
                       expertLevel=LEVEL_ADVANCED,
@@ -407,7 +408,7 @@ class ProtRelionBase(EMProtocol):
                                'division of the data into random subsets during '
                                'the first iteration.')
             # Default T is 2 for 2D but 4 for 3D in Relion GUI
-            form.addParam('regularisationParamT', IntParam,
+            form.addParam('regularisationParamT', FloatParam,
                           default=2 if self.IS_2D else 4,
                           label='Regularisation parameter T',
                           help='Bayes law strictly determines the relative '
@@ -662,6 +663,11 @@ class ProtRelionBase(EMProtocol):
                                '(i.e. use --pad 1) gives nearly as good results '
                                'as using --pad 2, but some artifacts may appear '
                                'in the corners from signal that is folded back.')
+            form.addParam('skipGridding', BooleanParam, default=True,
+                          label='Skip gridding',
+                          help='If set to Yes, the calculations will '
+                               'skip gridding in the M step to save time, '
+                               'typically with just as good results.')
 
         form.addParam('allParticlesRam', BooleanParam, default=False,
                       label='Pre-read all particles into RAM?',
@@ -1011,11 +1017,11 @@ class ProtRelionBase(EMProtocol):
 
     def _setBasicArgs(self, args):
         """ Return a dictionary with basic arguments. """
-        args['--flatten_solvent'] = ''
         args['--norm'] = ''
         args['--scale'] = ''
         args['--o'] = self._getExtraPath('relion')
         args['--oversampling'] = self.oversampling.get()
+        args['--flatten_solvent'] = ''
 
         if self.IS_CLASSIFY:
             args['--tau2_fudge'] = self.regularisationParamT.get()
@@ -1027,6 +1033,8 @@ class ProtRelionBase(EMProtocol):
         # Padding can be set in a normal run or in a continue
         if self.IS_3D:
             args['--pad'] = 1 if self.skipPadding else 2
+            if self.skipGridding:
+                args['--skip_gridding'] = ''
 
         self._setSamplingArgs(args)
         self._setMaskArgs(args)

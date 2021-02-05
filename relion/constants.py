@@ -50,12 +50,6 @@ OTHER = 1
 REF_AVERAGES = 0
 REF_VOLUME = REF_BLOBS = 1
 
-RUN_OPTIMIZE = 0  # Run only on several micrographs to optimize parameters
-RUN_COMPUTE = 1  # Run the picking for all micrographs after optimize
-
-MICS_AUTO = 0
-MICS_SUBSET = 1
-
 # Used in ctf-refinment
 FIT_NO = 0
 FIT_MICS = 1

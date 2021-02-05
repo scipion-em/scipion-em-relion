@@ -39,7 +39,7 @@ def useGpu():
     """ Helper function to determine if GPU can be used.
     Return a boolean and a label to be used in protocol's label. """
     environ = pwutils.Environ(os.environ)
-    cudaPath = environ.get('RELION_CUDA_LIB', pwem.Config.CUDA_LIB)
+    cudaPath = Plugin.getVar('RELION_CUDA_LIB', pwem.Config.CUDA_LIB)
 
     if cudaPath and pwutils.existsVariablePaths(cudaPath):
         return True, 'GPU'
@@ -214,7 +214,6 @@ class TestRelionPicking(TestRelionBase):
             ProtRelion2Autopick,
             inputMicrographs=self.protImportMics.outputMicrographs,
             ctfRelations=protCtf.outputCTF,
-            runType=relion.RUN_COMPUTE,
             inputReferences=protAvg.outputAverages,
             streamingBatchSize=5,
         )
@@ -1337,7 +1336,6 @@ class TestRelionExportCtf(TestRelionBase):
         self.assertIsNotNone(protCTF.outputCTF,
                              "There was a problem when importing ctfs.")
         return protCTF
-
 
     def runImportCtffind4(self):
         print(magentaStr("\n==> Importing data - ctfs (from ctffind)"))

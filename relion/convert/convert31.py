@@ -36,7 +36,7 @@ from emtable import Table
 
 import pyworkflow as pw
 import pwem
-from pwem.objects import Micrograph, SetOfMicrographsBase
+from pwem.objects import Micrograph, SetOfMicrographsBase, SetOfMovies
 import pwem.convert.transformations as tfs
 
 from .convert_base import WriterBase, ReaderBase
@@ -48,7 +48,7 @@ from relion.constants import PARTICLE_EXTRA_LABELS
 def getPixelSizeLabel(imageSet):
     """ Return the proper label for pixel size. """
     if (isinstance(imageSet, SetOfMicrographsBase)
-        or isinstance(imageSet, Micrograph)):
+            or isinstance(imageSet, Micrograph)):
         return 'rlnMicrographPixelSize'
     else:
         return 'rlnImagePixelSize'
@@ -58,6 +58,7 @@ class OpticsGroups:
     """ Store information about optics groups in an indexable way.
     Existing groups can be accessed by number of name.
     """
+
     def __init__(self, opticsTable):
         self.__fromTable(opticsTable)
 
@@ -107,7 +108,7 @@ class OpticsGroups:
     def updateAll(self, **kwargs):
         """ Update all Optics Groups with these values. """
         missing = {k: v for k, v in kwargs.items() if not self.hasColumn(k)}
-        existing  = {k: v for k, v in kwargs.items() if self.hasColumn(k)}
+        existing = {k: v for k, v in kwargs.items() if self.hasColumn(k)}
 
         self.addColumns(**missing)
 
@@ -155,16 +156,21 @@ class OpticsGroups:
     @staticmethod
     def fromImages(imageSet):
         acq = imageSet.getAcquisition()
+        params = {'rlnImageSize': imageSet.getXDim(),
+                  getPixelSizeLabel(imageSet): imageSet.getSamplingRate()}
+        if isinstance(imageSet, SetOfMovies):
+            params['rlnMicrographOriginalPixelSize'] = imageSet.getSamplingRate()
         try:
-            return OpticsGroups.fromString(acq.opticsGroupInfo.get())
+            og = OpticsGroups.fromString(acq.opticsGroupInfo.get())
+            # always update sampling and image size from the set
+            og.updateAll(**params)
+            return og
         except:
-            params = {
+            params.update({
                 'rlnVoltage': acq.getVoltage(),
                 'rlnSphericalAberration': acq.getSphericalAberration(),
                 'rlnAmplitudeContrast': acq.getAmplitudeContrast(),
-                'rlnImageSize': imageSet.getXDim(),
-                getPixelSizeLabel(imageSet): imageSet.getSamplingRate()
-            }
+            })
             return OpticsGroups.create(**params)
 
     @staticmethod
@@ -189,7 +195,7 @@ opticsGroup1            1      1.000000   300.000000     2.700000     0.100000  
 
         og = OpticsGroups.fromString(opticsString1)
         fog = og.first()
-        newColumns = {k:v for k, v in kwargs.items() if not hasattr(fog, k)}
+        newColumns = {k: v for k, v in kwargs.items() if not hasattr(fog, k)}
         og.addColumns(**newColumns)
         og.update(1, **kwargs)
         return og
@@ -228,6 +234,7 @@ class Writer(WriterBase):
     """ Helper class to convert from Scipion SetOfImages subclasses
     into Relion>3.1 star files (and binaries if conversion needed).
     """
+
     def writeSetOfMovies(self, moviesIterable, starFile, **kwargs):
         self._writeSetOfMoviesOrMics(moviesIterable, starFile,
                                      'movies', 'rlnMicrographMovieName',
@@ -379,7 +386,6 @@ class Writer(WriterBase):
         # when flags are True, some operations will be applied to all particles
         self._preprocessImageRow = kwargs.get('preprocessImageRow', None)
 
-
         self._setCtf = kwargs.get('writeCtf', True) and firstPart.hasCTF()
 
         alignType = kwargs.get('alignType', partsSet.getAlignment())
@@ -451,7 +457,6 @@ class Writer(WriterBase):
 
 
 class Reader(ReaderBase):
-
     ALIGNMENT_LABELS = [
         "rlnOriginXAngst",
         "rlnOriginYAngst",
@@ -558,7 +563,7 @@ class Reader(ReaderBase):
         for label in self._extraLabels:
             getattr(particle, '_%s' % label).set(getattr(row, label))
 
-        #TODO: coord, partId, micId,
+        # TODO: coord, partId, micId,
 
         if self._postprocessImageRow:
             self._postprocessImageRow(particle, row)

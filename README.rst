@@ -4,6 +4,27 @@ Relion plugin
 
 This plugin provide wrappers around several programs of `RELION <https://www3.mrc-lmb.cam.ac.uk/relion/index.php/Main_Page>`_ software suite.
 
+.. image:: https://img.shields.io/pypi/v/scipion-em-relion.svg
+        :target: https://pypi.python.org/pypi/scipion-em-relion
+        :alt: PyPI release
+
+.. image:: https://img.shields.io/pypi/l/scipion-em-relion.svg
+        :target: https://pypi.python.org/pypi/scipion-em-relion
+        :alt: License
+
+.. image:: https://img.shields.io/pypi/pyversions/scipion-em-relion.svg
+        :target: https://pypi.python.org/pypi/scipion-em-relion
+        :alt: Supported Python versions
+
+.. image:: https://img.shields.io/sonar/quality_gate/scipion-em_scipion-em-relion?server=https%3A%2F%2Fsonarcloud.io
+        :target: https://sonarcloud.io/dashboard?id=scipion-em_scipion-em-relion
+        :alt: SonarCloud quality gate
+
+.. image:: https://img.shields.io/pypi/dm/scipion-em-relion
+        :target: https://pypi.python.org/pypi/scipion-em-relion
+        :alt: Downloads
+
+
 +--------------+----------------+--------------------+
 | prod: |prod| | devel: |devel| | support: |support| |
 +--------------+----------------+--------------------+

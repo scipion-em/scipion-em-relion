@@ -183,7 +183,6 @@ def writeCoordsConfig(configFn, boxSize, state):
     table.write(configFn, tableName='properties')
 
 
-
 def openMd(fn, state='Manual'):
     # We are going to write metadata directly to file to do it faster
     f = open(fn, 'w')

@@ -230,7 +230,7 @@ class DefocusGroups:
             # Only when we reach the min number of particles
             # and the defocus difference, we create a new group
             if (group.count >= minGroupSize
-                and (defocus - group.minDefocus > defocusDiff)):
+                    and (defocus - group.minDefocus > defocusDiff)):
                 group = self.__addGroup()
 
             group.addDefocus(defocus)
@@ -238,7 +238,7 @@ class DefocusGroups:
     def getGroup(self, defocus):
         """ Return the group that this defocus belong. """
         if (defocus < self._groups[0].minDefocus
-            or defocus > self._groups[-1].maxDefocus):
+                or defocus > self._groups[-1].maxDefocus):
             return None
 
         for group in self._groups:

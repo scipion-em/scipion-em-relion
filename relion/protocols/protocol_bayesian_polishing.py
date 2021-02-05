@@ -281,8 +281,6 @@ class ProtRelionBayesianPolishing(ProtParticles):
         args += "--o %s " % self._getExtraPath()
         postStar = postProt._getExtraPath('postprocess.star')
         args += "--f %s " % postStar
-        postprocessTuple = convert.getVolumesFromPostprocess(postStar)
-        args += "--m1 %s --m2 %s --mask %s " % postprocessTuple
         args += "--angpix_ref %0.5f " % postProt.outputVolume.getSamplingRate()
         args += "--corr_mic %s " % self._getFileName('input_mics')
         args += "--first_frame %d --last_frame %d " % (self.frame0, self.frameN)
@@ -372,7 +370,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
                               "larger than the extraction size")
 
         if self.operation == self.OP_TRAIN and self.numberOfMpi > 1:
-                errors.append("Parameter estimation is not supported in MPI mode.")
+            errors.append("Parameter estimation is not supported in MPI mode.")
         return errors
 
     # -------------------------- UTILS functions ------------------------------

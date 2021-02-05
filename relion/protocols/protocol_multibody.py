@@ -321,11 +321,15 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
             '--o': self._getExtraPath('run'),
             '--solvent_correct_fsc': '',
             '--oversampling': 1,
+            '--pad': 1 if self.skipPadding else 2,
             '--healpix_order': healpix,
             '--auto_local_healpix_order': healpix,
             '--offset_range': self.initialOffsetRange.get(),
             '--offset_step': self.initialOffsetStep.get()
         }
+
+        if self.skipGridding:
+            args['--skip_gridding'] = ''
 
         # restore mask for previous refinement protocol
         # it's not used by multibody but required by relion cmd
