@@ -24,6 +24,7 @@
 # *
 # ******************************************************************************
 
+import pyworkflow.utils as pwutils
 from pwem.objects import SetOfMovies
 
 from .viewer_base import *

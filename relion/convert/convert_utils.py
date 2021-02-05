@@ -163,7 +163,7 @@ def convertBinaryVol(vol, outputDir):
     fn = vol.getFileName()
 
     if not fn.endswith('.mrc'):
-        newFn = pwutils.join(outputDir, pwutils.replaceBaseExt(fn, 'mrc'))
+        newFn = os.path.join(outputDir, pwutils.replaceBaseExt(fn, 'mrc'))
         ih.convert(fn, newFn)
         return newFn
 
@@ -188,7 +188,7 @@ def convertMask(img, outputPath, newPix=None, newDim=None, threshold=True):
     inPix = img.getSamplingRate()
 
     if os.path.isdir(outputPath):
-        outFn = pwutils.join(outputPath, pwutils.replaceBaseExt(imgFn, 'mrc'))
+        outFn = os.path.join(outputPath, pwutils.replaceBaseExt(imgFn, 'mrc'))
     else:
         outFn = outputPath
 
