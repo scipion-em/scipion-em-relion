@@ -214,6 +214,38 @@ def convertMask(img, outputPath, newPix=None, newDim=None):
     params += ' --threshold_above 1 --threshold_below 0'
     pwutils.runJob(None, 'relion_image_handler', params, env=Plugin.getEnviron())
 
+def convertMaskThreshold(img, outputPath, newPix=None, newDim=None):
+    """ Convert mask to mrc format read by Relion.
+    Params:
+        img: input image to be converted.
+        outputPath: it can be either a directory or a file path.
+            If it is a directory, the output name will be inferred from input
+            and put into that directory. If it is not a directory,
+            it is assumed is the output filename.
+        newPix: output pixel size (equals input if None)
+        newDim: output box size
+    Return:
+        new file name of the mask.
+    """
+    index, filename = img.getLocation()
+    imgFn = locationToRelion(index, filename)
+    inPix = img.getSamplingRate()
+    outPix = inPix if newPix is None else newPix
+
+    if os.path.isdir(outputPath):
+        outFn = pwutils.join(outputPath, pwutils.replaceBaseExt(imgFn, 'mrc'))
+    else:
+        outFn = outputPath
+
+    params = '--i %s --o %s --angpix %0.5f ' % (
+        imgFn, outFn, inPix)
+
+    if newDim is not None:
+        params += ' --new_box %d' % newDim
+
+    params += ' --ini_threshold 0.01'
+    pwutils.runJob(None, 'relion_mask_create', params, env=Plugin.getEnviron())
+
     return outFn
 
 
