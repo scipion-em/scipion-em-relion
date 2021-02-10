@@ -24,12 +24,12 @@
 # *
 # **************************************************************************
 import os
-
 import emtable
-import pyworkflow as pw
+
+from pyworkflow.object import Integer
 import pyworkflow.utils as pwutils
-import pwem
 import pyworkflow.protocol.params as params
+from pwem.objects import SetOfMovies, SetOfParticles, SetOfMicrographs
 
 from relion.convert.convert31 import OpticsGroups, getPixelSizeLabel
 from .protocol_base import ProtRelionBase
@@ -134,13 +134,13 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
 
         getMicName = lambda item: item.getMicName()
 
-        if isinstance(inputSet, pwem.objects.SetOfMovies):
+        if isinstance(inputSet, SetOfMovies):
             outputSet = self._createSetOfMovies()
             outputName = 'outputMovies'
-        elif isinstance(inputSet, pwem.objects.SetOfMicrographs):
+        elif isinstance(inputSet, SetOfMicrographs):
             outputSet = self._createSetOfMicrographs()
             outputName = 'outputMicrographs'
-        elif isinstance(inputSet, pwem.objects.SetOfParticles):
+        elif isinstance(inputSet, SetOfParticles):
             outputSet = self._createSetOfParticles()
             outputName = 'outputParticles'
             getMicName = lambda item: item.getCoordinate().getMicName()
@@ -193,7 +193,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
             # check if MTF file exists
             if og.hasColumn('rlnMtfFileName'):
                 for i in og:
-                    if not pwutils.exists(i.rlnMtfFileName):
+                    if not os.path.exists(i.rlnMtfFileName):
                         self.warning("MTF file %s not found for %s" % (
                             i.rlnMtfFileName, i.rlnOpticsGroupName
                         ))
@@ -210,7 +210,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                 ogNumber = micDict[micName]
 
                 if not hasattr(item, '_rlnOpticsGroup'):
-                    item._rlnOpticsGroup = pw.object.Integer()
+                    item._rlnOpticsGroup = Integer()
 
                 item._rlnOpticsGroup.set(ogNumber)
 
@@ -229,10 +229,10 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
     def _validate(self):
         validateMsgs = []
 
-        if self.mtfFile.hasValue() and not pwutils.exists(self.mtfFile.get()):
+        if self.mtfFile.hasValue() and not os.path.exists(self.mtfFile.get()):
             validateMsgs.append("MTF file %s does not exist!" % self.mtfFile.get())
 
-        if self.defectFile.hasValue() and not pwutils.exists(self.defectFile.get()):
+        if self.defectFile.hasValue() and not os.path.exists(self.defectFile.get()):
             validateMsgs.append("Defect file %s does not exist!" % self.defectFile.get())
 
         return validateMsgs

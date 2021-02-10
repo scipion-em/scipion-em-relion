@@ -24,7 +24,7 @@
 # *
 # **************************************************************************
 
-from os.path import relpath
+from os.path import relpath, abspath
 
 import pyworkflow.protocol.params as params
 from pwem.protocols import ProtParticlePickingAuto
@@ -136,7 +136,6 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
                            'automatically from the templates themselves.')
 
         form.addParam('lowpassFilterRefs', params.IntParam, default=20,
-                      condition=refCondition,
                       label='Lowpass filter references (A)',
                       help='Lowpass filter that will be applied to the '
                            'references before template matching. \n'
@@ -347,9 +346,9 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
             params += ' --gpu "%s"' % self.gpusToUse
 
         if self.useInputReferences():
-            params += ' --ref ../../reference_2d.stk'
+            params += ' --ref %s' % abspath(self._getPath('reference_2d.stk'))
         else:  # 3D reference
-            params += ' --ref ../../reference_3d.mrc'
+            params += ' --ref %s' % abspath(self._getPath('reference_3d.mrc'))
             params += ' --sym %s' % self.symmetryGroup
             params += ' --healpix_order %d' % (int(self.angularSamplingDeg.get()) + 1)
 

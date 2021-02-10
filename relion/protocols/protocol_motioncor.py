@@ -33,7 +33,6 @@ import pyworkflow.object as pwobj
 import pyworkflow.protocol.params as params
 import pyworkflow.protocol.constants as cons
 import pyworkflow.utils as pwutils
-import pwem
 from pwem.protocols import ProtAlignMovies
 from pwem.objects import Image
 from pyworkflow.gui.plotter import Plotter
@@ -55,6 +54,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
         ProtAlignMovies.__init__(self, **kwargs)
         self.stepsExecutionMode = STEPS_SERIAL
+        self.updatedSets = []
 
     def _getConvertExtension(self, filename):
         """ Check whether it is needed to convert to .mrc or not """
@@ -376,12 +376,12 @@ class ProtRelionMotioncor(ProtAlignMovies):
         return self._getNameExt(movie, '_psd', 'jpeg', extra=True)
 
     def _setPlotInfo(self, movie, mic):
-        mic.plotGlobal = pwem.objects.Image(location=self._getPlotGlobal(movie))
+        mic.plotGlobal = Image(location=self._getPlotGlobal(movie))
         if self.doComputePSD:
-            mic.psdCorr = pwem.objects.Image(location=self._getPsdCorr(movie))
-            mic.psdJpeg = pwem.objects.Image(location=self._getPsdJpeg(movie))
+            mic.psdCorr = Image(location=self._getPsdCorr(movie))
+            mic.psdJpeg = Image(location=self._getPsdJpeg(movie))
         if self.doComputeMicThumbnail:
-            mic.thumbnail = pwem.objects.Image(
+            mic.thumbnail = Image(
                 location=self._getOutputMicThumbnail(movie))
 
     def _computeExtra(self, movie):
@@ -503,6 +503,19 @@ class ProtRelionMotioncor(ProtAlignMovies):
         if outputSize < inputSize:
             self.warning(pwutils.yellowStr("WARNING - Failed to align %d movies."
                                            % (inputSize - outputSize)))
+
+    def _updateOutputSet(self, outputName, outputSet,
+                         state=pwobj.Set.STREAM_OPEN):
+        """ Redefine this method to update optics info. """
+
+        if outputName not in self.updatedSets:
+            og = OpticsGroups.fromImages(outputSet)
+            og.updateAll(rlnMicrographOriginalPixelSize=self.inputMovies.get().getSamplingRate())
+            og.toImages(outputSet)
+            self.updatedSets.append(outputName)
+
+        ProtAlignMovies._updateOutputSet(self, outputName, outputSet,
+                                         state=state)
 
     def _calcPsDose(self):
         _, dose = self._getCorrectedDose(self.inputMovies.get())

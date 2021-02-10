@@ -26,6 +26,7 @@
 
 import os
 import re
+import math
 from glob import glob
 from collections import OrderedDict
 from emtable import Table
@@ -36,9 +37,9 @@ from pyworkflow.protocol.params import (BooleanParam, PointerParam, FloatParam,
                                         LabelParam, PathParam)
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 
-import pwem
+from pwem.constants import ALIGN_PROJ, ALIGN_NONE
 from pwem.emlib.image import ImageHandler
-from pwem.objects import SetOfClasses3D
+from pwem.objects import SetOfClasses3D, SetOfParticles, SetOfVolumes, Volume
 from pwem.protocols import EMProtocol
 
 import relion.convert
@@ -129,7 +130,7 @@ class ProtRelionBase(EMProtocol):
         self._iterTemplate = self._getFileName('data', iter=0).replace('000', '???')
         # Iterations will be identify by _itXXX_ where XXX is the iteration number
         # and is restricted to only 3 digits.
-        self._iterRegex = re.compile('_it(\d{3,3})_')
+        self._iterRegex = re.compile('_it(\d{3})_')
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineConstants(self):
@@ -167,13 +168,7 @@ class ProtRelionBase(EMProtocol):
                            'input particles will be considered as PRIORS. This '
                            'option can be used to do restricted local '
                            'search within a range centered around those priors.')
-        form.addParam('fillRandomSubset', BooleanParam, default=False,
-                      condition='not doContinue and copyAlignment',
-                      expertLevel=LEVEL_ADVANCED,
-                      label='Consider random subset value?',
-                      help='If set to Yes, then random subset value '
-                           'of input particles will be put into the'
-                           'star file that is generated.')
+        form.addHidden('fillRandomSubset', BooleanParam, default=True)
         form.addParam('maskDiameterA', IntParam, default=-1,
                       label='Particle mask diameter (A)',
                       help='The experimental images will be masked with a '
@@ -782,10 +777,9 @@ class ProtRelionBase(EMProtocol):
 
             # Pass stack file as None to avoid write the images files
             # If copyAlignment is set to False pass alignType to ALIGN_NONE
-            alignType = imgSet.getAlignment() if copyAlignment else pwem.ALIGN_NONE
-            hasAlign = alignType != pwem.ALIGN_NONE
+            alignType = imgSet.getAlignment() if copyAlignment else ALIGN_NONE
+            hasAlign = alignType != ALIGN_NONE
             alignToPrior = hasAlign and getattr(self, 'alignmentAsPriors', False)
-            fillRandomSubset = hasAlign and getattr(self, 'fillRandomSubset', False)
 
             if self.doCtfManualGroups:
                 self._defocusGroups = self.createDefocusGroups()
@@ -795,8 +789,7 @@ class ProtRelionBase(EMProtocol):
                 imgSet, imgStar,
                 outputDir=self._getExtraPath(),
                 alignType=alignType,
-                postprocessImageRow=self._postprocessParticleRow,
-                fillRandomSubset=fillRandomSubset)
+                postprocessImageRow=self._postprocessParticleRow)
 
             if alignToPrior:
                 tableName = ''
@@ -844,7 +837,7 @@ class ProtRelionBase(EMProtocol):
                               "image dimensions!")
 
             # if doing scaling, the input is not on abs greyscale
-            if self.getAttributeValue('referenceVolume', None):
+            if self.getAttributeValue('referenceVolume'):
                 volX = self._getReferenceVolumes()[0].getXDim()
                 ptclX = self._getInputParticles().getXDim()
                 if (ptclX != volX) and self.isMapAbsoluteGreyScale:
@@ -953,16 +946,15 @@ class ProtRelionBase(EMProtocol):
             if self.limitResolEStep > 0:
                 args['--strict_highres_exp'] = self.limitResolEStep.get()
 
-        if self.IS_3D:
-            if not self.IS_3D_INIT:
-                if not self.isMapAbsoluteGreyScale:
-                    args['--firstiter_cc'] = ''
-                args['--ini_high'] = self.initialLowPassFilterA.get()
-                args['--sym'] = self.symmetryGroup.get()
-                if self.IS_GT30():
-                    # We use the same pixel size as input particles, since
-                    # we convert anyway the input volume to match same size
-                    args['--ref_angpix'] = ps
+        if self.IS_3D and not self.IS_3D_INIT:
+            if not self.isMapAbsoluteGreyScale:
+                args['--firstiter_cc'] = ''
+            args['--ini_high'] = self.initialLowPassFilterA.get()
+            args['--sym'] = self.symmetryGroup.get()
+            if self.IS_GT30():
+                # We use the same pixel size as input particles, since
+                # we convert anyway the input volume to match same size
+                args['--ref_angpix'] = ps
 
         refArg = self._getRefArg()
         if refArg:
@@ -1149,7 +1141,7 @@ class ProtRelionBase(EMProtocol):
         data_sqlite = self._getFileName('data_scipion', iter=it)
 
         if not os.path.exists(data_sqlite):
-            iterImgSet = pwem.objects.SetOfParticles(filename=data_sqlite)
+            iterImgSet = SetOfParticles(filename=data_sqlite)
             iterImgSet.copyInfo(self._getInputParticles())
             self._fillDataFromIter(iterImgSet, it)
             iterImgSet.write()
@@ -1182,13 +1174,13 @@ class ProtRelionBase(EMProtocol):
 
     def _getReferenceVolumes(self):
         """ Return a list with all input references.
-        (Could be one or more volumes. ).
+        (Could be one or more volumes).
         """
         inputObj = self.referenceVolume.get()
 
-        if isinstance(inputObj, pwem.objects.Volume):
+        if isinstance(inputObj, Volume):
             return [inputObj]
-        elif isinstance(inputObj, pwem.objects.SetOfVolumes):
+        elif isinstance(inputObj, SetOfVolumes):
             return [vol.clone() for vol in inputObj]
         else:
             raise Exception("Invalid input reference of class: %s"
@@ -1216,14 +1208,18 @@ class ProtRelionBase(EMProtocol):
         index, fn = inputVol.getLocation()
         return self._getTmpPath(pwutils.replaceBaseExt(fn, '%02d.mrc' % index))
 
-    def _convertVol(self, ih, inputVol):
+    def _convertVol(self, inputVol):
         outputFn = self._convertVolFn(inputVol)
 
         if outputFn:
-            xdim = self._getInputParticles().getXDim()
-            img = ih.read(inputVol)
-            img.scale(xdim, xdim, xdim)
-            img.write(outputFn)
+            oldPix = inputVol.getSamplingRate()
+            newPix = self._getInputParticles().getSamplingRate()
+            newDim = self._getInputParticles().getXDim()
+            if not math.isclose(newPix, oldPix, abs_tol=0.001):
+                relion.convert.convertMask(inputVol, outputFn, newPix=newPix,
+                                           newDim=newDim, threshold=False)
+            else:
+                relion.convert.convertMask(inputVol, outputFn, threshold=False)
 
         return outputFn
 
@@ -1237,11 +1233,11 @@ class ProtRelionBase(EMProtocol):
             if not self.IS_3D_INIT:
                 refVols = self._getReferenceVolumes()
                 if len(refVols) == 1:
-                    self._convertVol(ih, refVols[0])
+                    self._convertVol(refVols[0])
                 else:  # input SetOfVolumes as references
                     table = Table(columns=['rlnReferenceImage'])
                     for vol in refVols:
-                        newVolFn = self._convertVol(ih, vol)
+                        newVolFn = self._convertVol(vol)
                         table.addRow(newVolFn)
                     with open(self._getRefStar(), 'w') as f:
                         table.writeStar(f)
@@ -1278,7 +1274,7 @@ class ProtRelionBase(EMProtocol):
             mdParts.addColumns('rlnOriginYPrior=rlnOriginY')
         mdParts.addColumns('rlnAnglePsiPrior=rlnAnglePsi')
 
-        if alignType == pwem.ALIGN_PROJ:
+        if alignType == ALIGN_PROJ:
             mdParts.addColumns('rlnAngleRotPrior=rlnAngleRot')
             mdParts.addColumns('rlnAngleTiltPrior=rlnAngleTilt')
 

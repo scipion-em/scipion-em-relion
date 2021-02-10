@@ -24,7 +24,7 @@
 # *
 # **************************************************************************
 
-import pyworkflow.object as pwobj
+from pyworkflow.object import Float
 from pyworkflow.protocol.params import (PointerParam, FloatParam, StringParam,
                                         BooleanParam, IntParam, LEVEL_ADVANCED)
 from pyworkflow.utils import removeExt
@@ -352,4 +352,4 @@ class ProtRelionSortParticles(ProtParticles):
 
     def _updateZScore(self, img, imgRow):
         zscore = imgRow.getValue(md.RLN_SELECT_PARTICLES_ZSCORE)
-        img._rlnSelectParticlesZscore = pwobj.Float(zscore)
+        img._rlnSelectParticlesZscore = Float(zscore)

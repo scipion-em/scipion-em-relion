@@ -43,23 +43,29 @@ class RelionLocalResViewer(LocalResolutionViewer):
 
     def _defineParams(self, form):
         form.addSection(label='Visualization')
-        groupColor = form.addGroup('Colored resolution')
-
         group = form.addGroup('Slices')
         group.addParam('sliceAxis', params.EnumParam, default=AX_Z,
                        choices=['x', 'y', 'z'],
                        display=params.EnumParam.DISPLAY_HLIST,
                        label='Slice axis')
         group.addParam('doShowVolumeSlices', params.LabelParam,
-                       label="Show volume slices")
+                       label="Show local resolution volume slices")
+
+        groupColor = form.addGroup('Colored resolution')
+        groupColor.addParam('volume', params.EnumParam, default=1,
+                            choices=['from 3D refinement', 'locally filtered'],
+                            display=params.EnumParam.DISPLAY_HLIST,
+                            label="Which volume to color?")
+
+        _, minRes, maxRes, _ = self.getImgData(self.getResolutionVolumeFileName())
+        ColorScaleWizardBase.defineColorScaleParams(groupColor,
+                                                    defaultHighest=maxRes,
+                                                    defaultLowest=minRes)
+
         groupColor.addParam('doShowChimera', params.LabelParam,
                             label="Show colored map in Chimera", default=True)
 
-        _, minRes, maxRes, _ = self.getImgData(self.getResolutionVolumeFileName())
-        ColorScaleWizardBase.defineColorScaleParams(groupColor, defaultHighest=maxRes, defaultLowest=minRes)
-
     def _getVisualizeDict(self):
-
         return {
             'doShowVolumeSlices': self._showVolumeSlices,
             'doShowChimera': self._showChimera,
@@ -92,16 +98,17 @@ class RelionLocalResViewer(LocalResolutionViewer):
     # showChimera
     # =============================================================================
     def _showChimera(self, param=None):
-
         fnResVol = self.getResolutionVolumeFileName()
-
         vol = self.protocol.protRefine.get().outputVolume
-
-        fnOrigMap = vol.getFileName()
         sampRate = vol.getSamplingRate()
 
+        if self.volume.get() == 1:
+            fnMap = self.protocol._getFileName('outputVolume')
+        else:
+            fnMap = vol.getFileName()
+
         cmdFile = self.protocol._getExtraPath('chimera_resolution_map.py')
-        self.createChimeraScript(cmdFile, fnResVol, fnOrigMap, sampRate,
+        self.createChimeraScript(cmdFile, fnResVol, fnMap, sampRate,
                                  numColors=self.intervals.get(),
                                  lowResLimit=self.highest.get(),
                                  highResLimit=self.lowest.get())

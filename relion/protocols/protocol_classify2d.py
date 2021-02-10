@@ -23,7 +23,7 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-import pwem
+from pwem.constants import ALIGN_2D
 from pwem.objects import SetOfClasses2D
 from pwem.protocols import ProtClassify2D
 
@@ -66,7 +66,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
     # --------------------------- STEPS functions -----------------------------
     def _fillClassesFromIter(self, clsSet, iteration):
         """ Create the SetOfClasses2D from a given iteration. """
-        classLoader = convert.ClassesLoader(self, pwem.ALIGN_2D)
+        classLoader = convert.ClassesLoader(self, ALIGN_2D)
         classLoader.fillClassesFromIter(clsSet, iteration)
 
     def createOutputStep(self):

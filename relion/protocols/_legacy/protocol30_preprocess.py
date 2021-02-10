@@ -26,7 +26,7 @@
 
 from glob import glob
 
-import pwem
+from pwem.objects import SetOfAverages
 import pwem.emlib.metadata as md
 from pyworkflow.utils.path import moveFile
 
@@ -176,7 +176,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
     def createOutputStep(self):
         inputSet = self.inputParticles.get()
         
-        if isinstance(inputSet, pwem.objects.SetOfAverages):
+        if isinstance(inputSet, SetOfAverages):
             imgSet = self._createSetOfAverages()
         else:
             imgSet = self._createSetOfParticles()

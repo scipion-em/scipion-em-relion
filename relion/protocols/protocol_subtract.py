@@ -24,10 +24,10 @@
 # *
 # **************************************************************************
 
-from pwem import ALIGN_PROJ
-from pyworkflow.protocol.params import PointerParam, BooleanParam, IntParam
-from pwem.protocols import ProtOperateParticles
 from pyworkflow.object import String, Integer
+from pyworkflow.protocol.params import PointerParam, BooleanParam, IntParam
+from pwem.constants import ALIGN_PROJ
+from pwem.protocols import ProtOperateParticles
 
 import relion.convert as convert
 from relion import Plugin

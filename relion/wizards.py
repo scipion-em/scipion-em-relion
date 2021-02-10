@@ -26,19 +26,22 @@
 # *
 # **************************************************************************
 
-from pwem import *
+import os
+
+from pwem.constants import UNIT_PIXEL, UNIT_ANGSTROM, FILTER_LOW_PASS_NO_DECAY
 from pwem.viewers import EmPlotter
-from pwem.wizards.wizard import *
+from pwem.wizards.wizard import (ParticleMaskRadiusWizard, FilterVolumesWizard,
+                                 EmWizard, ColorScaleWizardBase, ListTreeProvider,
+                                 BandPassFilterDialog, dialog)
 from pyworkflow.gui.browser import FileBrowserWindow
 
 import relion.convert as convert
 from .protocols import *
-
+from .viewers import RelionLocalResViewer
 
 # =============================================================================
 # MASKS
 # =============================================================================
-from .viewers import RelionLocalResViewer
 
 
 class RelionBackRadiusWizard(ParticleMaskRadiusWizard):
@@ -80,7 +83,7 @@ class RelionPartMaskDiameterWizard(RelionBackRadiusWizard):
     def _getParameters(self, protocol):
         protParams = RelionBackRadiusWizard._getParameters(self, protocol)
         # adjust to from diameter to radius
-        protParams['value'] = protParams['value'] / 2
+        protParams['value'] /= 2
 
         return protParams
 
@@ -200,7 +203,8 @@ class RelionWizCtfGroupsDisplay(EmWizard):
     """
     _targets = [(ProtRelionClassify2D, ['defocusRange']),
                 (ProtRelionClassify3D, ['defocusRange']),
-                (ProtRelionRefine3D, ['defocusRange'])]
+                (ProtRelionRefine3D, ['defocusRange']),
+                (ProtRelionInitialModel, ['defocusRange'])]
 
     def show(self, form, *args):
         prot = form.protocol
@@ -208,7 +212,7 @@ class RelionWizCtfGroupsDisplay(EmWizard):
         print(defocusGroups)
 
         plotter = EmPlotter(windowTitle='%d Defocus Groups' % len(defocusGroups),
-                            x=1, y=1, figsize=(8, 6))
+                            figsize=(8, 6))
         ax = plotter.createSubPlot("", "defocus (A)", "count", 1, 1)
 
         for group in defocusGroups:
