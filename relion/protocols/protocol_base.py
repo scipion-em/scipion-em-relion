@@ -932,10 +932,6 @@ class ProtRelionBase(EMProtocol):
         args['--i'] = self._getFileName('input_star')
         args['--particle_diameter'] = maskDiameter
 
-        # Since Relion 3.1 --angpix is no longer a valid argument
-        if relion.Plugin.IS_30():
-            args['--angpix'] = ps
-
         self._setCTFArgs(args)
 
         if self.maskZero == MASK_FILL_ZERO:

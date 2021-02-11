@@ -32,7 +32,6 @@ from pwem.constants import ALIGN_NONE
 from pwem.emlib.image import ImageHandler
 from pwem.protocols import ProtProcessParticles
 
-import relion
 import relion.convert as convert
 from ..constants import STACK_NONE, STACK_MULT, STACK_ONE
 from .protocol_base import ProtRelionBase
@@ -100,12 +99,6 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
         elif self._stackType == STACK_MULT:
             postprocessImageRow = self._postprocessImageRow
             outputDir = self._getExportPath("Particles")
-
-        # We still need to maintain some old code for Relion 3.0
-        if relion.Plugin.IS_30():
-            outputDir = self._getExportPath("Particles")
-            pwutils.makePath(outputDir)
-            postprocessImageRow = self._postprocessImageRow30
 
         # Create links to binary files and write the relion .star file
         convert.writeSetOfParticles(

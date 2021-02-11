@@ -137,10 +137,6 @@ class Relion3TestAssignOptics(Relion3TestProtocolBase):
                 self.assertTrue(os.path.exists(m.getFileName()))
 
     def test_single(self):
-        if relion.Plugin.IS_30():
-            print("This test only makes sense for Relion >= 3.1. Exiting...")
-            return
-
         def _checkAcq(output):
             og = OpticsGroups.fromImages(output)
             fog = og.first()

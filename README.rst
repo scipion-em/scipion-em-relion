@@ -72,8 +72,6 @@ Supported versions
 
 3.1.0, 3.1.1
 
-**IMPORTANT**: Relion-3.0 can be used with this plugin but we do not officially support it anymore, i.e. there will be no bugfixes for it.
-
 Protocols
 ---------
 
@@ -82,13 +80,14 @@ Protocols
 * 3D classification         
 * 3D initial model          
 * 3D multi-body
-* assign optics group
-* auto-picking              
+* assign optics groups
+* auto-picking (reference-based)
 * auto-picking LoG          
 * bayesian polishing        
 * center averages
 * compress movies
-* create 3d mask            
+* create 3d mask
+* crop / resize volumes
 * ctf refinement
 * estimate gain to compress
 * expand symmetry

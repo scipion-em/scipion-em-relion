@@ -39,7 +39,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
     """ Assign Optics Group name and related parameters to an input set.
      Input set can be: movies, micrographs or particles.
     """
-    _label = 'assign optics group'
+    _label = 'assign optics groups'
     
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):

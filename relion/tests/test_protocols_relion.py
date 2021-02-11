@@ -469,32 +469,6 @@ class TestRelionPreprocess(TestRelionBase):
         self._validations(protocol.outputParticles, 50, 7.0)
 
 
-class TestRelionSubtract30(TestRelionBase):
-    @classmethod
-    def setUpClass(cls):
-        setupTestProject(cls)
-        cls.ds = DataSet.getDataSet('relion_tutorial')
-        cls.particlesFn = cls.ds.getFile('import/refine3d/extra/relion_data.star')
-        cls.volFn = cls.ds.getFile('volumes/reference.mrc')
-        cls.starImport = cls.runImportParticlesStar(cls.particlesFn, 10000, 7.08)
-        cls.volImport = cls.runImportVolumes(cls.volFn, 7.08)
-
-    def test_subtract(self):
-        if Plugin.IS_30():
-            # explicitly import correct protocol
-            from ..protocols._legacy.protocol30_subtract import ProtRelionSubtract
-            protSubtract = self.newProtocol(ProtRelionSubtract)
-            protSubtract.inputParticles.set(self.starImport.outputParticles)
-            protSubtract.inputVolume.set(self.volImport.outputVolume)
-
-            print(magentaStr("\n==> Testing relion - subtract projection:"))
-            self.launchProtocol(protSubtract)
-            self.assertIsNotNone(protSubtract.outputParticles,
-                                 "There was a problem with subtract projection")
-        else:
-            print("This test is for Relion 3.0 only!")
-
-
 class TestRelionSubtract(TestRelionBase):
     @classmethod
     def setUpClass(cls):
