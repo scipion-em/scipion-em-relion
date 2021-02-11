@@ -589,7 +589,7 @@ Examples:
                 vol = self.protocol.outputVolume
             volOrigin = vol.getOrigin(force=True).getShifts()
             samplingRate = vol.getSamplingRate()
-            return ChimeraAngDist(volFn, self.protocol._getTmpPath(),
+            return ChimeraAngDist(volFn, self.protocol._getPath(),
                                   voxelSize=samplingRate,
                                   volOrigin=volOrigin,
                                   angularDistFile=sqliteFn,
