@@ -25,7 +25,6 @@
 # **************************************************************************
 from emtable import Table
 
-from pyworkflow.object import ObjectWrap
 from pwem.constants import ALIGN_PROJ
 from pwem.objects import Volume, FSC
 from pwem.protocols import ProtRefine3D

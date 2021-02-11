@@ -31,7 +31,6 @@ import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 from pwem.objects import SetOfMovies, SetOfParticles, SetOfMicrographs
 
-from relion import Plugin
 from relion.convert.convert31 import OpticsGroups, getPixelSizeLabel
 from .protocol_base import ProtRelionBase
 
