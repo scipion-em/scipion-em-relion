@@ -205,7 +205,9 @@ class ProtRelionBayesianPolishing(ProtParticles):
                                       'rlnMicrographPreExposure',
                                       'rlnVoltage',
                                       'rlnMicrographStartFrame',
-                                      'rlnMotionModelVersion'])
+                                      'rlnMotionModelVersion',
+                                      'rlnMicrographGainName',
+                                      'rlnMicrographDefectFile'])
         tableShifts = Table(columns=['rlnMicrographFrameNumber',
                                      'rlnMicrographShiftX',
                                      'rlnMicrographShiftY'])
@@ -229,20 +231,28 @@ class ProtRelionBayesianPolishing(ProtParticles):
         tableGeneral.addRow(xdim, ydim, ndim, 'movieName',
                             binningFactor, moviesPixelSize,
                             acq.getDosePerFrame(), acq.getDoseInitial(),
-                            acq.getVoltage(), a0, 0)
+                            acq.getVoltage(), a0, 0, '""', '""')
         row = tableGeneral[0]
 
         for movie in inputMovies:
             movieStar = self._getMovieStar(movie)
+            ogId = movie.getAttributeValue('_rlnOpticsGroup', 1)
+            gainFn = og[ogId].get('rlnMicrographGainName', None)
+            defectFn = og[ogId].get('rlnMicrographDefectFile', None)
 
             with open(movieStar, 'w') as f:
                 coeffs = json.loads(movie.getAttributeValue('_rlnMotionModelCoeff', '[]'))
                 motionMode = 1 if coeffs else 0
 
-                # Update Movie name
-                tableGeneral[0] = row._replace(rlnMicrographMovieName=movie.getFileName(),
-                                               rlnMotionModelVersion=motionMode)
+                # Update some params in the general table
+                replaceDict = {'rlnMicrographMovieName': movie.getFileName(),
+                               'rlnMotionModelVersion': motionMode}
+                if gainFn:
+                    replaceDict['rlnMicrographGainName'] = gainFn
+                if defectFn:
+                    replaceDict['rlnMicrographDefectFile'] = defectFn
 
+                tableGeneral[0] = row._replace(**replaceDict)
                 tableGeneral.writeStar(f, tableName='general', singleRow=True)
                 # Write shifts
                 tableShifts.clearRows()
