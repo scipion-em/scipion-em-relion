@@ -32,14 +32,13 @@ import subprocess
 import numpy as np
 
 from pyworkflow.tests import BaseTest, setupTestOutput, DataSet
-from pyworkflow.utils import cleanPath
+from pyworkflow.utils import cleanPath, magentaStr, createLink, replaceExt
 from pwem.objects import (SetOfParticles, CTFModel, Acquisition,
                           SetOfMicrographs, Coordinate, Particle,
                           SetOfVolumes, Transform)
 from pwem.emlib.image import ImageHandler
 import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_3D
-from pyworkflow.utils import magentaStr, createLink, replaceExt
 
 from relion import Plugin
 import relion.convert as convert
@@ -530,7 +529,7 @@ class TestReconstruct(TestConvertAnglesBase):
                 auxBtilt = rowb.getValue(label)
                 auxAtilt = rowa.getValue(label)
                 # same two rows
-                self.assertAlmostEqual(auxBtilt, auxAtilt, places=3, msg=None)
+                self.assertAlmostEqual(auxBtilt, auxAtilt, places=3)
 
             b = convert.rowToAlignment(rowa, ALIGN_PROJ)
             convert.alignmentToRow(b, rowb, ALIGN_PROJ)

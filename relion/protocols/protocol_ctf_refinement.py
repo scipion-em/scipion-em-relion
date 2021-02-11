@@ -26,9 +26,9 @@
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
+from pyworkflow.object import Float
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtParticles
-from pyworkflow.object import Float
 import pwem.emlib.metadata as md
 
 import relion
@@ -210,8 +210,7 @@ class ProtRelionCtfRefinement(ProtParticles):
         convert.writeSetOfParticles(inputParts, imgStar,
                                     outputDir=self._getExtraPath(),
                                     alignType=ALIGN_PROJ,
-                                    fillMagnification=True,
-                                    fillRandomSubset=True)
+                                    fillMagnification=True)
 
     def refineCtfStep(self):
         args = "--i %s " % self._getPath('input_particles.star')
@@ -260,7 +259,7 @@ class ProtRelionCtfRefinement(ProtParticles):
         imgSet.setAlignmentProj()
 
         if self.IS_GT30():
-            #self._optics = convert.getOpticsDict(outImgsFn)
+            # self._optics = convert.getOpticsDict(outImgsFn)
             mdIter = convert.Table.iterRows('particles@' + outImgsFn,
                                             key='rlnImageId')
             outImgSet.copyItems(imgSet,

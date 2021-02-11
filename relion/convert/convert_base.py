@@ -32,9 +32,11 @@ New conversion functions dealing with Relion3.1 new star files format.
 import os
 from emtable import Table
 
-import pwem
-from pwem.emlib.image import ImageHandler
 import pyworkflow.utils as pwutils
+from pyworkflow.object import ObjectWrap
+
+from pwem.constants import ALIGN_NONE
+from pwem.emlib.image import ImageHandler
 
 
 class WriterBase:
@@ -61,7 +63,7 @@ class WriterBase:
         """
         self._optics = kwargs.get('optics', None)
         # Not used now
-        #self.convertPolicy = kwargs.get('convertPolicy', self.CONVERT_IF_NEEDED)
+        # self.convertPolicy = kwargs.get('convertPolicy', self.CONVERT_IF_NEEDED)
         self.rootDir = None
         self.outputDir = None
         self.outputStack = None
@@ -116,7 +118,7 @@ class WriterBase:
         ext = pwutils.getExt(imageFn)[1:]
         if ext in self.extensions:
             finalExt = ext
-            convertFunc = pwutils.createLink
+            convertFunc = pwutils.createAbsLink
         else:
             finalExt = self.extensions[0]
             convertFunc = self._ih.convert
@@ -127,7 +129,7 @@ class WriterBase:
             newName = "%s_%06d.%s" % (self._prefix, image.getObjId(), finalExt)
 
         newPath = os.path.join(self.outputDir, newName)
-        convertFunc(imageFn, newPath)
+        convertFunc(os.path.abspath(imageFn), newPath)
         # If there is a rootDir defined, we should return the path relative
         # to that location, probably to be used from the star file
         if self.rootDir is not None:
@@ -145,9 +147,6 @@ class WriterBase:
 
     def _micToRow(self, mic, row):
         row['rlnImageId'] = mic.getObjId()
-
-        if mic.hasCTF():
-            self._ctfToRow(mic.getCTF(), row)
 
     def _ctfToRow(self, ctf, row):
         psd = ctf.getPsdFile()
@@ -175,9 +174,10 @@ class ReaderBase:
     def __init__(self, **kwargs):
         """
         """
-        self._alignType = kwargs.get('alignType', pwem.ALIGN_NONE)
+        self._alignType = kwargs.get('alignType', ALIGN_NONE)
         self._pixelSize = kwargs.get('pixelSize', 1.0)
         self._invPixelSize = 1. / self._pixelSize
+        self._extraLabels = []
 
     def readSetOfParticles(self, starFile, partsSet, **kwargs):
         """ Convert a star file into a set of particles.
@@ -197,3 +197,23 @@ class ReaderBase:
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
         pass
+
+    def createExtraLabels(self, item, row, extraLabels):
+        """ Create new Objects for each extra label if contained in
+        the columnObj. It will set the self._extraLabels property.
+        Args:
+            item: Object item that will have new extra labels objects
+            row: column object that should have a method hasColumn
+            extraLabels: list of label names that will be set if present
+                in columnObj
+        """
+        self._extraLabels = [l for l in extraLabels if row.hasColumn(l)]
+        for label in self._extraLabels:
+            setattr(item, '_' + label,
+                    ObjectWrap(getattr(row, label)))
+
+    def setExtraLabels(self, item, row):
+        """ Set values for already computed extraLabels with
+        self.createExtraLabels. """
+        for label in self._extraLabels:
+            getattr(item, '_' + label).set(getattr(row, label))

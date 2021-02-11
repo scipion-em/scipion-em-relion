@@ -153,8 +153,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         # Pass stack file as None to avoid write the images files
         convert.writeSetOfParticles(imgSet, imgStar,
                                     outputDir=self._getTmpPath(),
-                                    alignType=ALIGN_PROJ,
-                                    fillRandomSubset=True)
+                                    alignType=ALIGN_PROJ)
 
     def createOutputStep(self):
         imgSet = self.inputParticles.get()

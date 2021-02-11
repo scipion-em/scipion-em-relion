@@ -25,7 +25,7 @@
 # **************************************************************************
 
 import pyworkflow.protocol.params as params
-import pwem
+from pwem.objects import Volume
 from pwem.emlib.image import ImageHandler
 from pwem.protocols import ProtAlignVolume
 
@@ -74,7 +74,7 @@ class ProtRelionSymmetrizeVolume(ProtAlignVolume):
                     "--i %s --o %s --sym %s" % (alignedFn, symFn, sym))
 
         def _defineOutputVol(name, fn):
-            vol = pwem.objects.Volume()
+            vol = Volume()
             vol.copyInfo(self.inputVolume.get())
             vol.setLocation(fn)
             self._defineOutputs(**{name: vol})

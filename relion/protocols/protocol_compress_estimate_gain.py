@@ -26,9 +26,9 @@
 
 import pyworkflow.protocol.params as params
 import pyworkflow.utils as pwutils
-from pwem.protocols import ProtProcessMovies
 from pyworkflow.protocol import STEPS_SERIAL
 from pyworkflow.constants import VERSION_3_0
+from pwem.protocols import ProtProcessMovies
 
 import relion
 import relion.convert as convert

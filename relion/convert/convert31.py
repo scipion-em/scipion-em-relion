@@ -34,9 +34,10 @@ import numpy as np
 from collections import OrderedDict
 from emtable import Table
 
-import pyworkflow as pw
-import pwem
-from pwem.objects import Micrograph, SetOfMicrographsBase, SetOfMovies
+
+from pwem.constants import ALIGN_NONE, ALIGN_PROJ, ALIGN_2D, ALIGN_3D
+from pwem.objects import (Micrograph, SetOfMicrographsBase, SetOfMovies,
+                          Particle, CTFModel, Acquisition, Transform)
 import pwem.convert.transformations as tfs
 
 from .convert_base import WriterBase, ReaderBase
@@ -79,7 +80,7 @@ class OpticsGroups:
             return self._dict[item]
         elif isinstance(item, str):
             return self._dictName[item]
-        raise Exception("Unsupported type '%s' of item '%s'"
+        raise TypeError("Unsupported type '%s' of item '%s'"
                         % (type(item), item))
 
     def __contains__(self, item):
@@ -254,10 +255,9 @@ class Writer(WriterBase):
         # Process the first item and create the table based
         # on the generated columns
         self._imgLabelName = imgLabelName
-        self._extraLabels = kwargs.get('extraLabels', [])
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
-
         self._prefix = tableName[:3]
+
         micRow = OrderedDict()
         micRow[imgLabelName] = ''  # Just to add label, proper value later
         iterMics = iter(imgIterable)
@@ -265,6 +265,12 @@ class Writer(WriterBase):
         if self._optics is None:
             self._optics = OpticsGroups.fromImages(mic)
         self._imageSize = mic.getXDim()
+        self._setCtf = mic.hasCTF()
+
+        extraLabels = kwargs.get('extraLabels', [])
+        self._extraLabels = [l for l in extraLabels
+                             if mic.hasAttribute('_%s' % l)]
+
         self._micToRow(mic, micRow)
         if self._postprocessImageRow:
             self._postprocessImageRow(mic, micRow)
@@ -298,6 +304,11 @@ class Writer(WriterBase):
 
     def _micToRow(self, mic, row):
         WriterBase._micToRow(self, mic, row)
+
+        # Set CTF values
+        if self._setCtf:
+            self._ctfToRow(mic.getCTF(), row)
+
         # Set additional labels if present
         self._objToRow(mic, row, self._extraLabels)
         row['rlnOpticsGroup'] = mic.getAttributeValue('_rlnOpticsGroup', 1)
@@ -327,7 +338,7 @@ class Writer(WriterBase):
             x, y = coord.getPosition()
             row['rlnCoordinateX'] = x
             row['rlnCoordinateY'] = y
-            # Add some specify coordinate attributes
+            # Add some specific coordinate attributes
             self._objToRow(coord, row, self._coordLabels)
             micName = coord.getMicName()
             if micName:
@@ -390,27 +401,24 @@ class Writer(WriterBase):
 
         alignType = kwargs.get('alignType', partsSet.getAlignment())
 
-        if alignType == pwem.ALIGN_2D:
+        if alignType == ALIGN_2D:
             self._setAlign = self._align2DToRow
-        elif alignType == pwem.ALIGN_PROJ:
+        elif alignType == ALIGN_PROJ:
             self._setAlign = self._alignProjToRow
-        elif alignType == pwem.ALIGN_3D:
-            raise Exception(
+        elif alignType == ALIGN_3D:
+            raise NotImplementedError(
                 "3D alignment conversion for Relion not implemented. "
                 "It seems the particles were generated with an incorrect "
                 "alignment type. You may either re-launch the protocol that "
                 "generates the particles with angles or set 'Consider previous"
                 " alignment?' to No")
-        elif alignType == pwem.ALIGN_NONE:
+        elif alignType == ALIGN_NONE:
             self._setAlign = None
         else:
-            raise Exception("Invalid value for alignType: %s" % alignType)
+            raise TypeError("Invalid value for alignType: %s" % alignType)
 
         extraLabels = kwargs.get('extraLabels', [])
         extraLabels.extend(PARTICLE_EXTRA_LABELS)
-        if kwargs.get('fillRandomSubset'):
-            extraLabels.append('rlnRandomSubset')
-
         self._extraLabels = [l for l in extraLabels
                              if firstPart.hasAttribute('_%s' % l)]
 
@@ -479,7 +487,6 @@ class Reader(ReaderBase):
         """
         """
         ReaderBase.__init__(self, **kwargs)
-        self._first = False
 
     def readSetOfParticles(self, starFile, partSet, **kwargs):
         """ Convert a star file into a set of particles.
@@ -495,7 +502,7 @@ class Reader(ReaderBase):
 
         """
         self._preprocessImageRow = kwargs.get('preprocessImageRow', None)
-        self._alignType = kwargs.get('alignType', pwem.ALIGN_NONE)
+        self._alignType = kwargs.get('alignType', ALIGN_NONE)
 
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
@@ -511,23 +518,17 @@ class Reader(ReaderBase):
         self._setClassId = hasattr(firstRow, 'rlnClassNumber')
         self._setCtf = partsReader.hasAllColumns(self.CTF_LABELS[:3])
 
-        particle = pwem.objects.Particle()
+        particle = Particle()
 
         if self._setCtf:
-            particle.setCTF(pwem.objects.CTFModel())
+            particle.setCTF(CTFModel())
 
         self._setAcq = kwargs.get("readAcquisition", True)
-
-        acq = pwem.objects.Acquisition()
+        acq = Acquisition()
         acq.setMagnification(kwargs.get('magnification', 10000))
-        self._optics.toImages(partSet)
 
-        extraLabels = kwargs.get('extraLabels', [])
-        extraLabels.extend(PARTICLE_EXTRA_LABELS)
-        self._extraLabels = [l for l in extraLabels if partsReader.hasColumn(l)]
-        for label in self._extraLabels:
-            setattr(particle, '_' + label,
-                    pw.object.ObjectWrap(getattr(firstRow, label)))
+        extraLabels = kwargs.get('extraLabels', []) + PARTICLE_EXTRA_LABELS
+        self.createExtraLabels(particle, firstRow, extraLabels)
 
         self._rowToPart(firstRow, particle)
         partSet.setSamplingRate(self._pixelSize)
@@ -559,9 +560,7 @@ class Reader(ReaderBase):
             self.rowToCtf(row, particle.getCTF())
 
         self.setParticleTransform(particle, row)
-
-        for label in self._extraLabels:
-            getattr(particle, '_%s' % label).set(getattr(row, label))
+        self.setExtraLabels(particle, row)
 
         # TODO: coord, partId, micId,
 
@@ -577,7 +576,7 @@ class Reader(ReaderBase):
         ctf.setResolution(row.get('rlnCtfMaxResolution', 0))
         ctf.setFitQuality(row.get('rlnCtfFigureOfMerit', 0))
 
-        if getattr(row, 'rlnPhaseShift', False):
+        if hasattr(row, 'rlnPhaseShift'):
             ctf.setPhaseShift(row.rlnPhaseShift)
         ctf.standardize()
 
@@ -593,7 +592,7 @@ class Reader(ReaderBase):
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
 
-        if ((self._alignType == pwem.ALIGN_NONE) or
+        if ((self._alignType == ALIGN_NONE) or
                 not row.hasAnyColumn(self.ALIGNMENT_LABELS)):
             self.setParticleTransform = self.__setParticleTransformNone
         else:
@@ -601,14 +600,14 @@ class Reader(ReaderBase):
             self._angles = np.zeros(3)
             self._shifts = np.zeros(3)
 
-            particle.setTransform(pwem.objects.Transform())
+            particle.setTransform(Transform())
 
-            if self._alignType == pwem.ALIGN_2D:
+            if self._alignType == ALIGN_2D:
                 self.setParticleTransform = self.__setParticleTransform2D
-            elif self._alignType == pwem.ALIGN_PROJ:
+            elif self._alignType == ALIGN_PROJ:
                 self.setParticleTransform = self.__setParticleTransformProj
             else:
-                raise Exception("Unexpected alignment type: %s"
+                raise TypeError("Unexpected alignment type: %s"
                                 % self._alignType)
 
         # Call again the modified function

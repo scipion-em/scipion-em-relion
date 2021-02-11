@@ -250,8 +250,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
         convert.writeSetOfParticles(inputParts, imgStar,
                                     outputDir=inputPartsFolder,
                                     alignType=ALIGN_PROJ,
-                                    fillMagnification=True,
-                                    fillRandomSubset=True)
+                                    fillMagnification=True)
 
     def trainOrPolishStep(self, operation):
         args = "--i %s " % self._getPath('input_particles.star')
@@ -309,7 +308,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
             summary.append('Sigma for divergence: %0.1f' % self.sigmaDiv)
             summary.append('Sigma for acceleration: %0.2f' % self.sigmaAcc)
         else:
-            if pwutils.exists(self._getExtraPath('opt_params.txt')):
+            if os.path.exists(self._getExtraPath('opt_params.txt')):
                 with open(self._getExtraPath('opt_params.txt')) as f:
                     line = [float(x) for x in f.readline().split()]
                 summary.append('Sigma for velocity: %0.3f' % line[0])
