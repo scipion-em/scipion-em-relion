@@ -27,10 +27,10 @@
 import os
 
 import pyworkflow.tests as pwtests
-from pwem.tests.workflows import TestWorkflow
-from pwem.protocols import ProtImportMovies
 from pyworkflow.plugin import Domain
 from pyworkflow.utils import magentaStr
+from pwem.tests.workflows import TestWorkflow
+from pwem.protocols import ProtImportMovies
 
 from relion import Plugin
 from ..protocols import *

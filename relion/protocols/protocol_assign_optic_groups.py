@@ -24,12 +24,12 @@
 # *
 # **************************************************************************
 import os
-
 import emtable
-import pyworkflow as pw
+
+from pyworkflow.object import Integer
 import pyworkflow.utils as pwutils
-import pwem
 import pyworkflow.protocol.params as params
+from pwem.objects import SetOfMovies, SetOfParticles, SetOfMicrographs
 
 from relion.convert.convert31 import OpticsGroups, getPixelSizeLabel
 from .protocol_base import ProtRelionBase
@@ -89,27 +89,54 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
         line.addParam('beamTiltY', params.FloatParam, default=0.,
                       label='Y')
 
+        group.addParam('gainFile', params.FileParam,
+                       label='Gain reference',
+                       help='A gain reference file is required for gain '
+                            'correction')
+
+        group.addParam('gainRot', params.EnumParam, default=0,
+                       choices=['No rotation (0)',
+                                ' 90 degrees (1)',
+                                '180 degrees (2)',
+                                '270 degrees (3)'],
+                       label='Gain rotation',
+                       help="Rotate the gain reference by this number times 90 "
+                            "degrees clockwise in relion_display. This is the "
+                            "same as -RotGain in MotionCor2. \n"
+                            "Note that MotionCor2 uses a different convention "
+                            "for rotation so it says 'counter-clockwise'.")
+
+        group.addParam('gainFlip', params.EnumParam, default=0,
+                       choices=['No flipping        (0)',
+                                'Flip upside down   (1)',
+                                'Flip left to right (2)'],
+                       label='Gain flip',
+                       help="Flip the gain reference after rotation. "
+                            "This is the same as -FlipGain in MotionCor2. "
+                            "0 means do nothing, 1 means flip Y (upside down) "
+                            "and 2 means flip X (left to right).")
+
         group.addParam('defectFile', params.FileParam, allowsNull=True,
                        label='Defects file',
                        help='Location of a UCSF MotionCor2-style '
-                       'defect text file or a defect map that '
-                       'describe the defect pixels on the detector. '
-                       'Each line of a defect text file should contain '
-                       'four numbers specifying x, y, width and height '
-                       'of a defect region. A defect map is an image '
-                       '(MRC or TIFF), where 0 means good and 1 means '
-                       'bad pixels. The coordinate system is the same '
-                       'as the input movie before application of '
-                       'binning, rotation and/or flipping.\n\n'
-                       '_Note that the format of the defect text is '
-                       'DIFFERENT from the defect text produced '
-                       'by SerialEM!_\n One can convert a SerialEM-style '
-                       'defect file into a defect map using IMOD '
-                       'utilities e.g.:\n'
-                       '*clip defect -D defect.txt -f tif movie.tif defect_map.tif*\n'
-                       'See explanations in the SerialEM manual.\n'
-                       'Leave empty if you do not have any defects, '
-                       'or do not want to correct for defects on your detector.')
+                            'defect text file or a defect map that '
+                            'describe the defect pixels on the detector. '
+                            'Each line of a defect text file should contain '
+                            'four numbers specifying x, y, width and height '
+                            'of a defect region. A defect map is an image '
+                            '(MRC or TIFF), where 0 means good and 1 means '
+                            'bad pixels. The coordinate system is the same '
+                            'as the input movie before application of '
+                            'binning, rotation and/or flipping.\n\n'
+                            '_Note that the format of the defect text is '
+                            'DIFFERENT from the defect text produced '
+                            'by SerialEM!_\n One can convert a SerialEM-style '
+                            'defect file into a defect map using IMOD '
+                            'utilities e.g.:\n'
+                            '*clip defect -D defect.txt -f tif movie.tif defect_map.tif*\n'
+                            'See explanations in the SerialEM manual.\n'
+                            'Leave empty if you do not have any defects, '
+                            'or do not want to correct for defects on your detector.')
 
         form.addParam('inputStar', params.FileParam,
                       condition='inputType == 1',
@@ -121,7 +148,9 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                            '\trlnMicrographName with the micName associated to '
                            'the input set.\n'
                            '\trlnOpticsGroup with the group number associated '
-                           'to this micrograph.')
+                           'to this micrograph.\n\nIf you provide rlnMicrographGainName '
+                           'in the optics table, it has to point to a transformed '
+                           'gain reference (rotated and flipped if necessary).')
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
@@ -134,13 +163,13 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
 
         getMicName = lambda item: item.getMicName()
 
-        if isinstance(inputSet, pwem.objects.SetOfMovies):
+        if isinstance(inputSet, SetOfMovies):
             outputSet = self._createSetOfMovies()
             outputName = 'outputMovies'
-        elif isinstance(inputSet, pwem.objects.SetOfMicrographs):
+        elif isinstance(inputSet, SetOfMicrographs):
             outputSet = self._createSetOfMicrographs()
             outputName = 'outputMicrographs'
-        elif isinstance(inputSet, pwem.objects.SetOfParticles):
+        elif isinstance(inputSet, SetOfParticles):
             outputSet = self._createSetOfParticles()
             outputName = 'outputParticles'
             getMicName = lambda item: item.getCoordinate().getMicName()
@@ -180,6 +209,9 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                 outputMtf = self._getPath(os.path.basename(inputMtf))
                 pwutils.copyFile(inputMtf, outputMtf)
                 og.addColumns(rlnMtfFileName=outputMtf)
+            if self.gainFile.hasValue():
+                gainFn = self._convertGain()
+                og.addColumns(rlnMicrographGainName=gainFn)
             if self.defectFile.hasValue():
                 og.addColumns(rlnMicrographDefectFile=self.defectFile.get())
         else:
@@ -193,9 +225,17 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
             # check if MTF file exists
             if og.hasColumn('rlnMtfFileName'):
                 for i in og:
-                    if not pwutils.exists(i.rlnMtfFileName):
+                    if not os.path.exists(i.rlnMtfFileName):
                         self.warning("MTF file %s not found for %s" % (
                             i.rlnMtfFileName, i.rlnOpticsGroupName
+                        ))
+
+            # check if gain file exists
+            if og.hasColumn('rlnMicrographGainName'):
+                for i in og:
+                    if not pwutils.exists(i.rlnMicrographGainName):
+                        self.warning("Gain reference file %s not found for %s" % (
+                            i.rlnMicrographGainName, i.rlnOpticsGroupName
                         ))
 
             def updateItem(item, row):
@@ -210,7 +250,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                 ogNumber = micDict[micName]
 
                 if not hasattr(item, '_rlnOpticsGroup'):
-                    item._rlnOpticsGroup = pw.object.Integer()
+                    item._rlnOpticsGroup = Integer()
 
                 item._rlnOpticsGroup.set(ogNumber)
 
@@ -229,11 +269,19 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
     def _validate(self):
         validateMsgs = []
 
-        if self.mtfFile.hasValue() and not pwutils.exists(self.mtfFile.get()):
+        if self.mtfFile.hasValue() and not os.path.exists(self.mtfFile.get()):
             validateMsgs.append("MTF file %s does not exist!" % self.mtfFile.get())
 
-        if self.defectFile.hasValue() and not pwutils.exists(self.defectFile.get()):
+        if self.defectFile.hasValue() and not os.path.exists(self.defectFile.get()):
             validateMsgs.append("Defect file %s does not exist!" % self.defectFile.get())
+
+        if self.gainRot or self.gainFlip:
+            try:
+                from pwem import Domain
+                eman2 = Domain.importFromPlugin('eman2', doRaise=True)
+            except:
+                validateMsgs.append("EMAN2 plugin not found!\nTransforming gain image "
+                                    "requires EMAN2 plugin and binaries installed.")
 
         return validateMsgs
     
@@ -243,3 +291,29 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
     
     def _methods(self):
         return []
+
+    # -------------------------- UTILS functions ------------------------------
+    def _convertGain(self):
+        """ We need to transform gain file for a possible polishing job. """
+        rotation = self.gainRot
+        flip = self.gainFlip
+        gainFn = self.gainFile.get()
+
+        if rotation or flip:
+            args = "%s %s " % (gainFn, self._getPath(os.path.basename(gainFn)))
+
+            if flip:
+                # flip axis Y - left to right
+                args += "--process xform.flip:axis=%s " % ("y" if flip.get() == 2 else "x")
+
+            if rotation:
+                args += "--rotate %d " % (rotation.get() * 90)
+
+            from pwem import Domain
+            eman2 = Domain.importFromPlugin('eman2')
+            pwutils.runJob(self._log, eman2.Plugin.getProgram('e2proc2d.py'), args,
+                           env=eman2.Plugin.getEnviron())
+
+            return self._getPath(os.path.basename(gainFn))
+        else:
+            return gainFn

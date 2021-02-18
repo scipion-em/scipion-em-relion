@@ -25,7 +25,6 @@
 # **************************************************************************
 
 import os
-from os.path import join
 
 from pwem.objects import SetOfMicrographs
 from pwem.protocols import EMProtocol
@@ -111,8 +110,8 @@ class ProtRelionExportCtf(EMProtocol):
             mic2.setCTF(ctf)
             if hasPsd:
                 psdFile = ctf.getPsdFile()
-                newPsdFile = join(psdPath,
-                                  '%s_psd.mrc' % pwutils.removeExt(mic.getMicName()))
+                newPsdFile = os.path.join(psdPath,
+                                          '%s_psd.mrc' % pwutils.removeExt(mic.getMicName()))
                 if not os.path.exists(psdFile):
                     print("PSD file %s does not exits" % psdFile)
                     print("Skipping micrograph %s" % micFn)

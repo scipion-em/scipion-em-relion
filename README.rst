@@ -33,11 +33,15 @@ This plugin provide wrappers around several programs of `RELION <https://www3.mr
 .. |devel| image:: http://scipion-test.cnb.csic.es:9980/badges/relion_devel.svg
 .. |support| image:: http://scipion-test.cnb.csic.es:9980/badges/relion_support.svg
 
+**IMPORTANT!**
+
+    If you have imported movies with a gain file in **DM4** format, you need to **flip the gain reference upside-down** in the motion correction protocol! (`bug details <https://github.com/I2PC/xmippCore/issues/39>`_)
+
 
 Installation
 ------------
 
-You will need to use `3.0 <https://github.com/I2PC/scipion/releases/tag/V3.0.0>`_ version of Scipion to be able to run these protocols. To install the plugin, you have two options:
+You will need to use 3.0+ version of Scipion to be able to run these protocols. To install the plugin, you have two options:
 
 a) Stable version
 
@@ -59,16 +63,14 @@ b) Developer's version
 
       scipion installp -p path_to_scipion-em-relion --devel
 
-RELION sources will be downloaded and compiled automatically with the plugin, but you can also link an existing installation. Default installation path assumed is ``software/em/relion-3.1.0``, if you want to change it, set *RELION_HOME* in ``scipion.conf`` file to the folder where the RELION is installed. If you need to use CUDA different from the one used during Scipion installation (defined by *CUDA_LIB*), you can add *RELION_CUDA_LIB* variable to the config file. Moreover, if you have to use a MPI for Relion different from Scipion MPI, you can set *RELION_MPI_BIN* and *RELION_MPI_LIB* variables in the config file.
+RELION sources will be downloaded and compiled automatically with the plugin, but you can also link an existing installation. Default installation path assumed is ``software/em/relion-3.1.1``, if you want to change it, set *RELION_HOME* in ``scipion.conf`` file to the folder where the RELION is installed. If you need to use CUDA different from the one used during Scipion installation (defined by *CUDA_LIB*), you can add *RELION_CUDA_LIB* variable to the config file. Moreover, if you have to use a MPI for Relion different from Scipion MPI, you can set *RELION_MPI_BIN* and *RELION_MPI_LIB* variables in the config file.
 
 To check the installation, simply run one of the tests. A complete list of tests can be displayed by executing ``scipion test --show --grep relion``
 
 Supported versions
 ------------------
 
-3.1.0
-
-We are still working towards stable plugin release, so some things might not work yet. Handling optics groups needs more testing, you are welcome to be a volunteer.
+3.1.0, 3.1.1
 
 **IMPORTANT**: Relion-3.0 can be used with this plugin but we do not officially support it anymore, i.e. there will be no bugfixes for it.
 

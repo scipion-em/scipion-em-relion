@@ -76,7 +76,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
     def _defineParams(self, form):
         form.addSection(label='Input')
         form.addParam('inputMovies', params.PointerParam, pointerClass='SetOfMovies',
-                      important=True,  # pointerCondition='hasAlignment',
+                      important=True,
                       label='Input ALIGNED movies',
                       help='Provide a set of movies that have at '
                            'least global alignment information.')
@@ -205,7 +205,9 @@ class ProtRelionBayesianPolishing(ProtParticles):
                                       'rlnMicrographPreExposure',
                                       'rlnVoltage',
                                       'rlnMicrographStartFrame',
-                                      'rlnMotionModelVersion'])
+                                      'rlnMotionModelVersion',
+                                      'rlnMicrographGainName',
+                                      'rlnMicrographDefectFile'])
         tableShifts = Table(columns=['rlnMicrographFrameNumber',
                                      'rlnMicrographShiftX',
                                      'rlnMicrographShiftY'])
@@ -229,20 +231,28 @@ class ProtRelionBayesianPolishing(ProtParticles):
         tableGeneral.addRow(xdim, ydim, ndim, 'movieName',
                             binningFactor, moviesPixelSize,
                             acq.getDosePerFrame(), acq.getDoseInitial(),
-                            acq.getVoltage(), a0, 0)
+                            acq.getVoltage(), a0, 0, '""', '""')
         row = tableGeneral[0]
 
         for movie in inputMovies:
             movieStar = self._getMovieStar(movie)
+            ogId = movie.getAttributeValue('_rlnOpticsGroup', 1)
+            gainFn = og[ogId].get('rlnMicrographGainName', None)
+            defectFn = og[ogId].get('rlnMicrographDefectFile', None)
 
             with open(movieStar, 'w') as f:
                 coeffs = json.loads(movie.getAttributeValue('_rlnMotionModelCoeff', '[]'))
                 motionMode = 1 if coeffs else 0
 
-                # Update Movie name
-                tableGeneral[0] = row._replace(rlnMicrographMovieName=movie.getFileName(),
-                                               rlnMotionModelVersion=motionMode)
+                # Update some params in the general table
+                replaceDict = {'rlnMicrographMovieName': movie.getFileName(),
+                               'rlnMotionModelVersion': motionMode}
+                if gainFn:
+                    replaceDict['rlnMicrographGainName'] = gainFn
+                if defectFn:
+                    replaceDict['rlnMicrographDefectFile'] = defectFn
 
+                tableGeneral[0] = row._replace(**replaceDict)
                 tableGeneral.writeStar(f, tableName='general', singleRow=True)
                 # Write shifts
                 tableShifts.clearRows()
@@ -272,8 +282,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
         convert.writeSetOfParticles(inputParts, imgStar,
                                     outputDir=inputPartsFolder,
                                     alignType=ALIGN_PROJ,
-                                    fillMagnification=True,
-                                    fillRandomSubset=True)
+                                    fillMagnification=True)
 
     def trainOrPolishStep(self, operation):
         postProt = self.inputPostprocess.get()
@@ -312,6 +321,8 @@ class ProtRelionBayesianPolishing(ProtParticles):
         imgSet = self.inputParticles.get()
         outImgSet = self._createSetOfParticles()
         outImgSet.copyInfo(imgSet)
+        pixSize = self._getOutputPixSize()
+        outImgSet.setSamplingRate(pixSize)
 
         outImgsFn = md.MetaData('particles@' + self._getFileName('shiny'))
         rowIterator = md.SetMdIterator(outImgsFn, sortByLabel=md.RLN_IMAGE_ID,
@@ -370,7 +381,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
                               "larger than the extraction size")
 
         if self.operation == self.OP_TRAIN and self.numberOfMpi > 1:
-            errors.append("Parameter estimation is not supported in MPI mode.")
+            errors.append("MPI is not supported for parameters estimation.")
         return errors
 
     # -------------------------- UTILS functions ------------------------------
@@ -388,3 +399,18 @@ class ProtRelionBayesianPolishing(ProtParticles):
     def _updateMic(self, mic, row):
         row['rlnMicrographName'] = os.path.basename(mic.getMicName())
         row['rlnMicrographMetadata'] = self._getMovieStar(mic)
+
+    def _getOutputPixSize(self):
+        parts = self.inputParticles.get()
+        movies = self.inputMovies.get()
+
+        if self.rescaledSize.get() == -1:
+            # no scale or window, return particle pix size
+            return parts.getSamplingRate()
+        else:
+            if self.rescaledSize.get() == self.extrSize.get():
+                # window only, return movie pix size
+                return movies.getSamplingRate()
+            else:
+                # rescale and window
+                return movies.getSamplingRate() * self.extrSize.get() / self.rescaledSize.get()

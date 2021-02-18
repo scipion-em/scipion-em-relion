@@ -36,6 +36,7 @@ RELION_CUDA_LIB = 'RELION_CUDA_LIB'
 # Supported versions:
 V3_0 = '3.0'
 V3_1 = '3.1.0'
+V3_1_1 = '3.1.1'
 
 MASK_FILL_ZERO = 0
 MASK_FILL_NOISE = 1
@@ -169,11 +170,10 @@ ALIGNMENT_DICT = OrderedDict([
 
 
 PARTICLE_EXTRA_LABELS = [
-    'rlnBfactor',
     'rlnCtfBfactor',
     'rlnCtfScalefactor',
     'rlnPhaseShift',
-    'rlnParticleSelectZScore',
-    'rlnMovieFrameNumber',
-    'rlnGroupName'
+    'rlnGroupName',
+    'rlnGroupNumber',
+    'rlnRandomSubset'
 ]

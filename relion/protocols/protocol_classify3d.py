@@ -25,7 +25,7 @@
 # **************************************************************************
 from emtable import Table
 
-import pwem
+from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtClassify3D
 
 import relion
@@ -160,6 +160,6 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
     # -------------------------- UTILS functions ------------------------------
     def _fillClassesFromIter(self, clsSet, iteration):
         """ Create the SetOfClasses3D from a given iteration. """
-        classLoader = convert.ClassesLoader(self, pwem.ALIGN_PROJ)
+        classLoader = convert.ClassesLoader(self, ALIGN_PROJ)
         classLoader.fillClassesFromIter(clsSet, iteration)
 

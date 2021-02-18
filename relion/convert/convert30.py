@@ -70,6 +70,7 @@ class Writer(WriterBase):
         micRow[imgLabelName] = ''  # Just to add label, proper value later
         iterMics = iter(imgIterable)
         mic = next(iterMics)
+        self._setCtf = mic.hasCTF()
         self._micToRow(mic, micRow)
 
         micsTable = self._createTableFromDict(micRow)
@@ -86,6 +87,10 @@ class Writer(WriterBase):
 
     def _micToRow(self, mic, row):
         WriterBase._micToRow(self, mic, row)
+
+        # Set CTF values
+        if self._setCtf:
+            self._ctfToRow(mic.getCTF(), row)
 
         # Add now the Acquisition labels
         acq = mic.getAcquisition()
@@ -140,7 +145,7 @@ class Reader(ReaderBase):
             elif self._alignType == pwem.ALIGN_PROJ:
                 self.setParticleTransform = self.__setParticleTransformProj
             else:
-                raise Exception("Unexpected alignment type: %s"
+                raise TypeError("Unexpected alignment type: %s"
                                 % self._alignType)
 
         # Call again the modified function

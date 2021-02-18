@@ -34,6 +34,7 @@ import numpy as np
 from pyworkflow.object import ObjectWrap, String, Integer
 from pwem.constants import ALIGN_2D, ALIGN_3D, ALIGN_PROJ, ALIGN_NONE
 import pwem.convert.transformations as tfs
+import pwem.objects as pwobj
 
 from relion.constants import *
 from .convert_utils import *
@@ -108,7 +109,7 @@ def acquisitionToRow(acquisition, ctfRow):
 def rowToAcquisition(acquisitionRow):
     """ Create an acquisition from a row of a meta """
     if acquisitionRow.containsAll(ACQUISITION_DICT):
-        acquisition = pwem.objects.Acquisition()
+        acquisition = pwobj.Acquisition()
         rowToObject(acquisitionRow, acquisition, ACQUISITION_DICT)
     else:
         acquisition = None
@@ -140,7 +141,7 @@ def ctfModelToRow(ctfModel, ctfRow):
 def rowToCtfModel(ctfRow):
     """ Create a CTFModel from a row of a meta """
     if ctfRow.containsAll(CTF_DICT):
-        ctfModel = pwem.objects.CTFModel()
+        ctfModel = pwobj.CTFModel()
 
         rowToObject(ctfRow, ctfModel, CTF_DICT, extraLabels=CTF_EXTRA_LABELS)
         if ctfRow.hasLabel(md.RLN_CTF_PHASESHIFT):
@@ -229,7 +230,7 @@ def rowToAlignment(alignmentRow, alignType):
     is2D = alignType == ALIGN_2D
     inverseTransform = alignType == ALIGN_PROJ
     if alignmentRow.containsAny(ALIGNMENT_DICT):
-        alignment = pwem.objects.Transform()
+        alignment = pwobj.Transform()
         angles = np.zeros(3)
         shifts = np.zeros(3)
         shifts[0] = alignmentRow.get(md.RLN_ORIENT_ORIGIN_X, 0.)
@@ -266,7 +267,7 @@ def rowToCoordinate(coordRow):
     """ Create a Coordinate from a row of a meta """
     # Check that all required labels are present in the row
     if coordRow.containsAll(COOR_DICT):
-        coord = pwem.objects.Coordinate()
+        coord = pwobj.Coordinate()
         rowToObject(coordRow, coord, COOR_DICT, extraLabels=COOR_EXTRA_LABELS)
 
         micName = None
@@ -364,7 +365,7 @@ def volumeToRow(vol, volRow, **kwargs):
 
 def rowToVolume(volRow, **kwargs):
     """ Create a Volume object from a row of metadata. """
-    return rowToParticle(volRow, particleClass=pwem.objects.Volume, **kwargs)
+    return rowToParticle(volRow, particleClass=pwobj.Volume, **kwargs)
 
 
 def particleToRow(part, partRow, **kwargs):
@@ -383,7 +384,7 @@ def particleToRow(part, partRow, **kwargs):
     if part.hasAttribute('_rlnParticleId'):
         partRow.set(md.RLN_PARTICLE_ID, int(part._rlnParticleId.get()))
 
-    if kwargs.get('fillRandomSubset') and part.hasAttribute('_rlnRandomSubset'):
+    if part.hasAttribute('_rlnRandomSubset'):
         partRow.set(md.RLN_PARTICLE_RANDOM_SUBSET,
                     int(part._rlnRandomSubset.get()))
         if part.hasAttribute('_rlnBeamTiltX'):
@@ -395,7 +396,7 @@ def particleToRow(part, partRow, **kwargs):
     imageToRow(part, partRow, md.RLN_IMAGE_NAME, **kwargs)
 
 
-def rowToParticle(partRow, particleClass=pwem.objects.Particle, **kwargs):
+def rowToParticle(partRow, particleClass=pwobj.Particle, **kwargs):
     """ Create a Particle from a row of a meta """
     img = particleClass()
 
@@ -564,23 +565,23 @@ def writeReferences(inputSet, outputRoot, useBasename=False, **kwargs):
         convertFunc(item, row, **kwargs)
         row.writeToMd(refsMd, refsMd.addObject())
 
-    if isinstance(inputSet, pwem.objects.SetOfAverages):
+    if isinstance(inputSet, pwobj.SetOfAverages):
         for i, img in enumerate(inputSet):
             _convert(img, i, particleToRow)
 
-    elif isinstance(inputSet, pwem.objects.SetOfClasses2D):
+    elif isinstance(inputSet, pwobj.SetOfClasses2D):
         for i, rep in enumerate(inputSet.iterRepresentatives()):
             _convert(rep, i, particleToRow)
 
-    elif isinstance(inputSet, pwem.objects.SetOfClasses3D):
+    elif isinstance(inputSet, pwobj.SetOfClasses3D):
         for i, rep in enumerate(inputSet.iterRepresentatives()):
             _convert(rep, i, imageToRow)
 
-    elif isinstance(inputSet, pwem.objects.SetOfVolumes):
+    elif isinstance(inputSet, pwobj.SetOfVolumes):
         for i, vol in enumerate(inputSet):
             _convert(vol, i, imageToRow)
 
-    elif isinstance(inputSet, pwem.objects.Volume):
+    elif isinstance(inputSet, pwobj.Volume):
         _convert(inputSet, 0, imageToRow)
 
     else:
