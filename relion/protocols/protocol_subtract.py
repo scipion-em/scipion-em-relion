@@ -122,7 +122,7 @@ class ProtRelionSubtract(ProtOperateParticles):
                            "That is: *the mask should INCLUDE the part of the "
                            "volume that you wish to KEEP.*")
 
-        form.addParam('invertMask', BooleanParam, default=True,
+        form.addParam('invertMask', BooleanParam, default=False,
                       label='Invert Mask',
                       condition="not relionInput",
                       help="Invert the provided mask so 0 became 1 and viceversa"
