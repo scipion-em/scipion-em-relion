@@ -197,8 +197,8 @@ def convertMask(img, outputPath, newPix=None, newDim=None, threshold=True):
     if newPix is not None:
         params += ' --rescale_angpix %0.5f' % newPix
 
-    if newDim is not None:
-        params += ' --new_box %d' % newDim
+    #if newDim is not None:
+    #    params += ' --new_box %d' % newDim
 
     if threshold:
         params += ' --threshold_above 1 --threshold_below 0'
@@ -232,8 +232,8 @@ def convertMaskThreshold(img, outputPath, newPix=None, newDim=None, invert=False
     params = '--i %s --o %s --angpix %0.5f ' % (
         imgFn, outFn, inPix)
 
-    if newDim is not None:
-        params += ' --new_box %d' % newDim
+    #if newDim is not None:
+    #    params += ' --new_box %d' % newDim
 
     params += ' --ini_threshold 0.01'
     if invert:
