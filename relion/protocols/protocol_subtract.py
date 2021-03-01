@@ -25,7 +25,6 @@
 # **************************************************************************
 
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
-# import pwem.emlib.metadata as md
 from pyworkflow.object import String, Integer
 from pyworkflow.protocol.params import PointerParam, BooleanParam, IntParam, LabelParam
 from pwem.constants import ALIGN_PROJ
