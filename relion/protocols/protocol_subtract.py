@@ -54,8 +54,6 @@ class ProtRelionSubtract(ProtOperateParticles):
                   'input_star': self._getExtraPath('input_particles.star'),
                   'output_star': self._getExtraPath('particles_subtracted.star')
                   }
-        #if not self.isRelionInput:
-        #    myDict['output'] = self._getExtraPath('particles_subtracted')
         self._updateFilenamesDict(myDict)
     
     # -------------------------- DEFINE param functions -----------------------
