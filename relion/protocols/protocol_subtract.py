@@ -119,12 +119,6 @@ class ProtRelionSubtract(ProtOperateParticles):
                            "That is: *the mask should INCLUDE the part of the "
                            "volume that you wish to KEEP.*")
 
-        form.addParam('invertMask', BooleanParam, default=False,
-                      label='Invert Mask',
-                      condition="not relionInput",
-                      help="Invert the provided mask so 0 became 1 and viceversa"
-                      )
-
         form.addSection('Centering')
         form.addParam('help1', LabelParam,
                       label="Empty section (see help) ",
@@ -234,8 +228,7 @@ class ProtRelionSubtract(ProtOperateParticles):
             maskFn = convert.convertMaskThreshold(self.refMask.get(),
                                                   tmp,
                                                   newPix,
-                                                  newDim,
-                                                  self.invertMask)
+                                                  newDim)
             params += ' --mask %s' % maskFn
 
         if self._getInputParticles().isPhaseFlipped():
