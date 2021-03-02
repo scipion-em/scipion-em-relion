@@ -206,7 +206,7 @@ def convertMask(img, outputPath, newPix=None, newDim=None, threshold=True):
     pwutils.runJob(None, 'relion_image_handler', params, env=Plugin.getEnviron())
     return outFn
 
-def convertMaskThreshold(img, outputPath, newPix=None, newDim=None, invert=False):
+def convertMaskThreshold(img, outputPath, newPix=None, newDim=None):
     """ read input mask and convert to a binary object. invert if needed
     Params:
         img: input image to be converted.
@@ -237,8 +237,6 @@ def convertMaskThreshold(img, outputPath, newPix=None, newDim=None, invert=False
     #    params += ' --new_box %d' % newDim
 
     params += ' --ini_threshold 0.01'
-    if invert:
-        params += ' --invert'
     pwutils.runJob(None, 'relion_mask_create', params, env=Plugin.getEnviron())
 
     return outFn
