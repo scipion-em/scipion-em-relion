@@ -176,19 +176,6 @@ class ProtRelionSubtract(ProtOperateParticles):
                            'intrinsically implements the optimal linear, or '
                            'Wiener filter. Note that input particles should '
                            'contains CTF parameters.')
-        form.addParam('haveDataBeenPhaseFlipped', LabelParam,
-                      label='Have data been phase-flipped?      '
-                            '(Don\'t answer, see help)',
-                      condition="not relionInput",
-                      help='The phase-flip status is recorded and managed by '
-                           'Scipion. \n In other words, when you import or '
-                           'extract particles, \nScipion will record whether '
-                           'or not phase flipping has been done.\n\n'
-                           'Note that CTF-phase flipping is NOT a necessary '
-                           'pre-processing step \nfor MAP-refinement in '
-                           'RELION, as this can be done inside the internal\n'
-                           'CTF-correction. However, if the phases have been '
-                           'flipped, the program will handle it.')
         form.addParam('ignoreCTFUntilFirstPeak', BooleanParam, default=False,
                       expertLevel=LEVEL_ADVANCED,
                       label='Ignore CTFs until first peak?',
@@ -263,15 +250,7 @@ class ProtRelionSubtract(ProtOperateParticles):
             self._getFileName('input_star'),
             self._getFileName('output_star').replace(".star", ""))
 
-        try:
-            self.runJob('relion_project', params)
-        except Exception as ex:
-            fn = self._getFileName('output_star')
-            if not os.path.exists(fn):
-                sys.stderr.write('The file %s was not produced\n' % fn)
-                raise ex
-            else:
-                sys.stderr.write('----Everything OK-----\n')
+        self.runJob('relion_project', params)
 
     def subtractStepRelion(self):
         inputProt = self.inputProtocol.get()
@@ -312,15 +291,19 @@ class ProtRelionSubtract(ProtOperateParticles):
             doClone = False
         else:
             doClone = True
-            self.reader.setPixelSize(3.5)
 
         mdIter = convert.Table.iterRows(tableName + outImgsFn)
+        if not os.path.exists(outImgsFn):
+            raise Exception('The file %s was not produced\n' % outImgsFn)
+        else:
+            print('----Everything OK-----\n', flush=True)
 
         outImgSet.copyItems(imgSet, doClone=doClone,
                             updateItemCallback=self._updateItem,
                             itemDataIterator=mdIter)
 
         self._defineOutputs(outputParticles=outImgSet)
+        self._defineTransformRelation(imgSet, outImgSet)
 
     # -------------------------- INFO functions -------------------------------
     def _validate(self):
