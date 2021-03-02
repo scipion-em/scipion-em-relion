@@ -24,17 +24,15 @@
 # *
 # **************************************************************************
 
-from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pyworkflow.object import String, Integer
-from pyworkflow.protocol.params import PointerParam, BooleanParam, IntParam, LabelParam
+from pyworkflow.protocol.params import (PointerParam, BooleanParam,
+                                        IntParam, LabelParam)
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtOperateParticles
 
 import relion.convert as convert
 from relion import Plugin
 
-import os
-import sys
 
 class ProtRelionSubtract(ProtOperateParticles):
     """ Signal subtraction protocol of Relion.
@@ -60,17 +58,14 @@ class ProtRelionSubtract(ProtOperateParticles):
     def _defineParams(self, form):
         form.addSection(label='Input')
         form.addParam('relionInput', BooleanParam,
-                      default = True,
-                      important=True,
-                      label="Start from Relion 3D refinement?",
-                      help="Set to yes if you wish to use as input"
-                           " a Relion 3D refinement protocol "
-                           "Otherwise set it to No")
-        # input volume
+                      default=True, important=True,
+                      label="Start from Relion protocol?",
+                      help="Set to Yes if you wish to use as input "
+                           "a Relion protocol. Otherwise set it to No")
         form.addParam('inputProtocol', PointerParam,
                       important=True,
                       pointerClass='ProtRelionRefine3D, ProtRelionClassify3D',
-                      label="Input 3D protocol",
+                      label="Input Relion protocol",
                       condition="relionInput",
                       help="Select the 3D refinement/classification run which "
                            "you want to use for subtraction. It will use the "
@@ -87,7 +82,6 @@ class ProtRelionSubtract(ProtOperateParticles):
                            'orientations, as it is crucial that the absolute '
                            'greyscale is the same as in the experimental '
                            'particles.')
-        # input particles
         form.addParam('useAll', BooleanParam, default=True,
                       label="Use all particles from input protocol?",
                       condition="relionInput",
@@ -107,9 +101,8 @@ class ProtRelionSubtract(ProtOperateParticles):
                       condition="not relionInput",
                       pointerCondition='hasAlignmentProj',
                       label="Input particles", important=True,
-                      help='Select the experimental particles.')
+                      help='Select the input particles.')
 
-        #reference mask
         form.addParam('refMask', PointerParam, pointerClass='VolumeMask',
                       label='Mask of the signal to keep',
                       help="Provide a soft mask where the protein density "
@@ -121,10 +114,9 @@ class ProtRelionSubtract(ProtOperateParticles):
 
         form.addSection('Centering')
         form.addParam('help1', LabelParam,
-                      label="Empty section (see help) ",
                       condition="not relionInput",
-                      help="This section is only used if "
-                            "'Start from Relion 3D refinement' is set to True")
+                      label="This section is only used if "
+                            "starting from Relion input.")
         form.addParam('centerOnMask', BooleanParam, default=True,
                       label="Do center subtracted images on mask?",
                       condition="relionInput",
@@ -158,10 +150,9 @@ class ProtRelionSubtract(ProtOperateParticles):
 
         form.addSection(label='CTF')
         form.addParam('help', LabelParam,
-                      label="Empty section (see help) ",
                       condition="relionInput",
-                      help="This section is only used if "
-                            "'Start from Relion 3D refinement' is set to False")
+                      label="This section is only used if "
+                            "NOT starting from Relion protocol.")
         form.addParam('doCTF', BooleanParam, default=True,
                       label='Do CTF-correction?',
                       condition="not relionInput",
@@ -171,7 +162,6 @@ class ProtRelionSubtract(ProtOperateParticles):
                            'Wiener filter. Note that input particles should '
                            'contains CTF parameters.')
         form.addParam('ignoreCTFUntilFirstPeak', BooleanParam, default=False,
-                      expertLevel=LEVEL_ADVANCED,
                       label='Ignore CTFs until first peak?',
                       condition="not relionInput",
                       help='If set to Yes, then CTF-amplitude correction will '
@@ -192,6 +182,7 @@ class ProtRelionSubtract(ProtOperateParticles):
 
         if not self.useAll or not self.isRelionInput:
             self._insertFunctionStep('convertInputStep')
+
         self._insertFunctionStep('subtractStep')
         self._insertFunctionStep('createOutputStep')
     
@@ -213,23 +204,12 @@ class ProtRelionSubtract(ProtOperateParticles):
             self.subtractStepNoRelion()
 
     def subtractStepNoRelion(self):
-        self.numberOfMpi = Integer(1)
         volume = self.inputVolume.get()
         volFn = convert.convertBinaryVol(volume,
                                          self._getExtraPath())
-        params = ' --i %s --subtract_exp --angpix %0.3f' % (volFn,
-                                                            volume.getSamplingRate())
-
-        if self.refMask.hasValue():
-            tmp = self._getTmpPath()
-            newDim = self._getInputParticles().getXDim()
-            newPix = self._getInputParticles().getSamplingRate()
-
-            maskFn = convert.convertMaskThreshold(self.refMask.get(),
-                                                  tmp,
-                                                  newPix,
-                                                  newDim)
-            params += ' --mask %s' % maskFn
+        params = ' --i %s --subtract_exp' % volFn
+        params += ' --angpix %0.3f' % volume.getSamplingRate()
+        params += self._convertMask()
 
         if self._getInputParticles().isPhaseFlipped():
             params += ' --ctf_phase_flip'
@@ -239,7 +219,7 @@ class ProtRelionSubtract(ProtOperateParticles):
             if self.ignoreCTFUntilFirstPeak:
                 params += ' --ctf_intact_first_peak'
 
-        params += ' --ang %s  --o %s ' % (
+        params += ' --ang %s  --o %s' % (
             self._getFileName('input_star'),
             self._getFileName('output_star').replace(".star", ""))
 
@@ -262,12 +242,7 @@ class ProtRelionSubtract(ProtOperateParticles):
             params += " --center_x %d --center_y %d --center_z %d" % (
                 self.cX, self.cY, self.cZ)
 
-        tmp = self._getTmpPath()
-        newDim = self._getInputParticles().getXDim()
-        newPix = self._getInputParticles().getSamplingRate()
-        maskFn = convert.convertMask(self.refMask.get(), tmp, newPix, newDim)
-        params += ' --mask %s' % maskFn
-
+        params += self._convertMask()
         prog = "relion_particle_subtract" + ("_mpi" if self.numberOfMpi > 1 else "")
         self.runJob(prog, params)
 
@@ -280,18 +255,8 @@ class ProtRelionSubtract(ProtOperateParticles):
 
         self.reader = convert.createReader(alignType=ALIGN_PROJ)
         tableName = 'particles@' if self.IS_GT30() else ''
-        if self.isRelionInput:
-            doClone = False
-        else:
-            doClone = True
-
         mdIter = convert.Table.iterRows(tableName + outImgsFn)
-        if not os.path.exists(outImgsFn):
-            raise Exception('The file %s was not produced\n' % outImgsFn)
-        else:
-            print('----Everything OK-----\n', flush=True)
-
-        outImgSet.copyItems(imgSet, doClone=doClone,
+        outImgSet.copyItems(imgSet, doClone=False,
                             updateItemCallback=self._updateItem,
                             itemDataIterator=mdIter)
 
@@ -336,6 +301,13 @@ class ProtRelionSubtract(ProtOperateParticles):
             return inputProt.outputParticles
         else:
             return self.inputParticlesAll.get()
+
+    def _convertMask(self):
+        tmp = self._getTmpPath()
+        newDim = self._getInputParticles().getXDim()
+        newPix = self._getInputParticles().getSamplingRate()
+        maskFn = convert.convertMask(self.refMask.get(), tmp, newPix, newDim)
+        return ' --mask %s' % maskFn
 
     def IS_GT30(self):
         return Plugin.IS_GT30()

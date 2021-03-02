@@ -197,48 +197,13 @@ def convertMask(img, outputPath, newPix=None, newDim=None, threshold=True):
     if newPix is not None:
         params += ' --rescale_angpix %0.5f' % newPix
 
-    #if newDim is not None:
-    #    params += ' --new_box %d' % newDim
+    if newDim is not None:
+        params += ' --new_box %d' % newDim
 
     if threshold:
         params += ' --threshold_above 1 --threshold_below 0'
 
     pwutils.runJob(None, 'relion_image_handler', params, env=Plugin.getEnviron())
-    return outFn
-
-def convertMaskThreshold(img, outputPath, newPix=None, newDim=None):
-    """ read input mask and convert to a binary object. invert if needed
-    Params:
-        img: input image to be converted.
-        outputPath: it can be either a directory or a file path.
-            If it is a directory, the output name will be inferred from input
-            and put into that directory. If it is not a directory,
-            it is assumed is the output filename.
-        newPix: output pixel size (equals input if None)
-        newDim: output box size
-        invert: invert mask
-    Return:
-        new file name of the mask.
-    """
-    index, filename = img.getLocation()
-    imgFn = locationToRelion(index, filename)
-    inPix = img.getSamplingRate()
-    outPix = inPix if newPix is None else newPix
-
-    if os.path.isdir(outputPath):
-        outFn = pwutils.join(outputPath, pwutils.replaceBaseExt(imgFn, 'mrc'))
-    else:
-        outFn = outputPath
-
-    params = '--i %s --o %s --angpix %0.5f ' % (
-        imgFn, outFn, inPix)
-
-    #if newDim is not None:
-    #    params += ' --new_box %d' % newDim
-
-    params += ' --ini_threshold 0.01'
-    pwutils.runJob(None, 'relion_mask_create', params, env=Plugin.getEnviron())
-
     return outFn
 
 

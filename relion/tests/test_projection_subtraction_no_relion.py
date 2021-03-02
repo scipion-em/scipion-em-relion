@@ -2,7 +2,6 @@
 # * Authors:    Marta Martinez (mmmtnez@cnb.csic.es)
 # *             Roberto Marabini (roberto@cnb.csic.es)
 # *
-# *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
 # * the Free Software Foundation; either version 3 of the License, or
@@ -21,17 +20,17 @@
 # *  All comments concerning this program package may be sent to the
 # *  e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
-""" test subtraction projection protocol when relion
- alignment is not available"""
-from pwem.protocols import ProtImportParticles
-from pyworkflow.tests import *
+
+import os
 from tempfile import NamedTemporaryFile
 
-from relion.protocols import ProtRelionSubtract
+from pwem.protocols import ProtImportParticles
+from pyworkflow.tests import BaseTest, setupTestProject
+
+from ..protocols import ProtRelionSubtract
 
 
 class TestSubtractionProjection(BaseTest):
-
     @classmethod
     def setUpClass(cls):
         setupTestProject(cls)
@@ -57,8 +56,8 @@ class TestSubtractionProjection(BaseTest):
     def createVolume(self):
         # volume
         f = NamedTemporaryFile(delete=False, suffix=".feat")
-        command = """#	Phantom	description	file.	(generated	with	phantom
-#	General	Volume	Parameters:			
+        command = """#	Phantom	description	file. (generated with phantom
+#	General	Volume Parameters:
 #	Xdim	Ydim	Zdim	Background_Density	Scale	
  	752     752    752   0 0.1702127659574468
 #	Feature	Parameters:				
@@ -116,15 +115,12 @@ sph	+	1	267.78	-165.51	0.00	60
                                       haveDataBeenPhaseFlipped=True
                                       )
         self.launchProtocol(protImport)
-
-        # check that input images have been imported (a better way to do this?)
-        if protImport.outputParticles is None:
-            raise Exception(
-                'Import of images: %s, failed. outputParticles is None.' % pattern)
+        self.assertIsNotNone(protImport.outputParticles,
+                             "There was a problem with import particles.")
         return protImport
 
 
-    def testProjectionSubtraction_01(self):
+    def testProjectionSubtraction(self):
         if not self.xmippAvailable:
             return
         # create volume
@@ -160,5 +156,3 @@ sph	+	1	267.78	-165.51	0.00	60
         self.launchProtocol(protSubtract)
         self.assertIsNotNone(protSubtract.outputParticles,
                          "There was a problem with subtract projection")
-
-    #test

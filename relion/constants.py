@@ -41,7 +41,8 @@ V3_1_1 = '3.1.1'
 MASK_FILL_ZERO = 0
 MASK_FILL_NOISE = 1
 
-ANGULAR_SAMPLING_LIST = ['30', '15', '7.5', '3.7', '1.8', '0.9', '0.5', '0.2', '0.1', '0.06', '0.03', '0.01', '0.007', '0.004']
+ANGULAR_SAMPLING_LIST = ['30', '15', '7.5', '3.7', '1.8', '0.9', '0.5',
+                         '0.2', '0.1', '0.06', '0.03', '0.01', '0.007', '0.004']
 
 # Micrograph type constants for particle extraction
 SAME_AS_PICKING = 0
