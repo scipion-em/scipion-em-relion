@@ -153,7 +153,6 @@ sph	+	1	267.78	-165.51	0.00	60
         protSubtract = self.newProtocol(ProtRelionSubtract,
                                         relionInput=False,
                                         refMask=mask,
-                                        invertMask=False,
                                         doCTF=False,
                                         numberOfMpi=3)
         protSubtract.inputParticlesAll.set(protImport.outputParticles)
