@@ -207,7 +207,7 @@ def convertMask(img, outputPath, newPix=None, newDim=None, threshold=True):
     return outFn
 
 def convertMaskThreshold(img, outputPath, newPix=None, newDim=None, invert=False):
-    """ Convert mask to mrc format read by Relion.
+    """ read input mask and convert to a binary object. invert if needed
     Params:
         img: input image to be converted.
         outputPath: it can be either a directory or a file path.
