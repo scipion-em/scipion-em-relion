@@ -31,14 +31,14 @@ import pwem
 
 from .constants import *
 
-__version__ = '3.0.0'
+__version__ = '3.1'
 _logo = "relion_logo.png"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016', 'Zivanov2018']
 
 
 class Plugin(pwem.Plugin):
     _homeVar = RELION_HOME
-    _supportedVersions = [V3_0, V3_1, V3_1_1]
+    _supportedVersions = [V3_1, V3_1_1]
     _url = "https://github.com/scipion-em/scipion-em-relion"
 
     @classmethod
@@ -54,8 +54,7 @@ class Plugin(pwem.Plugin):
                                    pwem.Config.MPI_BINDIR])
         libPath = os.pathsep.join([cls.getHome('lib'),
                                    cls.getHome('lib64'),
-                                   pwem.Config.MPI_LIBDIR,
-                                   ])
+                                   pwem.Config.MPI_LIBDIR])
 
         if binPath not in environ['PATH']:
             environ.update({'PATH': binPath,
@@ -76,8 +75,8 @@ class Plugin(pwem.Plugin):
         return environ
 
     @classmethod
-    def IS_GT30(cls):
-        return not cls.getActiveVersion().startswith('3.0')
+    def IS_GT31(cls):
+        return not cls.getActiveVersion().startswith('3.1')
 
     @classmethod
     def defineBinaries(cls, env):

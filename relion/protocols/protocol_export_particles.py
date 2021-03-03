@@ -133,35 +133,6 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
         Only relevant when saving multiple stacks. """
         convert.relativeFromFileName(row, self._getExportPath())
 
-    # TODO: Remove this function when support for 3.0 is dropped
-    def _postprocessImageRow30(self, img, row):
-        """ Write the binary image to the final stack
-        and update the row imageName. """
-
-        if self._stackType > STACK_NONE:
-            rlnImageName = row.getValue('rlnImageName')
-            # backup the original name
-            row.setValue('rlnOriginalParticleName', rlnImageName)
-
-            if self._stackType == STACK_ONE:
-                self._count = getattr(self, '_count', 1)
-                index, stackName = (self._count, 'particles.mrcs')
-                self._count += 1
-            else:  # STACK_MULT
-                baseName = pwutils.removeBaseExt(img.getFileName())
-                if baseName not in self._stackDict:
-                    self._stackDict[baseName] = 0
-                index = self._stackDict[baseName] + 1
-                stackName = baseName + '.mrcs'
-                self._stackDict[baseName] = index
-
-            stackFn = self._getExportPath("Particles", stackName)
-            self._ih.convert(img, (index, stackFn))
-            # Store relative path in the star file
-            relStackFn = os.path.relpath(stackFn, self._getExportPath())
-            row.setValue('rlnImageName',
-                         convert.locationToRelion(index, relStackFn))
-
     def _getExportPath(self, *paths):
         return os.path.join(self._getPath('Export'), *paths)
 

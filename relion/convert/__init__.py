@@ -34,16 +34,15 @@ from .dataimport import *
 
 # Writing of star files will be handle by the Writer class
 # We have a new implementation of it for Relion > 3.1 since
-# the star file format has changed in 3.
+# the star file format has changed in 3.1.
 from . import convert30
 from . import convert31
 
 
 def createReader(**kwargs):
     """ Create a new Reader instance.
-    By default it will create the version (3.1 or older) based on the current
-    plugin binary. It can also be forced to use old format by passing
-    the format='30' argument.
+    By default it will create the new version (3.1 or newer) of STAR file.
+    It can also be forced to use old format by passing the format='30' argument
     """
     is30 = kwargs.get('format', '') == '30'
     Reader = convert30.Reader if is30 else convert31.Reader
@@ -53,9 +52,8 @@ def createReader(**kwargs):
 
 def createWriter(**kwargs):
     """ Create a new Writer instance.
-    By default it will create the version (3.1 or older) based on the current
-    plugin binary. It can also be forced to use old format by passing
-    the format='30' argument.
+    By default it will create the new version (3.1 or newer) of STAR file.
+    It can also be forced to use old format by passing the format='30' argument
     """
     is30 = kwargs.get('format', '') == '30'
     Writer = convert30.Writer if is30 else convert31.Writer
