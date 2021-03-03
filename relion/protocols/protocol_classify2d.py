@@ -57,7 +57,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
             args['--offset_step'] = self.offsetSearchStepPix.get() * self._getSamplingFactor()
             args['--psi_step'] = self.inplaneAngularSamplingDeg.get() * self._getSamplingFactor()
 
-            if self.IS_GT30() and self.allowCoarserSampling:
+            if self.allowCoarserSampling:
                 args['--allow_coarser_sampling'] = ''
 
         else:

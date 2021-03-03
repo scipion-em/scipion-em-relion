@@ -1,6 +1,5 @@
 3.1:
-    - remove Relion 3.0 protocols, but users can still import old star files
-    - reorganize tests
+    - remove Relion 3.0 protocols and code, but users can still import old star files
 3.0.0:
     - Scipion 3.0.0 support, migration to python 3
     - GPLv2 to v3

@@ -43,7 +43,6 @@ from pwem.objects import SetOfClasses3D, SetOfParticles, SetOfVolumes, Volume
 from pwem.protocols import EMProtocol
 
 import relion.convert
-from relion import Plugin
 from ..constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO
 
 
@@ -66,7 +65,7 @@ class ProtRelionBase(EMProtocol):
     CHANGE_LABELS = ['rlnChangesOptimalOrientations',
                      'rlnChangesOptimalOffsets',
                      'rlnOverallAccuracyRotations',
-                     'rlnOverallAccuracyTranslationsAngst' if Plugin.IS_GT30() else 'rlnOverallAccuracyTranslations',
+                     'rlnOverallAccuracyTranslationsAngst',
                      'rlnChangesOptimalClasses']
     PREFIXES = ['']
 
@@ -552,28 +551,27 @@ class ProtRelionBase(EMProtocol):
                                    'of -6/+6 times the sampling rate will be '
                                    'used from this angular sampling rate '
                                    'onwards.')
-                if self.IS_GT30():
-                    form.addParam('useFinerSamplingFaster', BooleanParam,
-                                  default=False,
-                                  label='Use finer angular sampling faster?',
-                                  help='If set to Yes, then let auto-refinement '
-                                       'proceed faster with finer angular '
-                                       'samplings. Two additional command-line '
-                                       'options will be passed to the refine '
-                                       'program:\n\n'
-                                       '\t--auto_ignore_angles lets angular '
-                                       'sampling go down despite changes '
-                                       'still happening in the angles\n'
-                                       '\t--auto_resol_angles lets angular '
-                                       'sampling go down if the current '
-                                       'resolution already requires that '
-                                       'sampling at the edge of the particle.\n\n'
-                                       'This option will make the computation '
-                                       'faster, but has nott been tested for '
-                                       'many cases for potential loss in '
-                                       'reconstruction quality upon convergence.')
+                form.addParam('useFinerSamplingFaster', BooleanParam,
+                              default=False,
+                              label='Use finer angular sampling faster?',
+                              help='If set to Yes, then let auto-refinement '
+                                   'proceed faster with finer angular '
+                                   'samplings. Two additional command-line '
+                                   'options will be passed to the refine '
+                                   'program:\n\n'
+                                   '\t--auto_ignore_angles lets angular '
+                                   'sampling go down despite changes '
+                                   'still happening in the angles\n'
+                                   '\t--auto_resol_angles lets angular '
+                                   'sampling go down if the current '
+                                   'resolution already requires that '
+                                   'sampling at the edge of the particle.\n\n'
+                                   'This option will make the computation '
+                                   'faster, but has nott been tested for '
+                                   'many cases for potential loss in '
+                                   'reconstruction quality upon convergence.')
 
-        if self.IS_CLASSIFY and self.IS_GT30():
+        if self.IS_CLASSIFY:
             form.addParam('allowCoarserSampling', BooleanParam,
                           condition='doImageAlignment',
                           default=False,
@@ -792,17 +790,13 @@ class ProtRelionBase(EMProtocol):
                 postprocessImageRow=self._postprocessParticleRow)
 
             if alignToPrior:
-                tableName = ''
-                if self.IS_GT30():
-                    tableName = 'particles'
-                    mdOptics = Table(fileName=imgStar, tableName='optics')
-                mdParts = Table(fileName=imgStar, tableName=tableName)
+                mdOptics = Table(fileName=imgStar, tableName='optics')
+                mdParts = Table(fileName=imgStar, tableName='particles')
                 self._copyAlignAsPriors(mdParts, alignType)
 
                 with open(imgStar, "w") as f:
-                    mdParts.writeStar(f, tableName=tableName)
-                    if self.IS_GT30():
-                        mdOptics.writeStar(f, tableName='optics')
+                    mdParts.writeStar(f, tableName='particles')
+                    mdOptics.writeStar(f, tableName='optics')
 
             if self._getRefArg():
                 self._convertRef()
@@ -947,10 +941,9 @@ class ProtRelionBase(EMProtocol):
                 args['--firstiter_cc'] = ''
             args['--ini_high'] = self.initialLowPassFilterA.get()
             args['--sym'] = self.symmetryGroup.get()
-            if self.IS_GT30():
-                # We use the same pixel size as input particles, since
-                # we convert anyway the input volume to match same size
-                args['--ref_angpix'] = ps
+            # We use the same pixel size as input particles, since
+            # we convert anyway the input volume to match same size
+            args['--ref_angpix'] = ps
 
         refArg = self._getRefArg()
         if refArg:
@@ -1262,12 +1255,8 @@ class ProtRelionBase(EMProtocol):
 
     def _copyAlignAsPriors(self, mdParts, alignType):
         # set priors equal to orig. values
-        if self.IS_GT30():
-            mdParts.addColumns('rlnOriginXPriorAngst=rlnOriginXAngst')
-            mdParts.addColumns('rlnOriginYPriorAngst=rlnOriginYAngst')
-        else:
-            mdParts.addColumns('rlnOriginXPrior=rlnOriginX')
-            mdParts.addColumns('rlnOriginYPrior=rlnOriginY')
+        mdParts.addColumns('rlnOriginXPriorAngst=rlnOriginXAngst')
+        mdParts.addColumns('rlnOriginYPriorAngst=rlnOriginYAngst')
         mdParts.addColumns('rlnAnglePsiPrior=rlnAnglePsi')
 
         if alignType == ALIGN_PROJ:
@@ -1283,6 +1272,3 @@ class ProtRelionBase(EMProtocol):
                                       defocusDiff=self.defocusRange.get(),
                                       minGroupSize=self.numParticles.get())
         return defocusGroups
-
-    def IS_GT30(self):
-        return Plugin.IS_GT30()

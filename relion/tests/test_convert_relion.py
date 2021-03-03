@@ -766,10 +766,6 @@ class TestRelionReader(BaseTest):
         return partsSet
 
     def test_readSetOfParticles(self):
-        if not Plugin.IS_GT30():
-            print("Skipping test (required Relion > 3.1)")
-            return
-
         partsSet = self.__readParticles(
             self.ds.getFile("Extract/job018/particles.star"),
             extraLabels=['rlnNrOfSignificantSamples']
@@ -788,10 +784,6 @@ class TestRelionReader(BaseTest):
         self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')
 
     def test_readSetOfParticlesAfterCtf(self):
-        if not Plugin.IS_GT30():
-            print("Skipping test (required Relion > 3.1)")
-            return
-
         starFile = self.ds.getFile("CtfRefine/job023/particles_ctf_refine.star")
         partsReader = Table.Reader(starFile, tableName='particles')
         firstRow = partsReader.getRow()
@@ -833,10 +825,6 @@ class TestRelionOpticsGroups(BaseTest):
         cls.ds = DataSet.getDataSet('relion31_tutorial_precalculated')
 
     def test_fromStar(self):
-        if not Plugin.IS_GT30():
-            print("Skipping test (required Relion > 3.1)")
-            return
-
         partsStar = self.ds.getFile("Extract/job018/particles.star")
 
         print("<<< Reading optics groups from file: \n   %s\n" % partsStar)
@@ -853,10 +841,6 @@ class TestRelionOpticsGroups(BaseTest):
         self.assertEqual(og['opticsGroup1'], fog)
 
     def test_string(self):
-        if not Plugin.IS_GT30():
-            print("Skipping test (required Relion > 3.1)")
-            return
-
         og = OpticsGroups.create(rlnMtfFileName='mtf_k2_200kV.star')
         fog = og.first()
 

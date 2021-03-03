@@ -28,8 +28,6 @@ from emtable import Table
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtClassify3D
 
-import relion
-from relion import Plugin
 import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
@@ -47,7 +45,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
     CHANGE_LABELS = ['rlnChangesOptimalOrientations',
                      'rlnChangesOptimalOffsets',
                      'rlnOverallAccuracyRotations',
-                     'rlnOverallAccuracyTranslationsAngst' if Plugin.IS_GT30() else 'rlnOverallAccuracyTranslations',
+                     'rlnOverallAccuracyTranslationsAngst',
                      'rlnChangesOptimalClasses']
     
     def __init__(self, **args):        
@@ -77,7 +75,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
                 else:
                     args['--sigma_ang'] = self.localAngularSearchRange.get() / 3.
 
-            if relion.Plugin.IS_GT30() and self.allowCoarserSampling:
+            if self.allowCoarserSampling:
                 args['--allow_coarser_sampling'] = ''
 
         else:

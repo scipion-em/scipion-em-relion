@@ -134,9 +134,10 @@ class RelionImport:
             item._rlnclassDistribution = Float(row.get('rlnClassDistribution'))
             item._rlnAccuracyRotations = Float(row.get('rlnAccuracyRotations'))
             if self.version30:
+                # FIXME: convert to Angstroms
                 item._rlnAccuracyTranslations = Float(row.get('rlnAccuracyTranslations'))
             else:
-                item._rlnAccuracyTranslations = Float(row.get('rlnAccuracyTranslationsAngst'))
+                item._rlnAccuracyTranslationsAngst = Float(row.get('rlnAccuracyTranslationsAngst'))
 
     def _createClasses(self, partSet):
         self._classesDict = {}  # store classes info, indexed by class id

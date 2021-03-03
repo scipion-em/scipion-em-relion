@@ -30,7 +30,6 @@ from .convert_utils import *
 from .convert_deprecated import *
 from .convert_coordinates import *
 from .dataimport import *
-import relion
 
 
 # Writing of star files will be handle by the Writer class
@@ -46,7 +45,7 @@ def createReader(**kwargs):
     plugin binary. It can also be forced to use old format by passing
     the format='30' argument.
     """
-    is30 = kwargs.get('format', '') == '30' or relion.Plugin.IS_30()
+    is30 = kwargs.get('format', '') == '30'
     Reader = convert30.Reader if is30 else convert31.Reader
 
     return Reader(**kwargs)
@@ -58,7 +57,7 @@ def createWriter(**kwargs):
     plugin binary. It can also be forced to use old format by passing
     the format='30' argument.
     """
-    is30 = kwargs.get('format', '') == '30' or relion.Plugin.IS_30()
+    is30 = kwargs.get('format', '') == '30'
     Writer = convert30.Writer if is30 else convert31.Writer
 
     return Writer(**kwargs)
@@ -129,14 +128,12 @@ class ClassesLoader:
         prot = self._protocol  # shortcut
         self._loadClassesInfo(iteration)
 
-        tableName = 'particles@' if Plugin.IS_GT30() else ''
         dataStar = prot._getFileName('data', iter=iteration)
-
         pixelSize = prot.inputParticles.get().getSamplingRate()
         self._reader = createReader(alignType=self._alignType,
                                     pixelSize=pixelSize)
 
-        mdIter = Table.iterRows(tableName + dataStar, key='rlnImageId')
+        mdIter = Table.iterRows('particles@' + dataStar, key='rlnImageId')
         clsSet.classifyItems(updateItemCallback=self._updateParticle,
                              updateClassCallback=self._updateClass,
                              itemDataIterator=mdIter,
@@ -162,10 +159,7 @@ class ClassesLoader:
             item.getRepresentative().setLocation(index, fn)
             item._rlnClassDistribution = Float(row.rlnClassDistribution)
             item._rlnAccuracyRotations = Float(row.rlnAccuracyRotations)
-            if Plugin.IS_GT30():
-                item._rlnAccuracyTranslationsAngst = Float(row.rlnAccuracyTranslationsAngst)
-            else:
-                item._rlnAccuracyTranslations = Float(row.rlnAccuracyTranslations)
+            item._rlnAccuracyTranslationsAngst = Float(row.rlnAccuracyTranslationsAngst)
 
 
 class DefocusGroups:

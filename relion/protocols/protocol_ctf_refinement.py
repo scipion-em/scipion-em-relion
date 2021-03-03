@@ -26,10 +26,8 @@
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
-from pyworkflow.object import Float
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtParticles
-import pwem.emlib.metadata as md
 
 import relion
 import relion.convert as convert
@@ -258,21 +256,15 @@ class ProtRelionCtfRefinement(ProtParticles):
         outImgsFn = self._getFileName("output_star")
         imgSet.setAlignmentProj()
 
-        if self.IS_GT30():
-            # self._optics = convert.getOpticsDict(outImgsFn)
-            mdIter = convert.Table.iterRows('particles@' + outImgsFn,
-                                            key='rlnImageId')
-            outImgSet.copyItems(imgSet,
-                                updateItemCallback=self._updateItem31,
-                                itemDataIterator=mdIter,
-                                doClone=False)
-            og = OpticsGroups.fromStar(outImgsFn)
-            og.toImages(outImgSet)
-        else:
-            mdIter = md.iterRows(outImgsFn, sortByLabel=md.RLN_IMAGE_ID)
-            outImgSet.copyItems(imgSet,
-                                updateItemCallback=self._updateItem30,
-                                itemDataIterator=mdIter)
+        # self._optics = convert.getOpticsDict(outImgsFn)
+        mdIter = convert.Table.iterRows('particles@' + outImgsFn,
+                                        key='rlnImageId')
+        outImgSet.copyItems(imgSet,
+                            updateItemCallback=self._updateItem,
+                            itemDataIterator=mdIter,
+                            doClone=False)
+        og = OpticsGroups.fromStar(outImgsFn)
+        og.toImages(outImgSet)
 
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(self.inputParticles, outImgSet)
@@ -287,15 +279,7 @@ class ProtRelionCtfRefinement(ProtParticles):
     def createGlobalInfoStep(self):
         self.createGlobalInfo(self._getFileName("ctf_sqlite"))
 
-    def _updateItem30(self, particle, row):
-        particle.setCTF(convert.rowToCtfModel(row))
-        # TODO: Add other field from the .star file when other options?
-        # check if beamtilt is available and save it
-        if hasattr(row, 'rlnBeamTiltX'):
-            particle._rlnBeamTiltX = Float(row.rlnBeamTiltX)
-            particle._rlnBeamTiltY = Float(row.rlnBeamTiltY)
-
-    def _updateItem31(self, particle, row):
+    def _updateItem(self, particle, row):
         Reader.rowToCtf(row, particle.getCTF())
         # Reader.rowToAcquisition(self._optics[row.rlnOpticsGroup],
         #                         particle.getAcquisition())
@@ -324,6 +308,3 @@ class ProtRelionCtfRefinement(ProtParticles):
     def _validate(self):
         errors = []
         return errors
-
-    def IS_GT30(self):
-        return relion.Plugin.IS_GT30()

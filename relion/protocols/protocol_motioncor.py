@@ -90,19 +90,18 @@ class ProtRelionMotioncor(ProtAlignMovies):
                            'the choice, CTF refinement job is always done on '
                            'dose-weighted particles.')
 
-        if self.IS_GT30():
-            form.addParam('savePSsum', params.BooleanParam, default=False,
-                          label='Save sum of power spectra?',
-                          help='Sum of non-dose weighted power spectra '
-                               'provides better signal for CTF estimation. '
-                               'The power spectra can be used by CTFFIND4 '
-                               'but not by GCTF.')
-            form.addParam('dosePSsum', params.FloatParam, default=4.0,
-                          condition='savePSsum',
-                          label='Sum power spectra every e/A2',
-                          help='McMullan et al. (Ultramicroscopy, 2015) '
-                               'suggests summing power spectra every '
-                               '4.0 e/A2 gives optimal Thon rings.')
+        form.addParam('savePSsum', params.BooleanParam, default=False,
+                      label='Save sum of power spectra?',
+                      help='Sum of non-dose weighted power spectra '
+                           'provides better signal for CTF estimation. '
+                           'The power spectra can be used by CTFFIND4 '
+                           'but not by GCTF.')
+        form.addParam('dosePSsum', params.FloatParam, default=4.0,
+                      condition='savePSsum',
+                      label='Sum power spectra every e/A2',
+                      help='McMullan et al. (Ultramicroscopy, 2015) '
+                           'suggests summing power spectra every '
+                           '4.0 e/A2 gives optimal Thon rings.')
 
         form.addParam('extraParams', params.StringParam, default='',
                       expertLevel=cons.LEVEL_ADVANCED,
@@ -547,9 +546,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
         # Reimplement this method to ignore prefix (called from base class)
         # and always use 'sum' as prefix
         return ProtAlignMovies._getFrameRange(self, n, 'sum')
-
-    def IS_GT30(self):
-        return relion.Plugin.IS_GT30()
 
 
 def createGlobalAlignmentPlot(meanX, meanY, first, pixSize):

@@ -76,10 +76,6 @@ class Plugin(pwem.Plugin):
         return environ
 
     @classmethod
-    def IS_30(cls):
-        return cls.getActiveVersion().startswith('3.0')
-
-    @classmethod
     def IS_GT30(cls):
         return not cls.getActiveVersion().startswith('3.0')
 
@@ -88,11 +84,6 @@ class Plugin(pwem.Plugin):
         relion_commands = [('cmake -DGUI=OFF -DCMAKE_INSTALL_PREFIX=./ .', []),
                            ('make -j %d' % env.getProcessors(),
                             ['bin/relion_refine'])]
-
-        env.addPackage('relion', version='3.0',
-                       url='https://github.com/3dem/relion/archive/3.0.tar.gz',
-                       commands=relion_commands,
-                       updateCuda=True)
 
         env.addPackage('relion', version='3.1.0',
                        url='https://github.com/3dem/relion/archive/3.1.0.tar.gz',
