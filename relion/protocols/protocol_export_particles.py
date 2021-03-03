@@ -33,7 +33,7 @@ from pwem.emlib.image import ImageHandler
 from pwem.protocols import ProtProcessParticles
 
 import relion.convert as convert
-from ..constants import STACK_NONE, STACK_MULT, STACK_ONE
+from ..constants import STACK_MULT, STACK_ONE
 from .protocol_base import ProtRelionBase
 
 
