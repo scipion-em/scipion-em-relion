@@ -97,6 +97,7 @@ class RelionImport:
         # Update both samplingRate and acquisition with parameters
         # selected in the protocol form
         self.protocol.setSamplingRate(partSet)
+        self._pixelSize = self.protocol.samplingRate.get()
         partSet.setIsPhaseFlipped(self.protocol.haveDataBeenPhaseFlipped.get())
         self.protocol.fillAcquisition(partSet.getAcquisition())
         # Read the micrographs from the 'self._starFile' metadata
@@ -134,8 +135,8 @@ class RelionImport:
             item._rlnclassDistribution = Float(row.get('rlnClassDistribution'))
             item._rlnAccuracyRotations = Float(row.get('rlnAccuracyRotations'))
             if self.version30:
-                # FIXME: convert to Angstroms
-                item._rlnAccuracyTranslations = Float(row.get('rlnAccuracyTranslations'))
+                accInAngst = row.get('rlnAccuracyTranslations') * self._pixelSize
+                item._rlnAccuracyTranslationsAngst = Float(accInAngst)
             else:
                 item._rlnAccuracyTranslationsAngst = Float(row.get('rlnAccuracyTranslationsAngst'))
 
