@@ -384,6 +384,17 @@ class ProtRelionBayesianPolishing(ProtParticles):
             errors.append("MPI is not supported for parameters estimation.")
         return errors
 
+    def _warnings(self):
+        warnings = ['If you have provided a gain reference or defects file during '
+                    'movie import or motion correction, please *make sure to '
+                    'run first "assign optics groups" protocol for aligned '
+                    'movies*, specifying the gain file etc. Currently, Scipion '
+                    'has no other way of knowing if you have e.g. rotated the '
+                    'gain during motion correction.\n\nOutput movies then can be '
+                    'used in this polishing protocol.']
+
+        return warnings
+
     # -------------------------- UTILS functions ------------------------------
     def _getInputPath(self, *paths):
         return self._getPath('input', *paths)
