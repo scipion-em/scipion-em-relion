@@ -222,6 +222,11 @@ class RelionImport:
                             % (label, self._starFile))
 
         index, fn = relionToLocation(row.get(label))
+        # Relion does not allow abs paths
+        if fn.startswith("/"):
+            raise Exception("ERROR: %s cannot be an absolute path: %s\n"
+                            "Please create a symlink to an abs path instead."
+                            % (label, fn))
         self._imgPath = pwutils.findRootFrom(self._starFile, fn)
 
         if warnings and self._imgPath is None:
