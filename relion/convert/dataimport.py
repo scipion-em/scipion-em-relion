@@ -84,7 +84,7 @@ class RelionImport:
         self._imgDict = {}  # store which images stack have been linked/copied and the new path
         self._findImagesPath('rlnImageName')
         if self._micIdOrName:
-            # If MDL_MICROGRAPH_ID or MDL_MICROGRAPH then
+            # If rlnMicrographName or rlnMicrographId then
             # create a set to link from particles
             self.micSet = self.protocol._createSetOfMicrographs()
             self.protocol.setSamplingRate(self.micSet)
@@ -211,7 +211,7 @@ class RelionImport:
             self.version30 = True
             self.protocol.warning("Import from Relion version < 3.1 ...")
         else:
-            acqRow = OpticsGroups.fromStar(self._starFile)
+            acqRow = OpticsGroups.fromStar(self._starFile).first()
             # read particles table
             table = Table(fileName=self._starFile, tableName='particles')
             row = table[0]
@@ -270,8 +270,8 @@ class RelionImport:
 
         print("alignType: ", self.alignType)
             
-        # Check if the MetaData contains either MDL_MICROGRAPH_ID
-        # or MDL_MICROGRAPH, this will be used when imported
+        # Check if the MetaData contains either rlnMicrographName
+        # or rlnMicrographId, this will be used when imported
         # particles to keep track of the particle's micrograph
         self._micIdOrName = (row.get('rlnMicrographName', False) or
                              row.get('rlnMicrographId', False))
@@ -391,8 +391,7 @@ class RelionImport:
     def loadAcquisitionInfo(self):
         """ Return a dictionary with acquisition values and 
         the sampling rate information.
-        In the case of Xmipp, they are stored in files:
-        acquisition_info.xmd and microscope.xmd 
+        In the case of Relion, they are stored in the optics table
         """
         acquisitionDict = OrderedDict()
 
