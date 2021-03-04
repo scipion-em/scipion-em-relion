@@ -33,10 +33,10 @@ This plugin provide wrappers around several programs of `RELION <https://www3.mr
 .. |devel| image:: http://scipion-test.cnb.csic.es:9980/badges/relion_devel.svg
 .. |support| image:: http://scipion-test.cnb.csic.es:9980/badges/relion_support.svg
 
-**IMPORTANT!**
+**IMPORTANT NOTES!**
 
-    If you have imported movies with a gain file in **DM4** format, you need to **flip the gain reference upside-down** in the motion correction protocol! (`bug details <https://github.com/I2PC/xmippCore/issues/39>`_)
-
+    1. If you have imported movies with a gain file in **DM4** format, you need to **flip the gain reference upside-down** in the motion correction protocol! (`bug details <https://github.com/I2PC/xmippCore/issues/39>`_)
+    2. We found the bug causing omission of the gain reference during polishing job. This affects all plugin versions prior to 3.0.0. Starting from 3.0.0, if you have provided a gain reference or defects file during movie import or motion correction, please **make sure to run first "assign optics groups" protocol for aligned movies**, specifying the gain file etc. Currently, Scipion has no other way of knowing if you have e.g. rotated the gain during motion correction. Output movies then can be used in this polishing protocol.
 
 Installation
 ------------

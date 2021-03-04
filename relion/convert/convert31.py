@@ -37,7 +37,7 @@ from emtable import Table
 
 from pwem.constants import ALIGN_NONE, ALIGN_PROJ, ALIGN_2D, ALIGN_3D
 from pwem.objects import (Micrograph, SetOfMicrographsBase, SetOfMovies,
-                          Particle, CTFModel, Acquisition, Transform)
+                          Particle, CTFModel, Acquisition, Transform, Coordinate)
 import pwem.convert.transformations as tfs
 
 from .convert_base import WriterBase, ReaderBase
@@ -483,6 +483,16 @@ class Reader(ReaderBase):
         "rlnCtfMaxResolution"
     ]
 
+    COORD_LABELS = [
+        "rlnCoordinateX",
+        "rlnCoordinateY",
+        "rlnMicrographName",
+        # extra labels below
+        "rlnAutopickFigureOfMerit",
+        "rlnClassNumber",
+        "rlnAnglePsi"
+    ]
+
     def __init__(self, **kwargs):
         """
         """
@@ -517,7 +527,7 @@ class Reader(ReaderBase):
         firstRow = partsReader.getRow()
         self._setClassId = hasattr(firstRow, 'rlnClassNumber')
         self._setCtf = partsReader.hasAllColumns(self.CTF_LABELS[:3])
-
+        self._setCoord = partsReader.hasAllColumns(self.COORD_LABELS[:3])
         particle = Particle()
 
         if self._setCtf:
@@ -562,10 +572,23 @@ class Reader(ReaderBase):
         self.setParticleTransform(particle, row)
         self.setExtraLabels(particle, row)
 
-        # TODO: coord, partId, micId,
+        # TODO: coord extra labels, partId, micId,
+        if self._setCoord:
+            coord = self.rowToCoord(row)
+            particle.setCoordinate(coord)
 
         if self._postprocessImageRow:
             self._postprocessImageRow(particle, row)
+
+    @staticmethod
+    def rowToCoord(row):
+        """ Create a Coordinate from the row. """
+        coord = Coordinate()
+        coord.setPosition(row.rlnCoordinateX,
+                          row.rlnCoordinateY)
+        coord.setMicName(row.rlnMicrographName)
+
+        return coord
 
     @staticmethod
     def rowToCtf(row, ctf):
