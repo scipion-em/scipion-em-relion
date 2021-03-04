@@ -755,6 +755,8 @@ class TestRelionReader(BaseTest):
     def setUpClass(cls):
         setupTestOutput(cls)
         cls.ds = DataSet.getDataSet('relion31_tutorial_precalculated')
+        cls.ds2 = DataSet.getDataSet('relion_tutorial')
+        cls.starOldFormat = cls.ds2.getFile('import/refine3d_case2/relion_data.star')
 
     def __readParticles(self, partsStar, outputSqlite=None, **kwargs):
         outputSqlite = outputSqlite or self.getOutputPath('particles.sqlite')
@@ -816,6 +818,21 @@ class TestRelionReader(BaseTest):
             value = getattr(first, '_%s' % l)
             self.assertIsNotNone(value, "Missing label: %s" % l)
             self.assertAlmostEqual(getattr(firstRow, l), value)
+
+    def test_readOldStarFormat(self):
+        partsSet = self.__readParticles(
+            self.starOldFormat,
+            alignType=ALIGN_PROJ,
+            format='30')
+        partsSet.write()
+        first = partsSet.getFirstItem()
+        first.printAll()
+
+        coord = first.getCoordinate()
+        x, y = coord.getPosition()
+        self.assertEqual(first.getClassId(), 1)
+        self.assertEqual(x, 299)
+        self.assertEqual(coord.getMicName(), 'Falcon_2012_06_12-14_33_35_0_movie.mrcs')
 
 
 class TestRelionOpticsGroups(BaseTest):

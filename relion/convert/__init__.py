@@ -76,7 +76,7 @@ def writeSetOfParticles(imgSet, starFile, **kwargs):
         extraLabels:
         postprocessImageRow:
         format: string value to specify STAR format, if '30' it will use
-            Relion3.0 format, if not, it will depends on the binary version
+            Relion3.0 format
     """
     return createWriter(**kwargs).writeSetOfParticles(imgSet, starFile, **kwargs)
 
@@ -93,7 +93,7 @@ def readSetOfParticles(starFile, partsSet, **kwargs):
         alignType:
         removeDisabled:
         format: string value to specify STAR format, if '30' it will use
-            Relion3.0 format, if not, it will depends on the binary version
+            Relion3.0 format
     """
     return createReader(**kwargs).readSetOfParticles(starFile, partsSet, **kwargs)
 
