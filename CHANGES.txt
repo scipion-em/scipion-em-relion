@@ -1,5 +1,10 @@
 3.1:
     - remove Relion 3.0 protocols and code, but users can still import old star files
+    - fix #278, #274, #277, #257
+    - add a test to read old star format
+    - fix shifts conversion for pre-3.1 (origins are in px already)
+    - fix accuracy label, use Angstroms by default
+    - add a warning about polishing gain bug
 3.0.0:
     - Scipion 3.0.0 support, migration to python 3
     - GPLv2 to v3
