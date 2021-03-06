@@ -59,7 +59,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
     def _getConvertExtension(self, filename):
         """ Check whether it is needed to convert to .mrc or not """
         ext = pwutils.getExt(filename).lower()
-        return None if ext in ['.mrc', '.mrcs', '.tiff', '.tif'] else 'mrc'
+        return None if ext in ['.mrc', '.mrcs', '.tiff', '.tif', '.eer'] else 'mrc'
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineAlignmentParams(self, form):
