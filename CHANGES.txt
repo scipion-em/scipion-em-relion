@@ -1,4 +1,8 @@
 3.1:
+    - add EER support for motion correction
+    - refactor mc viewer
+    - replace xmipp by eman2 for psd calculation
+    - add 3.1.2 binary
     - remove Relion 3.0 protocols and code, but users can still import old star files
     - fix #278, #274, #277, #257
     - add a test to read old star format

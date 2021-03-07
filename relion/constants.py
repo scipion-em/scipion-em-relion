@@ -36,6 +36,7 @@ RELION_CUDA_LIB = 'RELION_CUDA_LIB'
 # Supported versions:
 V3_1 = '3.1.0'
 V3_1_1 = '3.1.1'
+V3_1_2 = '3.1.2'
 
 MASK_FILL_ZERO = 0
 MASK_FILL_NOISE = 1
