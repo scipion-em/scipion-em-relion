@@ -195,13 +195,16 @@ class ProtRelionMotioncor(ProtAlignMovies):
                       help="The number of hardware frames to group into one "
                            "fraction. This option is relevant only for Falcon4 "
                            "movies in the EER format. Falcon 4 operates at "
-                           "248 frames/s.")
+                           "248 frames/s.\nFractionate such that each fraction "
+                           "has about 0.5 to 1.25 e/A2.")
         form.addParam('eerSampling', params.EnumParam, default=0,
-                      choices=[1, 2],
+                      expertLevel=cons.LEVEL_ADVANCED,
+                      choices=['1', '2'],
                       display=params.EnumParam.DISPLAY_HLIST,
                       label='EER upsampling',
                       help="EER upsampling (1 = 4K or 2 = 8K). 8K rendering is not "
-                           "recommended by Relion.")
+                           "recommended by Relion. See "
+                           "https://relion.readthedocs.io/en/latest/Reference/MovieCompression.html")
 
         form.addParallelSection(threads=4, mpi=1)
 
@@ -263,7 +266,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
         if self.isEER:
             args += " --eer_grouping %d " % self.eerGroup
-            args += " --eer_upsampling %d " % self.getEnumText('eerSampling')
+            args += " --eer_upsampling %d " % (self.eerSampling.get() + 1)
 
         if self.extraParams.hasValue():
             args += " " + self.extraParams.get()
@@ -339,9 +342,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
         return errors
 
     # ------------------------ Extra BASE functions ---------------------------
-    def _getRelPath(self, baseName, refPath):
-        return os.path.relpath(self._getExtraPath(baseName), refPath)
-
     def _getNameExt(self, movie, postFix, ext, extra=False):
         fn = self._getMovieRoot(movie) + postFix + '.' + ext
         return self._getExtraPath(fn) if extra else fn
@@ -391,6 +391,12 @@ class ProtRelionMotioncor(ProtAlignMovies):
                 break
 
         return xShifts, yShifts
+
+    def _getBinFactor(self):
+        if not self.isEER:
+            return self.binFactor.get()
+        else:
+            return self.binFactor.get() / (self.eerSampling.get() + 1)
 
     # --------------------------- UTILS functions -----------------------------
     def _getProgram(self, program='relion_run_motioncorr'):
@@ -541,7 +547,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         _, dose = self._getCorrectedDose(self.inputMovies.get())
         # when using EER, the hardware frames are grouped
         if self.isEER:
-            dose *= self.eerGroup
+            dose *= self.eerGroup.get()
         dose_for_ps = round(self.dosePSsum.get() / dose)
 
         return 1 if dose_for_ps == 0 else dose_for_ps

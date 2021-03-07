@@ -1,5 +1,5 @@
 3.1:
-    - add EER support for motion correction (only 4K rendering tested)
+    - add EER support for motion correction
     - refactor mc protocol and viewer
     - replace xmipp by eman2 for psd calculation
     - add 3.1.2 binary
