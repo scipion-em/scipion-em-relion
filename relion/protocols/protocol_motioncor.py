@@ -1,8 +1,10 @@
 # ******************************************************************************
 # *
 # * Authors:     J.M. De la Rosa Trevin (delarosatrevin@scilifelab.se) [1]
+# * Authors:     Grigory Sharov     (gsharov@mrc-lmb.cam.ac.uk) [2]
 # *
 # * [1] SciLifeLab, Stockholm University
+# * [2] MRC Laboratory of Molecular Biology, MRC-LMB
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -228,7 +230,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         # the input files relative to that
         args = "--i %s --o output/ " % os.path.basename(inputStar)
         args += "--use_own "
-        args += "--first_frame_sum %d --last_frame_sum %d " % (self.sumFrame0, self.sumFrameN)
+        args += "--first_frame_sum %d --last_frame_sum %d " % (self._getFrameRange())
         args += "--bin_factor %f --bfactor %d " % (self.binFactor, self.bfactor)
         args += "--angpix %0.5f " % (movie.getSamplingRate())
         args += "--patch_x %d --patch_y %d " % (self.patchX, self.patchY)
@@ -325,6 +327,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
                           "EER movies. Please use *EER fractionation* option "
                           "instead.")
 
+        # check eman2 plugin
         if self.doComputeMicThumbnail or self.doComputePSD:
             try:
                 from pwem import Domain
@@ -408,9 +411,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
         movieBase = pwutils.removeBaseExt(movie.getFileName())
         return self._getExtraPath('%s%s' % (movieBase, suffix))
 
-    def _getAbsPath(self, baseName):
-        return os.path.abspath(self._getExtraPath(baseName))
-
     def _getPlotGlobal(self, movie):
         return self._getNameExt(movie, '_global_shifts', 'png', extra=True)
 
@@ -425,7 +425,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
             mic.thumbnail = Image(location=self._getOutputMicThumbnail(movie))
 
     def _computeExtra(self, movie):
-        """ Compute thumbnail, PSD and plots. """
+        """ Compute thumbnail and PSD. """
         outMicFn = self._getMovieOutFn(movie, '.mrc')
 
         if self.doComputeMicThumbnail:
