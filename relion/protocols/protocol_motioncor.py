@@ -534,9 +534,15 @@ class ProtRelionMotioncor(ProtAlignMovies):
                          state=pwobj.Set.STREAM_OPEN):
         """ Redefine this method to update optics info. """
 
+        ogDict = {'rlnMicrographOriginalPixelSize': self.inputMovies.get().getSamplingRate()}
+
+        if self.isEER:
+            ogDict.update({'rlnEERUpsampling': self.eerSampling.get() + 1,
+                           'rlnEERGrouping': self.eerGroup.get()})
+
         if outputName not in self.updatedSets:
             og = OpticsGroups.fromImages(outputSet)
-            og.updateAll(rlnMicrographOriginalPixelSize=self.inputMovies.get().getSamplingRate())
+            og.updateAll(**ogDict)
             og.toImages(outputSet)
             self.updatedSets.append(outputName)
 
