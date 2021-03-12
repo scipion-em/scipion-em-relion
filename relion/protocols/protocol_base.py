@@ -862,6 +862,10 @@ class ProtRelionBase(EMProtocol):
                     errors.append('If you want to do only classification without '
                                   'alignment, then you should use the option: \n'
                                   '*Consider previous alignment?* = Yes')
+                if self.alignmentAsPriors:
+                    errors.append('When only doing classification (no alignment) '
+                                  " option 'consider alignment as priors' cannot"
+                                  " be enabled.")
 
         return errors
 
