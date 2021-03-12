@@ -1040,15 +1040,15 @@ class ProtRelionBase(EMProtocol):
         if self.doCTF:
             args['--ctf'] = ''
 
-        # this only can be true if is 3D.
-        if self.hasReferenceCTFCorrected:
-            args['--ctf_corrected_ref'] = ''
+            # this only can be true if is 3D.
+            if self.hasReferenceCTFCorrected:
+                args['--ctf_corrected_ref'] = ''
 
-        if self._getInputParticles().isPhaseFlipped():
-            args['--ctf_phase_flipped'] = ''
+            if self._getInputParticles().isPhaseFlipped():
+                args['--ctf_phase_flipped'] = ''
 
-        if self.ignoreCTFUntilFirstPeak:
-            args['--ctf_intact_first_peak'] = ''
+            if self.ignoreCTFUntilFirstPeak:
+                args['--ctf_intact_first_peak'] = ''
 
     def _setMaskArgs(self, args):
         if self.IS_3D:
