@@ -1,8 +1,10 @@
 # ******************************************************************************
 # *
 # * Authors:     J.M. De la Rosa Trevin (delarosatrevin@scilifelab.se) [1]
+# * Authors:     Grigory Sharov     (gsharov@mrc-lmb.cam.ac.uk) [2]
 # *
 # * [1] SciLifeLab, Stockholm University
+# * [2] MRC Laboratory of Molecular Biology, MRC-LMB
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -44,30 +46,29 @@ from relion.convert.convert31 import OpticsGroups
 
 
 class ProtRelionMotioncor(ProtAlignMovies):
-    """
-    Wrapper for the Relion's implementation of motioncor algorithm.
-    """
+    """ Wrapper for the Relion's implementation of motioncor algorithm. """
 
     _label = 'motion correction'
 
     def __init__(self, **kwargs):
-
         ProtAlignMovies.__init__(self, **kwargs)
         self.stepsExecutionMode = STEPS_SERIAL
         self.updatedSets = []
+        self.isEER = False
 
     def _getConvertExtension(self, filename):
         """ Check whether it is needed to convert to .mrc or not """
         ext = pwutils.getExt(filename).lower()
-        return None if ext in ['.mrc', '.mrcs', '.tiff', '.tif'] else 'mrc'
+        return None if ext in ['.mrc', '.mrcs', '.tiff', '.tif', '.eer', '.gain'] else 'mrc'
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineAlignmentParams(self, form):
-
         line = form.addLine('Frames for corrected SUM',
                             help='First and last frames to use in corrected '
                                  'average (starts counting at 1 and 0 as last '
-                                 'means util the last frame in the movie). ')
+                                 'means until the last frame in the movie). '
+                                 'When using EER, the frames are not hardware '
+                                 'frames, but fractions.')
         line.addParam('sumFrame0', params.IntParam, default=1,
                       label='from')
         line.addParam('sumFrameN', params.IntParam, default=0,
@@ -76,10 +77,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         form.addParam('doDW', params.BooleanParam, default=True,
                       label='Do dose-weighting?',
                       help='If set to Yes, the averaged micrographs will be '
-                           'dose-weighted. \n\n'
-                           'NOTE: In Scipion the Voltage and and Dose '
-                           'information is provided during import, so you '
-                           'do not need to provide them anymore. ')
+                           'dose-weighted.')
 
         form.addParam('saveNonDW', params.BooleanParam, default=False,
                       condition='doDW',
@@ -90,40 +88,35 @@ class ProtRelionMotioncor(ProtAlignMovies):
                            'the choice, CTF refinement job is always done on '
                            'dose-weighted particles.')
 
-        if self.IS_GT30():
-            form.addParam('savePSsum', params.BooleanParam, default=False,
-                          label='Save sum of power spectra?',
-                          help='Sum of non-dose weighted power spectra '
-                               'provides better signal for CTF estimation. '
-                               'The power spectra can be used by CTFFIND4 '
-                               'but not by GCTF.')
-            form.addParam('dosePSsum', params.FloatParam, default=4.0,
-                          condition='savePSsum',
-                          label='Sum power spectra every e/A2',
-                          help='McMullan et al. (Ultramicroscopy, 2015) '
-                               'suggests summing power spectra every '
-                               '4.0 e/A2 gives optimal Thon rings.')
+        form.addParam('savePSsum', params.BooleanParam, default=False,
+                      label='Save sum of power spectra?',
+                      help='Sum of non-dose weighted power spectra '
+                           'provides better signal for CTF estimation. '
+                           'The power spectra can be used by CTFFIND4 '
+                           'but not by GCTF.')
+        form.addParam('dosePSsum', params.FloatParam, default=4.0,
+                      condition='savePSsum',
+                      label='Sum power spectra every e/A2',
+                      help='McMullan et al. (Ultramicroscopy, 2015) '
+                           'suggests summing power spectra every '
+                           '4.0 e/A2 gives optimal Thon rings.')
+
+        form.addParam('doComputePSD', params.BooleanParam, default=False,
+                      label="Compute PSD?",
+                      help="If Yes, the protocol will compute for each "
+                           "aligned micrograph the PSD using EMAN2.")
+
+        form.addParam('doComputeMicThumbnail', params.BooleanParam,
+                      default=False,
+                      label='Compute micrograph thumbnail?',
+                      help='When using this option, we will compute a '
+                           'micrograph thumbnail with EMAN2 and keep it with the '
+                           'micrograph object for visualization purposes.')
 
         form.addParam('extraParams', params.StringParam, default='',
                       expertLevel=cons.LEVEL_ADVANCED,
                       label='Additional parameters',
                       help="Extra parameters for Relion motion correction. ")
-
-        form.addParam('doComputePSD', params.BooleanParam, default=False,
-                      expertLevel=cons.LEVEL_ADVANCED,
-                      label="Compute PSD (before/after)?",
-                      help="If Yes, the protocol will compute for each movie "
-                           "the average PSD before and after alignment, "
-                           "for comparison")
-
-        form.addParam('doComputeMicThumbnail', params.BooleanParam,
-                      default=False,
-                      expertLevel=cons.LEVEL_ADVANCED,
-                      label='Compute micrograph thumbnail?',
-                      help='When using this option, we will compute a '
-                           'micrograph thumbnail and keep it with the '
-                           'micrograph object for visualization purposes.\n\n'
-                           '*IMPORTANT: this requires EMAN2 plugin and binaries.*')
 
         form.addSection("Motion")
         form.addParam('bfactor', params.IntParam, default=150,
@@ -146,7 +139,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         form.addParam('binFactor', params.FloatParam, default=1.,
                       label='Binning factor',
                       help='Bin the micrographs this much by a windowing '
-                           'operation in the Fourier Tranform. Binning at '
+                           'operation in the Fourier Transform. Binning at '
                            'this level is hard to un-do later on, but may be '
                            'useful to down-scale super-resolution images. '
                            'Float-values may be used. Do make sure though '
@@ -196,6 +189,23 @@ class ProtRelionMotioncor(ProtAlignMovies):
                            'Leave empty if you do not have any defects, '
                            'or do not want to correct for defects on your detector.')
 
+        form.addSection("EER")
+        form.addParam('eerGroup', params.IntParam, default=32,
+                      label='EER fractionation',
+                      help="The number of hardware frames to group into one "
+                           "fraction. This option is relevant only for Falcon4 "
+                           "movies in the EER format. Falcon 4 operates at "
+                           "248 frames/s.\nFractionate such that each fraction "
+                           "has about 0.5 to 1.25 e/A2.")
+        form.addParam('eerSampling', params.EnumParam, default=0,
+                      expertLevel=cons.LEVEL_ADVANCED,
+                      choices=['1', '2'],
+                      display=params.EnumParam.DISPLAY_HLIST,
+                      label='EER upsampling',
+                      help="EER upsampling (1 = 4K or 2 = 8K). 8K rendering is not "
+                           "recommended by Relion. See "
+                           "https://relion.readthedocs.io/en/latest/Reference/MovieCompression.html")
+
         form.addParallelSection(threads=4, mpi=1)
 
     # --------------------------- STEPS functions -------------------------------
@@ -223,8 +233,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         # the input files relative to that
         args = "--i %s --o output/ " % os.path.basename(inputStar)
         args += "--use_own "
-        f0, fN = self._getRange(movie)
-        args += "--first_frame_sum %d --last_frame_sum %d " % (f0, fN)
+        args += "--first_frame_sum %d --last_frame_sum %d " % (self._getFrameRange())
         args += "--bin_factor %f --bfactor %d " % (self.binFactor, self.bfactor)
         args += "--angpix %0.5f " % (movie.getSamplingRate())
         args += "--patch_x %d --patch_y %d " % (self.patchX, self.patchY)
@@ -237,32 +246,38 @@ class ProtRelionMotioncor(ProtAlignMovies):
             args += ' --gain_rot %d ' % self.gainRot
             args += ' --gain_flip %d ' % self.gainFlip
 
-        if self.IS_GT30():
-            if self.defectFile.get():
-                args += ' --defect_file "%s" ' % self.defectFile.get()
+        if self.defectFile.get():
+            args += ' --defect_file "%s" ' % self.defectFile.get()
 
-            if self._savePsSum():
-                args += ' --grouping_for_ps %d ' % self._calcPsDose()
+        if self._savePsSum():
+            args += ' --grouping_for_ps %d ' % self._calcPsDose()
 
         if self.doDW:
             args += "--dose_weighting "
-            preExp, dose = self._getCorrectedDose(self.inputMovies.get())
+            preExp, dose = self._getCorrectedDose(inputMovies)
+            # when using EER, the hardware frames are grouped
+            if self.isEER:
+                dose *= self.eerGroup.get()
             args += "--dose_per_frame %f " % dose
             args += "--preexposure %f " % preExp
 
             if self.saveNonDW:
                 args += " --save_noDW "
 
+        if self.isEER:
+            args += " --eer_grouping %d " % self.eerGroup
+            args += " --eer_upsampling %d " % (self.eerSampling.get() + 1)
+
         if self.extraParams.hasValue():
             args += " " + self.extraParams.get()
 
         try:
             self.runJob(self._getProgram(), args, cwd=movieFolder)
-
+            self._saveAlignmentPlots(movie, inputMovies.getSamplingRate())
             self._computeExtra(movie)
             self._moveFiles(movie)
         except:
-            print("ERROR: processing movie: ", movie.getFileName())
+            print("ERROR processing movie: ", movie.getFileName())
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
@@ -273,26 +288,60 @@ class ProtRelionMotioncor(ProtAlignMovies):
         return ['Zivanov2019']
 
     def _validate(self):
-        # Check base validation before the specific ones for Motioncor
-        errors = ProtAlignMovies._validate(self)
+        errors = []
+        inputMovies = self.inputMovies.get()
 
-        if not relion.Plugin.getActiveVersion():
-            errors.append("Could not detect the current Relion version. \n"
-                          "RELION_HOME='%s'" % relion.Plugin.getHome())
+        # check if the first movie exists
+        firstMovie = self.inputMovies.get().getFirstItem()
+        if not os.path.exists(firstMovie.getFileName()):
+            errors.append("The input movie files do not exist!!! "
+                          "Since usually input movie files are symbolic links, "
+                          "please check that links are not broken if you "
+                          "moved the project folder. ")
 
-        acq = self.inputMovies.get().getAcquisition()
+        # check frames range
+        _, lastFrame, _ = inputMovies.getFramesRange()
+        self.isEER = pwutils.getExt(firstMovie.getFileName()) == ".eer"
+        if self.isEER:
+            lastFrame //= self.eerGroup.get()
+
+        msg = "Frames range to sum must be within %d - %d" % (1, lastFrame)
+        if self.sumFrameN.get() == 0:
+            self.sumFrameN.set(lastFrame)
+
+        if not (1 <= self.sumFrame0 < lastFrame):
+            errors.append(msg)
+        elif not (self.sumFrameN <= lastFrame):
+            errors.append(msg)
+        elif not (self.sumFrame0 < self.sumFrameN):
+            errors.append(msg)
+
+        # check dose for DW
+        acq = inputMovies.getAcquisition()
         if self.doDW:
             dose = acq.getDosePerFrame()
-            if dose is None or dose < 0.001:
+            if dose is None or dose < 0.00001:
                 errors.append("Input movies do not contain the dose per frame, "
-                              "dose-weighting can not be performed. ")
+                              "dose-weighting can not be performed.")
+
+        # check grouping in EER case
+        if self.isEER and self.groupFrames.get() != 1:
+            errors.append("*Group frames* option should be set to 1 when processing "
+                          "EER movies. Please use *EER fractionation* option "
+                          "instead.")
+
+        # check eman2 plugin
+        if self.doComputeMicThumbnail or self.doComputePSD:
+            try:
+                from pwem import Domain
+                eman2 = Domain.importFromPlugin('eman2', doRaise=True)
+            except:
+                errors.append("EMAN2 plugin not found!\nComputing thumbnails "
+                              "or PSD requires EMAN2 plugin and binaries installed.")
 
         return errors
 
     # ------------------------ Extra BASE functions ---------------------------
-    def _getRelPath(self, baseName, refPath):
-        return os.path.relpath(self._getExtraPath(baseName), refPath)
-
     def _getNameExt(self, movie, postFix, ext, extra=False):
         fn = self._getMovieRoot(movie) + postFix + '.' + ext
         return self._getExtraPath(fn) if extra else fn
@@ -321,8 +370,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
         """ Parse motion values from the 'corrected_micrographs.star' file
         generated for each movie. """
         fn = self._getMovieExtraFn(movie, 'corrected_micrographs.star')
-        micsTableName = 'micrographs' if self.IS_GT30() else ''
-        table = md.Table(fileName=fn, tableName=micsTableName)
+        table = md.Table(fileName=fn, tableName='micrographs')
         row = table[0]
         mic._rlnAccumMotionTotal = pwobj.Float(row.rlnAccumMotionTotal)
         mic._rlnAccumMotionEarly = pwobj.Float(row.rlnAccumMotionEarly)
@@ -330,7 +378,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
     def _getMovieShifts(self, movie, outStarFn=None):
         outStar = outStarFn or self._getMovieExtraFn(movie, '.star')
-        first, last = self._getRange(movie)
+        first, last = self._getFrameRange()
         n = last - first + 1
         table = md.Table(fileName=outStar, tableName='global_shift')
         xShifts, yShifts = [], []
@@ -343,6 +391,12 @@ class ProtRelionMotioncor(ProtAlignMovies):
                 break
 
         return xShifts, yShifts
+
+    def _getBinFactor(self):
+        if not self.isEER:
+            return self.binFactor.get()
+        else:
+            return self.binFactor.get() / (self.eerSampling.get() + 1)
 
     # --------------------------- UTILS functions -----------------------------
     def _getProgram(self, program='relion_run_motioncorr'):
@@ -363,50 +417,42 @@ class ProtRelionMotioncor(ProtAlignMovies):
         movieBase = pwutils.removeBaseExt(movie.getFileName())
         return self._getExtraPath('%s%s' % (movieBase, suffix))
 
-    def _getAbsPath(self, baseName):
-        return os.path.abspath(self._getExtraPath(baseName))
-
     def _getPlotGlobal(self, movie):
         return self._getNameExt(movie, '_global_shifts', 'png', extra=True)
 
     def _getPsdCorr(self, movie):
-        return self._getNameExt(movie, '_psd_comparison', 'psd', extra=True)
-
-    def _getPsdJpeg(self, movie):
-        return self._getNameExt(movie, '_psd', 'jpeg', extra=True)
+        return self._getNameExt(movie, '_psd', 'png', extra=True)
 
     def _setPlotInfo(self, movie, mic):
         mic.plotGlobal = Image(location=self._getPlotGlobal(movie))
         if self.doComputePSD:
             mic.psdCorr = Image(location=self._getPsdCorr(movie))
-            mic.psdJpeg = Image(location=self._getPsdJpeg(movie))
         if self.doComputeMicThumbnail:
-            mic.thumbnail = Image(
-                location=self._getOutputMicThumbnail(movie))
+            mic.thumbnail = Image(location=self._getOutputMicThumbnail(movie))
 
     def _computeExtra(self, movie):
-        """ Compute thumbnail, PSD and plots. """
-        inputMovies = self.inputMovies.get()
-        movieFolder = self._getOutputMovieFolder(movie)
+        """ Compute thumbnail and PSD. """
         outMicFn = self._getMovieOutFn(movie, '.mrc')
 
         if self.doComputeMicThumbnail:
             self.computeThumbnail(outMicFn,
                                   outputFn=self._getOutputMicThumbnail(movie))
-
         if self.doComputePSD:
-            movieFn = os.path.join(movieFolder, movie.getFileName())
-            aveMicFn = os.path.join(movieFolder,
-                                    pwutils.removeBaseExt(movieFn) + "_tmp.mrc")
-            self.averageMovie(movie, movieFn, aveMicFn,
-                              binFactor=self.binFactor.get(),
-                              dark=inputMovies.getDark(),
-                              gain=inputMovies.getGain())
+            self._computePSD(outMicFn, outputFn=self._getPsdCorr(movie))
 
-            self.computePSDImages(movie, aveMicFn, outMicFn,
-                                  outputFnCorrected=self._getPsdJpeg(movie))
+    def _computePSD(self, inputFn, outputFn, scaleFactor=6):
+        """ Generate a thumbnail of the PSD with EMAN2"""
+        args = "%s %s " % (inputFn, outputFn)
+        args += "--process=math.realtofft --meanshrink %s " % scaleFactor
+        args += "--fixintscaling=sane"
 
-        self._saveAlignmentPlots(movie, inputMovies.getSamplingRate())
+        from pwem import Domain
+        eman2 = Domain.importFromPlugin('eman2')
+        from pyworkflow.utils.process import runJob
+        runJob(self._log, eman2.Plugin.getProgram('e2proc2d.py'), args,
+               env=eman2.Plugin.getEnviron())
+
+        return outputFn
 
     def _moveFiles(self, movie):
         # It really annoying that Relion default names changes if you use DW or not
@@ -434,30 +480,10 @@ class ProtRelionMotioncor(ProtAlignMovies):
         fn = os.path.join(self._getOutputMovieFolder(movie), 'output', suffix)
         pwutils.moveFile(fn, self._getMovieExtraFn(movie, suffix))
 
-    def _getRange(self, movie):
-        n = self._getNumberOfFrames(movie)
-        iniFrame, _, indxFrame = movie.getFramesRange()
-        first, last = self._getFrameRange(n, 'sum')
-
-        if iniFrame != indxFrame:
-            first -= iniFrame
-            last -= iniFrame
-
-        return first, last
-
-    def _getNumberOfFrames(self, movie):
-        _, lstFrame, _ = movie.getFramesRange()
-
-        if movie.hasAlignment():
-            _, lastFrmAligned = movie.getAlignment().getRange()
-            if lastFrmAligned != lstFrame:
-                return lastFrmAligned
-        return movie.getNumberOfFrames()
-
     def _saveAlignmentPlots(self, movie, pixSize):
         # Create plots and save as an image
         shiftsX, shiftsY = self._getMovieShifts(movie, self._getMovieOutFn(movie, '.star'))
-        first, _ = self._getFrameRange(movie.getNumberOfFrames(), 'sum')
+        first, _ = self._getFrameRange()
         plotter = createGlobalAlignmentPlot(shiftsX, shiftsY, first, pixSize)
         plotter.savefig(self._getPlotGlobal(movie))
         plotter.close()
@@ -508,9 +534,15 @@ class ProtRelionMotioncor(ProtAlignMovies):
                          state=pwobj.Set.STREAM_OPEN):
         """ Redefine this method to update optics info. """
 
+        ogDict = {'rlnMicrographOriginalPixelSize': self.inputMovies.get().getSamplingRate()}
+
+        if self.isEER:
+            ogDict.update({'rlnEERUpsampling': self.eerSampling.get() + 1,
+                           'rlnEERGrouping': self.eerGroup.get()})
+
         if outputName not in self.updatedSets:
             og = OpticsGroups.fromImages(outputSet)
-            og.updateAll(rlnMicrographOriginalPixelSize=self.inputMovies.get().getSamplingRate())
+            og.updateAll(**ogDict)
             og.toImages(outputSet)
             self.updatedSets.append(outputName)
 
@@ -519,6 +551,9 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
     def _calcPsDose(self):
         _, dose = self._getCorrectedDose(self.inputMovies.get())
+        # when using EER, the hardware frames are grouped
+        if self.isEER:
+            dose *= self.eerGroup.get()
         dose_for_ps = round(self.dosePSsum.get() / dose)
 
         return 1 if dose_for_ps == 0 else dose_for_ps
@@ -543,13 +578,9 @@ class ProtRelionMotioncor(ProtAlignMovies):
         """
         return self._getMovieRoot(movie) + '_aligned_mic_PS.mrc'
 
-    def _getFrameRange(self, n, prefix):
-        # Reimplement this method to ignore prefix (called from base class)
-        # and always use 'sum' as prefix
-        return ProtAlignMovies._getFrameRange(self, n, 'sum')
-
-    def IS_GT30(self):
-        return relion.Plugin.IS_GT30()
+    def _getFrameRange(self, n=None, prefix=None):
+        # Reimplement this method
+        return self.sumFrame0.get(), self.sumFrameN.get()
 
 
 def createGlobalAlignmentPlot(meanX, meanY, first, pixSize):

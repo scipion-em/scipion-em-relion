@@ -119,7 +119,6 @@ sph	+	1	267.78	-165.51	0.00	60
                              "There was a problem with import particles.")
         return protImport
 
-
     def testProjectionSubtraction(self):
         if not self.xmippAvailable:
             return
@@ -155,4 +154,4 @@ sph	+	1	267.78	-165.51	0.00	60
         protSubtract.inputVolume.set(volume)
         self.launchProtocol(protSubtract)
         self.assertIsNotNone(protSubtract.outputParticles,
-                         "There was a problem with subtract projection")
+                             "There was a problem with subtract projection")

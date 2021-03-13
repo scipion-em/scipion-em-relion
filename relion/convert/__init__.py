@@ -30,23 +30,21 @@ from .convert_utils import *
 from .convert_deprecated import *
 from .convert_coordinates import *
 from .dataimport import *
-import relion
 
 
 # Writing of star files will be handle by the Writer class
 # We have a new implementation of it for Relion > 3.1 since
-# the star file format has changed in 3.
+# the star file format has changed in 3.1.
 from . import convert30
 from . import convert31
 
 
 def createReader(**kwargs):
     """ Create a new Reader instance.
-    By default it will create the version (3.1 or older) based on the current
-    plugin binary. It can also be forced to use old format by passing
-    the format='30' argument.
+    By default it will create the new version (3.1 or newer) of STAR file.
+    It can also be forced to use old format by passing the format='30' argument
     """
-    is30 = kwargs.get('format', '') == '30' or relion.Plugin.IS_30()
+    is30 = kwargs.get('format', '') == '30'
     Reader = convert30.Reader if is30 else convert31.Reader
 
     return Reader(**kwargs)
@@ -54,11 +52,10 @@ def createReader(**kwargs):
 
 def createWriter(**kwargs):
     """ Create a new Writer instance.
-    By default it will create the version (3.1 or older) based on the current
-    plugin binary. It can also be forced to use old format by passing
-    the format='30' argument.
+    By default it will create the new version (3.1 or newer) of STAR file.
+    It can also be forced to use old format by passing the format='30' argument
     """
-    is30 = kwargs.get('format', '') == '30' or relion.Plugin.IS_30()
+    is30 = kwargs.get('format', '') == '30'
     Writer = convert30.Writer if is30 else convert31.Writer
 
     return Writer(**kwargs)
@@ -79,7 +76,7 @@ def writeSetOfParticles(imgSet, starFile, **kwargs):
         extraLabels:
         postprocessImageRow:
         format: string value to specify STAR format, if '30' it will use
-            Relion3.0 format, if not, it will depends on the binary version
+            Relion3.0 format
     """
     return createWriter(**kwargs).writeSetOfParticles(imgSet, starFile, **kwargs)
 
@@ -96,7 +93,7 @@ def readSetOfParticles(starFile, partsSet, **kwargs):
         alignType:
         removeDisabled:
         format: string value to specify STAR format, if '30' it will use
-            Relion3.0 format, if not, it will depends on the binary version
+            Relion3.0 format
     """
     return createReader(**kwargs).readSetOfParticles(starFile, partsSet, **kwargs)
 
@@ -129,14 +126,12 @@ class ClassesLoader:
         prot = self._protocol  # shortcut
         self._loadClassesInfo(iteration)
 
-        tableName = 'particles@' if Plugin.IS_GT30() else ''
         dataStar = prot._getFileName('data', iter=iteration)
-
         pixelSize = prot.inputParticles.get().getSamplingRate()
         self._reader = createReader(alignType=self._alignType,
                                     pixelSize=pixelSize)
 
-        mdIter = Table.iterRows(tableName + dataStar, key='rlnImageId')
+        mdIter = Table.iterRows('particles@' + dataStar, key='rlnImageId')
         clsSet.classifyItems(updateItemCallback=self._updateParticle,
                              updateClassCallback=self._updateClass,
                              itemDataIterator=mdIter,
@@ -162,10 +157,7 @@ class ClassesLoader:
             item.getRepresentative().setLocation(index, fn)
             item._rlnClassDistribution = Float(row.rlnClassDistribution)
             item._rlnAccuracyRotations = Float(row.rlnAccuracyRotations)
-            if Plugin.IS_GT30():
-                item._rlnAccuracyTranslationsAngst = Float(row.rlnAccuracyTranslationsAngst)
-            else:
-                item._rlnAccuracyTranslations = Float(row.rlnAccuracyTranslations)
+            item._rlnAccuracyTranslationsAngst = Float(row.rlnAccuracyTranslationsAngst)
 
 
 class DefocusGroups:

@@ -32,7 +32,6 @@ from pyworkflow.utils import magentaStr
 from pwem.tests.workflows import TestWorkflow
 from pwem.protocols import ProtImportMovies
 
-from relion import Plugin
 from ..protocols import *
 
 
@@ -76,15 +75,12 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         self.assertEqual((3710, 3838, 24), dims)
         self.assertEqual(24, movies.getSize())
 
-        if Plugin.IS_30():
-            return protImport
-        else:
-            print(magentaStr("\n==> Testing relion - assign optic groups:"))
-            protAssign = self.newProtocol(ProtRelionAssignOpticsGroup,
-                                          objLabel='assign optics',
-                                          opticsGroupName='OpticsGroup1')
-            protAssign.inputSet.set(protImport.outputMovies)
-            return self.launchProtocol(protAssign)
+        print(magentaStr("\n==> Testing relion - assign optic groups:"))
+        protAssign = self.newProtocol(ProtRelionAssignOpticsGroup,
+                                      objLabel='assign optics',
+                                      opticsGroupName='OpticsGroup1')
+        protAssign.inputSet.set(protImport.outputMovies)
+        return self.launchProtocol(protAssign)
 
     def _runRelionMc(self, protImport):
         print(magentaStr("\n==> Testing relion - motioncor:"))
@@ -92,8 +88,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
             ProtRelionMotioncor,
             objLabel='relion - motioncor',
             patchX=5, patchY=5,
-            numberOfThreads=CPUS,
-        )
+            numberOfThreads=CPUS)
 
         protRelionMc.inputMovies.set(protImport.outputMovies)
         protRelionMc = self.launchProtocol(protRelionMc)
@@ -108,8 +103,7 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
             boxSize=250,
             minDiameter=150, maxDiameter=180,
             areParticlesWhite=False,
-            numberOfThreads=CPUS,
-        )
+            numberOfThreads=CPUS)
 
         protRelionLog.inputMicrographs.set(protRelionMc.outputMicrographsDoseWeighted)
         protRelionLog = self.launchProtocol(protRelionLog)

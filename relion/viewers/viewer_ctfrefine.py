@@ -195,7 +195,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
             img = ih.read(imgFn)
             ax.imshow(img.getData(), cmap='jet')
 
-            #with mrcfile.open(img.replace(":mrc", "")) as mrc:
+            # with mrcfile.open(img.replace(":mrc", "")) as mrc:
             #    im = ax.imshow(mrc.data, cmap='jet')
 
         return [plotter]

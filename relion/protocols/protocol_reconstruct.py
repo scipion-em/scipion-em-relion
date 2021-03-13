@@ -32,7 +32,6 @@ from pwem.protocols import ProtReconstruct3D
 from pwem.constants import ALIGN_PROJ
 
 import relion.convert as convert
-from relion import Plugin
 
 
 class ProtRelionReconstruct(ProtReconstruct3D):
@@ -70,10 +69,9 @@ class ProtRelionReconstruct(ProtReconstruct3D):
                       display=EnumParam.DISPLAY_HLIST,
                       label='Subset to reconstruct',
                       help='Subset of images to consider.')
-        if Plugin.IS_GT30():
-            form.addParam('classNum', IntParam, default=-1,
-                          label='Use only this class',
-                          help='Consider only this class (-1: use all classes)')
+        form.addParam('classNum', IntParam, default=-1,
+                      label='Use only this class',
+                      help='Consider only this class (-1: use all classes)')
         
         form.addParam('extraParams', StringParam, default='',
                       expertLevel=LEVEL_ADVANCED,
@@ -114,9 +112,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
 
         subset = -1 if self.subset.get() == 0 else self.subset
         params += ' --subset %d' % subset
-
-        if Plugin.IS_GT30():
-            params += ' --class %d' % self.classNum.get()
+        params += ' --class %d' % self.classNum.get()
 
         if self.doCTF:
             params += ' --ctf'

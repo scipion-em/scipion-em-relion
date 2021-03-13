@@ -39,7 +39,6 @@ from pwem.viewers import (EmPlotter, EmProtocolViewer, showj,
 from pwem.constants import ALIGN_PROJ, NO_INDEX
 from pwem.objects import FSC
 
-from relion import Plugin
 from relion.convert.convert_utils import relionToLocation
 from ..protocols import (ProtRelionClassify2D, ProtRelionClassify3D,
                          ProtRelionRefine3D, ProtRelionInitialModel)
@@ -393,11 +392,8 @@ Examples:
     # Get classes info per iteration
     # =============================================================================
     def _plotClassDistribution(self, paramName=None):
-        labels = ["rlnClassDistribution", "rlnAccuracyRotations"]
-        if Plugin.IS_GT30():
-            labels.append("rlnAccuracyTranslationsAngst")
-        else:
-            labels.append("rlnAccuracyTranslations")
+        labels = ["rlnClassDistribution", "rlnAccuracyRotations",
+                  "rlnAccuracyTranslationsAngst"]
 
         iterations = range(self.firstIter, self.lastIter + 1)
         classInfo = {}
@@ -722,7 +718,7 @@ Examples:
     def createScipionView(self, filename):
         labels = 'enabled id _size _representative._filename '
         labels += '_rlnclassDistribution _rlnAccuracyRotations '
-        labels += '_rlnAccuracyTranslations _rlnAccuracyTranslationsAngst '
+        labels += '_rlnAccuracyTranslationsAngst '
         viewParams = {showj.ORDER: labels,
                       showj.VISIBLE: labels,
                       showj.RENDER: '_representative._filename',
@@ -874,10 +870,9 @@ Examples:
     def _getMdOut(self, it, prefix, ref3d):
         randomSet = self._getRandomSet(prefix)
         dataStar = self._getDataStar(prefix, it)
-        tableName = 'particles' if Plugin.IS_GT30() else None
         mdOut = []
 
-        table = Table(fileName=dataStar, tableName=tableName)
+        table = Table(fileName=dataStar, tableName='particles')
         for row in table:
             if 0 < randomSet < 3:
                 if int(row.rlnRandomSubset) == randomSet and int(row.rlnClassNumber) == ref3d:

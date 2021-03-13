@@ -438,11 +438,10 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
             args['--offset_step'] = self.offsetSearchStepPix.get() * 2
 
     def _fillDataFromIter(self, imgSet, iteration):
-        tableName = 'particles@' if self.IS_GT30() else ''
         outImgsFn = self._getFileName('data', iter=iteration)
         imgSet.setAlignmentProj()
         self.reader = convert.createReader(alignType=ALIGN_PROJ)
-        mdIter = convert.Table.iterRows(tableName + outImgsFn, key='rlnImageId')
+        mdIter = convert.Table.iterRows('particles@' + outImgsFn, key='rlnImageId')
         imgSet.copyItems(self._getInputParticles(), doClone=False,
                          updateItemCallback=self._createItemMatrix,
                          itemDataIterator=mdIter)

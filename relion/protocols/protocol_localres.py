@@ -66,16 +66,15 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
                       help='Select any previous refinement protocol to get the '
                            '3D half maps. Note that it is recommended that the '
                            'refinement protocol uses a gold-standard method.')
-        if self.IS_GT30():
-            form.addParam('solventMask', params.PointerParam,
-                          pointerClass='VolumeMask', allowsNull=True,
-                          label='User-provided solvent mask',
-                          help='Provide a mask with values between 0 and 1 '
-                               'around all domains of the complex. ResMap uses '
-                               'this mask for local resolution calculation. '
-                               'RELION does NOT use this mask for calculation, '
-                               'but makes a histogram of local resolution '
-                               'within this mask.')
+        form.addParam('solventMask', params.PointerParam,
+                      pointerClass='VolumeMask', allowsNull=True,
+                      label='User-provided solvent mask',
+                      help='Provide a mask with values between 0 and 1 '
+                           'around all domains of the complex. ResMap uses '
+                           'this mask for local resolution calculation. '
+                           'RELION does NOT use this mask for calculation, '
+                           'but makes a histogram of local resolution '
+                           'within this mask.')
         form.addParam('calibratedPixelSize', params.FloatParam, default=0.,
                       label='Calibrated pixel size (A)',
                       help="Provide the final, calibrated pixel size in "
@@ -100,12 +99,11 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
                        help='User-provided STAR-file with the MTF-curve '
                             'of the detector.'
                             'Relion param: <--mtf>')
-        if self.IS_GT30():
-            group.addParam('origPixelSize', params.FloatParam,
-                           default=-1.0,
-                           label='Original detector pixel size (A)',
-                           help='This is the original pixel size (in Angstroms)'
-                                ' in the raw (non-super-resolution!) micrographs')
+        group.addParam('origPixelSize', params.FloatParam,
+                       default=-1.0,
+                       label='Original detector pixel size (A)',
+                       help='This is the original pixel size (in Angstroms)'
+                            ' in the raw (non-super-resolution!) micrographs')
 
         form.addSection(label='LocalRes')
         form.addParam('Msg', params.LabelParam,
@@ -152,7 +150,7 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
         ih.convert(half1, self._getFileName("half1"))
         ih.convert(half2, self._getFileName("half2"))
 
-        if self.IS_GT30() and self.solventMask.hasValue():
+        if self.solventMask.hasValue():
             relion.convert.convertMask(self.solventMask.get(),
                                        self._getFileName('solventMask'),
                                        newPix, newDim)
@@ -194,10 +192,10 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
         mtfFile = self.mtf.get()
         if mtfFile:
             self.paramDict['--mtf'] = mtfFile
-        if self.IS_GT30() and self.origPixelSize.get() != -1.0:
+        if self.origPixelSize.get() != -1.0:
             self.paramDict['--mtf_angpix'] = self.origPixelSize.get()
 
-        if self.IS_GT30() and self.solventMask.hasValue():
+        if self.solventMask.hasValue():
             self.paramDict['--mask'] = self._getFileName('solventMask')
 
     def _getRelionMapFn(self, fn):
@@ -205,6 +203,3 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
 
     def _getMaskFn(self):
         return self._getPath('solvent_mask.mrc')
-
-    def IS_GT30(self):
-        return relion.Plugin.IS_GT30()

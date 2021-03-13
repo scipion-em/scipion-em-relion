@@ -31,7 +31,6 @@ from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtOperateParticles
 
 import relion.convert as convert
-from relion import Plugin
 
 
 class ProtRelionSubtract(ProtOperateParticles):
@@ -252,8 +251,7 @@ class ProtRelionSubtract(ProtOperateParticles):
         outImgSet.setAlignmentProj()
 
         self.reader = convert.createReader(alignType=ALIGN_PROJ)
-        tableName = 'particles@' if self.IS_GT30() else ''
-        mdIter = convert.Table.iterRows(tableName + outImgsFn)
+        mdIter = convert.Table.iterRows('particles@' + outImgsFn)
         outImgSet.copyItems(imgSet, doClone=False,
                             updateItemCallback=self._updateItem,
                             itemDataIterator=mdIter)
@@ -306,6 +304,3 @@ class ProtRelionSubtract(ProtOperateParticles):
         newPix = self._getInputParticles().getSamplingRate()
         maskFn = convert.convertMask(self.refMask.get(), tmp, newPix, newDim)
         return ' --mask %s' % maskFn
-
-    def IS_GT30(self):
-        return Plugin.IS_GT30()

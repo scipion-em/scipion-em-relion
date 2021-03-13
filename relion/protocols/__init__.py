@@ -23,45 +23,32 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-import relion
 
-from .protocol_create_mask3d import ProtRelionCreateMask3D
+from .protocol_assign_optic_groups import ProtRelionAssignOpticsGroup
+from .protocol_autopick_log import ProtRelionAutopickLoG
+from .protocol_autopick_ref import ProtRelion2Autopick
+from .protocol_bayesian_polishing import ProtRelionBayesianPolishing
+from .protocol_center_averages import ProtRelionCenterAverages
 from .protocol_classify2d import ProtRelionClassify2D
 from .protocol_classify3d import ProtRelionClassify3D
-from .protocol_refine3d import ProtRelionRefine3D
-from .protocol_reconstruct import ProtRelionReconstruct
-from .protocol_postprocess import ProtRelionPostprocess
-from .protocol_sort import ProtRelionSortParticles
+from .protocol_compress_estimate_gain import ProtRelionCompressEstimateGain
+from .protocol_compress_movies import ProtRelionCompressMovies
+from .protocol_create_mask3d import ProtRelionCreateMask3D
+from .protocol_crop_resize import ProtRelionResizeVolume
+from .protocol_ctf_refinement import ProtRelionCtfRefinement
 from .protocol_expand_symmetry import ProtRelionExpandSymmetry
+from .protocol_export_coords import ProtRelionExportCoordinates
+from .protocol_export_ctf import ProtRelionExportCtf
+from .protocol_export_particles import ProtRelionExportParticles
+from .protocol_extract_particles import ProtRelionExtractParticles
 from .protocol_initialmodel import ProtRelionInitialModel
 from .protocol_localres import ProtRelionLocalRes
-from .protocol_export_coords import ProtRelionExportCoordinates
-from .protocol_extract_particles import ProtRelionExtractParticles
-from .protocol_export_ctf import ProtRelionExportCtf
-from .protocol_center_averages import ProtRelionCenterAverages
-from .protocol_export_particles import ProtRelionExportParticles
-from .protocol_autopick_ref import ProtRelion2Autopick
-from .protocol_autopick_log import ProtRelionAutopickLoG
-from .protocol_remove_views import ProtRelionRemovePrefViews
-from .protocol_crop_resize import ProtRelionResizeVolume
-
 from .protocol_motioncor import ProtRelionMotioncor
 from .protocol_multibody import ProtRelionMultiBody
+from .protocol_postprocess import ProtRelionPostprocess
+from .protocol_preprocess import ProtRelionPreprocessParticles
+from .protocol_reconstruct import ProtRelionReconstruct
+from .protocol_refine3d import ProtRelionRefine3D
+from .protocol_remove_views import ProtRelionRemovePrefViews
+from .protocol_subtract import ProtRelionSubtract
 from .protocol_symmetrize_volume import ProtRelionSymmetrizeVolume
-
-if relion.Plugin.IS_30():
-    from ._legacy.protocol30_ctf_refinement import ProtRelionCtfRefinement
-    from ._legacy.protocol30_preprocess import ProtRelionPreprocessParticles
-    from ._legacy.protocol30_subtract import ProtRelionSubtract
-    from ._legacy.protocol30_bayesian_polishing import ProtRelionBayesianPolishing
-else:
-    from .protocol_ctf_refinement import ProtRelionCtfRefinement
-    from .protocol_preprocess import ProtRelionPreprocessParticles
-    from .protocol_subtract import ProtRelionSubtract
-    from .protocol_bayesian_polishing import ProtRelionBayesianPolishing
-
-# New protocol from Relion v3.1:
-# FIXME: this has to be imported for tests / wizards to work
-from .protocol_assign_optic_groups import ProtRelionAssignOpticsGroup
-from .protocol_compress_movies import ProtRelionCompressMovies
-from .protocol_compress_estimate_gain import ProtRelionCompressEstimateGain
