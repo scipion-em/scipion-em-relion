@@ -167,6 +167,11 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                            'per defocus group is reached')
 
         form.addSection('Optimisation')
+        if relion.Plugin.IS_GT31():
+            form.addParam('numberOfIter', IntParam, default=100,
+                          label="Number of iterations",
+                          help="How many iterations (i.e. mini-batches) to "
+                               "perform?")
         form.addParam('numberOfClasses', IntParam, default=1,
                       condition='not doContinue',
                       label='Number of classes',
@@ -220,24 +225,25 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                             'adaptive=1, the translations will first be '
                             'evaluated on a 2x coarser grid.')
 
-        form.addSection(label='SGD')
-        self._defineSGD3(form)
+        if not relion.Plugin.IS_GT31():
+            form.addSection(label='SGD')
+            self._defineSGD3(form)
 
-        form.addParam('sgdNoiseVar', IntParam, default=-1,
-                      condition='not doContinue',
-                      expertLevel=LEVEL_ADVANCED,
-                      label='Increased noise variance half-life',
-                      help='When set to a positive value, the initial '
-                           'estimates of the noise variance will internally '
-                           'be multiplied by 8, and then be gradually '
-                           'reduced, having 50% after this many particles '
-                           'have been processed. By default, this option '
-                           'is switched off by setting this value to a '
-                           'negative number. In some difficult cases, '
-                           'switching this option on helps. In such cases, '
-                           'values around 1000 have found to be useful. '
-                           'Change the factor of eight with the additional '
-                           'argument *--sgd_sigma2fudge_ini*')
+            form.addParam('sgdNoiseVar', IntParam, default=-1,
+                          condition='not doContinue',
+                          expertLevel=LEVEL_ADVANCED,
+                          label='Increased noise variance half-life',
+                          help='When set to a positive value, the initial '
+                               'estimates of the noise variance will internally '
+                               'be multiplied by 8, and then be gradually '
+                               'reduced, having 50% after this many particles '
+                               'have been processed. By default, this option '
+                               'is switched off by setting this value to a '
+                               'negative number. In some difficult cases, '
+                               'switching this option on helps. In such cases, '
+                               'values around 1000 have found to be useful. '
+                               'Change the factor of eight with the additional '
+                               'argument *--sgd_sigma2fudge_ini*')
 
         form.addSection('Compute')
         self._defineComputeParams(form)
@@ -407,11 +413,18 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
             args['--flatten_solvent'] = ''
         if not self.doContinue:
             args.update({'--sym': self.symmetryGroup.get()})
-        args['--pad'] = 1 if self.skipPadding else 2
         if self.skipGridding:
             args['--skip_gridding'] = ''
 
-        self._setSGDArgs(args)
+        if relion.Plugin.IS_GT31():
+            args['--pad'] = 1
+        else:
+            args['--pad'] = 1 if self.skipPadding else 2
+
+        if not relion.Plugin.IS_GT31():
+            self._setSGDArgs(args)
+        else:
+            self._setGradArgs(args)
         self._setSamplingArgs(args)
 
     def _setSGDArgs(self, args):
@@ -429,6 +442,16 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         if not self.doContinue:
             args['--denovo_3dref'] = ''
             args['--sgd_sigma2fudge_halflife'] = self.sgdNoiseVar.get()
+
+    def _setGradArgs(self, args):
+        args['--iter'] = self.numberOfIter.get()
+        args['--grad_write_iter'] = 10
+        args['--grad'] = ''
+        args['--init_blobs'] = ''
+        args['--K'] = self.numberOfClasses.get()
+
+        if not self.doContinue:
+            args['--denovo_3dref'] = ''
 
     def _setSamplingArgs(self, args):
         """ Set sampling related params"""

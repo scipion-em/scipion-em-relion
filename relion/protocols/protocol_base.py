@@ -42,6 +42,7 @@ from pwem.emlib.image import ImageHandler
 from pwem.objects import SetOfClasses3D, SetOfParticles, SetOfVolumes, Volume
 from pwem.protocols import EMProtocol
 
+from relion import Plugin
 import relion.convert
 from ..constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO
 
@@ -338,15 +339,16 @@ class ProtRelionBase(EMProtocol):
                            'intrinsically implements the optimal linear, or '
                            'Wiener filter. Note that input particles should '
                            'contains CTF parameters.')
-        form.addParam('hasReferenceCTFCorrected', BooleanParam, default=False,
-                      condition='not is2D and not doContinue',
-                      label='Has reference been CTF-corrected?',
-                      help='Set this option to Yes if the reference map '
-                           'represents CTF-unaffected density, e.g. it was '
-                           'created using Wiener filtering inside RELION or '
-                           'from a PDB. If set to No, then in the first '
-                           'iteration, the Fourier transforms of the reference '
-                           'projections are not multiplied by the CTFs.')
+        if not Plugin.IS_GT31():
+            form.addParam('hasReferenceCTFCorrected', BooleanParam, default=False,
+                          condition='not is2D and not doContinue',
+                          label='Has reference been CTF-corrected?',
+                          help='Set this option to Yes if the reference map '
+                               'represents CTF-unaffected density, e.g. it was '
+                               'created using Wiener filtering inside RELION or '
+                               'from a PDB. If set to No, then in the first '
+                               'iteration, the Fourier transforms of the reference '
+                               'projections are not multiplied by the CTFs.')
         form.addParam('haveDataBeenPhaseFlipped', LabelParam,
                       condition='not doContinue',
                       label='Have data been phase-flipped?      '
@@ -433,17 +435,34 @@ class ProtRelionBase(EMProtocol):
                                'param is set 25, the final iteration of the '
                                'protocol will be the 28th.')
 
-            form.addParam('useFastSubsets', BooleanParam, default=False,
-                          condition='not doContinue',
-                          label='Use fast subsets (for large data sets)?',
-                          help='If set to Yes, the first 5 iterations will '
-                               'be done with random subsets of only K*100 '
-                               'particles (K being the number of classes); '
-                               'the next 5 with K*300 particles, the next '
-                               '5 with 30% of the data set; and the final '
-                               'ones with all data. This was inspired by '
-                               'a cisTEM implementation by Niko Grigorieff'
-                               ' et al.')
+            if not Plugin.IS_GT31():
+                form.addParam('useFastSubsets', BooleanParam, default=False,
+                              condition='not doContinue',
+                              label='Use fast subsets (for large data sets)?',
+                              help='If set to Yes, the first 5 iterations will '
+                                   'be done with random subsets of only K*100 '
+                                   'particles (K being the number of classes); '
+                                   'the next 5 with K*300 particles, the next '
+                                   '5 with 30% of the data set; and the final '
+                                   'ones with all data. This was inspired by '
+                                   'a cisTEM implementation by Niko Grigorieff'
+                                   ' et al.')
+            else:
+                if self.IS_2D:  # relion4 2D cls case
+                    form.addParam('useGradientAlg', BooleanParam, default=False,
+                                  condition='not doContinue',
+                                  label='Use gradient-driven algorithm?',
+                                  help='If set to Yes, use faster NGrad '
+                                       'algorithm instead of the default '
+                                       'expectation maximization. If used, *increase '
+                                       'number of iterations to about 100!*')
+                    form.addParam('centerAvg', BooleanParam, default=True,
+                                  label='Center class averages?',
+                                  help='IF set to Yes, every iteration the class '
+                                       'average images will be centered on their '
+                                       'center-fo-mass. This will work only for '
+                                       'positive signals, so the particles should '
+                                       'be white.')
 
             form.addParam('limitResolEStep', FloatParam, default=-1,
                           label='Limit resolution E-step to (A)',
@@ -541,6 +560,20 @@ class ProtRelionBase(EMProtocol):
                                    'that orientations closer to the optimal '
                                    'orientation in the previous iteration will '
                                    'get higher weights than those further away.')
+                form.addParam('relaxSymm', StringParam, default='',
+                              condition='localAngularSearch and doImageAlignment',
+                              label='Relax symmetry',
+                              help="With this option, poses related to the standard "
+                                   "local angular search range by the given point "
+                                   "group will also be explored. For example, if "
+                                   "you have a pseudo-symmetric dimer A-A', "
+                                   "refinement or classification in C1 with symmetry "
+                                   "relaxation by C2 might be able to improve "
+                                   "distinction between A and A'. Note that the "
+                                   "reference must be more-or-less aligned to the "
+                                   "convention of (pseudo-)symmetry operators. "
+                                   "For details, see Ilca et al 2019 and "
+                                   "Abrishami et al 2020.")
             else:
                 form.addParam('localSearchAutoSamplingDeg', EnumParam,
                               condition='not doContinue',
@@ -646,16 +679,17 @@ class ProtRelionBase(EMProtocol):
                            'access, is a problem. It has a modest cost of '
                            'increased RAM usage.')
         if self.IS_3D:
-            form.addParam('skipPadding', BooleanParam, default=False,
-                          label='Skip padding',
-                          help='If set to Yes, the calculations will not use '
-                               'padding in Fourier space for better '
-                               'interpolation in the references. Otherwise, '
-                               'references are padded 2x before Fourier '
-                               'transforms are calculated. Skipping padding '
-                               '(i.e. use --pad 1) gives nearly as good results '
-                               'as using --pad 2, but some artifacts may appear '
-                               'in the corners from signal that is folded back.')
+            if not (Plugin.IS_GT31() and self.IS_3D_INIT):
+                form.addParam('skipPadding', BooleanParam, default=False,
+                              label='Skip padding',
+                              help='If set to Yes, the calculations will not use '
+                                   'padding in Fourier space for better '
+                                   'interpolation in the references. Otherwise, '
+                                   'references are padded 2x before Fourier '
+                                   'transforms are calculated. Skipping padding '
+                                   '(i.e. use --pad 1) gives nearly as good results '
+                                   'as using --pad 2, but some artifacts may appear '
+                                   'in the corners from signal that is folded back.')
             form.addParam('skipGridding', BooleanParam, default=True,
                           label='Skip gridding',
                           help='If set to Yes, the calculations will '
@@ -935,6 +969,13 @@ class ProtRelionBase(EMProtocol):
             args['--K'] = self.numberOfClasses.get()
             if self.limitResolEStep > 0:
                 args['--strict_highres_exp'] = self.limitResolEStep.get()
+            if self.IS_2D and Plugin.IS_GT31():
+                if self.useGradientAlg:
+                    args['--grad'] = ''
+                    args['--init_blobs'] = ''
+                    args['--class_inactivity_threshold'] = 0.1
+                if self.centerAvg:
+                    args['--center_classes'] = ''
 
         if self.IS_3D and not self.IS_3D_INIT:
             if not self.isMapAbsoluteGreyScale:
@@ -1029,9 +1070,10 @@ class ProtRelionBase(EMProtocol):
         if self.doCTF:
             args['--ctf'] = ''
 
-            # this only can be true if is 3D.
-            if self.hasReferenceCTFCorrected:
-                args['--ctf_corrected_ref'] = ''
+            # this only can be true if is 3D
+            if not Plugin.IS_GT31():
+                if self.hasReferenceCTFCorrected:
+                    args['--ctf_corrected_ref'] = ''
 
             if self._getInputParticles().isPhaseFlipped():
                 args['--ctf_phase_flipped'] = ''

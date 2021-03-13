@@ -1,3 +1,5 @@
+4.0:
+    - Relion 4.0 support
 3.1:
     - add EER support for motion correction
     - refactor mc protocol and viewer

@@ -41,6 +41,7 @@ from pyworkflow.gui.plotter import Plotter
 from pyworkflow.protocol import STEPS_SERIAL
 
 import relion
+from relion import Plugin
 import relion.convert as convert
 from relion.convert.convert31 import OpticsGroups
 
@@ -100,6 +101,15 @@ class ProtRelionMotioncor(ProtAlignMovies):
                       help='McMullan et al. (Ultramicroscopy, 2015) '
                            'suggests summing power spectra every '
                            '4.0 e/A2 gives optimal Thon rings.')
+
+        # FIXME: float16 is not supported
+        if Plugin.IS_GT31():
+            form.addParam('saveFloat16', params.BooleanParam, default=False,
+                          expertLevel=params.LEVEL_ADVANCED,
+                          lavel="Write output in float16?",
+                          help="Relion can write output images in float16 "
+                               "MRC (mode 12) format to save disk space. "
+                               "By default, float32 format is used.")
 
         form.addParam('doComputePSD', params.BooleanParam, default=False,
                       label="Compute PSD?",

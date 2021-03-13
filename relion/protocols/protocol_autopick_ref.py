@@ -33,6 +33,7 @@ from pwem.emlib.image import ImageHandler
 from pyworkflow.utils.properties import Message
 import pyworkflow.utils as pwutils
 
+from relion import Plugin
 import relion.convert
 from ..constants import *
 from .protocol_autopick import ProtRelionAutopickBase
@@ -125,12 +126,13 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
                            "go finer to adequately sample the asymmetric part of "
                            "the sphere.")
 
-        form.addParam('particleDiameter', params.IntParam, default=-1,
-                      label='Mask diameter (A)',
-                      help='Diameter of the circular mask that will be applied '
-                           'around the templates in Angstroms. When set to a '
-                           'negative value, this value is estimated '
-                           'automatically from the templates themselves.')
+        if not Plugin.IS_GT31():
+            form.addParam('particleDiameter', params.IntParam, default=-1,
+                          label='Mask diameter (A)',
+                          help='Diameter of the circular mask that will be applied '
+                               'around the templates in Angstroms. When set to a '
+                               'negative value, this value is estimated '
+                               'automatically from the templates themselves.')
 
         form.addParam('lowpassFilterRefs', params.IntParam, default=20,
                       label='Lowpass filter references (A)',
