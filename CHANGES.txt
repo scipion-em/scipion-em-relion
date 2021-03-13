@@ -1,3 +1,5 @@
+3.0.1:
+    - quick fixes for issues from PR #282, #283 (thanks to @rmarabini)
 3.0.0:
     - Scipion 3.0.0 support, migration to python 3
     - GPLv3
