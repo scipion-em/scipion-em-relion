@@ -161,7 +161,7 @@ class ProtRelionBase(EMProtocol):
                       help='If set to Yes, then alignment information from'
                            ' input particles will be considered.')
         form.addParam('alignmentAsPriors', BooleanParam, default=False,
-                      condition='not doContinue and copyAlignment',
+                      condition='not doContinue and copyAlignment and doImageAlignment',
                       expertLevel=LEVEL_ADVANCED,
                       label='Consider alignment as priors?',
                       help='If set to Yes, then alignment information from '
@@ -1040,15 +1040,15 @@ class ProtRelionBase(EMProtocol):
         if self.doCTF:
             args['--ctf'] = ''
 
-        # this only can be true if is 3D.
-        if self.hasReferenceCTFCorrected:
-            args['--ctf_corrected_ref'] = ''
+            # this only can be true if is 3D.
+            if self.hasReferenceCTFCorrected:
+                args['--ctf_corrected_ref'] = ''
 
-        if self._getInputParticles().isPhaseFlipped():
-            args['--ctf_phase_flipped'] = ''
+            if self._getInputParticles().isPhaseFlipped():
+                args['--ctf_phase_flipped'] = ''
 
-        if self.ignoreCTFUntilFirstPeak:
-            args['--ctf_intact_first_peak'] = ''
+            if self.ignoreCTFUntilFirstPeak:
+                args['--ctf_intact_first_peak'] = ''
 
     def _setMaskArgs(self, args):
         if self.IS_3D:
