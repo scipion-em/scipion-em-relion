@@ -102,9 +102,9 @@ class ProtRelionMotioncor(ProtAlignMovies):
                            'suggests summing power spectra every '
                            '4.0 e/A2 gives optimal Thon rings.')
 
-        # FIXME: float16 is not supported
         if Plugin.IS_GT31():
             form.addParam('saveFloat16', params.BooleanParam, default=False,
+                          label="Write output in float16?",
                           expertLevel=params.LEVEL_ADVANCED,
                           lavel="Write output in float16?",
                           help="Relion can write output images in float16 "
@@ -252,15 +252,15 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
         inputMovies = self.inputMovies.get()
         if inputMovies.getGain():
-            args += ' --gainref "%s" ' % inputMovies.getGain()
-            args += ' --gain_rot %d ' % self.gainRot
-            args += ' --gain_flip %d ' % self.gainFlip
+            args += '--gainref "%s" ' % inputMovies.getGain()
+            args += '--gain_rot %d ' % self.gainRot
+            args += '--gain_flip %d ' % self.gainFlip
 
         if self.defectFile.get():
-            args += ' --defect_file "%s" ' % self.defectFile.get()
+            args += '--defect_file "%s" ' % self.defectFile.get()
 
         if self._savePsSum():
-            args += ' --grouping_for_ps %d ' % self._calcPsDose()
+            args += '--grouping_for_ps %d ' % self._calcPsDose()
 
         if self.doDW:
             args += "--dose_weighting "
@@ -272,11 +272,14 @@ class ProtRelionMotioncor(ProtAlignMovies):
             args += "--preexposure %f " % preExp
 
             if self.saveNonDW:
-                args += " --save_noDW "
+                args += "--save_noDW "
 
         if self.isEER:
-            args += " --eer_grouping %d " % self.eerGroup
-            args += " --eer_upsampling %d " % (self.eerSampling.get() + 1)
+            args += "--eer_grouping %d " % self.eerGroup
+            args += "--eer_upsampling %d " % (self.eerSampling.get() + 1)
+
+        if self.saveFloat16:
+            args += "--float16 "
 
         if self.extraParams.hasValue():
             args += " " + self.extraParams.get()

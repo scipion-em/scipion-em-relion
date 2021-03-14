@@ -435,7 +435,7 @@ class ProtRelionBase(EMProtocol):
                                'param is set 25, the final iteration of the '
                                'protocol will be the 28th.')
 
-            if not Plugin.IS_GT31():
+            if (Plugin.IS_GT31() and self.IS_3D) or not Plugin.IS_GT31():
                 form.addParam('useFastSubsets', BooleanParam, default=False,
                               condition='not doContinue',
                               label='Use fast subsets (for large data sets)?',
@@ -447,22 +447,22 @@ class ProtRelionBase(EMProtocol):
                                    'ones with all data. This was inspired by '
                                    'a cisTEM implementation by Niko Grigorieff'
                                    ' et al.')
-            else:
-                if self.IS_2D:  # relion4 2D cls case
-                    form.addParam('useGradientAlg', BooleanParam, default=False,
-                                  condition='not doContinue',
-                                  label='Use gradient-driven algorithm?',
-                                  help='If set to Yes, use faster NGrad '
-                                       'algorithm instead of the default '
-                                       'expectation maximization. If used, *increase '
-                                       'number of iterations to about 100!*')
-                    form.addParam('centerAvg', BooleanParam, default=True,
-                                  label='Center class averages?',
-                                  help='IF set to Yes, every iteration the class '
-                                       'average images will be centered on their '
-                                       'center-fo-mass. This will work only for '
-                                       'positive signals, so the particles should '
-                                       'be white.')
+
+            if Plugin.IS_GT31() and self.IS_2D:  # relion4 2D cls case
+                form.addParam('useGradientAlg', BooleanParam, default=False,
+                              condition='not doContinue',
+                              label='Use gradient-driven algorithm?',
+                              help='If set to Yes, use faster NGrad '
+                                   'algorithm instead of the default '
+                                   'expectation maximization. If used, *increase '
+                                   'number of iterations to about 100!*')
+                form.addParam('centerAvg', BooleanParam, default=True,
+                              label='Center class averages?',
+                              help='If set to Yes, every iteration the class '
+                                   'average images will be centered on their '
+                                   'center-of-mass. This will work only for '
+                                   'positive signals, so the particles should '
+                                   'be white.')
 
             form.addParam('limitResolEStep', FloatParam, default=-1,
                           label='Limit resolution E-step to (A)',
@@ -506,7 +506,7 @@ class ProtRelionBase(EMProtocol):
                                'approximate numbers and vary slightly over '
                                'the sphere.')
         else:
-            form.addParam('inplaneAngularSamplingDeg', FloatParam, default=5,
+            form.addParam('inplaneAngularSamplingDeg', FloatParam, default=6,
                           label='In-plane angular sampling (deg)',
                           condition="doImageAlignment",
                           help='The sampling rate for the in-plane rotation '
@@ -584,6 +584,20 @@ class ProtRelionBase(EMProtocol):
                                    'of -6/+6 times the sampling rate will be '
                                    'used from this angular sampling rate '
                                    'onwards.')
+                form.addParam('relaxSymm', StringParam, default='',
+                              condition='doImageAlignment',
+                              label='Relax symmetry',
+                              help="With this option, poses related to the standard "
+                                   "local angular search range by the given point "
+                                   "group will also be explored. For example, if "
+                                   "you have a pseudo-symmetric dimer A-A', "
+                                   "refinement or classification in C1 with symmetry "
+                                   "relaxation by C2 might be able to improve "
+                                   "distinction between A and A'. Note that the "
+                                   "reference must be more-or-less aligned to the "
+                                   "convention of (pseudo-)symmetry operators. "
+                                   "For details, see Ilca et al 2019 and "
+                                   "Abrishami et al 2020.")
                 form.addParam('useFinerSamplingFaster', BooleanParam,
                               default=False,
                               label='Use finer angular sampling faster?',
@@ -600,9 +614,11 @@ class ProtRelionBase(EMProtocol):
                                    'resolution already requires that '
                                    'sampling at the edge of the particle.\n\n'
                                    'This option will make the computation '
-                                   'faster, but has nott been tested for '
+                                   'faster, but has not been tested for '
                                    'many cases for potential loss in '
                                    'reconstruction quality upon convergence.')
+
+
 
         if self.IS_CLASSIFY:
             form.addParam('allowCoarserSampling', BooleanParam,
@@ -877,11 +893,6 @@ class ProtRelionBase(EMProtocol):
             errors += self._validateNormal()
 
         if self.IS_CLASSIFY:
-            if self._doSubsets():
-                total = self._getInputParticles().getSize()
-                if total <= self.subsetSize.get():
-                    errors.append('Subset size is bigger than the total number '
-                                  'of particles!')
             if not self.doImageAlignment:
                 if self.doGpu:
                     errors.append('When only doing classification (no alignment) '
@@ -1108,11 +1119,6 @@ class ProtRelionBase(EMProtocol):
                 args['--solvent_mask'] = mask
 
     def _setSubsetArgs(self, args):
-        if self._doSubsets():
-            args['--write_subsets'] = 1
-            args['--subset_size'] = self.subsetSize.get()
-            args['--max_subsets'] = self.subsetUpdates.get()
-
         if self._useFastSubsets():
             args['--fast_subsets'] = ''
 
@@ -1288,9 +1294,6 @@ class ProtRelionBase(EMProtocol):
         if self.doCtfManualGroups:
             groupId = self._defocusGroups.getGroup(part.getCTF().getDefocusU()).id
             partRow['rlnGroupName'] = "ctf_group_%03d" % groupId
-
-    def _doSubsets(self):
-        return False
 
     def _useFastSubsets(self):
         return self.getAttributeValue('useFastSubsets', False)
