@@ -278,7 +278,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
             args += "--eer_grouping %d " % self.eerGroup
             args += "--eer_upsampling %d " % (self.eerSampling.get() + 1)
 
-        if self.saveFloat16:
+        if Plugin.IS_GT31() and self.saveFloat16:
             args += "--float16 "
 
         if self.extraParams.hasValue():

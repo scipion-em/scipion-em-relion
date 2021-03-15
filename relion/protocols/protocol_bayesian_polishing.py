@@ -36,6 +36,7 @@ from pwem.protocols import ProtParticles
 import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ
 
+from relion import Plugin
 import relion.convert as convert
 
 
@@ -113,6 +114,15 @@ class ProtRelionBayesianPolishing(ProtParticles):
         form.addParam('rescaledSize', params.IntParam, default=-1,
                       label="Re-scaled size (px)",
                       help="The re-scaled value needs to be an even number.")
+
+        if Plugin.IS_GT31():
+            form.addParam('saveFloat16', params.BooleanParam, default=False,
+                          label="Write output in float16?",
+                          expertLevel=params.LEVEL_ADVANCED,
+                          lavel="Write output in float16?",
+                          help="Relion can write output images in float16 "
+                               "MRC (mode 12) format to save disk space. "
+                               "By default, float32 format is used.")
 
         form.addSection(label='Train or Polish')
         form.addParam('operation', params.EnumParam, default=1,
@@ -311,6 +321,9 @@ class ProtRelionBayesianPolishing(ProtParticles):
             args += "--bfac_minfreq %0.3f " % self.minResBfactor
             args += "--bfac_maxfreq %0.3f " % self.maxResBfactor
             args += "--combine_frames "
+
+        if Plugin.IS_GT31() and self.saveFloat16:
+            args += "--float16 "
 
         args += "--j %d " % self.numberOfThreads
 

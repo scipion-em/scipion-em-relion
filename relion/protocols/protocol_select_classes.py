@@ -73,8 +73,8 @@ class ProtRelionSelectClasses2D(ProtProcessParticles):
         fnOptimiser = inputProt._getFileName('optimiser',
                                              iter=inputProt._lastIter())
         params = " --opt %s --o %s --min_score %s" % (fnOptimiser,
-                                                  self._getExtraPath(),
-                                                  self.minThreshold.get())
+                                                      self._getExtraPath(),
+                                                      self.minThreshold.get())
         params += " --fn_sel_parts particles.star"
         params += " --fn_sel_classavgs class_averages.star"
         params += " --fn_root rank --do_granularity_features"
@@ -84,7 +84,7 @@ class ProtRelionSelectClasses2D(ProtProcessParticles):
 
     def createOutputStep(self):
         inputProt = self.inputProtocol.get()
-        return
+        raise Exception("LOL")
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):

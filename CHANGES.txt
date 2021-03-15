@@ -11,6 +11,8 @@
     - fix shifts conversion for pre-3.1 (origins are in px already)
     - fix accuracy label, use Angstroms by default
     - add a warning about polishing gain bug
+3.0.3: another bugfix in assign optics: abs paths are not allowed by Relion
+3.0.2: bugfix for the wrong gain transform parameters in assign optics protocol
 3.0.1:
     - quick fixes for issues from PR #282, #283 (thanks to @rmarabini)
 3.0.0:
