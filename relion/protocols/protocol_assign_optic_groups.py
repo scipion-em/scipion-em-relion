@@ -39,7 +39,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
     """ Assign Optics Group name and related parameters to an input set.
      Input set can be: movies, micrographs or particles.
     """
-    _label = 'assign optics group'
+    _label = 'assign optics groups'
     
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -213,7 +213,10 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                 gainFn = self._convertGain()
                 og.addColumns(rlnMicrographGainName=gainFn)
             if self.defectFile.hasValue():
-                og.addColumns(rlnMicrographDefectFile=self.defectFile.get())
+                inputDef = self.defectFile.get()
+                outputDef = self._getPath(os.path.basename(inputDef))
+                pwutils.copyFile(inputDef, outputDef)
+                og.addColumns(rlnMicrographDefectFile=outputDef)
         else:
             inputStar = self.inputStar.get()
             og = OpticsGroups.fromStar(inputStar)
@@ -316,4 +319,6 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
 
             return self._getPath(os.path.basename(gainFn))
         else:
-            return gainFn
+            outputGain = self._getPath(os.path.basename(gainFn))
+            pwutils.createAbsLink(gainFn, outputGain)
+            return outputGain
