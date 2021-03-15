@@ -295,8 +295,8 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
     # -------------------------- UTILS functions ------------------------------
     def _convertGain(self):
         """ We need to transform gain file for a possible polishing job. """
-        rotation = self.gainRot
-        flip = self.gainFlip
+        rotation = self.gainRot.get()
+        flip = self.gainFlip.get()
         gainFn = self.gainFile.get()
 
         if rotation or flip:
@@ -304,10 +304,10 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
 
             if flip:
                 # flip axis Y - left to right
-                args += "--process xform.flip:axis=%s " % ("y" if flip.get() == 2 else "x")
+                args += "--process xform.flip:axis=%s " % ("y" if flip == 2 else "x")
 
             if rotation:
-                args += "--rotate %d " % (rotation.get() * 90)
+                args += "--rotate %d " % (rotation * 90)
 
             from pwem import Domain
             eman2 = Domain.importFromPlugin('eman2')
