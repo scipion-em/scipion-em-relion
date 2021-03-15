@@ -24,8 +24,10 @@
 # *
 # **************************************************************************
 
+from emtable import Table
 import pyworkflow.protocol.params as params
 from pwem.protocols import ProtProcessParticles
+from pwem.objects import SetOfClasses2D
 
 from relion import Plugin
 
@@ -34,7 +36,7 @@ class ProtRelionSelectClasses2D(ProtProcessParticles):
     """
     Relion protocol to auto-select 2D class averages.
     """
-    _label = 'auto-select 2D classes'
+    _label = '2D class ranker'
 
     @classmethod
     def isDisabled(cls):
@@ -45,7 +47,7 @@ class ProtRelionSelectClasses2D(ProtProcessParticles):
 
     def _createFilenameTemplates(self):
         """ Centralize how files are called. """
-        myDict = {}
+        myDict = {'cls_selection': self._getExtraPath('backup_selection.star')}
         self._updateFilenamesDict(myDict)
 
     # --------------------------- DEFINE param functions ----------------------
@@ -83,8 +85,15 @@ class ProtRelionSelectClasses2D(ProtProcessParticles):
         self.runJob("relion_class_ranker", params)
 
     def createOutputStep(self):
-        inputProt = self.inputProtocol.get()
-        raise Exception("LOL")
+        table = Table(fileName=self._getFileName('cls_selection'))
+        self._clsSelection = table.getColumnValues('rlnSelected')
+
+        inputClasses = self.inputProtocol.get().outputClasses
+        output = SetOfClasses2D.create(self._getExtraPath())
+        output.copyInfo(inputClasses)
+        output.appendFromClasses(inputClasses, filterClassFunc=self._appendClass)
+
+        self._defineOutputs(outputClasses=output)
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
@@ -93,3 +102,5 @@ class ProtRelionSelectClasses2D(ProtProcessParticles):
         return summary
 
     # --------------------------- UTILS functions -----------------------------
+    def _appendClass(self, item):
+        return False if not self._clsSelection[item.getObjId()-1] else True
