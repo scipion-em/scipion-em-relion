@@ -161,7 +161,7 @@ class ProtRelionBase(EMProtocol):
                       help='If set to Yes, then alignment information from'
                            ' input particles will be considered.')
         form.addParam('alignmentAsPriors', BooleanParam, default=False,
-                      condition='not doContinue and copyAlignment and doImageAlignment',
+                      condition='not doContinue and copyAlignment',
                       expertLevel=LEVEL_ADVANCED,
                       label='Consider alignment as priors?',
                       help='If set to Yes, then alignment information from '
@@ -862,6 +862,10 @@ class ProtRelionBase(EMProtocol):
                     errors.append('If you want to do only classification without '
                                   'alignment, then you should use the option: \n'
                                   '*Consider previous alignment?* = Yes')
+                if self.alignmentAsPriors:
+                    errors.append('When only doing classification (no alignment) '
+                                  " option *Consider alignment as priors* cannot"
+                                  " be enabled.")
 
         return errors
 
