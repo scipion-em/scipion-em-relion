@@ -213,7 +213,10 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                 gainFn = self._convertGain()
                 og.addColumns(rlnMicrographGainName=gainFn)
             if self.defectFile.hasValue():
-                og.addColumns(rlnMicrographDefectFile=self.defectFile.get())
+                inputDef = self.defectFile.get()
+                outputDef = self._getPath(os.path.basename(inputDef))
+                pwutils.copyFile(inputDef, outputDef)
+                og.addColumns(rlnMicrographDefectFile=outputDef)
         else:
             inputStar = self.inputStar.get()
             og = OpticsGroups.fromStar(inputStar)
@@ -295,8 +298,8 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
     # -------------------------- UTILS functions ------------------------------
     def _convertGain(self):
         """ We need to transform gain file for a possible polishing job. """
-        rotation = self.gainRot
-        flip = self.gainFlip
+        rotation = self.gainRot.get()
+        flip = self.gainFlip.get()
         gainFn = self.gainFile.get()
 
         if rotation or flip:
@@ -304,10 +307,10 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
 
             if flip:
                 # flip axis Y - left to right
-                args += "--process xform.flip:axis=%s " % ("y" if flip.get() == 2 else "x")
+                args += "--process xform.flip:axis=%s " % ("y" if flip == 2 else "x")
 
             if rotation:
-                args += "--rotate %d " % (rotation.get() * 90)
+                args += "--rotate %d " % (rotation * 90)
 
             from pwem import Domain
             eman2 = Domain.importFromPlugin('eman2')
@@ -316,4 +319,6 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
 
             return self._getPath(os.path.basename(gainFn))
         else:
-            return gainFn
+            outputGain = self._getPath(os.path.basename(gainFn))
+            pwutils.createAbsLink(gainFn, outputGain)
+            return outputGain
