@@ -39,7 +39,6 @@ class ProtRelionRemovePrefViews(ProtParticles):
     Inspired by https://github.com/leschzinerlab/Relion
 
     """
-    _lastUpdateVersion = VERSION_3_0
     _label = 'remove preferential views'
 
     def _defineParams(self, form):

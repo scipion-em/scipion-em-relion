@@ -39,7 +39,6 @@ class ProtRelionCompressEstimateGain(ProtProcessMovies):
     Using *relion_convert_to_tiff* to estimate the gain that can be used
     for better compression.
     """
-    _lastUpdateVersion = VERSION_3_0
     _label = 'estimate gain to compress'
 
     def __init__(self, **kwargs):

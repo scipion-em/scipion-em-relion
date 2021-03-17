@@ -40,7 +40,6 @@ class ProtRelionCompressMovies(ProtAlignMovies):
     """
     Using *relion_convert_to_tiff* to compress a set of movies.
     """
-    _lastUpdateVersion = VERSION_3_0
     _label = 'compress movies'
 
     OP_COMPRESS = 0

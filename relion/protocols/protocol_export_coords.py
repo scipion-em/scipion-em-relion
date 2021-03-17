@@ -37,7 +37,6 @@ from .protocol_base import ProtRelionBase
 class ProtRelionExportCoordinates(ProtRelionBase):
     """ Export coordinates from Relion to be used outside Scipion. """
 
-    _lastUpdateVersion = VERSION_3_0
     _label = 'export coordinates'
 
     # --------------------------- DEFINE param functions ----------------------
