@@ -195,28 +195,10 @@ class ProtRelionBayesianPolishing(ProtParticles):
         self.info("Converting set from '%s' into '%s'" %
                   (inputParts.getFileName(), imgStar))
 
-        tableGeneral = Table(columns=['rlnImageSizeX',
-                                      'rlnImageSizeY',
-                                      'rlnImageSizeZ',
-                                      'rlnMicrographMovieName',
-                                      'rlnMicrographBinning',
-                                      'rlnMicrographOriginalPixelSize',
-                                      'rlnMicrographDoseRate',
-                                      'rlnMicrographPreExposure',
-                                      'rlnVoltage',
-                                      'rlnMicrographStartFrame',
-                                      'rlnMotionModelVersion',
-                                      'rlnMicrographGainName',
-                                      'rlnMicrographDefectFile'])
-        tableShifts = Table(columns=['rlnMicrographFrameNumber',
-                                     'rlnMicrographShiftX',
-                                     'rlnMicrographShiftY'])
-        tableCoeffs = Table(columns=['rlnMotionModelCoeffsIdx',
-                                     'rlnMotionModelCoeff'])
-
         # Create the first row, later only the movieName will be updated
         xdim, ydim, ndim = inputMovies.getDim()
         acq = inputMovies.getAcquisition()
+        doseRate = acq.getDosePerFrame()
         firstMovie = inputMovies.getFirstItem()
         a0, aN = firstMovie.getAlignment().getRange()
         moviesPixelSize = inputMovies.getSamplingRate()
@@ -228,10 +210,49 @@ class ProtRelionBayesianPolishing(ProtParticles):
                                      self._getFileName('input_mics'),
                                      postprocessImageRow=self._updateMic)
 
-        tableGeneral.addRow(xdim, ydim, ndim, 'movieName',
-                            binningFactor, moviesPixelSize,
-                            acq.getDosePerFrame(), acq.getDoseInitial(),
-                            acq.getVoltage(), a0, 0, '""', '""')
+        # Handle EER case
+        isEER = False
+        if og.hasColumn('rlnEERGrouping'):
+            isEER = True
+            eerGrouping = og[0].rlnEERGrouping
+            eerSampling = og[0].rlnEERSampling
+            ndim //= eerGrouping
+            doseRate *= eerGrouping
+
+        generalCols = ['rlnImageSizeX',
+                       'rlnImageSizeY',
+                       'rlnImageSizeZ',
+                       'rlnMicrographMovieName',
+                       'rlnMicrographBinning',
+                       'rlnMicrographOriginalPixelSize',
+                       'rlnMicrographDoseRate',
+                       'rlnMicrographPreExposure',
+                       'rlnVoltage',
+                       'rlnMicrographStartFrame',
+                       'rlnMotionModelVersion',
+                       'rlnMicrographGainName',
+                       'rlnMicrographDefectFile']
+        if isEER:
+            generalCols.extend(['rlnEERGrouping', 'rlnEERSampling'])
+
+        tableGeneral = Table(columns=generalCols)
+        tableShifts = Table(columns=['rlnMicrographFrameNumber',
+                                     'rlnMicrographShiftX',
+                                     'rlnMicrographShiftY'])
+        tableCoeffs = Table(columns=['rlnMotionModelCoeffsIdx',
+                                     'rlnMotionModelCoeff'])
+
+        if not isEER:
+            tableGeneral.addRow(xdim, ydim, ndim, 'movieName',
+                                binningFactor, moviesPixelSize,
+                                doseRate, acq.getDoseInitial(),
+                                acq.getVoltage(), a0, 0, '""', '""')
+        else:
+            tableGeneral.addRow(xdim, ydim, ndim, 'movieName',
+                                binningFactor, moviesPixelSize,
+                                doseRate, acq.getDoseInitial(),
+                                acq.getVoltage(), a0, 0, '""', '""',
+                                eerGrouping, eerSampling)
         row = tableGeneral[0]
 
         for movie in inputMovies:
