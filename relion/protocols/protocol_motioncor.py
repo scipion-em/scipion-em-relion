@@ -278,7 +278,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
                 self._computeExtra(movie)
             except:
                 self.error("ERROR: Extra work "
-                           "(i.e plots, PSD, thumbnail has failed for %s\n"
+                           "(i.e plots, PSD, thumbnail) has failed for %s\n"
                            % movie.getFileName())
 
             self._moveFiles(movie)
