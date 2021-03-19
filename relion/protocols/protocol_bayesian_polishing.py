@@ -241,6 +241,8 @@ class ProtRelionBayesianPolishing(ProtParticles):
                                      'rlnMicrographShiftY'])
         tableCoeffs = Table(columns=['rlnMotionModelCoeffsIdx',
                                      'rlnMotionModelCoeff'])
+        tablePixels = Table(columns=['rlnCoordinateX',
+                                     'rlnCoordinateY'])
 
         if not isEER:
             tableGeneral.addRow(xdim, ydim, ndim, 'movieName',
@@ -264,6 +266,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
             with open(movieStar, 'w') as f:
                 coeffs = json.loads(movie.getAttributeValue('_rlnMotionModelCoeff', '[]'))
                 motionMode = 1 if coeffs else 0
+                hotpix = json.loads(movie.getAttributeValue('_rlnHotPixels', '[]'))
 
                 # Update some params in the general table
                 replaceDict = {'rlnMicrographMovieName': movie.getFileName(),
@@ -299,6 +302,13 @@ class ProtRelionBayesianPolishing(ProtParticles):
                     for i, c in enumerate(coeffs):
                         tableCoeffs.addRow(i, c)
                     tableCoeffs.writeStar(f, tableName='local_motion_model')
+
+                # Write hot pixels
+                tablePixels.clearRows()
+                if hotpix:
+                    for coord in hotpix:
+                        tablePixels.addRow(coord[0], coord[1])
+                    tablePixels.writeStar(f, tableName='hot_pixels')
 
         convert.writeSetOfParticles(inputParts, imgStar,
                                     outputDir=inputPartsFolder,
