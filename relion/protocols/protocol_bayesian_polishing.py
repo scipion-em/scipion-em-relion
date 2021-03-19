@@ -214,8 +214,8 @@ class ProtRelionBayesianPolishing(ProtParticles):
         isEER = False
         if og.hasColumn('rlnEERGrouping'):
             isEER = True
-            eerGrouping = og[0].rlnEERGrouping
-            eerSampling = og[0].rlnEERSampling
+            eerGrouping = og.first().rlnEERGrouping
+            eerSampling = og.first().rlnEERUpsampling
             ndim //= eerGrouping
             doseRate *= eerGrouping
 
@@ -233,7 +233,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
                        'rlnMicrographGainName',
                        'rlnMicrographDefectFile']
         if isEER:
-            generalCols.extend(['rlnEERGrouping', 'rlnEERSampling'])
+            generalCols.extend(['rlnEERGrouping', 'rlnEERUpsampling'])
 
         tableGeneral = Table(columns=generalCols)
         tableShifts = Table(columns=['rlnMicrographFrameNumber',
