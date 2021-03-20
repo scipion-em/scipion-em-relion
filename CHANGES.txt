@@ -11,6 +11,7 @@
     - fix accuracy label, use Angstroms by default
     - add a warning about polishing gain bug
     - subtract protocol suppot non-Relion input (thanks @rmarabini)
+    - add a protocol to "gentle clean" all Relion jobs
 3.0.4: bugfix for the missing option "Consider alignment as priors" (reported by Serban Ilca)
 3.0.3: another bugfix in assign optics: abs paths are not allowed by Relion
 3.0.2: bugfix for the wrong gain transform parameters in assign optics protocol

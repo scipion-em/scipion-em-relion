@@ -86,6 +86,7 @@ Protocols
 * auto-picking LoG          
 * bayesian polishing        
 * center averages
+* clean project
 * compress movies
 * create 3d mask
 * crop / resize volumes
