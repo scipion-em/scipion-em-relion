@@ -41,6 +41,7 @@ from .protocol_export_coords import ProtRelionExportCoordinates
 from .protocol_export_ctf import ProtRelionExportCtf
 from .protocol_export_particles import ProtRelionExportParticles
 from .protocol_extract_particles import ProtRelionExtractParticles
+from .protocol_gentle_clean import ProtRelionCleanJobs
 from .protocol_initialmodel import ProtRelionInitialModel
 from .protocol_localres import ProtRelionLocalRes
 from .protocol_motioncor import ProtRelionMotioncor
