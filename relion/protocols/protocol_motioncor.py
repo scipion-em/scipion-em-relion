@@ -307,7 +307,12 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
         # check frames range
         _, lastFrame, _ = inputMovies.getFramesRange()
-        self.isEER = pwutils.getExt(firstMovie.getFileName()) == ".eer"
+
+        #FIXME: Remove once EER support is enabled
+        if pwutils.getExt(firstMovie.getFileName()) == ".eer":
+            errors.append("EER support is not available yet in this plugin")
+
+        #self.isEER = pwutils.getExt(firstMovie.getFileName()) == ".eer"
         if self.isEER:
             lastFrame //= self.eerGroup.get()
 
