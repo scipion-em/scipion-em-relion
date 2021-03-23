@@ -206,7 +206,7 @@ class ProtRelionSubtract(ProtOperateParticles):
                                          self._getExtraPath())
         params = ' --i %s --subtract_exp' % volFn
         params += ' --angpix %0.3f' % volume.getSamplingRate()
-        params += self._convertMask()
+        params += self._convertMask(invert=True)
 
         if self._getInputParticles().isPhaseFlipped():
             params += ' --ctf_phase_flip'
@@ -298,9 +298,9 @@ class ProtRelionSubtract(ProtOperateParticles):
         else:
             return self.inputParticlesAll.get()
 
-    def _convertMask(self):
+    def _convertMask(self, invert=False):
         tmp = self._getTmpPath()
         newDim = self._getInputParticles().getXDim()
         newPix = self._getInputParticles().getSamplingRate()
-        maskFn = convert.convertMask(self.refMask.get(), tmp, newPix, newDim)
+        maskFn = convert.convertMask(self.refMask.get(), tmp, newPix, newDim, invert)
         return ' --mask %s' % maskFn
