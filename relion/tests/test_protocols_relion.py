@@ -469,32 +469,6 @@ class TestRelionPreprocess(TestRelionBase):
         self._validations(protocol.outputParticles, 50, 7.0)
 
 
-class TestRelionSubtract30(TestRelionBase):
-    @classmethod
-    def setUpClass(cls):
-        setupTestProject(cls)
-        cls.ds = DataSet.getDataSet('relion_tutorial')
-        cls.particlesFn = cls.ds.getFile('import/refine3d/extra/relion_data.star')
-        cls.volFn = cls.ds.getFile('volumes/reference.mrc')
-        cls.starImport = cls.runImportParticlesStar(cls.particlesFn, 10000, 7.08)
-        cls.volImport = cls.runImportVolumes(cls.volFn, 7.08)
-
-    def test_subtract(self):
-        if Plugin.IS_30():
-            # explicitly import correct protocol
-            from ..protocols._legacy.protocol30_subtract import ProtRelionSubtract
-            protSubtract = self.newProtocol(ProtRelionSubtract)
-            protSubtract.inputParticles.set(self.starImport.outputParticles)
-            protSubtract.inputVolume.set(self.volImport.outputVolume)
-
-            print(magentaStr("\n==> Testing relion - subtract projection:"))
-            self.launchProtocol(protSubtract)
-            self.assertIsNotNone(protSubtract.outputParticles,
-                                 "There was a problem with subtract projection")
-        else:
-            print("This test is for Relion 3.0 only!")
-
-
 class TestRelionSubtract(TestRelionBase):
     @classmethod
     def setUpClass(cls):
@@ -504,33 +478,30 @@ class TestRelionSubtract(TestRelionBase):
         cls.protImportVol = cls.runImportVolumes(cls.vol, 3.5)
 
     def test_subtract(self):
-        if Plugin.IS_30():
-            print("This test is for Relion version >= 3.1")
-        else:
-            print(magentaStr("\n==> Running relion - refine 3d:"))
-            relionRefine = self.newProtocol(ProtRelionRefine3D,
-                                            doCTF=False, runMode=1,
-                                            maskDiameterA=340,
-                                            symmetryGroup="d6",
-                                            numberOfMpi=3, numberOfThreads=2)
-            relionRefine.inputParticles.set(self.protImport.outputParticles)
-            relionRefine.referenceVolume.set(self.protImportVol.outputVolume)
-            relionRefine.doGpu.set(False)
-            self.launchProtocol(relionRefine)
+        print(magentaStr("\n==> Running relion - refine 3d:"))
+        relionRefine = self.newProtocol(ProtRelionRefine3D,
+                                        doCTF=False, runMode=1,
+                                        maskDiameterA=340,
+                                        symmetryGroup="d6",
+                                        numberOfMpi=3, numberOfThreads=2)
+        relionRefine.inputParticles.set(self.protImport.outputParticles)
+        relionRefine.referenceVolume.set(self.protImportVol.outputVolume)
+        relionRefine.doGpu.set(False)
+        self.launchProtocol(relionRefine)
 
-            print(magentaStr("\n==> Running relion - create mask 3d:"))
-            protMask = self.newProtocol(ProtRelionCreateMask3D, threshold=0.045)
-            protMask.inputVolume.set(relionRefine.outputVolume)
-            self.launchProtocol(protMask)
+        print(magentaStr("\n==> Running relion - create mask 3d:"))
+        protMask = self.newProtocol(ProtRelionCreateMask3D, threshold=0.045)
+        protMask.inputVolume.set(relionRefine.outputVolume)
+        self.launchProtocol(protMask)
 
-            print(magentaStr("\n==> Testing relion - subtract projection:"))
-            protSubtract = self.newProtocol(ProtRelionSubtract,
-                                            refMask=protMask.outputMask,
-                                            numberOfMpi=2)
-            protSubtract.inputProtocol.set(relionRefine)
-            self.launchProtocol(protSubtract)
-            self.assertIsNotNone(protSubtract.outputParticles,
-                                 "There was a problem with subtract projection")
+        print(magentaStr("\n==> Testing relion - subtract projection:"))
+        protSubtract = self.newProtocol(ProtRelionSubtract,
+                                        refMask=protMask.outputMask,
+                                        numberOfMpi=2)
+        protSubtract.inputProtocol.set(relionRefine)
+        self.launchProtocol(protSubtract)
+        self.assertIsNotNone(protSubtract.outputParticles,
+                             "There was a problem with subtract projection")
 
 
 class TestRelionPostprocess(TestRelionBase):
@@ -798,19 +769,18 @@ class TestRelionLocalRes(TestRelionBase):
         self._validations(restProt.outputVolume, 60, 7.08)
 
         # Add also a test case for the mask
-        if relion.Plugin.IS_GT30():
-            print(magentaStr("\n==> Importing data - mask 3D:"))
-            protMask = self.newProtocol(ProtRelionCreateMask3D,
-                                        inputVolume=protRef.outputVolume,
-                                        initialLowPassFilterA=30)
-            self.launchProtocol(protMask)
+        print(magentaStr("\n==> Importing data - mask 3D:"))
+        protMask = self.newProtocol(ProtRelionCreateMask3D,
+                                    inputVolume=protRef.outputVolume,
+                                    initialLowPassFilterA=30)
+        self.launchProtocol(protMask)
 
-            print(magentaStr("\n==> Testing relion - local resolution (with mask):"))
-            restProt = self.newProtocol(ProtRelionLocalRes,
-                                        objLabel='relion localres (with mask)',
-                                        protRefine=protRef,
-                                        solventMask=protMask.outputMask)
-            self.launchProtocol(restProt)
+        print(magentaStr("\n==> Testing relion - local resolution (with mask):"))
+        restProt = self.newProtocol(ProtRelionLocalRes,
+                                    objLabel='relion localres (with mask)',
+                                    protRefine=protRef,
+                                    solventMask=protMask.outputMask)
+        self.launchProtocol(restProt)
 
 
 class TestRelionExpandSymmetry(TestRelionBase):

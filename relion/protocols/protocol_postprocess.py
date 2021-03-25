@@ -36,7 +36,6 @@ from pwem.emlib.image import ImageHandler
 from pwem.objects import Volume
 
 import relion.convert as convert
-from relion import Plugin
 
 
 class ProtRelionPostprocess(ProtAnalysis3D):
@@ -99,12 +98,11 @@ class ProtRelionPostprocess(ProtAnalysis3D):
                             '[Relion\'s Wiki FAQs]]\n'
                             ' - [[https://www.gatan.com/techniques/cryo-em#MTF][Gatan\'s website]]\n\n'
                             'Relion param: *--mtf*')
-        if Plugin.IS_GT30():
-            group.addParam('origPixelSize', params.FloatParam,
-                           default=-1.0,
-                           label='Original detector pixel size (A)',
-                           help='This is the original pixel size (in Angstroms)'
-                                ' in the raw (non-super-resolution!) micrographs')
+        group.addParam('origPixelSize', params.FloatParam,
+                       default=-1.0,
+                       label='Original detector pixel size (A)',
+                       help='This is the original pixel size (in Angstroms)'
+                            ' in the raw (non-super-resolution!) micrographs')
 
         form.addParam('doAutoBfactor', params.BooleanParam, default=True,
                       label='Estimate B-factor automatically?',
@@ -269,7 +267,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
             self.paramDict['--skip_fsc_weighting'] = ''
             self.paramDict['--low_pass'] = self.lowRes.get()
 
-        if Plugin.IS_GT30() and self.origPixelSize.get() != -1.0:
+        if self.origPixelSize.get() != -1.0:
             self.paramDict['--mtf_angpix'] = self.origPixelSize.get()
 
     def _getRelionMapFn(self, fn):

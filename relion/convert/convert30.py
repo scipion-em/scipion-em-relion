@@ -157,13 +157,12 @@ class Reader(ReaderBase):
     def __setParticleTransform2D(self, particle, row):
         angles = self._angles
         shifts = self._shifts
-        ips = self._invPixelSize
 
         def _get(label):
             return float(getattr(row, label, 0.))
 
-        shifts[0] = _get('rlnOriginX') * ips
-        shifts[1] = _get('rlnOriginY') * ips
+        shifts[0] = _get('rlnOriginX')
+        shifts[1] = _get('rlnOriginY')
         angles[2] = -_get('rlnAnglePsi')
         radAngles = -np.deg2rad(angles)
         M = tfs.euler_matrix(radAngles[0], radAngles[1], radAngles[2], 'szyz')
@@ -173,14 +172,13 @@ class Reader(ReaderBase):
     def __setParticleTransformProj(self, particle, row):
         angles = self._angles
         shifts = self._shifts
-        ips = self._invPixelSize
 
         def _get(label):
             return float(getattr(row, label, 0.))
 
-        shifts[0] = _get('rlnOriginX') * ips
-        shifts[1] = _get('rlnOriginY') * ips
-        shifts[2] = _get('rlnOriginZ') * ips
+        shifts[0] = _get('rlnOriginX')
+        shifts[1] = _get('rlnOriginY')
+        shifts[2] = _get('rlnOriginZ')
 
         angles[0] = _get('rlnAngleRot')
         angles[1] = _get('rlnAngleTilt')

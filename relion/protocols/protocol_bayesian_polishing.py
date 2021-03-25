@@ -195,28 +195,10 @@ class ProtRelionBayesianPolishing(ProtParticles):
         self.info("Converting set from '%s' into '%s'" %
                   (inputParts.getFileName(), imgStar))
 
-        tableGeneral = Table(columns=['rlnImageSizeX',
-                                      'rlnImageSizeY',
-                                      'rlnImageSizeZ',
-                                      'rlnMicrographMovieName',
-                                      'rlnMicrographBinning',
-                                      'rlnMicrographOriginalPixelSize',
-                                      'rlnMicrographDoseRate',
-                                      'rlnMicrographPreExposure',
-                                      'rlnVoltage',
-                                      'rlnMicrographStartFrame',
-                                      'rlnMotionModelVersion',
-                                      'rlnMicrographGainName',
-                                      'rlnMicrographDefectFile'])
-        tableShifts = Table(columns=['rlnMicrographFrameNumber',
-                                     'rlnMicrographShiftX',
-                                     'rlnMicrographShiftY'])
-        tableCoeffs = Table(columns=['rlnMotionModelCoeffsIdx',
-                                     'rlnMotionModelCoeff'])
-
         # Create the first row, later only the movieName will be updated
         xdim, ydim, ndim = inputMovies.getDim()
         acq = inputMovies.getAcquisition()
+        doseRate = acq.getDosePerFrame()
         firstMovie = inputMovies.getFirstItem()
         a0, aN = firstMovie.getAlignment().getRange()
         moviesPixelSize = inputMovies.getSamplingRate()
@@ -228,10 +210,51 @@ class ProtRelionBayesianPolishing(ProtParticles):
                                      self._getFileName('input_mics'),
                                      postprocessImageRow=self._updateMic)
 
-        tableGeneral.addRow(xdim, ydim, ndim, 'movieName',
-                            binningFactor, moviesPixelSize,
-                            acq.getDosePerFrame(), acq.getDoseInitial(),
-                            acq.getVoltage(), a0, 0, '""', '""')
+        # Handle EER case
+        isEER = False
+        if og.hasColumn('rlnEERGrouping'):
+            isEER = True
+            eerGrouping = og.first().rlnEERGrouping
+            eerSampling = og.first().rlnEERUpsampling
+            ndim //= eerGrouping
+            doseRate *= eerGrouping
+
+        generalCols = ['rlnImageSizeX',
+                       'rlnImageSizeY',
+                       'rlnImageSizeZ',
+                       'rlnMicrographMovieName',
+                       'rlnMicrographBinning',
+                       'rlnMicrographOriginalPixelSize',
+                       'rlnMicrographDoseRate',
+                       'rlnMicrographPreExposure',
+                       'rlnVoltage',
+                       'rlnMicrographStartFrame',
+                       'rlnMotionModelVersion',
+                       'rlnMicrographGainName',
+                       'rlnMicrographDefectFile']
+        if isEER:
+            generalCols.extend(['rlnEERGrouping', 'rlnEERUpsampling'])
+
+        tableGeneral = Table(columns=generalCols)
+        tableShifts = Table(columns=['rlnMicrographFrameNumber',
+                                     'rlnMicrographShiftX',
+                                     'rlnMicrographShiftY'])
+        tableCoeffs = Table(columns=['rlnMotionModelCoeffsIdx',
+                                     'rlnMotionModelCoeff'])
+        tablePixels = Table(columns=['rlnCoordinateX',
+                                     'rlnCoordinateY'])
+
+        if not isEER:
+            tableGeneral.addRow(xdim, ydim, ndim, 'movieName',
+                                binningFactor, moviesPixelSize,
+                                doseRate, acq.getDoseInitial(),
+                                acq.getVoltage(), a0, 0, '""', '""')
+        else:
+            tableGeneral.addRow(xdim, ydim, ndim, 'movieName',
+                                binningFactor, moviesPixelSize,
+                                doseRate, acq.getDoseInitial(),
+                                acq.getVoltage(), a0, 0, '""', '""',
+                                eerGrouping, eerSampling)
         row = tableGeneral[0]
 
         for movie in inputMovies:
@@ -243,6 +266,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
             with open(movieStar, 'w') as f:
                 coeffs = json.loads(movie.getAttributeValue('_rlnMotionModelCoeff', '[]'))
                 motionMode = 1 if coeffs else 0
+                hotpix = json.loads(movie.getAttributeValue('_rlnHotPixels', '[]'))
 
                 # Update some params in the general table
                 replaceDict = {'rlnMicrographMovieName': movie.getFileName(),
@@ -278,6 +302,13 @@ class ProtRelionBayesianPolishing(ProtParticles):
                     for i, c in enumerate(coeffs):
                         tableCoeffs.addRow(i, c)
                     tableCoeffs.writeStar(f, tableName='local_motion_model')
+
+                # Write hot pixels
+                tablePixels.clearRows()
+                if hotpix:
+                    for coord in hotpix:
+                        tablePixels.addRow(coord[0], coord[1])
+                    tablePixels.writeStar(f, tableName='hot_pixels')
 
         convert.writeSetOfParticles(inputParts, imgStar,
                                     outputDir=inputPartsFolder,
@@ -383,6 +414,17 @@ class ProtRelionBayesianPolishing(ProtParticles):
         if self.operation == self.OP_TRAIN and self.numberOfMpi > 1:
             errors.append("MPI is not supported for parameters estimation.")
         return errors
+
+    def _warnings(self):
+        warnings = ['If you have provided a gain reference or defects file during '
+                    'movie import or motion correction, please *make sure to '
+                    'run first "assign optics groups" protocol for aligned '
+                    'movies*, specifying the gain file etc. Currently, Scipion '
+                    'has no other way of knowing if you have e.g. rotated the '
+                    'gain during motion correction.\n\nOutput movies then can be '
+                    'used in this polishing protocol.']
+
+        return warnings
 
     # -------------------------- UTILS functions ------------------------------
     def _getInputPath(self, *paths):

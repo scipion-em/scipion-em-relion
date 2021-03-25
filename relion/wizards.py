@@ -31,7 +31,7 @@ import os
 from pwem.constants import UNIT_PIXEL, UNIT_ANGSTROM, FILTER_LOW_PASS_NO_DECAY
 from pwem.viewers import EmPlotter
 from pwem.wizards.wizard import (ParticleMaskRadiusWizard, FilterVolumesWizard,
-                                 EmWizard, ColorScaleWizardBase, ListTreeProvider,
+                                 EmWizard, ColorScaleWizardBase,
                                  BandPassFilterDialog, dialog)
 from pyworkflow.gui.browser import FileBrowserWindow
 
@@ -90,23 +90,6 @@ class RelionPartMaskDiameterWizard(RelionBackRadiusWizard):
     def setVar(self, form, label, value):
         # adjust again from radius to diameter
         form.setVar(label, value * 2)
-
-
-# We need this specific wizard for the sort protocol because
-# this protocol have a particular way to grab the input images
-class RelionSortMaskWizard(RelionPartMaskDiameterWizard):
-    _targets = [(ProtRelionSortParticles, ['maskDiameterA'])]
-
-    def _getProvider(self, protocol):
-        if protocol.isInputClasses():
-            images = [cls.clone()
-                      for cls in protocol.inputSet.get().iterRepresentatives()]
-        else:
-            images = self._getParticles(protocol._allParticles(iterate=True))
-        return ListTreeProvider(images)
-
-    def _getProtocolImages(self, protocol):
-        return None
 
 
 # =============================================================================

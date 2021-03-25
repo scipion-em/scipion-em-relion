@@ -202,7 +202,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                 'rlnBeamTiltX': self.beamTiltX.get(),
                 'rlnBeamTiltY': self.beamTiltY.get()
             }
-            og = OpticsGroups.create(**params)
+            og.updateAll(**params)
 
             if self.mtfFile.hasValue():
                 inputMtf = self.mtfFile.get()
@@ -278,7 +278,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
         if self.defectFile.hasValue() and not os.path.exists(self.defectFile.get()):
             validateMsgs.append("Defect file %s does not exist!" % self.defectFile.get())
 
-        if self.gainRot or self.gainFlip:
+        if self.gainRot.get() or self.gainFlip.get():
             try:
                 from pwem import Domain
                 eman2 = Domain.importFromPlugin('eman2', doRaise=True)

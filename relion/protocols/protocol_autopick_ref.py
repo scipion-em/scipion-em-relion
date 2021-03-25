@@ -93,10 +93,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
                       label='Input references', important=True,
                       help='Input references (SetOfAverages) for auto-pick. \n\n'
                            'Note that the absolute greyscale needs to be correct, \n'
-                           'so only use images with proper normalization. '
-                           'From Relion 3.0 it is also possible to provide a '
-                           '3D volume which projections will be used as '
-                           'references.')
+                           'so only use images with proper normalization.')
 
         form.addParam('inputReferences3D', params.PointerParam,
                       pointerClass='Volume',

@@ -29,7 +29,6 @@ from pwem.constants import ALIGN_PROJ
 from pwem.objects import Volume, FSC
 from pwem.protocols import ProtRefine3D
 
-from relion import Plugin
 import relion.convert as convert
 from ..constants import PARTICLE_EXTRA_LABELS
 from .protocol_base import ProtRelionBase
@@ -49,7 +48,7 @@ leads to objective and high-quality results.
     CHANGE_LABELS = ['rlnChangesOptimalOrientations',
                      'rlnChangesOptimalOffsets',
                      'rlnOverallAccuracyRotations',
-                     'rlnOverallAccuracyTranslationsAngst' if Plugin.IS_GT30() else 'rlnOverallAccuracyTranslations']
+                     'rlnOverallAccuracyTranslationsAngst']
 
     PREFIXES = ['half1_', 'half2_']
     
@@ -81,7 +80,7 @@ leads to objective and high-quality results.
             if joinHalves not in self.extraParams.get():
                 args['--low_resol_join_halves'] = 40
 
-            if self.IS_GT30() and self.useFinerSamplingFaster:
+            if self.useFinerSamplingFaster:
                 args['--auto_ignore_angles'] = ''
                 args['--auto_resol_angles'] = ''
 
@@ -165,13 +164,12 @@ leads to objective and high-quality results.
 
     # -------------------------- UTILS functions ------------------------------
     def _fillDataFromIter(self, imgSet, iteration):
-        tableName = 'particles@' if self.IS_GT30() else ''
         outImgsFn = self._getFileName('data', iter=iteration)
         imgSet.setAlignmentProj()
         self.reader = convert.createReader(alignType=ALIGN_PROJ,
                                            pixelSize=imgSet.getSamplingRate())
 
-        mdIter = Table.iterRows(tableName + outImgsFn, key='rlnImageId')
+        mdIter = Table.iterRows('particles@' + outImgsFn, key='rlnImageId')
         imgSet.copyItems(self._getInputParticles(), doClone=False,
                          updateItemCallback=self._updateParticle,
                          itemDataIterator=mdIter)
