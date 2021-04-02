@@ -28,6 +28,7 @@ import os
 
 import pyworkflow.protocol.params as params
 import pyworkflow.utils as pwutils
+from pyworkflow.constants import PROD
 from pwem.constants import ALIGN_NONE
 from pwem.emlib.image import ImageHandler
 from pwem.protocols import ProtProcessParticles
@@ -41,6 +42,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
     """ Export particles from Relion to be used outside Scipion. """
 
     _label = 'export particles'
+    _devStatus = PROD
     PTCLS_STAR_FILE = 'particles_%06d.star'
     
     # --------------------------- DEFINE param functions ----------------------

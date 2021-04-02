@@ -25,6 +25,7 @@
 # **************************************************************************
 from emtable import Table
 
+from pyworkflow.constants import PROD
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtClassify3D
 
@@ -42,6 +43,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
     """
 
     _label = '3D classification'
+    _devStatus = PROD
     CHANGE_LABELS = ['rlnChangesOptimalOrientations',
                      'rlnChangesOptimalOffsets',
                      'rlnOverallAccuracyRotations',

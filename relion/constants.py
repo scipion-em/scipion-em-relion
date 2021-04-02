@@ -34,7 +34,7 @@ RELION_HOME = 'RELION_HOME'
 RELION_CUDA_LIB = 'RELION_CUDA_LIB'
 
 # Supported versions:
-V3_1 = '3.1.0'
+V3_1_0 = '3.1.0'
 V3_1_1 = '3.1.1'
 V3_1_2 = '3.1.2'
 V4_0 = '4.0'
@@ -53,7 +53,7 @@ OTHER = 1
 REF_AVERAGES = 0
 REF_VOLUME = REF_BLOBS = 1
 
-# Used in ctf-refinment
+# Used in ctf-refinement
 FIT_NO = 0
 FIT_MICS = 1
 FIT_PARTS = 2

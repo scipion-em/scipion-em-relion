@@ -28,7 +28,7 @@ import numpy as np
 from random import sample
 
 import pyworkflow.protocol.params as params
-from pyworkflow.constants import VERSION_3_0
+from pyworkflow.constants import PROD
 from pwem.protocols import ProtParticles
 import pwem.convert.transformations as tfs
 
@@ -40,6 +40,7 @@ class ProtRelionRemovePrefViews(ProtParticles):
 
     """
     _label = 'remove preferential views'
+    _devStatus = PROD
 
     def _defineParams(self, form):
         form.addSection(label='Input')

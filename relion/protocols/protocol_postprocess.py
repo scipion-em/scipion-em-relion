@@ -31,6 +31,7 @@ from emtable import Table
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
+from pyworkflow.constants import PROD
 from pwem.protocols import ProtAnalysis3D
 from pwem.emlib.image import ImageHandler
 from pwem.objects import Volume
@@ -44,6 +45,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
     overfitting estimation, MTF-correction and B-factor sharpening.
     """
     _label = 'post-processing'
+    _devStatus = PROD
 
     def _getInputPath(self, *paths):
         return self._getPath('input', *paths)

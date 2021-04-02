@@ -38,7 +38,7 @@ _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016', 'Zivanov2018']
 
 class Plugin(pwem.Plugin):
     _homeVar = RELION_HOME
-    _supportedVersions = [V3_1, V3_1_1, V3_1_2, V4_0]
+    _supportedVersions = [V3_1_0, V3_1_1, V3_1_2, V4_0]
     _url = "https://github.com/scipion-em/scipion-em-relion"
 
     @classmethod
@@ -58,8 +58,7 @@ class Plugin(pwem.Plugin):
 
         if binPath not in environ['PATH']:
             environ.update({'PATH': binPath,
-                            'LD_LIBRARY_PATH': libPath,
-                            # 'SCIPION_MPI_FLAGS': os.environ.get('RELION_MPI_FLAGS', ''),
+                            'LD_LIBRARY_PATH': libPath
                             }, position=pwutils.Environ.BEGIN)
 
         # Get Relion CUDA library path if defined
@@ -84,23 +83,9 @@ class Plugin(pwem.Plugin):
                            ('make -j %d' % env.getProcessors(),
                             ['bin/relion_refine'])]
 
-        env.addPackage('relion', version=V3_1,
-                       url='https://github.com/3dem/relion/archive/3.1.0.tar.gz',
-                       commands=relion_commands,
-                       updateCuda=True)
-
-        env.addPackage('relion', version=V3_1_1,
-                       url='https://github.com/3dem/relion/archive/3.1.1.tar.gz',
-                       commands=relion_commands,
-                       updateCuda=True)
-
-        env.addPackage('relion', version=V3_1_2,
-                       url='https://github.com/3dem/relion/archive/3.1.2.tar.gz',
-                       commands=relion_commands,
-                       updateCuda=True)
-
-        env.addPackage('relion', version=V4_0,
-                       url='https://github.com/3dem/relion/archive/4.0.0.tar.gz',
-                       commands=relion_commands,
-                       updateCuda=True,
-                       default=True)
+        for v in cls._supportedVersions:
+            env.addPackage('relion', version=v,
+                           url='https://github.com/3dem/relion/archive/%s.tar.gz' % v,
+                           commands=relion_commands,
+                           updateCuda=True,
+                           default=v == V3_1_2)

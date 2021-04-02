@@ -27,7 +27,7 @@
 import pyworkflow.protocol.params as params
 import pyworkflow.utils as pwutils
 from pyworkflow.protocol import STEPS_SERIAL
-from pyworkflow.constants import VERSION_3_0
+from pyworkflow.constants import PROD
 from pwem.protocols import ProtProcessMovies
 
 import relion
@@ -40,6 +40,7 @@ class ProtRelionCompressEstimateGain(ProtProcessMovies):
     for better compression.
     """
     _label = 'estimate gain to compress'
+    _devStatus = PROD
 
     def __init__(self, **kwargs):
         ProtProcessMovies.__init__(self, **kwargs)

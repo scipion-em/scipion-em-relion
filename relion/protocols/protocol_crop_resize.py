@@ -26,6 +26,7 @@
 
 import pyworkflow.protocol.params as params
 import pyworkflow.utils as pwutils
+from pyworkflow.constants import PROD
 from pwem.protocols import ProtPreprocessVolumes
 from pwem.emlib.image import ImageHandler
 from pwem.objects import Volume
@@ -33,7 +34,9 @@ from pwem.objects import Volume
 
 class ProtRelionResizeVolume(ProtPreprocessVolumes):
     """ This protocol rescales/resizes 3D volumes using relion_image_handler. """
+
     _label = 'crop/resize volumes'
+    _devStatus = PROD
 
     def __init__(self, **kwargs):
         ProtPreprocessVolumes.__init__(self, **kwargs)

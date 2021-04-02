@@ -23,11 +23,13 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+
 import os
 import emtable
 
 from pyworkflow.object import Integer
 import pyworkflow.utils as pwutils
+from pyworkflow.constants import PROD
 import pyworkflow.protocol.params as params
 from pwem.objects import SetOfMovies, SetOfParticles, SetOfMicrographs
 
@@ -40,6 +42,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
      Input set can be: movies, micrographs or particles.
     """
     _label = 'assign optics groups'
+    _devStatus = PROD
     
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -202,7 +205,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                 'rlnBeamTiltX': self.beamTiltX.get(),
                 'rlnBeamTiltY': self.beamTiltY.get()
             }
-            og = OpticsGroups.create(**params)
+            og.updateAll(**params)
 
             if self.mtfFile.hasValue():
                 inputMtf = self.mtfFile.get()
@@ -278,7 +281,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
         if self.defectFile.hasValue() and not os.path.exists(self.defectFile.get()):
             validateMsgs.append("Defect file %s does not exist!" % self.defectFile.get())
 
-        if self.gainRot or self.gainFlip:
+        if self.gainRot.get() or self.gainFlip.get():
             try:
                 from pwem import Domain
                 eman2 = Domain.importFromPlugin('eman2', doRaise=True)

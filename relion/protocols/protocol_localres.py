@@ -29,6 +29,7 @@
 from pwem.emlib.image import ImageHandler
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
+from pyworkflow.constants import PROD
 
 import relion
 import relion.convert
@@ -44,6 +45,7 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
     of that mask.
     """
     _label = 'local resolution'
+    _devStatus = PROD
 
     def _createFilenameTemplates(self):
         """ Centralize how files are called for iterations and references. """

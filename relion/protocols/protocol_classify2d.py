@@ -23,6 +23,8 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+
+from pyworkflow.constants import PROD
 from pwem.constants import ALIGN_2D
 from pwem.objects import SetOfClasses2D
 from pwem.protocols import ProtClassify2D
@@ -35,6 +37,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
     """ This protocol runs Relion 2D classification."""
 
     _label = '2D classification'
+    _devStatus = PROD
     IS_2D = True
     OUTPUT_TYPE = SetOfClasses2D
     

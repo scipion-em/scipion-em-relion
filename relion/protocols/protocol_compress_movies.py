@@ -28,7 +28,7 @@ import os
 
 import pyworkflow.protocol.params as params
 import pyworkflow.utils as pwutils
-from pyworkflow.constants import VERSION_3_0
+from pyworkflow.constants import PROD
 from pwem.protocols import ProtAlignMovies
 from pwem.objects import MovieAlignment
 from pyworkflow.protocol import STEPS_PARALLEL
@@ -41,6 +41,7 @@ class ProtRelionCompressMovies(ProtAlignMovies):
     Using *relion_convert_to_tiff* to compress a set of movies.
     """
     _label = 'compress movies'
+    _devStatus = PROD
 
     OP_COMPRESS = 0
     OP_ESTIMATE = 1

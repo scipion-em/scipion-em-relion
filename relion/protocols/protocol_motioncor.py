@@ -34,6 +34,7 @@ import emtable as md
 import pyworkflow.object as pwobj
 import pyworkflow.protocol.params as params
 import pyworkflow.protocol.constants as cons
+from pyworkflow.constants import PROD
 import pyworkflow.utils as pwutils
 from pwem.protocols import ProtAlignMovies
 from pwem.objects import Image
@@ -50,6 +51,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
     """ Wrapper for the Relion's implementation of motioncor algorithm. """
 
     _label = 'motion correction'
+    _devStatus = PROD
 
     def __init__(self, **kwargs):
         ProtAlignMovies.__init__(self, **kwargs)
@@ -286,8 +288,14 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
         try:
             self.runJob(self._getProgram(), args, cwd=movieFolder)
-            self._saveAlignmentPlots(movie, inputMovies.getSamplingRate())
-            self._computeExtra(movie)
+            try:
+                self._saveAlignmentPlots(movie, inputMovies.getSamplingRate())
+                self._computeExtra(movie)
+            except:
+                self.error("ERROR: Extra work "
+                           "(i.e plots, PSD, thumbnail) has failed for %s\n"
+                           % movie.getFileName())
+
             self._moveFiles(movie)
         except:
             print("ERROR processing movie: ", movie.getFileName())
@@ -314,7 +322,12 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
         # check frames range
         _, lastFrame, _ = inputMovies.getFramesRange()
-        self.isEER = pwutils.getExt(firstMovie.getFileName()) == ".eer"
+
+        #FIXME: Remove once EER support is enabled
+        if pwutils.getExt(firstMovie.getFileName()) == ".eer":
+            errors.append("EER support is not available yet in this plugin")
+
+        #self.isEER = pwutils.getExt(firstMovie.getFileName()) == ".eer"
         if self.isEER:
             lastFrame //= self.eerGroup.get()
 
@@ -503,7 +516,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
     def _createOutputMovie(self, movie):
         """ Overwrite this function to store the Relion's specific
-        Motion model coefficients.
+        Motion model coefficients and Hot pixels.
         """
         m = ProtAlignMovies._createOutputMovie(self, movie)
         # Load local motion values only if the patches are more than one
@@ -517,6 +530,15 @@ class ProtRelionMotioncor(ProtAlignMovies):
                       os.path.abspath(self._getMovieExtraFn(movie, '.star')))
                 coeffs = []  # Failed to parse the local motion
             m._rlnMotionModelCoeff = pwobj.String(json.dumps(coeffs))
+
+        try:
+            table = md.Table(fileName=self._getMovieExtraFn(movie, '.star'),
+                             tableName='hot_pixels')
+            hotPixels = [(row.rlnCoordinateX, row.rlnCoordinateY) for row in table]
+        except:
+            hotPixels = []
+        m._rlnHotPixels = pwobj.String(json.dumps(hotPixels))
+
         return m
 
     def createOutputStep(self):

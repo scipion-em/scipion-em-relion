@@ -29,6 +29,7 @@ from emtable import Table
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
+from pyworkflow.constants import PROD
 from pwem.objects import Volume, Float
 from pwem.protocols import ProtAnalysis3D
 
@@ -52,6 +53,7 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
     the most important motions in the data.
     """
     _label = '3D multi-body'
+    _devStatus = PROD
 
     def _getInputPath(self, *paths):
         return self._getPath('input', *paths)
@@ -82,7 +84,7 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
         # FIXME: Find an easy way to avoid input a file here
         form.addParam('bodyStarFile', params.FileParam,
                       label='Body STAR file',
-                      help=' Provide the STAR file with all information '
+                      help='Provide the STAR file with all information '
                            'about the bodies to be used in multi-body '
                            'refinement. An example for a three-body '
                            'refinement would look like this:\n'

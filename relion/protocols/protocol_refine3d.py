@@ -25,6 +25,7 @@
 # **************************************************************************
 from emtable import Table
 
+from pyworkflow.constants import PROD
 from pwem.constants import ALIGN_PROJ
 from pwem.objects import Volume, FSC
 from pwem.protocols import ProtRefine3D
@@ -44,6 +45,7 @@ parameters of a statistical model are learned from the data,which
 leads to objective and high-quality results.
     """    
     _label = '3D auto-refine'
+    _devStatus = PROD
     IS_CLASSIFY = False
     CHANGE_LABELS = ['rlnChangesOptimalOrientations',
                      'rlnChangesOptimalOffsets',
