@@ -30,6 +30,7 @@ from pyworkflow.object import Set, Integer
 import pyworkflow.utils as pwutils
 from pyworkflow.protocol.constants import STATUS_FINISHED
 import pyworkflow.protocol.params as params
+from pyworkflow.constants import PROD
 
 from pwem.protocols import ProtExtractParticles
 from pwem.emlib.image import ImageHandler
@@ -45,6 +46,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
     """ Protocol to extract particles using a set of coordinates. """
 
     _label = 'particles extraction'
+    _devStatus = PROD
 
     def __init__(self, **kwargs):
         ProtExtractParticles.__init__(self, **kwargs)

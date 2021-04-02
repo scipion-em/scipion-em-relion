@@ -34,6 +34,7 @@ import emtable as md
 import pyworkflow.object as pwobj
 import pyworkflow.protocol.params as params
 import pyworkflow.protocol.constants as cons
+from pyworkflow.constants import PROD
 import pyworkflow.utils as pwutils
 from pwem.protocols import ProtAlignMovies
 from pwem.objects import Image
@@ -49,6 +50,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
     """ Wrapper for the Relion's implementation of motioncor algorithm. """
 
     _label = 'motion correction'
+    _devStatus = PROD
 
     def __init__(self, **kwargs):
         ProtAlignMovies.__init__(self, **kwargs)

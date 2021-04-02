@@ -26,6 +26,7 @@
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
+from pyworkflow.constants import PROD
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtParticles
 
@@ -39,6 +40,7 @@ from ..objects import CtfRefineGlobalInfo
 class ProtRelionCtfRefinement(ProtParticles):
     """ Wrapper protocol for the Relion's CTF refinement. """
     _label = 'ctf refinement'
+    _devStatus = PROD
 
     def _initialize(self):
         self._createFilenameTemplates()

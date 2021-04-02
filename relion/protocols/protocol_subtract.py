@@ -25,6 +25,7 @@
 # **************************************************************************
 
 from pyworkflow.object import String, Integer
+from pyworkflow.constants import PROD
 from pyworkflow.protocol.params import (PointerParam, BooleanParam,
                                         IntParam, LabelParam)
 from pwem.constants import ALIGN_PROJ
@@ -41,6 +42,7 @@ class ProtRelionSubtract(ProtOperateParticles):
     properly generate volume projections.
     """
     _label = 'subtract projection'
+    _devStatus = PROD
 
     def _initialize(self):
         self._createFilenameTemplates()

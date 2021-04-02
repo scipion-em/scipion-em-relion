@@ -27,6 +27,7 @@
 from pyworkflow.protocol.params import (PointerParam, FloatParam,  
                                         StringParam, BooleanParam,
                                         EnumParam, IntParam, LEVEL_ADVANCED)
+from pyworkflow.constants import PROD
 from pwem.objects import Volume
 from pwem.protocols import ProtReconstruct3D
 from pwem.constants import ALIGN_PROJ
@@ -42,6 +43,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
     and used as direction projections to reconstruct.
     """
     _label = 'reconstruct'
+    _devStatus = PROD
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):

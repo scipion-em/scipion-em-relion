@@ -30,6 +30,7 @@ from emtable import Table
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtInitialVolume
 from pwem.objects import Volume
+from pyworkflow.constants import PROD
 from pyworkflow.protocol.params import (PointerParam, FloatParam,
                                         LabelParam, IntParam,
                                         EnumParam, StringParam,
@@ -48,6 +49,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
     Relion Stochastic Gradient Descent (SGD) algorithm.
     """
     _label = '3D initial model'
+    _devStatus = PROD
     IS_CLASSIFY = False
     IS_3D_INIT = True
     IS_2D = False

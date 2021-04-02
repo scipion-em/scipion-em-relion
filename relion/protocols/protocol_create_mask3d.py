@@ -27,6 +27,7 @@
 import math
 
 import pyworkflow.protocol.params as params
+from pyworkflow.constants import PROD
 from pwem.protocols import ProtCreateMask3D
 from pwem.objects import VolumeMask
 
@@ -39,6 +40,7 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
     The mask is created from a 3d volume or by comparing two input volumes.
     """
     _label = 'create 3d mask'
+    _devStatus = PROD
 
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):

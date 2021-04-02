@@ -25,6 +25,7 @@
 # **************************************************************************
 
 import pyworkflow.protocol.params as params
+from pyworkflow.constants import PROD
 from pwem.objects import Volume
 from pwem.emlib.image import ImageHandler
 from pwem.protocols import ProtAlignVolume
@@ -36,6 +37,7 @@ class ProtRelionSymmetrizeVolume(ProtAlignVolume):
         *relion_align_symmetry* and *relion_image_handler*.
     """
     _label = 'symmetrize volume'
+    _devStatus = PROD
     
     # --------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):

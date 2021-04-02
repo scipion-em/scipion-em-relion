@@ -29,6 +29,7 @@ from emtable import Table
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
+from pyworkflow.constants import PROD
 from pwem.objects import Volume, Float
 from pwem.protocols import ProtAnalysis3D
 
@@ -52,6 +53,7 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
     the most important motions in the data.
     """
     _label = '3D multi-body'
+    _devStatus = PROD
 
     def _getInputPath(self, *paths):
         return self._getPath('input', *paths)

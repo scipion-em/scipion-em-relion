@@ -27,6 +27,7 @@
 from os.path import relpath
 
 import pyworkflow.protocol.params as params
+from pyworkflow.constants import PROD
 from pyworkflow.protocol import STEPS_SERIAL
 from pwem.protocols import ProtParticlePickingAuto
 
@@ -39,6 +40,7 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
     Laplacian of Gaussian (LoG) option.
     """
     _label = 'auto-picking LoG'
+    _devStatus = PROD
 
     def __init__(self, **kwargs):
         ProtParticlePickingAuto.__init__(self, **kwargs)

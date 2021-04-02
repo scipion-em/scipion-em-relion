@@ -28,6 +28,7 @@ import pyworkflow.utils as pwutils
 from pyworkflow.protocol.params import (PointerParam, BooleanParam,
                                         FloatParam, IntParam, Positive)
 from pyworkflow.protocol import STEPS_PARALLEL
+from pyworkflow.constants import PROD
 from pwem.constants import NO_INDEX
 from pwem.objects import SetOfAverages
 from pwem.protocols import ProtProcessParticles
@@ -43,6 +44,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
     the particles.
     """
     _label = 'preprocess particles'
+    _devStatus = PROD
     
     def __init__(self, **args):
         ProtProcessParticles.__init__(self, **args)

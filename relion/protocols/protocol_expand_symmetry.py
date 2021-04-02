@@ -26,6 +26,7 @@
 from emtable import Table
 
 from pyworkflow.protocol.params import StringParam
+from pyworkflow.constants import PROD
 from pyworkflow.object import String
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtProcessParticles
@@ -40,6 +41,7 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
     expand the set by applying a pseudo-symmetry.
     """
     _label = 'expand symmetry'
+    _devStatus = PROD
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineProcessParams(self, form):
