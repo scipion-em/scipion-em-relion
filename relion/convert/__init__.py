@@ -53,12 +53,8 @@ def createReader(**kwargs):
 def createWriter(**kwargs):
     """ Create a new Writer instance.
     By default it will create the new version (3.1 or newer) of STAR file.
-    It can also be forced to use old format by passing the format='30' argument
     """
-    is30 = kwargs.get('format', '') == '30'
-    Writer = convert30.Writer if is30 else convert31.Writer
-
-    return Writer(**kwargs)
+    return convert31.Writer(**kwargs)
 
 
 def writeSetOfParticles(imgSet, starFile, **kwargs):
@@ -75,8 +71,6 @@ def writeSetOfParticles(imgSet, starFile, **kwargs):
         alignType:
         extraLabels:
         postprocessImageRow:
-        format: string value to specify STAR format, if '30' it will use
-            Relion3.0 format
     """
     return createWriter(**kwargs).writeSetOfParticles(imgSet, starFile, **kwargs)
 
