@@ -442,7 +442,9 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
     def _fillDataFromIter(self, imgSet, iteration):
         outImgsFn = self._getFileName('data', iter=iteration)
         imgSet.setAlignmentProj()
-        self.reader = convert.createReader(alignType=ALIGN_PROJ)
+        px = imgSet.getSamplingRate()
+        self.reader = convert.createReader(alignType=ALIGN_PROJ,
+                                           pixelSize=px)
         mdIter = convert.Table.iterRows('particles@' + outImgsFn, key='rlnImageId')
         imgSet.copyItems(self._getInputParticles(), doClone=False,
                          updateItemCallback=self._createItemMatrix,
