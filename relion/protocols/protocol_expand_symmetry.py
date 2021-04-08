@@ -88,8 +88,7 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
             mdOut.writeStar(f, tableName='particles')
             mdOptics.writeStar(f, tableName='optics')
 
-        px = imgSet.getSamplingRate()
-        reader = convert.createReader(pixelSize=px)
+        reader = convert.createReader()
         reader.readSetOfParticles(
             outImagesMd, partSet,
             alignType=ALIGN_PROJ,
