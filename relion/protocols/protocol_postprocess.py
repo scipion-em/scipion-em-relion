@@ -235,6 +235,8 @@ class ProtRelionPostprocess(ProtAnalysis3D):
             row = table[0]
             summary.append("Final resolution: *%0.2f A*" %
                            float(row.rlnFinalResolution))
+            summary.append("B-factor: *%0.2f A^2*" %
+                           float(row.rlnBfactorUsedForSharpening))
 
         return summary
 
