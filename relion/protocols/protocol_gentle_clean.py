@@ -29,6 +29,7 @@ import re
 from glob import glob
 
 from pyworkflow.protocol import Protocol
+from pyworkflow.constants import BETA
 from pyworkflow.protocol.params import LabelParam
 
 
@@ -37,6 +38,7 @@ class ProtRelionCleanJobs(Protocol):
     Run Relion gentle clean procedure for the whole project.
     """
     _label = 'clean project'
+    _devStatus = BETA
 
     def __init__(self, **kwargs):
         Protocol.__init__(self, **kwargs)

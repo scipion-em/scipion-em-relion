@@ -23,11 +23,13 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+
 import os
 import emtable
 
 from pyworkflow.object import Integer
 import pyworkflow.utils as pwutils
+from pyworkflow.constants import PROD
 import pyworkflow.protocol.params as params
 from pwem.objects import SetOfMovies, SetOfParticles, SetOfMicrographs
 
@@ -40,6 +42,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
      Input set can be: movies, micrographs or particles.
     """
     _label = 'assign optics groups'
+    _devStatus = PROD
     
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):

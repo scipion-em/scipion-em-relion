@@ -32,6 +32,7 @@ from pwem.constants import RELATION_CTF
 from pwem.emlib.image import ImageHandler
 from pyworkflow.utils.properties import Message
 import pyworkflow.utils as pwutils
+from pyworkflow.constants import PROD
 
 import relion.convert
 from ..constants import *
@@ -47,6 +48,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
     The wrapper implementation does not read/write any FOM maps compared to Relion
     """
     _label = 'auto-picking'
+    _devStatus = PROD
 
     # -------------------------- DEFINE param functions ------------------------
     def _defineParams(self, form):

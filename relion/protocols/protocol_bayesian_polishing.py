@@ -32,6 +32,7 @@ from emtable import Table
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
+from pyworkflow.constants import PROD
 from pwem.protocols import ProtParticles
 import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ
@@ -59,6 +60,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
     """
 
     _label = 'bayesian polishing'
+    _devStatus = PROD
 
     OP_TRAIN = 0
     OP_POLISH = 1
