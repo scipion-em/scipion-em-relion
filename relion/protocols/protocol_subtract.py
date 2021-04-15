@@ -32,9 +32,10 @@ from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtOperateParticles
 
 import relion.convert as convert
+from .protocol_base import ProtRelionBase
 
 
-class ProtRelionSubtract(ProtOperateParticles):
+class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
     """ Signal subtraction protocol of Relion.
 
     Subtract volume projections from the experimental particles.
@@ -242,8 +243,7 @@ class ProtRelionSubtract(ProtOperateParticles):
                 self.cX, self.cY, self.cZ)
 
         params += self._convertMask()
-        prog = "relion_particle_subtract" + ("_mpi" if self.numberOfMpi > 1 else "")
-        self.runJob(prog, params)
+        self.runJob(self._getProgram('relion_particle_subtract'), params)
 
     def createOutputStep(self):
         imgSet = self._getInputParticles()
