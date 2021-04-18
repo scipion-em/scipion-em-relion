@@ -1,6 +1,6 @@
 4.0:
     - Relion 4.0 support
-3.1.1 - minor changes
+3.1.1 - fixed the bug causing wrong shifts saved by init model and subtract protocols
 3.1:
     - initial EER support for motion correction and polishing, not available yet
     - consider hot pixels from relion mc for polishing

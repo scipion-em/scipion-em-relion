@@ -507,38 +507,6 @@ def writeSetOfImages(imgSet, filename, imgToFunc,
     mdFn.write('%s@%s' % (blockName, filename))
 
 
-def _writeSetOfParticles(imgSet, starFile, **kwargs):
-    """ This function will write a SetOfImages as Relion meta
-    Params:
-        imgSet: the SetOfImages instance.
-        starFile: the filename where to write the meta
-        filesMapping: this dict will help when there is need to replace images names
-    """
-    outputDir = kwargs.get('outputDir', None)
-
-    if outputDir is not None:
-        filesDict = convertBinaryFiles(imgSet, outputDir)
-        kwargs['filesDict'] = filesDict
-    partMd = md.MetaData()
-    setOfImagesToMd(imgSet, partMd, particleToRow, **kwargs)
-
-    if kwargs.get('fillMagnification', False):
-        pixelSize = imgSet.getSamplingRate()
-        mag = imgSet.getAcquisition().getMagnification()
-        detectorPxSize = mag * pixelSize / 10000
-
-        partMd.fillConstant(md.RLN_CTF_MAGNIFICATION, mag)
-        partMd.fillConstant(md.RLN_CTF_DETECTOR_PIXEL_SIZE, detectorPxSize)
-    else:
-        # Remove Magnification from metadata to avoid wrong values of pixel size.
-        # In Relion if Magnification and DetectorPixelSize are in metadata,
-        # pixel size is ignored in the command line.
-        partMd.removeLabel(md.RLN_CTF_MAGNIFICATION)
-
-    blockName = kwargs.get('blockName', 'Particles')
-    partMd.write('%s@%s' % (blockName, starFile))
-
-
 def writeSetOfVolumes(volSet, filename, blockName='Volumes', **kwargs):
     writeSetOfImages(volSet, filename, volumeToRow, blockName, **kwargs)
 
@@ -590,33 +558,6 @@ def writeReferences(inputSet, outputRoot, useBasename=False, **kwargs):
     refsMd.write(starFile)
 
 
-def micrographToRow(mic, micRow, **kwargs):
-    """ Set labels values from Micrograph mic to md row. """
-    imageToRow(mic, micRow, imgLabel=md.RLN_MICROGRAPH_NAME, **kwargs)
-
-
-def movieToRow(movie, movieRow, **kwargs):
-    """ Set labels values from movie to md row. """
-    imageToRow(movie, movieRow, imgLabel=md.RLN_MICROGRAPH_MOVIE_NAME, **kwargs)
-
-
-def writeSetOfMicrographs(micSet, starFile, **kwargs):
-    """ If 'outputDir' is in kwargs, the micrographs are
-    converted or linked in the outputDir.
-    """
-    micMd = md.MetaData()
-    setOfImagesToMd(micSet, micMd, micrographToRow, **kwargs)
-    blockName = kwargs.get('blockName', 'Particles')
-    micMd.write('%s@%s' % (blockName, starFile))
-
-
-def writeSetOfMovies(movieSet, starFile, **kwargs):
-    movieMd = md.MetaData()
-    setOfImagesToMd(movieSet, movieMd, movieToRow, **kwargs)
-    blockName = kwargs.get('blockName', '')
-    movieMd.write('%s@%s' % (blockName, starFile))
-
-
 def copyOrLinkFileName(imgRow, prefixDir, outputDir, copyFiles=False):
     index, imgPath = relionToLocation(imgRow.get(md.RLN_IMAGE_NAME))
     baseName = os.path.basename(imgPath)
@@ -649,5 +590,3 @@ def setupCTF(imgRow, sampling):
                        imgRow.get(md.MDL_CTF_DEFOCUSU))
         if not hasDefocusAngle:
             imgRow.set(md.MDL_CTF_DEFOCUS_ANGLE, 0.)
-
-

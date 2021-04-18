@@ -31,74 +31,8 @@ import numpy as np
 import pwem
 import pwem.convert.transformations as tfs
 
-from ..constants import *
-from .convert_base import WriterBase, ReaderBase
+from .convert_base import ReaderBase
 from .convert_deprecated import readSetOfParticles
-
-
-class Writer(WriterBase):
-    """ Helper class to convert from Scipion SetOfImages subclasses
-    with star file format previous to Relion>3.1, but providing the same
-     interface as the new Writer class.
-    """
-
-    def writeSetOfMovies(self, moviesIterable, starFile):
-        self._writeSetOfMoviesOrMics(moviesIterable, starFile,
-                                     'movies', 'rlnMicrographMovieName')
-
-    def writeSetOfMicrographs(self, micsIterable, starFile):
-        self._writeSetOfMoviesOrMics(micsIterable, starFile,
-                                     'micrographs', 'rlnMicrographName')
-
-    def writeSetOfParticles(self, partsSet, starFile, **kwargs):
-        # FIXME: Remove deprecated import
-        from .convert_deprecated import _writeSetOfParticles
-        _writeSetOfParticles(partsSet, starFile, **kwargs)
-
-    def _writeSetOfMoviesOrMics(self, imgIterable,
-                                starFile, tableName, imgLabelName):
-        """ Internal function to write either movies or micrographs
-        star files. Input can be any iterable of these type of images (e.g
-        set, list, etc).
-        """
-        # Process the first item and create the table based
-        # on the generated columns
-        self._imgLabelName = imgLabelName
-        self._prefix = tableName[:3]
-
-        micRow = OrderedDict()
-        micRow[imgLabelName] = ''  # Just to add label, proper value later
-        iterMics = iter(imgIterable)
-        mic = next(iterMics)
-        self._setCtf = mic.hasCTF()
-        self._micToRow(mic, micRow)
-
-        micsTable = self._createTableFromDict(micRow)
-
-        while mic is not None:
-            micRow[imgLabelName] = self._convert(mic)
-            self._micToRow(mic, micRow)
-            micsTable.addRow(**micRow)
-            mic = next(iterMics, None)
-
-        with open(starFile, 'w') as f:
-            f.write("# Star file generated with Scipion\n")
-            micsTable.writeStar(f, tableName=tableName)
-
-    def _micToRow(self, mic, row):
-        WriterBase._micToRow(self, mic, row)
-
-        # Set CTF values
-        if self._setCtf:
-            self._ctfToRow(mic.getCTF(), row)
-
-        # Add now the Acquisition labels
-        acq = mic.getAcquisition()
-        row.update({
-            'rlnVoltage': acq.getVoltage(),
-            'rlnSphericalAberration': acq.getSphericalAberration(),
-            'rlnAmplitudeContrast': acq.getAmplitudeContrast()
-        })
 
 
 class Reader(ReaderBase):
