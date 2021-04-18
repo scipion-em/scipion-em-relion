@@ -357,12 +357,19 @@ class ProtRelionBayesianPolishing(ProtParticles):
         pixSize = self._getOutputPixSize()
         outImgSet.setSamplingRate(pixSize)
 
-        outImgsFn = md.MetaData('particles@' + self._getFileName('shiny'))
-        rowIterator = md.SetMdIterator(outImgsFn, sortByLabel=md.RLN_IMAGE_ID,
-                                       keyLabel=md.RLN_IMAGE_ID,
-                                       updateItemCallback=self._updatePtcl)
+        mdIter = convert.Table.iterRows('particles@' + self._getFileName('shiny'),
+                                        key='rlnImageId')
         outImgSet.copyItems(imgSet,
-                            updateItemCallback=rowIterator.updateItem)
+                            updateItemCallback=self._updatePtcl,
+                            itemDataIterator=mdIter,
+                            doClone=False)
+
+        #outImgsFn = md.MetaData('particles@' + self._getFileName('shiny'))
+        #rowIterator = md.SetMdIterator(outImgsFn, sortByLabel=md.RLN_IMAGE_ID,
+        #                               keyLabel=md.RLN_IMAGE_ID,
+        #                               updateItemCallback=self._updatePtcl)
+        #outImgSet.copyItems(imgSet,
+        #                    updateItemCallback=rowIterator.updateItem)
 
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(self.inputParticles, outImgSet)
@@ -437,8 +444,12 @@ class ProtRelionBayesianPolishing(ProtParticles):
                                                          'star'))
 
     def _updatePtcl(self, particle, row):
-        newLoc = convert.relionToLocation(row.getValue('rlnImageName'))
-        particle.setLocation(newLoc)
+        if (row is None or
+                particle.getObjId() != row.rlnImageId):
+            particle._appendItem = False
+        else:
+            newLoc = convert.relionToLocation(row.rlnImageName)
+            particle.setLocation(newLoc)
 
     def _updateMic(self, mic, row):
         row['rlnMicrographName'] = os.path.basename(mic.getMicName())

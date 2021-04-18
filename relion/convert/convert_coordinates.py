@@ -214,7 +214,6 @@ def writeMicCoordinates(mic, coordList, outputFn, getPosFunc=None):
         mic: input micrograph.
         coordList: list of (x, y) pairs of the mic coordinates.
         outputFn: output filename for the pos file .
-        isManual: if the coordinates are 'Manual' or 'Supervised'
         getPosFunc: a function to get the positions from the coordinate,
             it can be useful for scaling the coordinates if needed.
     """
