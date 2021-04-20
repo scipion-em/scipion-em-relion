@@ -170,7 +170,7 @@ def convertBinaryVol(vol, outputDir):
     return fn
 
 
-def convertMask(img, outputPath, newPix=None,
+def  convertMask(img, outputPath, newPix=None,
                 newDim=None, threshold=True, invert=False):
     """ Convert mask to mrc format read by Relion.
     Params:
@@ -193,9 +193,21 @@ def convertMask(img, outputPath, newPix=None,
     else:
         outFn = outputPath
 
+    if invert:
+        # unfortunately relion does not allow to use
+        # add_constant and multiply_constant together
+        # so let us multiply first
+        params = '--i %s --o %s --angpix %0.5f' % (imgFn, outFn, inPix)
+        params += ' --multiply_constant -1'
+        pwutils.runJob(None, 'relion_image_handler', params, env=Plugin.getEnviron())
+        imgFn = outFn
+
     params = '--i %s --o %s --angpix %0.5f' % (imgFn, outFn, inPix)
 
     if newPix is not None:
+        # be careful with this rescale param
+        # because introduce some artefacts even if
+        # the sampling is the same than the input 3D mask
         params += ' --rescale_angpix %0.5f' % newPix
 
     if newDim is not None:
@@ -205,8 +217,9 @@ def convertMask(img, outputPath, newPix=None,
         params += ' --threshold_above 1 --threshold_below 0'
 
     if invert:
-        # invert the mask
-        params += ' --multiply_constant -1 --add_constant 1'
+        # unfortunately relion does not allow to use
+        # add_constant and multiply_constant together
+        params += ' --add_constant 1'
 
     pwutils.runJob(None, 'relion_image_handler', params, env=Plugin.getEnviron())
     return outFn

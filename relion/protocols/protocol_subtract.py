@@ -206,15 +206,15 @@ class ProtRelionSubtract(ProtOperateParticles):
                                          self._getExtraPath())
         params = ' --i %s --subtract_exp' % volFn
         params += ' --angpix %0.3f' % volume.getSamplingRate()
-        params += self._convertMask(invert=True)
+        params += self._convertMask(resize=False, invert=True)
 
-        if self._getInputParticles().isPhaseFlipped():
-            params += ' --ctf_phase_flip'
 
         if self.doCTF:
             params += ' --ctf'
             if self.ignoreCTFUntilFirstPeak:
                 params += ' --ctf_intact_first_peak'
+            if self._getInputParticles().isPhaseFlipped():
+                params += ' --ctf_phase_flip'
 
         params += ' --ang %s  --o %s' % (
             self._getFileName('input_star'),
@@ -298,9 +298,14 @@ class ProtRelionSubtract(ProtOperateParticles):
         else:
             return self.inputParticlesAll.get()
 
-    def _convertMask(self, invert=False):
+    def _convertMask(self, invert=False, resize = True):
         tmp = self._getTmpPath()
-        newDim = self._getInputParticles().getXDim()
-        newPix = self._getInputParticles().getSamplingRate()
-        maskFn = convert.convertMask(self.refMask.get(), tmp, newPix, newDim, invert)
+        if resize:
+            newDim = self._getInputParticles().getXDim()
+            newPix = self._getInputParticles().getSamplingRate()
+        else:
+            newDim = None
+            newPix = None
+        maskFn = convert.convertMask(self.refMask.get(),
+                                     tmp, newPix, newDim, invert=invert)
         return ' --mask %s' % maskFn
