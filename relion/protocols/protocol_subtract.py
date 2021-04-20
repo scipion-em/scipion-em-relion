@@ -188,7 +188,8 @@ class ProtRelionSubtract(ProtOperateParticles):
     # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self):
         """ Write the input images as a Relion star file. """
-        imgSet = self.inputParticles.get() if self.isRelionInput else self.inputParticlesAll.get()
+        imgSet = self.inputParticles.get() if self.isRelionInput \
+            else self.inputParticlesAll.get()
 
         convert.writeSetOfParticles(
             imgSet, self._getFileName('input_star'),
@@ -267,7 +268,9 @@ class ProtRelionSubtract(ProtOperateParticles):
                               self._getInputParticles().getXDim(),
                               errors, 'Input particles subset',
                               'Input particles from 3D protocol')
-
+        if self.numberOfMpi > 1 and (not self.relionInput.get()):
+            errors.append("Use of several CPUs when input is not relion "
+                          "protocol is not supported")
         return errors
     
     def _summary(self):
