@@ -188,8 +188,10 @@ class ProtRelionSubtract(ProtOperateParticles):
     # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self):
         """ Write the input images as a Relion star file. """
-        imgSet = self.inputParticles.get() if self.isRelionInput \
-            else self.inputParticlesAll.get()
+        if self.isRelionInput:
+            imgSet = self.inputParticles.get()
+        else:
+            imgSet = self.inputParticlesAll.get()
 
         convert.writeSetOfParticles(
             imgSet, self._getFileName('input_star'),
@@ -301,7 +303,7 @@ class ProtRelionSubtract(ProtOperateParticles):
         else:
             return self.inputParticlesAll.get()
 
-    def _convertMask(self, invert=False, resize = True):
+    def _convertMask(self, invert=False, resize=True):
         tmp = self._getTmpPath()
         if resize:
             newDim = self._getInputParticles().getXDim()

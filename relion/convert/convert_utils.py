@@ -170,7 +170,7 @@ def convertBinaryVol(vol, outputDir):
     return fn
 
 
-def  convertMask(img, outputPath, newPix=None,
+def convertMask(img, outputPath, newPix=None,
                 newDim=None, threshold=True, invert=False):
     """ Convert mask to mrc format read by Relion.
     Params:
