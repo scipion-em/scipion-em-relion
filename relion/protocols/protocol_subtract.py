@@ -191,7 +191,10 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
     # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self):
         """ Write the input images as a Relion star file. """
-        imgSet = self.inputParticles.get() if self.isRelionInput else self.inputParticlesAll.get()
+        if self.isRelionInput:
+            imgSet = self.inputParticles.get()
+        else:
+            imgSet = self.inputParticlesAll.get()
 
         convert.writeSetOfParticles(
             imgSet, self._getFileName('input_star'),
@@ -209,15 +212,15 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
                                          self._getExtraPath())
         params = ' --i %s --subtract_exp' % volFn
         params += ' --angpix %0.3f' % volume.getSamplingRate()
-        params += self._convertMask()
+        params += self._convertMask(resize=False, invert=True)
 
-        if self._getInputParticles().isPhaseFlipped():
-            params += ' --ctf_phase_flip'
 
         if self.doCTF:
             params += ' --ctf'
             if self.ignoreCTFUntilFirstPeak:
                 params += ' --ctf_intact_first_peak'
+            if self._getInputParticles().isPhaseFlipped():
+                params += ' --ctf_phase_flip'
 
         params += ' --ang %s  --o %s' % (
             self._getFileName('input_star'),
@@ -271,7 +274,9 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
                               self._getInputParticles().getXDim(),
                               errors, 'Input particles subset',
                               'Input particles from 3D protocol')
-
+        if self.numberOfMpi > 1 and (not self.relionInput.get()):
+            errors.append("Use of several CPUs when input is not relion "
+                          "protocol is not supported")
         return errors
     
     def _summary(self):
@@ -302,9 +307,14 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
         else:
             return self.inputParticlesAll.get()
 
-    def _convertMask(self):
+    def _convertMask(self, invert=False, resize=True):
         tmp = self._getTmpPath()
-        newDim = self._getInputParticles().getXDim()
-        newPix = self._getInputParticles().getSamplingRate()
-        maskFn = convert.convertMask(self.refMask.get(), tmp, newPix, newDim)
+        if resize:
+            newDim = self._getInputParticles().getXDim()
+            newPix = self._getInputParticles().getSamplingRate()
+        else:
+            newDim = None
+            newPix = None
+        maskFn = convert.convertMask(self.refMask.get(),
+                                     tmp, newPix, newDim, invert=invert)
         return ' --mask %s' % maskFn
