@@ -39,7 +39,7 @@ import pyworkflow.utils as pwutils
 from pwem.protocols import ProtAlignMovies
 from pwem.objects import Image
 from pyworkflow.gui.plotter import Plotter
-from pyworkflow.protocol import STEPS_SERIAL
+from pyworkflow.protocol import STEPS_PARALLEL
 
 import relion
 import relion.convert as convert
@@ -54,7 +54,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
 
     def __init__(self, **kwargs):
         ProtAlignMovies.__init__(self, **kwargs)
-        self.stepsExecutionMode = STEPS_SERIAL
+        self.stepsExecutionMode = STEPS_PARALLEL
         self.updatedSets = []
         self.isEER = False
 
