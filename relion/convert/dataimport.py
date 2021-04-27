@@ -116,7 +116,8 @@ class RelionImport:
                 self._starFile, partSet,
                 preprocessImageRow=None,
                 postprocessImageRow=self._postprocessImageRow,
-                readAcquisition=True, alignType=self.alignType)
+                readAcquisition=False, alignType=self.alignType,
+                pixelSize=self._pixelSize)
 
         if self._micIdOrName:
             self.protocol._defineOutputs(outputMicrographs=self.micSet)
