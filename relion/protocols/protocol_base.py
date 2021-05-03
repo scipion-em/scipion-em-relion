@@ -1098,6 +1098,12 @@ class ProtRelionBase(EMProtocol):
 
         return program
 
+    def _runProgram(self, program, args, **kwargs):
+        """ Helper function to get the program name if mpi are used and
+        call runJob function.
+        """
+        return self.runJob(self._getProgram(program), args, **kwargs)
+
     def _getInputParticles(self):
         if self.doContinue:
             self.inputParticles.set(self.continueRun.get().inputParticles.get())

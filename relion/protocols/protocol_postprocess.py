@@ -37,9 +37,10 @@ from pwem.emlib.image import ImageHandler
 from pwem.objects import Volume
 
 import relion.convert as convert
+from .protocol_base import ProtRelionBase
 
 
-class ProtRelionPostprocess(ProtAnalysis3D):
+class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
     """
     Relion post-processing protocol for automated masking,
     overfitting estimation, MTF-correction and B-factor sharpening.
@@ -199,12 +200,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
     def postProcessStep(self, paramDict):
         params = ' '.join(['%s %s' % (k, str(v))
                            for k, v in self.paramDict.items()])
-
-        program = 'relion_postprocess'
-        if self.numberOfMpi > 1:
-            program += '_mpi'
-
-        self.runJob(program, params)
+        self._runProgram('relion_postprocess', params)
 
     def createOutputStep(self):
         volume = Volume()

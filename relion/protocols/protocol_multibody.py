@@ -226,9 +226,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
 
     def _runProgram(self, program, args):
         params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.items()])
-        if program == 'relion_refine' and self.numberOfMpi > 1:
-            program += '_mpi'
-        self.runJob(program, params)
+        self._runProgram('relion_refine', params)
 
     def multibodyRefineStep(self, args):
         self._runProgram('relion_refine', args)
