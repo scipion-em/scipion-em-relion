@@ -33,11 +33,12 @@ from pwem.protocols import ProtParticles
 import relion
 import relion.convert as convert
 from relion.convert.convert31 import Reader, OpticsGroups
+from .protocol_base import ProtRelionBase
 
 from ..objects import CtfRefineGlobalInfo
 
 
-class ProtRelionCtfRefinement(ProtParticles):
+class ProtRelionCtfRefinement(ProtParticles, ProtRelionBase):
     """ Wrapper protocol for the Relion's CTF refinement. """
     _label = 'ctf refinement'
     _devStatus = PROD
@@ -248,8 +249,7 @@ class ProtRelionCtfRefinement(ProtParticles):
         if self.extraParams.hasValue():
             args += ' ' + self.extraParams.get()
 
-        prog = "relion_ctf_refine" + ("_mpi" if self.numberOfMpi > 1 else "")
-        self.runJob(prog, args)
+        self._runProgram("relion_ctf_refine", args)
 
     def createOutputStep(self):
         imgSet = self.inputParticles.get()

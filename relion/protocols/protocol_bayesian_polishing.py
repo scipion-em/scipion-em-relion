@@ -39,9 +39,10 @@ from pwem.constants import ALIGN_PROJ
 
 from relion import Plugin
 import relion.convert as convert
+from .protocol_base import ProtRelionBase
 
 
-class ProtRelionBayesianPolishing(ProtParticles):
+class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
     """
     Wrapper protocol for the Relion's Bayesian Polishing.
 
@@ -360,8 +361,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
 
         args += "--j %d " % self.numberOfThreads
 
-        prog = "relion_motion_refine" + ("_mpi" if self.numberOfMpi > 1 else "")
-        self.runJob(prog, args)
+        self.runJob(self._getProgram('relion_motion_refine'), args)
 
     def createOutputStep(self, id=1):
         imgSet = self.inputParticles.get()
