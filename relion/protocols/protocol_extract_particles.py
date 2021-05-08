@@ -71,6 +71,15 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                       help='Final size in pixels of the extracted particles. '
                            'The provided value should be an even number. ')
 
+        # FIXME: float16 is not supported
+        if relion.Plugin.IS_GT31():
+            form.addParam('saveFloat16', params.BooleanParam, default=False,
+                          expertLevel=params.LEVEL_ADVANCED,
+                          lavel="Write output in float16?",
+                          help="Relion can write output images in float16 "
+                               "MRC (mode 12) format to save disk space. "
+                               "By default, float32 format is used.")
+
         form.addSection(label='Preprocess')
 
         form.addParam('doInvert', params.BooleanParam, default=None,
