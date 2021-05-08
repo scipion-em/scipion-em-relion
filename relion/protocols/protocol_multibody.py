@@ -224,15 +224,14 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         pwutils.copyFile(self.bodyStarFile.get(),
                          self._getExtraPath('input_body.star'))
 
-    def _runProgram(self, program, args):
+    def multibodyRefineStep(self, args):
         params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.items()])
         self._runProgram('relion_refine', params)
 
-    def multibodyRefineStep(self, args):
-        self._runProgram('relion_refine', args)
-
     def flexAnalysisStep(self, args):
-        self._runProgram('relion_flex_analyse', args)
+        params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.items()])
+        # use runJob since MPI is not allowed
+        self.runJob('relion_flex_analyse', params)
 
     def createOutputStep(self):
         protRefine = self.protRefine.get()
