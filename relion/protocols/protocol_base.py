@@ -42,6 +42,7 @@ from pwem.emlib.image import ImageHandler
 from pwem.objects import SetOfClasses3D, SetOfParticles, SetOfVolumes, Volume
 from pwem.protocols import EMProtocol
 
+import relion
 import relion.convert
 from ..constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO
 
@@ -809,6 +810,18 @@ class ProtRelionBase(EMProtocol):
         params += ' --j %d' % self.numberOfThreads
         self.runJob(self._getProgram(), params)
 
+    def _getEnviron(self):
+        env = relion.Plugin.getEnviron()
+
+        if self.useGpu():
+            prepend = env.get('RELION_PREPEND', '')
+        else:
+            prepend = env.get('RELION_PREPEND_CPU', '')
+
+        env.setPrepend(prepend)
+
+        return env
+
     def createOutputStep(self):
         pass  # should be implemented in subclasses
 
@@ -1082,7 +1095,14 @@ class ProtRelionBase(EMProtocol):
         """ Get the program name depending on the MPI use or not. """
         if self.numberOfMpi > 1:
             program += '_mpi'
+
         return program
+
+    def _runProgram(self, program, args, **kwargs):
+        """ Helper function to get the program name if mpi are used and
+        call runJob function.
+        """
+        return self.runJob(self._getProgram(program), args, **kwargs)
 
     def _getInputParticles(self):
         if self.doContinue:
@@ -1256,6 +1276,12 @@ class ProtRelionBase(EMProtocol):
 
     def _useFastSubsets(self):
         return self.getAttributeValue('useFastSubsets', False)
+
+    def useGpu(self):
+        """
+        Return True if the protocol has gpu option and it has been selected.
+        """
+        return self.getAttributeValue('doGpu', False)
 
     def _copyAlignAsPriors(self, mdParts, alignType):
         # set priors equal to orig. values
