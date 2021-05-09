@@ -154,7 +154,7 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
                            'at a user-provided frequency (in Angstroms). When '
                            'using a resolution that is higher than the '
                            'gold-standard FSC-reported resolution, take care '
-                           'not to interpret noise in the map for signal...')
+                           'not to interpret noise in the map for signal.')
         form.addParam('filterEdgeWidth', params.IntParam, default=2,
                       expertLevel=params.LEVEL_ADVANCED,
                       label='Low-pass filter edge width:',
@@ -167,6 +167,11 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
                       help='Randomize phases from the resolution where FSC '
                            'drops below this value\n'
                            'Relion param: *--randomize_at_fsc*')
+        form.addParam('forceMask', params.BooleanParam, default=False,
+                      expertLevel=params.LEVEL_ADVANCED,
+                      label='Force mask?',
+                      help='Use the mask even when the masked resolution '
+                           'is worse than the unmasked resolution.')
 
         form.addParallelSection(threads=0, mpi=1)
 
@@ -269,6 +274,9 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
 
         if self.origPixelSize.get() != -1.0:
             self.paramDict['--mtf_angpix'] = self.origPixelSize.get()
+
+        if self.forceMask:
+            self.paramDict['--force_mask'] = ''
 
     def _getRelionMapFn(self, fn):
         return fn.split(':')[0]
