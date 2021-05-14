@@ -534,15 +534,28 @@ class Reader(ReaderBase):
             particle.setCTF(CTFModel())
 
         self._setAcq = kwargs.get("readAcquisition", True)
-        acq = Acquisition()
-        acq.setMagnification(kwargs.get('magnification', 10000))
+        if self._setAcq:
+            acq = Acquisition()
+            self.rowToAcquisition(self._optics.first(), acq)
+            acq.setMagnification(kwargs.get('magnification', 10000))
+            partSet.setAcquisition(acq)
+        else:
+            # readAcquisition=False ONLY during import particles
+            # overwrite pixel size and optics
+            self._pixelSize = kwargs.get('pixelSize', self._pixelSize)
+            acq = partSet.getAcquisition()
+            self._optics.updateAll(
+                rlnVoltage=acq.getVoltage(),
+                rlnSphericalAberration=acq.getSphericalAberration(),
+                rlnAmplitudeContrast=acq.getAmplitudeContrast(),
+                rlnImagePixelSize=self._pixelSize
+            )
 
         extraLabels = kwargs.get('extraLabels', []) + PARTICLE_EXTRA_LABELS
         self.createExtraLabels(particle, firstRow, extraLabels)
 
         self._rowToPart(firstRow, particle)
         partSet.setSamplingRate(self._pixelSize)
-        partSet.setAcquisition(acq)
         self._optics.toImages(partSet)
         partSet.append(particle)
 

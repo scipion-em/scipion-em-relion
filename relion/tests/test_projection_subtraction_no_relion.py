@@ -35,7 +35,7 @@ class TestSubtractionProjection(BaseTest):
     def setUpClass(cls):
         setupTestProject(cls)
         cls.xmippAvailable = True
-        cls.sampling = 1.38
+        cls.sampling = 1.30
         from pwem import Domain
         try:
             cls.xmipp3 = \
@@ -56,24 +56,31 @@ class TestSubtractionProjection(BaseTest):
     def createVolume(self):
         # volume
         f = NamedTemporaryFile(delete=False, suffix=".feat")
-        command = """#	Phantom	description	file. (generated with phantom
-#	General	Volume Parameters:
-#	Xdim	Ydim	Zdim	Background_Density	Scale	
- 	752     752    752   0 0.1702127659574468
-#	Feature	Parameters:				
-#Type	+/=	Density	X_Center	Y_Center	Z_Center	
-sph	+	1	-165.51	0.00	267.78	60
-sph	+	1	165.51	0.00	267.78	60
-sph	+	1	0.00	267.78	165.51	60
-sph	+	1	-267.78	165.51	0.00	60
-sph	+	1	-267.78	-165.51	0.00	60
-sph	+	1	0.00	-267.78	165.51	60
-sph	+	1	165.51	0.00	-267.78	60
-sph	+	1	-165.51	0.00	-267.78	60
-sph	+	1	0.00	267.78	-165.51	60
-sph	+	1	267.78	165.51	0.00	60
-sph	+	1	267.78	-165.51	0.00	60
-sph	+	1	0.00	-267.78	-165.51	60
+        command = """# XMIPP_STAR_1 *
+# Type of feature (sph, blo, gau, Cyl, dcy, cub, ell, con)(Required)	
+data_block1
+ _dimensions3D  '752 752 752'
+ _phantomBGDensity  0.
+ _scale  0.1702127659574468
+data_block2
+loop_
+ _featureType
+ _featureOperation
+ _featureDensity
+ _featureCenter
+ _featureSpecificVector	
+blo	+	1	'-165.51	0.00	267.78'	'60 1.4 2'
+blo	+	1	'165.51	0.00	267.78'		'60 1.4 2'
+blo	+	1	'0.00	267.78	165.51'		'60 1.4 2'
+blo	+	1	'-267.78	165.51	0.00'		'60 1.4 2'
+blo	+	1	'-267.78	-165.51	0.00'		'60 1.4 2'
+blo	+	1	'0.00	-267.78	165.51'		'60 1.4 2'
+blo	+	1	'165.51	0.00	-267.78'		'60 1.4 2'
+blo	+	1	'-165.51	0.00	-267.78'		'60 1.4 2'
+blo	+	1	'0.00	267.78	-165.51'		'60 1.4 2'
+blo	+	1	'267.78	165.51	0.00'		'60 1.4 2'
+blo	+	1	'267.78	-165.51	0.00'		'60 1.4 2'
+blo	+	1	'0.00	-267.78	-165.51'		'60 1.4 2'
 """
         f.write(command.encode('utf8'))
         f.close()
@@ -82,23 +89,20 @@ sph	+	1	0.00	-267.78	-165.51	60
     def createMask(self):
         # volume
         f = NamedTemporaryFile(delete=False, suffix=".feat")
-        command = """#	Phantom	description	file.	(generated	with	phantom
-#	General	Volume	Parameters:			
-#	Xdim	Ydim	Zdim	Background_Density	Scale	
- 	752     752    752   0 0.1702127659574468
-#	Feature	Parameters:				
-#Type	+/=	Density	X_Center	Y_Center	Z_Center	
-sph	+	1	-165.51	0.00	267.78	60
-sph	+	1	165.51	0.00	267.78	60
-sph	+	1	0.00	267.78	165.51	60
-sph	+	1	-267.78	165.51	0.00	60
-sph	+	1	-267.78	-165.51	0.00	60
-sph	+	1	0.00	-267.78	165.51	60
-sph	+	1	165.51	0.00	-267.78	60
-sph	+	1	-165.51	0.00	-267.78	60
-sph	+	1	0.00	267.78	-165.51	60
-sph	+	1	267.78	165.51	0.00	60
-sph	+	1	267.78	-165.51	0.00	60
+        command = """# XMIPP_STAR_1 *
+# Type of feature (sph, blo, gau, Cyl, dcy, cub, ell, con)(Required)	
+data_block1
+ _dimensions3D  '752 752 752'
+ _phantomBGDensity  0.
+ _scale  0.1702127659574468
+data_block2
+loop_
+ _featureType
+ _featureOperation
+ _featureDensity
+ _featureCenter
+ _featureSpecificVector
+sph	+	1.	'-165.51 0.00 267.78'	'65'
 """
         f.write(command.encode('utf8'))
         f.close()
@@ -149,7 +153,7 @@ sph	+	1	267.78	-165.51	0.00	60
                                         relionInput=False,
                                         refMask=mask,
                                         doCTF=False,
-                                        numberOfMpi=3)
+                                        numberOfMpi=1)
         protSubtract.inputParticlesAll.set(protImport.outputParticles)
         protSubtract.inputVolume.set(volume)
         self.launchProtocol(protSubtract)

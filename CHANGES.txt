@@ -1,3 +1,7 @@
+3.1.2:
+    - allow to use Environ.setPrepend (depends on scipion-em/scipion-pyworkflow#238) to set different prepend commands (e.g when optimized CPU module is available)
+    - fixes for subtract no relion protocol
+    - fix #294, #296
 3.1.1 - fixed the bug causing wrong shifts saved by init model and subtract protocols
 3.1:
     - initial EER support for motion correction and polishing, not available yet

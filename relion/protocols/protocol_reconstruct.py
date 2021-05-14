@@ -33,9 +33,10 @@ from pwem.protocols import ProtReconstruct3D
 from pwem.constants import ALIGN_PROJ
 
 import relion.convert as convert
+from .protocol_base import ProtRelionBase
 
 
-class ProtRelionReconstruct(ProtReconstruct3D):
+class ProtRelionReconstruct(ProtReconstruct3D, ProtRelionBase):
     """ This protocol reconstructs a volume using Relion.
 
     Reconstruct a volume from a given set of particles.
@@ -96,12 +97,6 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         self._insertReconstructStep()
         self._insertFunctionStep('createOutputStep')
 
-    def _getProgram(self, program='relion_reconstruct'):
-        """ Get the program name depending on the MPI use or not. """
-        if self.numberOfMpi > 1:
-            program += '_mpi'
-        return program
-
     def _insertReconstructStep(self):
         imgSet = self.inputParticles.get()
 
@@ -131,7 +126,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
 
     # -------------------------- STEPS functions ------------------------------
     def reconstructStep(self, params):
-        self.runJob(self._getProgram(), params)
+        self._runProgram('relion_reconstruct', params)
 
     def _createFilenameTemplates(self):
         """ Centralize how files are called for iterations and references. """

@@ -44,9 +44,10 @@ from pyworkflow.protocol import STEPS_SERIAL
 import relion
 import relion.convert as convert
 from relion.convert.convert31 import OpticsGroups
+from .protocol_base import ProtRelionBase
 
 
-class ProtRelionMotioncor(ProtAlignMovies):
+class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
     """ Wrapper for the Relion's implementation of motioncor algorithm. """
 
     _label = 'motion correction'
@@ -274,7 +275,7 @@ class ProtRelionMotioncor(ProtAlignMovies):
             args += " " + self.extraParams.get()
 
         try:
-            self.runJob(self._getProgram(), args, cwd=movieFolder)
+            self._runProgram('relion_run_motioncorr', args, cwd=movieFolder)
             try:
                 self._saveAlignmentPlots(movie, inputMovies.getSamplingRate())
                 self._computeExtra(movie)
@@ -412,12 +413,6 @@ class ProtRelionMotioncor(ProtAlignMovies):
             return self.binFactor.get() / (self.eerSampling.get() + 1)
 
     # --------------------------- UTILS functions -----------------------------
-    def _getProgram(self, program='relion_run_motioncorr'):
-        """ Get the program name depending on the MPI use or not. """
-        if self.numberOfMpi > 1:
-            program += '_mpi'
-        return program
-
     def _getMovieOutFn(self, movie, suffix):
         movieBase = pwutils.removeBaseExt(movie.getFileName()).replace('.', '_')
         return os.path.join(self._getOutputMovieFolder(movie), 'output',

@@ -37,9 +37,10 @@ from pwem.emlib.image import ImageHandler
 from pwem.objects import Volume
 
 import relion.convert as convert
+from .protocol_base import ProtRelionBase
 
 
-class ProtRelionPostprocess(ProtAnalysis3D):
+class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
     """
     Relion post-processing protocol for automated masking,
     overfitting estimation, MTF-correction and B-factor sharpening.
@@ -153,7 +154,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
                            'at a user-provided frequency (in Angstroms). When '
                            'using a resolution that is higher than the '
                            'gold-standard FSC-reported resolution, take care '
-                           'not to interpret noise in the map for signal...')
+                           'not to interpret noise in the map for signal.')
         form.addParam('filterEdgeWidth', params.IntParam, default=2,
                       expertLevel=params.LEVEL_ADVANCED,
                       label='Low-pass filter edge width:',
@@ -166,6 +167,11 @@ class ProtRelionPostprocess(ProtAnalysis3D):
                       help='Randomize phases from the resolution where FSC '
                            'drops below this value\n'
                            'Relion param: *--randomize_at_fsc*')
+        form.addParam('forceMask', params.BooleanParam, default=False,
+                      expertLevel=params.LEVEL_ADVANCED,
+                      label='Force mask?',
+                      help='Use the mask even when the masked resolution '
+                           'is worse than the unmasked resolution.')
 
         form.addParallelSection(threads=0, mpi=1)
 
@@ -199,12 +205,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
     def postProcessStep(self, paramDict):
         params = ' '.join(['%s %s' % (k, str(v))
                            for k, v in self.paramDict.items()])
-
-        program = 'relion_postprocess'
-        if self.numberOfMpi > 1:
-            program += '_mpi'
-
-        self.runJob(program, params)
+        self._runProgram('relion_postprocess', params)
 
     def createOutputStep(self):
         volume = Volume()
@@ -235,6 +236,8 @@ class ProtRelionPostprocess(ProtAnalysis3D):
             row = table[0]
             summary.append("Final resolution: *%0.2f A*" %
                            float(row.rlnFinalResolution))
+            summary.append("B-factor: *%0.2f A\u00B2*" %
+                           float(row.rlnBfactorUsedForSharpening))
 
         return summary
 
@@ -271,6 +274,9 @@ class ProtRelionPostprocess(ProtAnalysis3D):
 
         if self.origPixelSize.get() != -1.0:
             self.paramDict['--mtf_angpix'] = self.origPixelSize.get()
+
+        if self.forceMask:
+            self.paramDict['--force_mask'] = ''
 
     def _getRelionMapFn(self, fn):
         return fn.split(':')[0]
