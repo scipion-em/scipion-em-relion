@@ -30,6 +30,7 @@ from pwem.protocols import ProtProcessParticles
 from pwem.objects import SetOfClasses2D
 
 from relion import Plugin
+from ..constants import RELION_PYTHON
 
 
 class ProtRelionSelectClasses2D(ProtProcessParticles):
@@ -81,6 +82,7 @@ class ProtRelionSelectClasses2D(ProtProcessParticles):
         params += " --fn_sel_classavgs class_averages.star"
         params += " --fn_root rank --do_granularity_features"
         params += " --auto_select"
+        params += " --python %s" % Plugin.getVar(RELION_PYTHON)
 
         self.runJob("relion_class_ranker", params)
 
@@ -100,6 +102,15 @@ class ProtRelionSelectClasses2D(ProtProcessParticles):
         summary = []
 
         return summary
+
+    def _validate(self):
+        errors = []
+        if Plugin.getVar(RELION_PYTHON) is None:
+            errors.append("%s is not defined in the Scipion configuration!\n"
+                          "Please set it to point to a Python that "
+                          "includes torch and numpy modules." % RELION_PYTHON)
+
+        return errors
 
     # --------------------------- UTILS functions -----------------------------
     def _appendClass(self, item):

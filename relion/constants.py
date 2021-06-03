@@ -32,6 +32,7 @@ import pwem.emlib.metadata as md
 
 RELION_HOME = 'RELION_HOME'
 RELION_CUDA_LIB = 'RELION_CUDA_LIB'
+RELION_PYTHON = 'RELION_PYTHON'
 
 # Supported versions:
 V3_1_0 = '3.1.0'

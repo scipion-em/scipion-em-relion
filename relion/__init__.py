@@ -46,6 +46,7 @@ class Plugin(pwem.Plugin):
     def _defineVariables(cls):
         cls._defineEmVar(RELION_HOME, 'relion-%s' % V4_0)
         cls._defineVar(RELION_CUDA_LIB, pwem.Config.CUDA_LIB)
+        cls._defineVar(RELION_PYTHON, None)
 
     @classmethod
     def getEnviron(cls):
