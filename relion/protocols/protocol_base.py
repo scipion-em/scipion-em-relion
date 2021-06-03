@@ -904,19 +904,18 @@ class ProtRelionBase(EMProtocol):
 
             errors += self._validateNormal()
 
-        if self.IS_CLASSIFY:
-            if not self.doImageAlignment:
-                if self.doGpu:
-                    errors.append('When only doing classification (no alignment) '
-                                  'GPU acceleration can not be used.')
-                if not self.copyAlignment:
-                    errors.append('If you want to do only classification without '
-                                  'alignment, then you should use the option: \n'
-                                  '*Consider previous alignment?* = Yes')
-                if self.alignmentAsPriors:
-                    errors.append('When only doing classification (no alignment) '
-                                  " option *Consider alignment as priors* cannot"
-                                  " be enabled.")
+        if self.IS_CLASSIFY and not self.doImageAlignment:
+            if self.doGpu:
+                errors.append('When only doing classification (no alignment) '
+                              'GPU acceleration can not be used.')
+            if not self.copyAlignment:
+                errors.append('If you want to do only classification without '
+                              'alignment, then you should use the option: \n'
+                              '*Consider previous alignment?* = Yes')
+            if self.alignmentAsPriors:
+                errors.append('When only doing classification (no alignment) '
+                              " option *Consider alignment as priors* cannot"
+                              " be enabled.")
 
         return errors
 
@@ -1098,9 +1097,8 @@ class ProtRelionBase(EMProtocol):
             args['--ctf'] = ''
 
             # this only can be true if is 3D
-            if not Plugin.IS_GT31():
-                if self.hasReferenceCTFCorrected:
-                    args['--ctf_corrected_ref'] = ''
+            if not Plugin.IS_GT31() and self.hasReferenceCTFCorrected:
+                args['--ctf_corrected_ref'] = ''
 
             if self._getInputParticles().isPhaseFlipped():
                 args['--ctf_phase_flipped'] = ''
