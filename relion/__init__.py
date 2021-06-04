@@ -90,4 +90,4 @@ class Plugin(pwem.Plugin):
                            url='https://github.com/3dem/relion/archive/%s.tar.gz' % v,
                            commands=relion_commands,
                            updateCuda=True,
-                           default=v == V3_1_2)
+                           default=v == V4_0)

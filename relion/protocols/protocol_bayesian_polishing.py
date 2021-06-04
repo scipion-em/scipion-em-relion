@@ -428,6 +428,11 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
 
         if self.operation == self.OP_TRAIN and self.numberOfMpi > 1:
             errors.append("MPI is not supported for parameters estimation.")
+
+        if self.saveFloat16:
+            errors.append("MRC float16 format is not yet supported by XMIPP, "
+                          "so you cannot use this option.")
+
         return errors
 
     def _warnings(self):

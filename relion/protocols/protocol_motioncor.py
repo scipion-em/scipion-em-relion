@@ -366,6 +366,10 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
                 errors.append("EMAN2 plugin not found!\nComputing thumbnails "
                               "or PSD requires EMAN2 plugin and binaries installed.")
 
+        if self.saveFloat16:
+            errors.append("MRC float16 format is not yet supported by XMIPP, "
+                          "so you cannot use this option.")
+
         return errors
 
     # ------------------------ Extra BASE functions ---------------------------
