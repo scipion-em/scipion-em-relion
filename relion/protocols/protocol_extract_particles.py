@@ -75,7 +75,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         if relion.Plugin.IS_GT31():
             form.addParam('saveFloat16', params.BooleanParam, default=False,
                           expertLevel=params.LEVEL_ADVANCED,
-                          lavel="Write output in float16?",
+                          label="Write output in float16?",
                           help="Relion can write output images in float16 "
                                "MRC (mode 12) format to save disk space. "
                                "By default, float32 format is used.")
