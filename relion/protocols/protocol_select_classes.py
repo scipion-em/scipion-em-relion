@@ -26,6 +26,7 @@
 
 from emtable import Table
 import pyworkflow.protocol.params as params
+from pyworkflow.constants import NEW
 from pwem.protocols import ProtProcessParticles
 from pwem.objects import SetOfClasses2D
 
@@ -38,6 +39,7 @@ class ProtRelionSelectClasses2D(ProtProcessParticles):
     Relion protocol to auto-select 2D class averages.
     """
     _label = '2D class ranker'
+    _devStatus = NEW
 
     @classmethod
     def isDisabled(cls):

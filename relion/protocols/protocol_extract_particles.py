@@ -205,7 +205,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
             errors.append("Only re-scaling to even-sized images is allowed "
                           "in RELION.")
 
-        if self.saveFloat16:
+        if self.hasAttribute('saveFloat16') and self.saveFloat16:
             errors.append("MRC float16 format is not yet supported by XMIPP, "
                           "so you cannot use this option.")
 
