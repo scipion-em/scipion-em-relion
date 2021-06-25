@@ -247,7 +247,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                 methodsMsgs.append("Inverted contrast on images.")
             if self._doDownsample():
                 methodsMsgs.append("Particles downsampled by a factor of %0.2f."
-                                   % self.downFactor)
+                                   % self._getDownFactor())
 
         return methodsMsgs
 
