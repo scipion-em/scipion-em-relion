@@ -26,7 +26,6 @@
 
 import os
 import re
-import math
 from glob import glob
 from collections import OrderedDict
 from emtable import Table
@@ -1271,14 +1270,10 @@ class ProtRelionBase(EMProtocol):
         outputFn = self._convertVolFn(inputVol)
 
         if outputFn:
-            oldPix = inputVol.getSamplingRate()
             newPix = self._getInputParticles().getSamplingRate()
             newDim = self._getInputParticles().getXDim()
-            if not math.isclose(newPix, oldPix, abs_tol=0.001):
-                relion.convert.convertMask(inputVol, outputFn, newPix=newPix,
-                                           newDim=newDim, threshold=False)
-            else:
-                relion.convert.convertMask(inputVol, outputFn, threshold=False)
+            relion.convert.convertMask(inputVol, outputFn, newPix=newPix,
+                                       newDim=newDim, threshold=False)
 
         return outputFn
 
