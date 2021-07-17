@@ -29,5 +29,4 @@ from .viewer_ctfrefine import ProtCtfRefineViewer
 from .viewer_postprocess import PostprocessViewer
 from .viewer_motioncor import RelionMotioncorrViewer
 from .viewer_locres import RelionLocalResViewer
-from .viewer_sort import RelionSortViewer
 from .viewer_polishing import RelionPolishViewer

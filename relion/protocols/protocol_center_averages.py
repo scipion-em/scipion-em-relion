@@ -26,6 +26,7 @@
 
 from pwem.protocols import ProtProcessParticles
 from pyworkflow.protocol.params import PointerParam
+from pyworkflow.constants import PROD
 
 from .protocol_base import ProtRelionBase
 
@@ -36,6 +37,7 @@ class ProtRelionCenterAverages(ProtProcessParticles, ProtRelionBase):
      (With *--shift_com* option)
     """
     _label = 'center averages'
+    _devStatus = PROD
     
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):

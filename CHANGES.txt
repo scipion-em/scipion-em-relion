@@ -1,9 +1,35 @@
+4.0:
+    - Relion 4.0 support. Float16 and EER options are disabled for now.
+3.1.2:
+    - allow to use Environ.setPrepend (depends on scipion-em/scipion-pyworkflow#238) to set different prepend commands (e.g when optimized CPU module is available)
+    - fixes for subtract no relion protocol
+    - fix #294, #296
+3.1.1 - fixed the bug causing wrong shifts saved by init model and subtract protocols
+3.1:
+    - initial EER support for motion correction and polishing, not available yet
+    - consider hot pixels from relion mc for polishing
+    - refactor mc protocol and viewer
+    - replace xmipp by eman2 for psd calculation
+    - add 3.1.2 binary
+    - remove Relion 3.0 protocols and code, but users can still import old star files
+    - fix #278, #274, #277, #257
+    - add a test to read old star format
+    - fix shifts conversion for pre-3.1 (origins are in px already)
+    - fix accuracy label, use Angstroms by default
+    - add a warning about polishing gain bug
+    - subtract protocol suppot non-Relion input (thanks @rmarabini)
+    - add a protocol to "gentle clean" all Relion jobs
+3.0.4: bugfix for the missing option "Consider alignment as priors" (reported by Serban Ilca)
+3.0.3: another bugfix in assign optics: abs paths are not allowed by Relion
+3.0.2: bugfix for the wrong gain transform parameters in assign optics protocol
+3.0.1:
+    - quick fixes for issues from PR #282, #283 (thanks to @rmarabini)
 3.0.0:
     - Scipion 3.0.0 support, migration to python 3
-    - GPLv3
+    - GPLv2 to v3
     - Add Relion 3.1 support, remove relion 2.x support
     - New STAR file parser (emtable package)
-    - New protocol to assign optic groups
+    - New protocol to assign optics groups
     - Sort protocol will be deleted soon (gone in relion 3.1)
     - Extract particle movies is gone
     - Updated drift plot for motioncor, added new plot for drift per frame
@@ -16,7 +42,43 @@
     - new protocol to export coordinates to star format
     - new protocol to remove preferential views
     - new protocol to compress movies
-    - many small fixes
+    - new protocol to resize / rescale volume
+    - add new Falcon 4 MTFs
+    - updated extra labels list for particles
+    - set PARTICLE_EXTRA_LABELS inside ClassesLoader and refine3d _updateParticle
+    - fill random subset by default
+    - Autoscale input vol refs with relion not xmipp
+    - Add missing ProtRelionExportParticles to protocol tree
+    - Fix default values for missing extra ctf attrs
+    - Use abs paths when creating symlinks
+    - Add warning about dm4 gain flip by xmipp
+    - Optimize imports
+    - Assign gain and defects file from input or star file, transform gain if required
+    - use getVar for cuda vars
+    - update optics from image set upon conversion
+    - fix wrong MicrographOriginalPixelSize
+    - update priors help
+    - add PSD calculation for mc
+    - add missing frame grouping param for mc
+    - picking wizards removed
+    - optimize mode removed in relion reference-based picker
+    - fix --odir param for pickers
+    - add min_avg_noise to picker
+    - add skip_gridding to 3d jobs (True by default)
+    - add missing flatten_solvent to init3d
+    - remove unrequired params from polishing
+    - add RELION_CUDA_LIB var
+    - Hide Allow coarser sampling if doing no alignments
+    - Hide some args in continue mode for classification/refinement/init model protocols
+    - Fix healpix arg for autopicking, add missing ctf param
+    - Fixed matching between particles and movies by using micName in polishing
+    - Fixed generation of the local motion table when needed (e.g when only some movies failed to align)
+    - Allowed to display ctf-refinement results with matplotlib (still need to find the proper color map)
+    - Fixed function splitCTFGroups, now replaced with class DefocusGroups and not using Xmipp metadata
+    - Now use proper pixelSize label depending on input set
+    - Remove failing reconstruct rot-shift-flip test as we don't support flip in 3D
+    - add the colorScale wizard to the LocalRes viewer
+    - chimeraX support
 1.0.9: Fixed multibody output bug. Added a test for it.
 1.0.8:
     - Fixed bug when creating symbolic links from binaries with different root

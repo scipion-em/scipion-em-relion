@@ -26,19 +26,22 @@
 # *
 # **************************************************************************
 
-from pwem import *
+import os
+
+from pwem.constants import UNIT_PIXEL, UNIT_ANGSTROM, FILTER_LOW_PASS_NO_DECAY
 from pwem.viewers import EmPlotter
-from pwem.wizards.wizard import *
+from pwem.wizards.wizard import (ParticleMaskRadiusWizard, FilterVolumesWizard,
+                                 EmWizard, ColorScaleWizardBase,
+                                 BandPassFilterDialog, dialog)
 from pyworkflow.gui.browser import FileBrowserWindow
 
 import relion.convert as convert
 from .protocols import *
-
+from .viewers import RelionLocalResViewer
 
 # =============================================================================
 # MASKS
 # =============================================================================
-from .viewers import RelionLocalResViewer
 
 
 class RelionBackRadiusWizard(ParticleMaskRadiusWizard):
@@ -68,6 +71,9 @@ class RelionBackRadiusWizard(ParticleMaskRadiusWizard):
         _label = params['label']
         ParticleMaskRadiusWizard.show(self, form, _value, _label, units=self._unit)
 
+    def setVar(self, form, label, value):
+        form.setVar(label, int(value))
+
 
 class RelionPartMaskDiameterWizard(RelionBackRadiusWizard):
     _targets = [(ProtRelionClassify2D, ['maskDiameterA']),
@@ -80,30 +86,13 @@ class RelionPartMaskDiameterWizard(RelionBackRadiusWizard):
     def _getParameters(self, protocol):
         protParams = RelionBackRadiusWizard._getParameters(self, protocol)
         # adjust to from diameter to radius
-        protParams['value'] = protParams['value'] / 2
+        protParams['value'] /= 2
 
         return protParams
 
     def setVar(self, form, label, value):
         # adjust again from radius to diameter
         form.setVar(label, value * 2)
-
-
-# We need this specific wizard for the sort protocol because
-# this protocol have a particular way to grab the input images
-class RelionSortMaskWizard(RelionPartMaskDiameterWizard):
-    _targets = [(ProtRelionSortParticles, ['maskDiameterA'])]
-
-    def _getProvider(self, protocol):
-        if protocol.isInputClasses():
-            images = [cls.clone()
-                      for cls in protocol.inputSet.get().iterRepresentatives()]
-        else:
-            images = self._getParticles(protocol._allParticles(iterate=True))
-        return ListTreeProvider(images)
-
-    def _getProtocolImages(self, protocol):
-        return None
 
 
 # =============================================================================
@@ -200,7 +189,8 @@ class RelionWizCtfGroupsDisplay(EmWizard):
     """
     _targets = [(ProtRelionClassify2D, ['defocusRange']),
                 (ProtRelionClassify3D, ['defocusRange']),
-                (ProtRelionRefine3D, ['defocusRange'])]
+                (ProtRelionRefine3D, ['defocusRange']),
+                (ProtRelionInitialModel, ['defocusRange'])]
 
     def show(self, form, *args):
         prot = form.protocol
@@ -208,7 +198,7 @@ class RelionWizCtfGroupsDisplay(EmWizard):
         print(defocusGroups)
 
         plotter = EmPlotter(windowTitle='%d Defocus Groups' % len(defocusGroups),
-                            x=1, y=1, figsize=(8, 6))
+                            figsize=(8, 6))
         ax = plotter.createSubPlot("", "defocus (A)", "count", 1, 1)
 
         for group in defocusGroups:

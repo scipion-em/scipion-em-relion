@@ -26,12 +26,12 @@
 from emtable import Table
 
 from pyworkflow.protocol.params import StringParam
+from pyworkflow.constants import PROD
 from pyworkflow.object import String
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtProcessParticles
 
 import relion.convert as convert
-from relion import Plugin
 
  
 class ProtRelionExpandSymmetry(ProtProcessParticles):
@@ -41,15 +41,16 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
     expand the set by applying a pseudo-symmetry.
     """
     _label = 'expand symmetry'
+    _devStatus = PROD
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineProcessParams(self, form):
         form.addParam('symmetryGroup', StringParam, default="c1",
                       label='Symmetry group',
-                      help='See [[Relion Symmetry][http://www2.mrc-lmb.cam.ac.uk/'
-                           'relion/index.php/Conventions_%26_File_formats#Symmetry]] '
-                           'page for a description of the symmetry format '
-                           'accepted by Relion')
+                      help='See [[https://relion.readthedocs.io'
+                           '/en/latest/Reference/Conventions.html#symmetry]'
+                           '[Relion Symmetry]] page for a description of '
+                           'the symmetry format accepted by Relion')
         form.addParallelSection(threads=0, mpi=0)
 
     # -------------------------- INSERT steps functions -----------------------
@@ -80,17 +81,12 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
         outImagesMd = self._getExtraPath('expanded_particles.star')
 
         # remove repeating rlnImageId column
-        tableName = ''
-        if Plugin.IS_GT30():
-            tableName = 'particles'
-            mdOptics = Table(fileName=outImagesMd, tableName='optics')
-
-        mdOut = Table(fileName=outImagesMd, tableName=tableName)
+        mdOptics = Table(fileName=outImagesMd, tableName='optics')
+        mdOut = Table(fileName=outImagesMd, tableName='particles')
         mdOut.removeColumns("rlnImageId")
         with open(outImagesMd, "w") as f:
-            mdOut.writeStar(f, tableName=tableName)
-            if Plugin.IS_GT30():
-                mdOptics.writeStar(f, tableName='optics')
+            mdOut.writeStar(f, tableName='particles')
+            mdOptics.writeStar(f, tableName='optics')
 
         reader = convert.createReader()
         reader.readSetOfParticles(

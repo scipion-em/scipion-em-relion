@@ -27,15 +27,16 @@
 from pyworkflow.protocol.params import (PointerParam, FloatParam,  
                                         StringParam, BooleanParam,
                                         EnumParam, IntParam, LEVEL_ADVANCED)
+from pyworkflow.constants import PROD
 from pwem.objects import Volume
 from pwem.protocols import ProtReconstruct3D
 from pwem.constants import ALIGN_PROJ
 
 import relion.convert as convert
-from relion import Plugin
+from .protocol_base import ProtRelionBase
 
 
-class ProtRelionReconstruct(ProtReconstruct3D):
+class ProtRelionReconstruct(ProtReconstruct3D, ProtRelionBase):
     """ This protocol reconstructs a volume using Relion.
 
     Reconstruct a volume from a given set of particles.
@@ -43,6 +44,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
     and used as direction projections to reconstruct.
     """
     _label = 'reconstruct'
+    _devStatus = PROD
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
@@ -55,10 +57,10 @@ class ProtRelionReconstruct(ProtReconstruct3D):
                       help='Select the input images from the project.')
         form.addParam('symmetryGroup', StringParam, default='c1',
                       label="Symmetry group",
-                      help='See [[Relion Symmetry][http://www2.mrc-lmb.cam.ac.uk/'
-                           'relion/index.php/Conventions_%26_File_formats#Symmetry]] '
-                           'page for a description of the symmetry format '
-                           'accepted by Relion')
+                      help='See [[https://relion.readthedocs.io/'
+                           'en/latest/Reference/Conventions.html#symmetry]'
+                           '[Relion Symmetry]] page for a description '
+                           'of the symmetry format accepted by Relion')
         form.addParam('maxRes', FloatParam, default=-1,
                       label="Maximum resolution (A)",  
                       help='Maximum resolution (in Angstrom) to consider \n'
@@ -70,10 +72,9 @@ class ProtRelionReconstruct(ProtReconstruct3D):
                       display=EnumParam.DISPLAY_HLIST,
                       label='Subset to reconstruct',
                       help='Subset of images to consider.')
-        if Plugin.IS_GT30():
-            form.addParam('classNum', IntParam, default=-1,
-                          label='Use only this class',
-                          help='Consider only this class (-1: use all classes)')
+        form.addParam('classNum', IntParam, default=-1,
+                      label='Use only this class',
+                      help='Consider only this class (-1: use all classes)')
         
         form.addParam('extraParams', StringParam, default='',
                       expertLevel=LEVEL_ADVANCED,
@@ -96,12 +97,6 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         self._insertReconstructStep()
         self._insertFunctionStep('createOutputStep')
 
-    def _getProgram(self, program='relion_reconstruct'):
-        """ Get the program name depending on the MPI use or not. """
-        if self.numberOfMpi > 1:
-            program += '_mpi'
-        return program
-
     def _insertReconstructStep(self):
         imgSet = self.inputParticles.get()
 
@@ -114,9 +109,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
 
         subset = -1 if self.subset.get() == 0 else self.subset
         params += ' --subset %d' % subset
-
-        if Plugin.IS_GT30():
-            params += ' --class %d' % self.classNum.get()
+        params += ' --class %d' % self.classNum.get()
 
         if self.doCTF:
             params += ' --ctf'
@@ -133,7 +126,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
 
     # -------------------------- STEPS functions ------------------------------
     def reconstructStep(self, params):
-        self.runJob(self._getProgram(), params)
+        self._runProgram('relion_reconstruct', params)
 
     def _createFilenameTemplates(self):
         """ Centralize how files are called for iterations and references. """
@@ -153,8 +146,7 @@ class ProtRelionReconstruct(ProtReconstruct3D):
         # Pass stack file as None to avoid write the images files
         convert.writeSetOfParticles(imgSet, imgStar,
                                     outputDir=self._getTmpPath(),
-                                    alignType=ALIGN_PROJ,
-                                    fillRandomSubset=True)
+                                    alignType=ALIGN_PROJ)
 
     def createOutputStep(self):
         imgSet = self.inputParticles.get()

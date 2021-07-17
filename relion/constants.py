@@ -32,15 +32,19 @@ import pwem.emlib.metadata as md
 
 RELION_HOME = 'RELION_HOME'
 RELION_CUDA_LIB = 'RELION_CUDA_LIB'
+RELION_PYTHON = 'RELION_PYTHON'
 
 # Supported versions:
-V3_0 = '3.0'
-V3_1 = '3.1.0'
+V3_1_0 = '3.1.0'
+V3_1_1 = '3.1.1'
+V3_1_2 = '3.1.2'
+V4_0 = '4.0'
 
 MASK_FILL_ZERO = 0
 MASK_FILL_NOISE = 1
 
-ANGULAR_SAMPLING_LIST = ['30', '15', '7.5', '3.7', '1.8', '0.9', '0.5', '0.2', '0.1']
+ANGULAR_SAMPLING_LIST = ['30', '15', '7.5', '3.7', '1.8', '0.9', '0.5',
+                         '0.2', '0.1', '0.06', '0.03', '0.01', '0.007', '0.004']
 
 # Micrograph type constants for particle extraction
 SAME_AS_PICKING = 0
@@ -50,7 +54,7 @@ OTHER = 1
 REF_AVERAGES = 0
 REF_VOLUME = REF_BLOBS = 1
 
-# Used in ctf-refinment
+# Used in ctf-refinement
 FIT_NO = 0
 FIT_MICS = 1
 FIT_PARTS = 2
@@ -169,11 +173,10 @@ ALIGNMENT_DICT = OrderedDict([
 
 
 PARTICLE_EXTRA_LABELS = [
-    'rlnBfactor',
     'rlnCtfBfactor',
     'rlnCtfScalefactor',
     'rlnPhaseShift',
-    'rlnParticleSelectZScore',
-    'rlnMovieFrameNumber',
-    'rlnGroupName'
+    'rlnGroupName',
+    'rlnGroupNumber',
+    'rlnRandomSubset'
 ]

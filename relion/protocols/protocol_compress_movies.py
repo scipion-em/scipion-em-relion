@@ -28,7 +28,7 @@ import os
 
 import pyworkflow.protocol.params as params
 import pyworkflow.utils as pwutils
-from pyworkflow.constants import VERSION_3_0
+from pyworkflow.constants import PROD
 from pwem.protocols import ProtAlignMovies
 from pwem.objects import MovieAlignment
 from pyworkflow.protocol import STEPS_PARALLEL
@@ -40,8 +40,8 @@ class ProtRelionCompressMovies(ProtAlignMovies):
     """
     Using *relion_convert_to_tiff* to compress a set of movies.
     """
-    _lastUpdateVersion = VERSION_3_0
     _label = 'compress movies'
+    _devStatus = PROD
 
     OP_COMPRESS = 0
     OP_ESTIMATE = 1
@@ -120,10 +120,6 @@ class ProtRelionCompressMovies(ProtAlignMovies):
     def _validate(self):
         # Check base validation before the specific ones for Motioncor
         errors = ProtAlignMovies._validate(self)
-
-        if not relion.Plugin.getActiveVersion():
-            errors.append("Could not detect the current Relion version. \n"
-                          "RELION_HOME='%s'" % relion.Plugin.getHome())
 
         return errors
 

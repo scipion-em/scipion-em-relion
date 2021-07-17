@@ -27,10 +27,10 @@
 import os
 
 import pyworkflow.tests as pwtests
+from pyworkflow.utils import copyTree, magentaStr
 import pwem.protocols as emprot
 from pwem.tests.workflows import TestWorkflow
 from pwem.objects import SetOfMovies
-from pyworkflow.utils import copyTree, join, magentaStr
 
 import relion
 import relion.convert
@@ -43,8 +43,8 @@ GPUS = os.environ.get('SCIPION_TEST_GPUS', 2)
 
 class Relion3TestProtocolBase(TestWorkflow):
     GROUP_NAME = "opticsGroupTest"
-    MTF_FILE = join(os.path.dirname(relion.convert.__file__), 'mtfs',
-                    'mtf_k2_300_ec.star')
+    MTF_FILE = os.path.join(os.path.dirname(relion.convert.__file__), 'mtfs',
+                            'mtf_k2_300_ec.star')
 
     @classmethod
     def setUpClass(cls):
@@ -137,10 +137,6 @@ class Relion3TestAssignOptics(Relion3TestProtocolBase):
                 self.assertTrue(os.path.exists(m.getFileName()))
 
     def test_single(self):
-        if relion.Plugin.IS_30():
-            print("This test only makes sense for Relion >= 3.1. Exiting...")
-            return
-
         def _checkAcq(output):
             og = OpticsGroups.fromImages(output)
             fog = og.first()
@@ -239,14 +235,11 @@ class Relion3TestMotioncor(Relion3TestProtocolBase):
         self._checkOutputMovies(protRelionMc, 3)
 
     def test_1x1_PS(self):
-        if relion.Plugin.IS_GT30():
-            print(magentaStr("\n==> Testing relion - motioncor (global + PS):"))
-            protRelionMc = self._runRelionMc(self.protImport, objLabel='relion - mc PS',
-                                             patchX=1, patchY=1,
-                                             savePSsum=True)
-            self._checkOutputMovies(protRelionMc, 3)
-        else:
-            print("Cannot test motioncorr with PS saving - it's only available for Relion 3.1+")
+        print(magentaStr("\n==> Testing relion - motioncor (global + PS):"))
+        protRelionMc = self._runRelionMc(self.protImport, objLabel='relion - mc PS',
+                                         patchX=1, patchY=1,
+                                         savePSsum=True)
+        self._checkOutputMovies(protRelionMc, 3)
 
     def test_3x3_DW(self):
         print(magentaStr("\n==> Testing relion - motioncor (local + DW):"))
@@ -325,11 +318,7 @@ class TestRelion31ImportParticles(pwtests.BaseTest):
             self.assertTrue(eval(cond), 'Condition failed: ' + cond)
 
     def test_fromExtract(self):
-        """ Import particles.star from Extract job.
-        """
-        if not relion.Plugin.IS_GT30():
-            return
-
+        """ Import particles.star from Extract job. """
         starFile = self.ds.getFile('Extract/job018/particles.star')
         optics = OpticsGroups.fromStar(starFile).first()
 
@@ -347,8 +336,6 @@ class TestRelion31ImportParticles(pwtests.BaseTest):
     def test_fromClassify2D(self):
         """ Import particles from Classify 2d job star file.
         """
-        if not relion.Plugin.IS_GT30():
-            return
         starFile = self.ds.getFile('Class2D/job013/run_it025_data.star')
         optics = OpticsGroups.fromStar(starFile).first()
 
@@ -365,11 +352,7 @@ class TestRelion31ImportParticles(pwtests.BaseTest):
         self.checkOutput(prot1, 'outputClasses')
 
     def test_fromRefine3D(self):
-        """ Import particles from Refine3D job star file.
-        """
-        if not relion.Plugin.IS_GT30():
-            return
-
+        """ Import particles from Refine3D job star file. """
         starFile = self.ds.getFile('Refine3D/job019/run_it020_data.star')
         optics = OpticsGroups.fromStar(starFile).first()
 
@@ -385,11 +368,7 @@ class TestRelion31ImportParticles(pwtests.BaseTest):
         self.checkOutput(prot1, 'outputParticles', ['outputParticles.hasAlignmentProj()'])
 
     def test_fromClassify3D(self):
-        """ Import particles from Classify3D job star file.
-        """
-        if not relion.Plugin.IS_GT30():
-            return
-
+        """ Import particles from Classify3D job star file. """
         starFile = self.ds.getFile('Class3D/job016/run_it025_data.star')
         optics = OpticsGroups.fromStar(starFile).first()
 

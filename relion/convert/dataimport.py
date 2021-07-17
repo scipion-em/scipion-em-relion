@@ -25,7 +25,6 @@
 # **************************************************************************
 
 import os
-from os.path import exists
 from collections import OrderedDict
 from emtable import Table
 
@@ -37,7 +36,6 @@ import pyworkflow.utils as pwutils
 
 from .convert31 import OpticsGroups
 from .convert_utils import relionToLocation
-#from .convert_deprecated import readSetOfParticles, rowToCoordinate
 
 
 class FileTransform:
@@ -86,7 +84,7 @@ class RelionImport:
         self._imgDict = {}  # store which images stack have been linked/copied and the new path
         self._findImagesPath('rlnImageName')
         if self._micIdOrName:
-            # If MDL_MICROGRAPH_ID or MDL_MICROGRAPH then
+            # If rlnMicrographName or rlnMicrographId then
             # create a set to link from particles
             self.micSet = self.protocol._createSetOfMicrographs()
             self.protocol.setSamplingRate(self.micSet)
@@ -99,6 +97,7 @@ class RelionImport:
         # Update both samplingRate and acquisition with parameters
         # selected in the protocol form
         self.protocol.setSamplingRate(partSet)
+        self._pixelSize = self.protocol.samplingRate.get()
         partSet.setIsPhaseFlipped(self.protocol.haveDataBeenPhaseFlipped.get())
         self.protocol.fillAcquisition(partSet.getAcquisition())
         # Read the micrographs from the 'self._starFile' metadata
@@ -117,7 +116,8 @@ class RelionImport:
                 self._starFile, partSet,
                 preprocessImageRow=None,
                 postprocessImageRow=self._postprocessImageRow,
-                readAcquisition=True, alignType=self.alignType)
+                readAcquisition=False, alignType=self.alignType,
+                pixelSize=self._pixelSize)
 
         if self._micIdOrName:
             self.protocol._defineOutputs(outputMicrographs=self.micSet)
@@ -136,9 +136,10 @@ class RelionImport:
             item._rlnclassDistribution = Float(row.get('rlnClassDistribution'))
             item._rlnAccuracyRotations = Float(row.get('rlnAccuracyRotations'))
             if self.version30:
-                item._rlnAccuracyTranslations = Float(row.get('rlnAccuracyTranslations'))
+                accInAngst = row.get('rlnAccuracyTranslations') * self._pixelSize
+                item._rlnAccuracyTranslationsAngst = Float(accInAngst)
             else:
-                item._rlnAccuracyTranslations = Float(row.get('rlnAccuracyTranslationsAngst'))
+                item._rlnAccuracyTranslationsAngst = Float(row.get('rlnAccuracyTranslationsAngst'))
 
     def _createClasses(self, partSet):
         self._classesDict = {}  # store classes info, indexed by class id
@@ -187,12 +188,12 @@ class RelionImport:
         """
         modelStarFile = dataStar.replace('_data.star', '_model.star')
 
-        if exists(modelStarFile):
+        if os.path.exists(modelStarFile):
             result = modelStarFile
         else:
             modelHalfStarFile = self._starFile.replace('_data.star',
                                                        '_half1_model.star')
-            if exists(modelHalfStarFile):
+            if os.path.exists(modelHalfStarFile):
                 result = modelHalfStarFile
             else:
                 result = None
@@ -212,7 +213,7 @@ class RelionImport:
             self.version30 = True
             self.protocol.warning("Import from Relion version < 3.1 ...")
         else:
-            acqRow = OpticsGroups.fromStar(self._starFile)
+            acqRow = OpticsGroups.fromStar(self._starFile).first()
             # read particles table
             table = Table(fileName=self._starFile, tableName='particles')
             row = table[0]
@@ -222,6 +223,11 @@ class RelionImport:
                             % (label, self._starFile))
 
         index, fn = relionToLocation(row.get(label))
+        # Relion does not allow abs paths
+        if fn.startswith("/"):
+            raise Exception("ERROR: %s cannot be an absolute path: %s\n"
+                            "Please create a symlink to an abs path instead."
+                            % (label, fn))
         self._imgPath = pwutils.findRootFrom(self._starFile, fn)
 
         if warnings and self._imgPath is None:
@@ -236,7 +242,7 @@ class RelionImport:
             classDimensionality = int(modelRow.rlnReferenceDimensionality)
             self._optimiserFile = self._starFile.replace('_data.star',
                                                          '_optimiser.star')
-            if not exists(self._optimiserFile):
+            if not os.path.exists(self._optimiserFile):
                 autoRefine = int(modelRow.rlnNrClasses) == 1
             else:
                 optimiserRow = Table(fileName=self._optimiserFile,
@@ -271,8 +277,8 @@ class RelionImport:
 
         print("alignType: ", self.alignType)
             
-        # Check if the MetaData contains either MDL_MICROGRAPH_ID
-        # or MDL_MICROGRAPH, this will be used when imported
+        # Check if the MetaData contains either rlnMicrographName
+        # or rlnMicrographId, this will be used when imported
         # particles to keep track of the particle's micrograph
         self._micIdOrName = (row.get('rlnMicrographName', False) or
                              row.get('rlnMicrographId', False))
@@ -392,8 +398,7 @@ class RelionImport:
     def loadAcquisitionInfo(self):
         """ Return a dictionary with acquisition values and 
         the sampling rate information.
-        In the case of Xmipp, they are stored in files:
-        acquisition_info.xmd and microscope.xmd 
+        In the case of Relion, they are stored in the optics table
         """
         acquisitionDict = OrderedDict()
 

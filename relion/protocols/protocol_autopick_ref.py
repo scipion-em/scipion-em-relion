@@ -24,7 +24,7 @@
 # *
 # **************************************************************************
 
-from os.path import relpath
+from os.path import relpath, abspath
 
 import pyworkflow.protocol.params as params
 from pwem.protocols import ProtParticlePickingAuto
@@ -32,7 +32,9 @@ from pwem.constants import RELATION_CTF
 from pwem.emlib.image import ImageHandler
 from pyworkflow.utils.properties import Message
 import pyworkflow.utils as pwutils
+from pyworkflow.constants import PROD
 
+from relion import Plugin
 import relion.convert
 from ..constants import *
 from .protocol_autopick import ProtRelionAutopickBase
@@ -47,6 +49,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
     The wrapper implementation does not read/write any FOM maps compared to Relion
     """
     _label = 'auto-picking'
+    _devStatus = PROD
 
     # -------------------------- DEFINE param functions ------------------------
     def _defineParams(self, form):
@@ -93,10 +96,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
                       label='Input references', important=True,
                       help='Input references (SetOfAverages) for auto-pick. \n\n'
                            'Note that the absolute greyscale needs to be correct, \n'
-                           'so only use images with proper normalization. '
-                           'From Relion 3.0 it is also possible to provide a '
-                           '3D volume which projections will be used as '
-                           'references.')
+                           'so only use images with proper normalization.')
 
         form.addParam('inputReferences3D', params.PointerParam,
                       pointerClass='Volume',
@@ -128,15 +128,15 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
                            "go finer to adequately sample the asymmetric part of "
                            "the sphere.")
 
-        form.addParam('particleDiameter', params.IntParam, default=-1,
-                      label='Mask diameter (A)',
-                      help='Diameter of the circular mask that will be applied '
-                           'around the templates in Angstroms. When set to a '
-                           'negative value, this value is estimated '
-                           'automatically from the templates themselves.')
+        if not Plugin.IS_GT31():
+            form.addParam('particleDiameter', params.IntParam, default=-1,
+                          label='Mask diameter (A)',
+                          help='Diameter of the circular mask that will be applied '
+                               'around the templates in Angstroms. When set to a '
+                               'negative value, this value is estimated '
+                               'automatically from the templates themselves.')
 
         form.addParam('lowpassFilterRefs', params.IntParam, default=20,
-                      condition=refCondition,
                       label='Lowpass filter references (A)',
                       help='Lowpass filter that will be applied to the '
                            'references before template matching. \n'
@@ -339,17 +339,19 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         # - maxStd
         params = ' --pickname autopick'
         params += ' --odir "./"'
-        params += ' --particle_diameter %d' % self.particleDiameter
         params += ' --angpix %0.5f' % self.getInputMicrographs().getSamplingRate()
         params += ' --shrink %0.3f' % self.shrinkFactor
+
+        if not Plugin.IS_GT31():
+            params += ' --particle_diameter %d' % self.particleDiameter
 
         if self.doGpu:
             params += ' --gpu "%s"' % self.gpusToUse
 
         if self.useInputReferences():
-            params += ' --ref ../../reference_2d.stk'
+            params += ' --ref %s' % abspath(self._getPath('reference_2d.stk'))
         else:  # 3D reference
-            params += ' --ref ../../reference_3d.mrc'
+            params += ' --ref %s' % abspath(self._getPath('reference_3d.mrc'))
             params += ' --sym %s' % self.symmetryGroup
             params += ' --healpix_order %d' % (int(self.angularSamplingDeg.get()) + 1)
 
@@ -418,7 +420,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         errors = []
 
         if self.useInputReferences():
-            if self.particleDiameter > self.getInputDimA():
+            if not Plugin.IS_GT31() and (self.particleDiameter > self.getInputDimA()):
                 errors.append('Particle diameter (%d) can not be greater than '
                               'size (%d)' % (self.particleDiameter,
                                              self.getInputDimA()))
@@ -475,7 +477,10 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         micsSampling = inputMics.getSamplingRate()
 
         if inputRefs is None:
-            boxSize = int(self.particleDiameter.get() * 1.25 / micsSampling)
+            if Plugin.IS_GT31():
+                boxSize = 128
+            else:
+                boxSize = int(self.particleDiameter.get() * 1.25 / micsSampling)
         else:
             # Scale boxsize if the pixel size of the references is not the same
             # of the micrographs

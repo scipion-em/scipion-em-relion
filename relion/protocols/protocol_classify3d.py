@@ -25,11 +25,10 @@
 # **************************************************************************
 from emtable import Table
 
-import pwem
+from pyworkflow.constants import PROD
+from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtClassify3D
 
-import relion
-from relion import Plugin
 import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
@@ -44,10 +43,11 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
     """
 
     _label = '3D classification'
+    _devStatus = PROD
     CHANGE_LABELS = ['rlnChangesOptimalOrientations',
                      'rlnChangesOptimalOffsets',
                      'rlnOverallAccuracyRotations',
-                     'rlnOverallAccuracyTranslationsAngst' if Plugin.IS_GT30() else 'rlnOverallAccuracyTranslations',
+                     'rlnOverallAccuracyTranslationsAngst',
                      'rlnChangesOptimalClasses']
     
     def __init__(self, **args):        
@@ -68,10 +68,18 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
             args['--offset_range'] = self.offsetSearchRangePix.get()
             args['--offset_step'] = self.offsetSearchStepPix.get() * self._getSamplingFactor()
 
+            # check if sigma_ang is in extra params
+            # before adding the default value
             if self.localAngularSearch:
-                args['--sigma_ang'] = self.localAngularSearchRange.get() / 3.
+                if self.relaxSymm.get():
+                    args['--relax_sym'] = self.relaxSymm.get()
+                if self.extraParams.hasValue():
+                    if self.extraParams.get().find("--sigma_ang") == -1:
+                        args['--sigma_ang'] = self.localAngularSearchRange.get() / 3.
+                else:
+                    args['--sigma_ang'] = self.localAngularSearchRange.get() / 3.
 
-            if relion.Plugin.IS_GT30() and self.allowCoarserSampling:
+            if self.allowCoarserSampling:
                 args['--allow_coarser_sampling'] = ''
 
         else:
@@ -156,6 +164,6 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
     # -------------------------- UTILS functions ------------------------------
     def _fillClassesFromIter(self, clsSet, iteration):
         """ Create the SetOfClasses3D from a given iteration. """
-        classLoader = convert.ClassesLoader(self, pwem.ALIGN_PROJ)
+        classLoader = convert.ClassesLoader(self, ALIGN_PROJ)
         classLoader.fillClassesFromIter(clsSet, iteration)
 

@@ -110,9 +110,9 @@ class CtfRefineGlobalInfo:
         self._infoSet.close()
 
 
-class CtfRefineMicInfo(pwobj.OrderedObject):
+class CtfRefineMicInfo(pwobj.Object):
     def __init__(self, **kwargs):
-        pwobj.OrderedObject.__init__(self, **kwargs)
+        pwobj.Object.__init__(self, **kwargs)
 
         self.micId = pwobj.Integer(kwargs.get('micId', None))
         self.micName = pwobj.String(kwargs.get('micName', None))

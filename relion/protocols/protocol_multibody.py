@@ -29,6 +29,7 @@ from emtable import Table
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
+from pyworkflow.constants import PROD
 from pwem.objects import Volume, Float
 from pwem.protocols import ProtAnalysis3D
 
@@ -52,6 +53,7 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
     the most important motions in the data.
     """
     _label = '3D multi-body'
+    _devStatus = PROD
 
     def _getInputPath(self, *paths):
         return self._getPath('input', *paths)
@@ -82,7 +84,7 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
         # FIXME: Find an easy way to avoid input a file here
         form.addParam('bodyStarFile', params.FileParam,
                       label='Body STAR file',
-                      help=' Provide the STAR file with all information '
+                      help='Provide the STAR file with all information '
                            'about the bodies to be used in multi-body '
                            'refinement. An example for a three-body '
                            'refinement would look like this:\n'
@@ -222,17 +224,14 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         pwutils.copyFile(self.bodyStarFile.get(),
                          self._getExtraPath('input_body.star'))
 
-    def _runProgram(self, program, args):
-        params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.items()])
-        if program == 'relion_refine' and self.numberOfMpi > 1:
-            program += '_mpi'
-        self.runJob(program, params)
-
     def multibodyRefineStep(self, args):
-        self._runProgram('relion_refine', args)
+        params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.items()])
+        self._runProgram('relion_refine', params)
 
     def flexAnalysisStep(self, args):
-        self._runProgram('relion_flex_analyse', args)
+        params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.items()])
+        # use runJob since MPI is not allowed
+        self.runJob('relion_flex_analyse', params)
 
     def createOutputStep(self):
         protRefine = self.protRefine.get()
@@ -304,7 +303,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         row = self._volsInfo[bodyNum]
         # TODO: check if the following makes sense for Volume
         item._rlnAccuracyRotations = Float(row.rlnAccuracyRotations)
-        item._rlnAccuracyTranslations = Float(row.rlnAccuracyTranslations)
+        item._rlnAccuracyTranslationsAngst = Float(row.rlnAccuracyTranslationsAngst)
 
     def _getRefineArgs(self):
         """ Define all parameters to run relion_refine.

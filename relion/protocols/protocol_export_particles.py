@@ -28,13 +28,13 @@ import os
 
 import pyworkflow.protocol.params as params
 import pyworkflow.utils as pwutils
-import pwem
+from pyworkflow.constants import PROD
+from pwem.constants import ALIGN_NONE
 from pwem.emlib.image import ImageHandler
 from pwem.protocols import ProtProcessParticles
 
-import relion
 import relion.convert as convert
-from ..constants import STACK_NONE, STACK_MULT, STACK_ONE
+from ..constants import STACK_MULT, STACK_ONE
 from .protocol_base import ProtRelionBase
 
 
@@ -42,6 +42,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
     """ Export particles from Relion to be used outside Scipion. """
 
     _label = 'export particles'
+    _devStatus = PROD
     PTCLS_STAR_FILE = 'particles_%06d.star'
     
     # --------------------------- DEFINE param functions ----------------------
@@ -88,7 +89,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
         self._ih = ImageHandler()
         self._stackDict = {}
 
-        alignType = imgSet.getAlignment() if self.useAlignment else pwem.ALIGN_NONE
+        alignType = imgSet.getAlignment() if self.useAlignment else ALIGN_NONE
         outputDir = None
         outputStack = None
         postprocessImageRow = None
@@ -100,12 +101,6 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
         elif self._stackType == STACK_MULT:
             postprocessImageRow = self._postprocessImageRow
             outputDir = self._getExportPath("Particles")
-
-        # We still need to maintain some old code for Relion 3.0
-        if relion.Plugin.IS_30():
-            outputDir = self._getExportPath("Particles")
-            pwutils.makePath(outputDir)
-            postprocessImageRow = self._postprocessImageRow30
 
         # Create links to binary files and write the relion .star file
         convert.writeSetOfParticles(
@@ -139,35 +134,6 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
         """ Stack fn should be relative to Export.
         Only relevant when saving multiple stacks. """
         convert.relativeFromFileName(row, self._getExportPath())
-
-    # TODO: Remove this function when support for 3.0 is dropped
-    def _postprocessImageRow30(self, img, row):
-        """ Write the binary image to the final stack
-        and update the row imageName. """
-
-        if self._stackType > STACK_NONE:
-            rlnImageName = row.getValue('rlnImageName')
-            # backup the original name
-            row.setValue('rlnOriginalParticleName', rlnImageName)
-
-            if self._stackType == STACK_ONE:
-                self._count = getattr(self, '_count', 1)
-                index, stackName = (self._count, 'particles.mrcs')
-                self._count += 1
-            else:  # STACK_MULT
-                baseName = pwutils.removeBaseExt(img.getFileName())
-                if baseName not in self._stackDict:
-                    self._stackDict[baseName] = 0
-                index = self._stackDict[baseName] + 1
-                stackName = baseName + '.mrcs'
-                self._stackDict[baseName] = index
-
-            stackFn = self._getExportPath("Particles", stackName)
-            self._ih.convert(img, (index, stackFn))
-            # Store relative path in the star file
-            relStackFn = os.path.relpath(stackFn, self._getExportPath())
-            row.setValue('rlnImageName',
-                         convert.locationToRelion(index, relStackFn))
 
     def _getExportPath(self, *paths):
         return os.path.join(self._getPath('Export'), *paths)

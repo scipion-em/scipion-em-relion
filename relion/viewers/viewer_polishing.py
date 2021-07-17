@@ -81,7 +81,7 @@ class RelionPolishViewer(ProtocolViewer):
             title = "Polishing B-factors"
 
         modelStar = self.protocol._getFileName('bfactors')
-        if pwutils.exists(modelStar):
+        if os.path.exists(modelStar):
             table = Table(fileName=modelStar, tableName='perframe_bfactors')
             frame = table.getColumnValues('rlnMovieFrameNumber')
             bfactor = map(float, table.getColumnValues(label))

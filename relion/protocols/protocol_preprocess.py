@@ -6,7 +6,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -25,12 +25,14 @@
 # **************************************************************************
 
 import pyworkflow.utils as pwutils
-import pwem
-
-from pwem.protocols import ProtProcessParticles
 from pyworkflow.protocol.params import (PointerParam, BooleanParam,
                                         FloatParam, IntParam, Positive)
 from pyworkflow.protocol import STEPS_PARALLEL
+from pyworkflow.constants import PROD
+from pwem.constants import NO_INDEX
+from pwem.objects import SetOfAverages
+from pwem.protocols import ProtProcessParticles
+
 import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
@@ -42,6 +44,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
     the particles.
     """
     _label = 'preprocess particles'
+    _devStatus = PROD
     
     def __init__(self, **args):
         ProtProcessParticles.__init__(self, **args)
@@ -169,7 +172,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
     def createOutputStep(self):
         inputSet = self.inputParticles.get()
         
-        if isinstance(inputSet, pwem.objects.SetOfAverages):
+        if isinstance(inputSet, SetOfAverages):
             imgSet = self._createSetOfAverages()
         else:
             imgSet = self._createSetOfParticles()
@@ -280,7 +283,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
 
     def _setFileName(self, item, row=None):
         index, fn = item.getLocation()
-        index = 1 if index == pwem.NO_INDEX else index
+        index = 1 if index == NO_INDEX else index
         item.setLocation(index, self._getOutStack(fn))
         
         invFactor = 1 / self._getScaleFactor(item)

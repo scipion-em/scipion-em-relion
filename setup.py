@@ -107,7 +107,7 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
 
         # Indicate who your project is intended for
         #   'Intended Audience :: Users',
@@ -165,7 +165,7 @@ setup(
     # MANIFEST.in as well.
     # include_package_data=True,
     package_data={  # Optional
-       'relion': ['relion_logo.png', 'protocols.conf', 'convert/mtfs/*.star'],
+       'relion': ['relion_logo.jpg', 'protocols.conf', 'convert/mtfs/*.star'],
     },
 
     # Although 'package_data' is the preferred approach, in some case you may

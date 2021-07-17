@@ -25,13 +25,13 @@
 # **************************************************************************
 from emtable import Table
 
-from pyworkflow.object import Integer
-import pwem
+from pyworkflow.constants import PROD
+from pwem.constants import ALIGN_PROJ
 from pwem.objects import Volume, FSC
 from pwem.protocols import ProtRefine3D
 
-from relion import Plugin
 import relion.convert as convert
+from ..constants import PARTICLE_EXTRA_LABELS
 from .protocol_base import ProtRelionBase
 
 
@@ -45,11 +45,12 @@ parameters of a statistical model are learned from the data,which
 leads to objective and high-quality results.
     """    
     _label = '3D auto-refine'
+    _devStatus = PROD
     IS_CLASSIFY = False
     CHANGE_LABELS = ['rlnChangesOptimalOrientations',
                      'rlnChangesOptimalOffsets',
                      'rlnOverallAccuracyRotations',
-                     'rlnOverallAccuracyTranslationsAngst' if Plugin.IS_GT30() else 'rlnOverallAccuracyTranslations']
+                     'rlnOverallAccuracyTranslationsAngst']
 
     PREFIXES = ['half1_', 'half2_']
     
@@ -68,7 +69,9 @@ leads to objective and high-quality results.
     def _setSamplingArgs(self, args):
         """ Set sampling related params"""
         args['--auto_local_healpix_order'] = self.localSearchAutoSamplingDeg.get()
-        
+        if self.relaxSymm.get():
+            args['--relax_sym'] = self.relaxSymm.get()
+
         if not self.doContinue:
             args['--healpix_order'] = self.angularSamplingDeg.get()
             args['--offset_range'] = self.offsetSearchRangePix.get()
@@ -81,7 +84,7 @@ leads to objective and high-quality results.
             if joinHalves not in self.extraParams.get():
                 args['--low_resol_join_halves'] = 40
 
-            if self.IS_GT30() and self.useFinerSamplingFaster:
+            if self.useFinerSamplingFaster:
                 args['--auto_ignore_angles'] = ''
                 args['--auto_resol_angles'] = ''
 
@@ -165,13 +168,12 @@ leads to objective and high-quality results.
 
     # -------------------------- UTILS functions ------------------------------
     def _fillDataFromIter(self, imgSet, iteration):
-        tableName = 'particles@' if self.IS_GT30() else ''
         outImgsFn = self._getFileName('data', iter=iteration)
         imgSet.setAlignmentProj()
-        self.reader = convert.createReader(alignType=pwem.ALIGN_PROJ,
+        self.reader = convert.createReader(alignType=ALIGN_PROJ,
                                            pixelSize=imgSet.getSamplingRate())
 
-        mdIter = Table.iterRows(tableName + outImgsFn, key='rlnImageId')
+        mdIter = Table.iterRows('particles@' + outImgsFn, key='rlnImageId')
         imgSet.copyItems(self._getInputParticles(), doClone=False,
                          updateItemCallback=self._updateParticle,
                          itemDataIterator=mdIter)
@@ -179,8 +181,8 @@ leads to objective and high-quality results.
     def _updateParticle(self, particle, row):
         self.reader.setParticleTransform(particle, row)
 
-        if not hasattr(particle, '_rlnRandomSubset'):
-            particle._rlnRandomSubset = Integer()
-
-        particle._rlnRandomSubset.set(row.rlnRandomSubset)
-
+        if getattr(self, '__updatingFirst', True):
+            self.reader.createExtraLabels(particle, row, PARTICLE_EXTRA_LABELS)
+            self.__updatingFirst = False
+        else:
+            self.reader.setExtraLabels(particle, row)

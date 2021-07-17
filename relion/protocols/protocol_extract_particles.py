@@ -30,12 +30,14 @@ from pyworkflow.object import Set, Integer
 import pyworkflow.utils as pwutils
 from pyworkflow.protocol.constants import STATUS_FINISHED
 import pyworkflow.protocol.params as params
+from pyworkflow.constants import PROD
 
 from pwem.protocols import ProtExtractParticles
 from pwem.emlib.image import ImageHandler
 from pwem.objects import Particle, Acquisition, SetOfParticles
 
 import relion.convert
+from relion import Plugin
 from relion.convert.convert31 import OpticsGroups
 from relion.constants import OTHER
 from .protocol_base import ProtRelionBase
@@ -45,6 +47,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
     """ Protocol to extract particles using a set of coordinates. """
 
     _label = 'particles extraction'
+    _devStatus = PROD
 
     def __init__(self, **kwargs):
         ProtExtractParticles.__init__(self, **kwargs)
@@ -74,6 +77,14 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                       label='Re-scaled size (px)',
                       help='Final size in pixels of the extracted particles. '
                            'The provided value should be an even number. ')
+
+        if relion.Plugin.IS_GT31():
+            form.addParam('saveFloat16', params.BooleanParam, default=False,
+                          expertLevel=params.LEVEL_ADVANCED,
+                          label="Write output in float16?",
+                          help="Relion can write output images in float16 "
+                               "MRC (mode 12) format to save disk space. "
+                               "By default, float32 format is used.")
 
         form.addSection(label='Preprocess')
 
@@ -220,6 +231,11 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         if self.doRescale and self.rescaledSize.get() % 2 == 1:
             errors.append("Only re-scaling to even-sized images is allowed "
                           "in RELION.")
+
+        if self.hasAttribute('saveFloat16') and self.saveFloat16:
+            errors.append("MRC float16 format is not yet supported by XMIPP, "
+                          "so you cannot use this option.")
+
         return errors
 
     def _citations(self):
@@ -258,7 +274,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                 methodsMsgs.append("Inverted contrast on images.")
             if self._doDownsample():
                 methodsMsgs.append("Particles downsampled by a factor of %0.2f."
-                                   % self.downFactor)
+                                   % self._getDownFactor())
 
         return methodsMsgs
 
@@ -302,8 +318,9 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         params += ' --coord_suffix .coords.star'
         params += ' --part_dir "." --extract '
         params += ' --extract_size %d' % self.boxSize
-        if relion.Plugin.IS_30():
-            params += ' --set_angpix %0.5f' % self._getNewSampling()
+
+        if Plugin.IS_GT31() and self.saveFloat16:
+            params += "--float16 "
 
         if self.backDiameter <= 0:
             diameter = self.boxSize.get() * 0.75

@@ -36,13 +36,13 @@ from pyworkflow.protocol.params import (BooleanParam, PointerParam, FloatParam,
                                         LabelParam, PathParam)
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 
-import pwem
+from pwem.constants import ALIGN_PROJ, ALIGN_NONE
 from pwem.emlib.image import ImageHandler
-from pwem.objects import SetOfClasses3D
+from pwem.objects import SetOfClasses3D, SetOfParticles, SetOfVolumes, Volume
 from pwem.protocols import EMProtocol
 
-import relion.convert
 from relion import Plugin
+import relion.convert
 from ..constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO
 
 
@@ -65,7 +65,7 @@ class ProtRelionBase(EMProtocol):
     CHANGE_LABELS = ['rlnChangesOptimalOrientations',
                      'rlnChangesOptimalOffsets',
                      'rlnOverallAccuracyRotations',
-                     'rlnOverallAccuracyTranslationsAngst' if Plugin.IS_GT30() else 'rlnOverallAccuracyTranslations',
+                     'rlnOverallAccuracyTranslationsAngst',
                      'rlnChangesOptimalClasses']
     PREFIXES = ['']
 
@@ -99,9 +99,9 @@ class ProtRelionBase(EMProtocol):
             'model': self.extraIter + 'model.star',
             'optimiser': self.extraIter + 'optimiser.star',
             'angularDist_xmipp': self.extraIter + 'angularDist_xmipp.xmd',
-            'all_avgPmax': self._getTmpPath('iterations_avgPmax.star'),
-            'all_changes': self._getTmpPath('iterations_changes.star'),
-            'selected_volumes': self._getTmpPath('selected_volumes_xmipp.xmd'),
+            'all_avgPmax': self._getPath('iterations_avgPmax.star'),
+            'all_changes': self._getPath('iterations_changes.star'),
+            'selected_volumes': self._getPath('selected_volumes_xmipp.xmd'),
             'dataFinal': self._getExtraPath("relion_data.star"),
             'modelFinal': self._getExtraPath("relion_model.star"),
             'finalvolume': self._getExtraPath("relion_class%(ref3d)03d.mrc:mrc"),
@@ -129,7 +129,7 @@ class ProtRelionBase(EMProtocol):
         self._iterTemplate = self._getFileName('data', iter=0).replace('000', '???')
         # Iterations will be identify by _itXXX_ where XXX is the iteration number
         # and is restricted to only 3 digits.
-        self._iterRegex = re.compile('_it(\d{3,3})_')
+        self._iterRegex = re.compile('_it(\d{3})_')
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineConstants(self):
@@ -167,13 +167,7 @@ class ProtRelionBase(EMProtocol):
                            'input particles will be considered as PRIORS. This '
                            'option can be used to do restricted local '
                            'search within a range centered around those priors.')
-        form.addParam('fillRandomSubset', BooleanParam, default=False,
-                      condition='not doContinue and copyAlignment',
-                      expertLevel=LEVEL_ADVANCED,
-                      label='Consider random subset value?',
-                      help='If set to Yes, then random subset value '
-                           'of input particles will be put into the'
-                           'star file that is generated.')
+        form.addHidden('fillRandomSubset', BooleanParam, default=True)
         form.addParam('maskDiameterA', IntParam, default=-1,
                       label='Particle mask diameter (A)',
                       help='The experimental images will be masked with a '
@@ -344,15 +338,16 @@ class ProtRelionBase(EMProtocol):
                            'intrinsically implements the optimal linear, or '
                            'Wiener filter. Note that input particles should '
                            'contains CTF parameters.')
-        form.addParam('hasReferenceCTFCorrected', BooleanParam, default=False,
-                      condition='not is2D and not doContinue',
-                      label='Has reference been CTF-corrected?',
-                      help='Set this option to Yes if the reference map '
-                           'represents CTF-unaffected density, e.g. it was '
-                           'created using Wiener filtering inside RELION or '
-                           'from a PDB. If set to No, then in the first '
-                           'iteration, the Fourier transforms of the reference '
-                           'projections are not multiplied by the CTFs.')
+        if not Plugin.IS_GT31():
+            form.addParam('hasReferenceCTFCorrected', BooleanParam, default=False,
+                          condition='not is2D and not doContinue',
+                          label='Has reference been CTF-corrected?',
+                          help='Set this option to Yes if the reference map '
+                               'represents CTF-unaffected density, e.g. it was '
+                               'created using Wiener filtering inside RELION or '
+                               'from a PDB. If set to No, then in the first '
+                               'iteration, the Fourier transforms of the reference '
+                               'projections are not multiplied by the CTFs.')
         form.addParam('haveDataBeenPhaseFlipped', LabelParam,
                       condition='not doContinue',
                       label='Have data been phase-flipped?      '
@@ -439,17 +434,34 @@ class ProtRelionBase(EMProtocol):
                                'param is set 25, the final iteration of the '
                                'protocol will be the 28th.')
 
-            form.addParam('useFastSubsets', BooleanParam, default=False,
-                          condition='not doContinue',
-                          label='Use fast subsets (for large data sets)?',
-                          help='If set to Yes, the first 5 iterations will '
-                               'be done with random subsets of only K*100 '
-                               'particles (K being the number of classes); '
-                               'the next 5 with K*300 particles, the next '
-                               '5 with 30% of the data set; and the final '
-                               'ones with all data. This was inspired by '
-                               'a cisTEM implementation by Niko Grigorieff'
-                               ' et al.')
+            if (Plugin.IS_GT31() and self.IS_3D) or not Plugin.IS_GT31():
+                form.addParam('useFastSubsets', BooleanParam, default=False,
+                              condition='not doContinue',
+                              label='Use fast subsets (for large data sets)?',
+                              help='If set to Yes, the first 5 iterations will '
+                                   'be done with random subsets of only K*100 '
+                                   'particles (K being the number of classes); '
+                                   'the next 5 with K*300 particles, the next '
+                                   '5 with 30% of the data set; and the final '
+                                   'ones with all data. This was inspired by '
+                                   'a cisTEM implementation by Niko Grigorieff'
+                                   ' et al.')
+
+            if Plugin.IS_GT31() and self.IS_2D:  # relion4 2D cls case
+                form.addParam('useGradientAlg', BooleanParam, default=False,
+                              condition='not doContinue',
+                              label='Use gradient-driven algorithm?',
+                              help='If set to Yes, use faster NGrad '
+                                   'algorithm instead of the default '
+                                   'expectation maximization. If used, *increase '
+                                   'number of iterations to about 100!*')
+                form.addParam('centerAvg', BooleanParam, default=True,
+                              label='Center class averages?',
+                              help='If set to Yes, every iteration the class '
+                                   'average images will be centered on their '
+                                   'center-of-mass. This will work only for '
+                                   'positive signals, so the particles should '
+                                   'be white.')
 
             form.addParam('limitResolEStep', FloatParam, default=-1,
                           label='Limit resolution E-step to (A)',
@@ -493,7 +505,7 @@ class ProtRelionBase(EMProtocol):
                                'approximate numbers and vary slightly over '
                                'the sphere.')
         else:
-            form.addParam('inplaneAngularSamplingDeg', FloatParam, default=5,
+            form.addParam('inplaneAngularSamplingDeg', FloatParam, default=6,
                           label='In-plane angular sampling (deg)',
                           condition="doImageAlignment",
                           help='The sampling rate for the in-plane rotation '
@@ -547,6 +559,20 @@ class ProtRelionBase(EMProtocol):
                                    'that orientations closer to the optimal '
                                    'orientation in the previous iteration will '
                                    'get higher weights than those further away.')
+                form.addParam('relaxSymm', StringParam, default='',
+                              condition='localAngularSearch and doImageAlignment',
+                              label='Relax symmetry',
+                              help="With this option, poses related to the standard "
+                                   "local angular search range by the given point "
+                                   "group will also be explored. For example, if "
+                                   "you have a pseudo-symmetric dimer A-A', "
+                                   "refinement or classification in C1 with symmetry "
+                                   "relaxation by C2 might be able to improve "
+                                   "distinction between A and A'. Note that the "
+                                   "reference must be more-or-less aligned to the "
+                                   "convention of (pseudo-)symmetry operators. "
+                                   "For details, see Ilca et al 2019 and "
+                                   "Abrishami et al 2020.")
             else:
                 form.addParam('localSearchAutoSamplingDeg', EnumParam,
                               condition='not doContinue',
@@ -557,28 +583,43 @@ class ProtRelionBase(EMProtocol):
                                    'of -6/+6 times the sampling rate will be '
                                    'used from this angular sampling rate '
                                    'onwards.')
-                if self.IS_GT30():
-                    form.addParam('useFinerSamplingFaster', BooleanParam,
-                                  default=False,
-                                  label='Use finer angular sampling faster?',
-                                  help='If set to Yes, then let auto-refinement '
-                                       'proceed faster with finer angular '
-                                       'samplings. Two additional command-line '
-                                       'options will be passed to the refine '
-                                       'program:\n\n'
-                                       '\t--auto_ignore_angles lets angular '
-                                       'sampling go down despite changes '
-                                       'still happening in the angles\n'
-                                       '\t--auto_resol_angles lets angular '
-                                       'sampling go down if the current '
-                                       'resolution already requires that '
-                                       'sampling at the edge of the particle.\n\n'
-                                       'This option will make the computation '
-                                       'faster, but has nott been tested for '
-                                       'many cases for potential loss in '
-                                       'reconstruction quality upon convergence.')
+                form.addParam('relaxSymm', StringParam, default='',
+                              condition='doImageAlignment',
+                              label='Relax symmetry',
+                              help="With this option, poses related to the standard "
+                                   "local angular search range by the given point "
+                                   "group will also be explored. For example, if "
+                                   "you have a pseudo-symmetric dimer A-A', "
+                                   "refinement or classification in C1 with symmetry "
+                                   "relaxation by C2 might be able to improve "
+                                   "distinction between A and A'. Note that the "
+                                   "reference must be more-or-less aligned to the "
+                                   "convention of (pseudo-)symmetry operators. "
+                                   "For details, see Ilca et al 2019 and "
+                                   "Abrishami et al 2020.")
+                form.addParam('useFinerSamplingFaster', BooleanParam,
+                              default=False,
+                              label='Use finer angular sampling faster?',
+                              help='If set to Yes, then let auto-refinement '
+                                   'proceed faster with finer angular '
+                                   'samplings. Two additional command-line '
+                                   'options will be passed to the refine '
+                                   'program:\n\n'
+                                   '\t--auto_ignore_angles lets angular '
+                                   'sampling go down despite changes '
+                                   'still happening in the angles\n'
+                                   '\t--auto_resol_angles lets angular '
+                                   'sampling go down if the current '
+                                   'resolution already requires that '
+                                   'sampling at the edge of the particle.\n\n'
+                                   'This option will make the computation '
+                                   'faster, but has not been tested for '
+                                   'many cases for potential loss in '
+                                   'reconstruction quality upon convergence.')
 
-        if self.IS_CLASSIFY and self.IS_GT30():
+
+
+        if self.IS_CLASSIFY:
             form.addParam('allowCoarserSampling', BooleanParam,
                           condition='doImageAlignment',
                           default=False,
@@ -619,10 +660,11 @@ class ProtRelionBase(EMProtocol):
         container.addParam('symmetryGroup', StringParam, default='c1',
                            condition='not doContinue',
                            label="Symmetry",
-                           help='See [[Relion Symmetry][http://www2.mrc-lmb.cam.ac.uk/'
-                           'relion/index.php/Conventions_%26_File_formats#Symmetry]] '
-                           'page for a description of the symmetry format '
-                           'accepted by Relion')
+                           help='See [[https://relion.readthedocs.io/'
+                                'en/latest/Reference/Conventions.html#symmetry]'
+                                '[Relion Symmetry]] '
+                                'page for a description of the symmetry format '
+                                'accepted by Relion')
 
     def _defineComputeParams(self, form):
         form.addParam('useParallelDisk', BooleanParam, default=True,
@@ -653,16 +695,17 @@ class ProtRelionBase(EMProtocol):
                            'access, is a problem. It has a modest cost of '
                            'increased RAM usage.')
         if self.IS_3D:
-            form.addParam('skipPadding', BooleanParam, default=False,
-                          label='Skip padding',
-                          help='If set to Yes, the calculations will not use '
-                               'padding in Fourier space for better '
-                               'interpolation in the references. Otherwise, '
-                               'references are padded 2x before Fourier '
-                               'transforms are calculated. Skipping padding '
-                               '(i.e. use --pad 1) gives nearly as good results '
-                               'as using --pad 2, but some artifacts may appear '
-                               'in the corners from signal that is folded back.')
+            if not (Plugin.IS_GT31() and self.IS_3D_INIT):
+                form.addParam('skipPadding', BooleanParam, default=False,
+                              label='Skip padding',
+                              help='If set to Yes, the calculations will not use '
+                                   'padding in Fourier space for better '
+                                   'interpolation in the references. Otherwise, '
+                                   'references are padded 2x before Fourier '
+                                   'transforms are calculated. Skipping padding '
+                                   '(i.e. use --pad 1) gives nearly as good results '
+                                   'as using --pad 2, but some artifacts may appear '
+                                   'in the corners from signal that is folded back.')
             form.addParam('skipGridding', BooleanParam, default=True,
                           label='Skip gridding',
                           help='If set to Yes, the calculations will '
@@ -782,10 +825,9 @@ class ProtRelionBase(EMProtocol):
 
             # Pass stack file as None to avoid write the images files
             # If copyAlignment is set to False pass alignType to ALIGN_NONE
-            alignType = imgSet.getAlignment() if copyAlignment else pwem.ALIGN_NONE
-            hasAlign = alignType != pwem.ALIGN_NONE
+            alignType = imgSet.getAlignment() if copyAlignment else ALIGN_NONE
+            hasAlign = alignType != ALIGN_NONE
             alignToPrior = hasAlign and getattr(self, 'alignmentAsPriors', False)
-            fillRandomSubset = hasAlign and getattr(self, 'fillRandomSubset', False)
 
             if self.doCtfManualGroups:
                 self._defocusGroups = self.createDefocusGroups()
@@ -795,21 +837,16 @@ class ProtRelionBase(EMProtocol):
                 imgSet, imgStar,
                 outputDir=self._getExtraPath(),
                 alignType=alignType,
-                postprocessImageRow=self._postprocessParticleRow,
-                fillRandomSubset=fillRandomSubset)
+                postprocessImageRow=self._postprocessParticleRow)
 
             if alignToPrior:
-                tableName = ''
-                if self.IS_GT30():
-                    tableName = 'particles'
-                    mdOptics = Table(fileName=imgStar, tableName='optics')
-                mdParts = Table(fileName=imgStar, tableName=tableName)
+                mdOptics = Table(fileName=imgStar, tableName='optics')
+                mdParts = Table(fileName=imgStar, tableName='particles')
                 self._copyAlignAsPriors(mdParts, alignType)
 
                 with open(imgStar, "w") as f:
-                    mdParts.writeStar(f, tableName=tableName)
-                    if self.IS_GT30():
-                        mdOptics.writeStar(f, tableName='optics')
+                    mdParts.writeStar(f, tableName='particles')
+                    mdOptics.writeStar(f, tableName='optics')
 
             if self._getRefArg():
                 self._convertRef()
@@ -821,6 +858,18 @@ class ProtRelionBase(EMProtocol):
         """ Execute the relion steps with the give params. """
         params += ' --j %d' % self.numberOfThreads
         self.runJob(self._getProgram(), params)
+
+    def _getEnviron(self):
+        env = Plugin.getEnviron()
+
+        if self.useGpu():
+            prepend = env.get('RELION_PREPEND', '')
+        else:
+            prepend = env.get('RELION_PREPEND_CPU', '')
+
+        env.setPrepend(prepend)
+
+        return env
 
     def createOutputStep(self):
         pass  # should be implemented in subclasses
@@ -844,7 +893,7 @@ class ProtRelionBase(EMProtocol):
                               "image dimensions!")
 
             # if doing scaling, the input is not on abs greyscale
-            if self.getAttributeValue('referenceVolume', None):
+            if self.getAttributeValue('referenceVolume'):
                 volX = self._getReferenceVolumes()[0].getXDim()
                 ptclX = self._getInputParticles().getXDim()
                 if (ptclX != volX) and self.isMapAbsoluteGreyScale:
@@ -855,20 +904,18 @@ class ProtRelionBase(EMProtocol):
 
             errors += self._validateNormal()
 
-        if self.IS_CLASSIFY:
-            if self._doSubsets():
-                total = self._getInputParticles().getSize()
-                if total <= self.subsetSize.get():
-                    errors.append('Subset size is bigger than the total number '
-                                  'of particles!')
-            if not self.doImageAlignment:
-                if self.doGpu:
-                    errors.append('When only doing classification (no alignment) '
-                                  'GPU acceleration can not be used.')
-                if not self.copyAlignment:
-                    errors.append('If you want to do only classification without '
-                                  'alignment, then you should use the option: \n'
-                                  '*Consider previous alignment?* = Yes')
+        if self.IS_CLASSIFY and not self.doImageAlignment:
+            if self.doGpu:
+                errors.append('When only doing classification (no alignment) '
+                              'GPU acceleration can not be used.')
+            if not self.copyAlignment:
+                errors.append('If you want to do only classification without '
+                              'alignment, then you should use the option: \n'
+                              '*Consider previous alignment?* = Yes')
+            if self.alignmentAsPriors:
+                errors.append('When only doing classification (no alignment) '
+                              " option *Consider alignment as priors* cannot"
+                              " be enabled.")
 
         return errors
 
@@ -939,10 +986,6 @@ class ProtRelionBase(EMProtocol):
         args['--i'] = self._getFileName('input_star')
         args['--particle_diameter'] = maskDiameter
 
-        # Since Relion 3.1 --angpix is no longer a valid argument
-        if relion.Plugin.IS_30():
-            args['--angpix'] = ps
-
         self._setCTFArgs(args)
 
         if self.maskZero == MASK_FILL_ZERO:
@@ -952,17 +995,22 @@ class ProtRelionBase(EMProtocol):
             args['--K'] = self.numberOfClasses.get()
             if self.limitResolEStep > 0:
                 args['--strict_highres_exp'] = self.limitResolEStep.get()
+            if self.IS_2D and Plugin.IS_GT31():
+                if self.useGradientAlg:
+                    args['--grad'] = ''
+                    args['--init_blobs'] = ''
+                    args['--class_inactivity_threshold'] = 0.1
+                if self.centerAvg:
+                    args['--center_classes'] = ''
 
-        if self.IS_3D:
-            if not self.IS_3D_INIT:
-                if not self.isMapAbsoluteGreyScale:
-                    args['--firstiter_cc'] = ''
-                args['--ini_high'] = self.initialLowPassFilterA.get()
-                args['--sym'] = self.symmetryGroup.get()
-                if self.IS_GT30():
-                    # We use the same pixel size as input particles, since
-                    # we convert anyway the input volume to match same size
-                    args['--ref_angpix'] = ps
+        if self.IS_3D and not self.IS_3D_INIT:
+            if not self.isMapAbsoluteGreyScale:
+                args['--firstiter_cc'] = ''
+            args['--ini_high'] = self.initialLowPassFilterA.get()
+            args['--sym'] = self.symmetryGroup.get()
+            # We use the same pixel size as input particles, since
+            # we convert anyway the input volume to match same size
+            args['--ref_angpix'] = ps
 
         refArg = self._getRefArg()
         if refArg:
@@ -1048,15 +1096,15 @@ class ProtRelionBase(EMProtocol):
         if self.doCTF:
             args['--ctf'] = ''
 
-        # this only can be true if is 3D.
-        if self.hasReferenceCTFCorrected:
-            args['--ctf_corrected_ref'] = ''
+            # this only can be true if is 3D
+            if not Plugin.IS_GT31() and self.hasReferenceCTFCorrected:
+                args['--ctf_corrected_ref'] = ''
 
-        if self._getInputParticles().isPhaseFlipped():
-            args['--ctf_phase_flipped'] = ''
+            if self._getInputParticles().isPhaseFlipped():
+                args['--ctf_phase_flipped'] = ''
 
-        if self.ignoreCTFUntilFirstPeak:
-            args['--ctf_intact_first_peak'] = ''
+            if self.ignoreCTFUntilFirstPeak:
+                args['--ctf_intact_first_peak'] = ''
 
     def _setMaskArgs(self, args):
         if self.IS_3D:
@@ -1085,11 +1133,6 @@ class ProtRelionBase(EMProtocol):
                 args['--solvent_mask'] = mask
 
     def _setSubsetArgs(self, args):
-        if self._doSubsets():
-            args['--write_subsets'] = 1
-            args['--subset_size'] = self.subsetSize.get()
-            args['--max_subsets'] = self.subsetUpdates.get()
-
         if self._useFastSubsets():
             args['--fast_subsets'] = ''
 
@@ -1097,7 +1140,14 @@ class ProtRelionBase(EMProtocol):
         """ Get the program name depending on the MPI use or not. """
         if self.numberOfMpi > 1:
             program += '_mpi'
+
         return program
+
+    def _runProgram(self, program, args, **kwargs):
+        """ Helper function to get the program name if mpi are used and
+        call runJob function.
+        """
+        return self.runJob(self._getProgram(program), args, **kwargs)
 
     def _getInputParticles(self):
         if self.doContinue:
@@ -1149,7 +1199,7 @@ class ProtRelionBase(EMProtocol):
         data_sqlite = self._getFileName('data_scipion', iter=it)
 
         if not os.path.exists(data_sqlite):
-            iterImgSet = pwem.objects.SetOfParticles(filename=data_sqlite)
+            iterImgSet = SetOfParticles(filename=data_sqlite)
             iterImgSet.copyInfo(self._getInputParticles())
             self._fillDataFromIter(iterImgSet, it)
             iterImgSet.write()
@@ -1182,13 +1232,13 @@ class ProtRelionBase(EMProtocol):
 
     def _getReferenceVolumes(self):
         """ Return a list with all input references.
-        (Could be one or more volumes. ).
+        (Could be one or more volumes).
         """
         inputObj = self.referenceVolume.get()
 
-        if isinstance(inputObj, pwem.objects.Volume):
+        if isinstance(inputObj, Volume):
             return [inputObj]
-        elif isinstance(inputObj, pwem.objects.SetOfVolumes):
+        elif isinstance(inputObj, SetOfVolumes):
             return [vol.clone() for vol in inputObj]
         else:
             raise Exception("Invalid input reference of class: %s"
@@ -1216,14 +1266,14 @@ class ProtRelionBase(EMProtocol):
         index, fn = inputVol.getLocation()
         return self._getTmpPath(pwutils.replaceBaseExt(fn, '%02d.mrc' % index))
 
-    def _convertVol(self, ih, inputVol):
+    def _convertVol(self, inputVol):
         outputFn = self._convertVolFn(inputVol)
 
         if outputFn:
-            xdim = self._getInputParticles().getXDim()
-            img = ih.read(inputVol)
-            img.scale(xdim, xdim, xdim)
-            img.write(outputFn)
+            newPix = self._getInputParticles().getSamplingRate()
+            newDim = self._getInputParticles().getXDim()
+            relion.convert.convertMask(inputVol, outputFn, newPix=newPix,
+                                       newDim=newDim, threshold=False)
 
         return outputFn
 
@@ -1237,11 +1287,11 @@ class ProtRelionBase(EMProtocol):
             if not self.IS_3D_INIT:
                 refVols = self._getReferenceVolumes()
                 if len(refVols) == 1:
-                    self._convertVol(ih, refVols[0])
+                    self._convertVol(refVols[0])
                 else:  # input SetOfVolumes as references
                     table = Table(columns=['rlnReferenceImage'])
                     for vol in refVols:
-                        newVolFn = self._convertVol(ih, vol)
+                        newVolFn = self._convertVol(vol)
                         table.addRow(newVolFn)
                     with open(self._getRefStar(), 'w') as f:
                         table.writeStar(f)
@@ -1262,23 +1312,22 @@ class ProtRelionBase(EMProtocol):
             groupId = self._defocusGroups.getGroup(part.getCTF().getDefocusU()).id
             partRow['rlnGroupName'] = "ctf_group_%03d" % groupId
 
-    def _doSubsets(self):
-        return False
-
     def _useFastSubsets(self):
         return self.getAttributeValue('useFastSubsets', False)
 
+    def useGpu(self):
+        """
+        Return True if the protocol has gpu option and it has been selected.
+        """
+        return self.getAttributeValue('doGpu', False)
+
     def _copyAlignAsPriors(self, mdParts, alignType):
         # set priors equal to orig. values
-        if self.IS_GT30():
-            mdParts.addColumns('rlnOriginXPriorAngst=rlnOriginXAngst')
-            mdParts.addColumns('rlnOriginYPriorAngst=rlnOriginYAngst')
-        else:
-            mdParts.addColumns('rlnOriginXPrior=rlnOriginX')
-            mdParts.addColumns('rlnOriginYPrior=rlnOriginY')
+        mdParts.addColumns('rlnOriginXPriorAngst=rlnOriginXAngst')
+        mdParts.addColumns('rlnOriginYPriorAngst=rlnOriginYAngst')
         mdParts.addColumns('rlnAnglePsiPrior=rlnAnglePsi')
 
-        if alignType == pwem.ALIGN_PROJ:
+        if alignType == ALIGN_PROJ:
             mdParts.addColumns('rlnAngleRotPrior=rlnAngleRot')
             mdParts.addColumns('rlnAngleTiltPrior=rlnAngleTilt')
 
@@ -1291,6 +1340,3 @@ class ProtRelionBase(EMProtocol):
                                       defocusDiff=self.defocusRange.get(),
                                       minGroupSize=self.numParticles.get())
         return defocusGroups
-
-    def IS_GT30(self):
-        return Plugin.IS_GT30()

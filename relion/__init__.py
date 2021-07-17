@@ -25,25 +25,28 @@
 # **************************************************************************
 
 import os
+
 import pyworkflow.utils as pwutils
 import pwem
 
 from .constants import *
 
-__version__ = '3.0.0b7'
-_logo = "relion_logo.png"
+
+__version__ = '4.0'
+_logo = "relion_logo.jpg"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016', 'Zivanov2018']
 
 
 class Plugin(pwem.Plugin):
     _homeVar = RELION_HOME
-    _supportedVersions = [V3_0, V3_1]
+    _supportedVersions = [V3_1_0, V3_1_1, V3_1_2, V4_0]
     _url = "https://github.com/scipion-em/scipion-em-relion"
 
     @classmethod
     def _defineVariables(cls):
-        cls._defineEmVar(RELION_HOME, 'relion-%s' % V3_1)
+        cls._defineEmVar(RELION_HOME, 'relion-%s' % V4_0)
         cls._defineVar(RELION_CUDA_LIB, pwem.Config.CUDA_LIB)
+        cls._defineVar(RELION_PYTHON, None)
 
     @classmethod
     def getEnviron(cls):
@@ -53,13 +56,11 @@ class Plugin(pwem.Plugin):
                                    pwem.Config.MPI_BINDIR])
         libPath = os.pathsep.join([cls.getHome('lib'),
                                    cls.getHome('lib64'),
-                                   pwem.Config.MPI_LIBDIR,
-                                   ])
+                                   pwem.Config.MPI_LIBDIR])
 
         if binPath not in environ['PATH']:
             environ.update({'PATH': binPath,
-                            'LD_LIBRARY_PATH': libPath,
-                            #'SCIPION_MPI_FLAGS': os.environ.get('RELION_MPI_FLAGS', ''),
+                            'LD_LIBRARY_PATH': libPath
                             }, position=pwutils.Environ.BEGIN)
 
         # Get Relion CUDA library path if defined
@@ -75,17 +76,8 @@ class Plugin(pwem.Plugin):
         return environ
 
     @classmethod
-    def IS_30(cls):
-        return cls.getActiveVersion().startswith('3.0')
-
-    @classmethod
-    def IS_31(cls):
-        # avoid using this, IS_GT30 is preferred
-        return cls.getActiveVersion().startswith('3.1')
-
-    @classmethod
-    def IS_GT30(cls):
-        return not cls.getActiveVersion().startswith('3.0')
+    def IS_GT31(cls):
+        return cls.getActiveVersion().startswith('4')
 
     @classmethod
     def defineBinaries(cls, env):
@@ -93,13 +85,9 @@ class Plugin(pwem.Plugin):
                            ('make -j %d' % env.getProcessors(),
                             ['bin/relion_refine'])]
 
-        env.addPackage('relion', version='3.0',
-                       url='https://github.com/3dem/relion/archive/3.0.tar.gz',
-                       commands=relion_commands,
-                       updateCuda=True)
-
-        env.addPackage('relion', version='3.1.0',
-                       url='https://github.com/3dem/relion/archive/3.1.0.tar.gz',
-                       commands=relion_commands,
-                       updateCuda=True,
-                       default=True)
+        for v in cls._supportedVersions:
+            env.addPackage('relion', version=v,
+                           url='https://github.com/3dem/relion/archive/%s.tar.gz' % v,
+                           commands=relion_commands,
+                           updateCuda=True,
+                           default=v == V4_0)

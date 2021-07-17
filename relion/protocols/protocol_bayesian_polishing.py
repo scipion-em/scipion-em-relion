@@ -32,14 +32,17 @@ from emtable import Table
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
+from pyworkflow.constants import PROD
 from pwem.protocols import ProtParticles
 import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ
 
+from relion import Plugin
 import relion.convert as convert
+from .protocol_base import ProtRelionBase
 
 
-class ProtRelionBayesianPolishing(ProtParticles):
+class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
     """
     Wrapper protocol for the Relion's Bayesian Polishing.
 
@@ -59,6 +62,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
     """
 
     _label = 'bayesian polishing'
+    _devStatus = PROD
 
     OP_TRAIN = 0
     OP_POLISH = 1
@@ -76,7 +80,7 @@ class ProtRelionBayesianPolishing(ProtParticles):
     def _defineParams(self, form):
         form.addSection(label='Input')
         form.addParam('inputMovies', params.PointerParam, pointerClass='SetOfMovies',
-                      important=True,  # pointerCondition='hasAlignment',
+                      important=True,
                       label='Input ALIGNED movies',
                       help='Provide a set of movies that have at '
                            'least global alignment information.')
@@ -113,6 +117,15 @@ class ProtRelionBayesianPolishing(ProtParticles):
         form.addParam('rescaledSize', params.IntParam, default=-1,
                       label="Re-scaled size (px)",
                       help="The re-scaled value needs to be an even number.")
+
+        if Plugin.IS_GT31():
+            form.addParam('saveFloat16', params.BooleanParam, default=False,
+                          label="Write output in float16?",
+                          expertLevel=params.LEVEL_ADVANCED,
+                          lavel="Write output in float16?",
+                          help="Relion can write output images in float16 "
+                               "MRC (mode 12) format to save disk space. "
+                               "By default, float32 format is used.")
 
         form.addSection(label='Train or Polish')
         form.addParam('operation', params.EnumParam, default=1,
@@ -195,26 +208,10 @@ class ProtRelionBayesianPolishing(ProtParticles):
         self.info("Converting set from '%s' into '%s'" %
                   (inputParts.getFileName(), imgStar))
 
-        tableGeneral = Table(columns=['rlnImageSizeX',
-                                      'rlnImageSizeY',
-                                      'rlnImageSizeZ',
-                                      'rlnMicrographMovieName',
-                                      'rlnMicrographBinning',
-                                      'rlnMicrographOriginalPixelSize',
-                                      'rlnMicrographDoseRate',
-                                      'rlnMicrographPreExposure',
-                                      'rlnVoltage',
-                                      'rlnMicrographStartFrame',
-                                      'rlnMotionModelVersion'])
-        tableShifts = Table(columns=['rlnMicrographFrameNumber',
-                                     'rlnMicrographShiftX',
-                                     'rlnMicrographShiftY'])
-        tableCoeffs = Table(columns=['rlnMotionModelCoeffsIdx',
-                                     'rlnMotionModelCoeff'])
-
         # Create the first row, later only the movieName will be updated
         xdim, ydim, ndim = inputMovies.getDim()
         acq = inputMovies.getAcquisition()
+        doseRate = acq.getDosePerFrame()
         firstMovie = inputMovies.getFirstItem()
         a0, aN = firstMovie.getAlignment().getRange()
         moviesPixelSize = inputMovies.getSamplingRate()
@@ -226,23 +223,73 @@ class ProtRelionBayesianPolishing(ProtParticles):
                                      self._getFileName('input_mics'),
                                      postprocessImageRow=self._updateMic)
 
-        tableGeneral.addRow(xdim, ydim, ndim, 'movieName',
-                            binningFactor, moviesPixelSize,
-                            acq.getDosePerFrame(), acq.getDoseInitial(),
-                            acq.getVoltage(), a0, 0)
+        # Handle EER case
+        isEER = False
+        if og.hasColumn('rlnEERGrouping'):
+            isEER = True
+            eerGrouping = og.first().rlnEERGrouping
+            eerSampling = og.first().rlnEERUpsampling
+            ndim //= eerGrouping
+            doseRate *= eerGrouping
+
+        generalCols = ['rlnImageSizeX',
+                       'rlnImageSizeY',
+                       'rlnImageSizeZ',
+                       'rlnMicrographMovieName',
+                       'rlnMicrographBinning',
+                       'rlnMicrographOriginalPixelSize',
+                       'rlnMicrographDoseRate',
+                       'rlnMicrographPreExposure',
+                       'rlnVoltage',
+                       'rlnMicrographStartFrame',
+                       'rlnMotionModelVersion',
+                       'rlnMicrographGainName',
+                       'rlnMicrographDefectFile']
+        if isEER:
+            generalCols.extend(['rlnEERGrouping', 'rlnEERUpsampling'])
+
+        tableGeneral = Table(columns=generalCols)
+        tableShifts = Table(columns=['rlnMicrographFrameNumber',
+                                     'rlnMicrographShiftX',
+                                     'rlnMicrographShiftY'])
+        tableCoeffs = Table(columns=['rlnMotionModelCoeffsIdx',
+                                     'rlnMotionModelCoeff'])
+        tablePixels = Table(columns=['rlnCoordinateX',
+                                     'rlnCoordinateY'])
+
+        if not isEER:
+            tableGeneral.addRow(xdim, ydim, ndim, 'movieName',
+                                binningFactor, moviesPixelSize,
+                                doseRate, acq.getDoseInitial(),
+                                acq.getVoltage(), a0, 0, '""', '""')
+        else:
+            tableGeneral.addRow(xdim, ydim, ndim, 'movieName',
+                                binningFactor, moviesPixelSize,
+                                doseRate, acq.getDoseInitial(),
+                                acq.getVoltage(), a0, 0, '""', '""',
+                                eerGrouping, eerSampling)
         row = tableGeneral[0]
 
         for movie in inputMovies:
             movieStar = self._getMovieStar(movie)
+            ogId = movie.getAttributeValue('_rlnOpticsGroup', 1)
+            gainFn = og[ogId].get('rlnMicrographGainName', None)
+            defectFn = og[ogId].get('rlnMicrographDefectFile', None)
 
             with open(movieStar, 'w') as f:
                 coeffs = json.loads(movie.getAttributeValue('_rlnMotionModelCoeff', '[]'))
                 motionMode = 1 if coeffs else 0
+                hotpix = json.loads(movie.getAttributeValue('_rlnHotPixels', '[]'))
 
-                # Update Movie name
-                tableGeneral[0] = row._replace(rlnMicrographMovieName=movie.getFileName(),
-                                               rlnMotionModelVersion=motionMode)
+                # Update some params in the general table
+                replaceDict = {'rlnMicrographMovieName': movie.getFileName(),
+                               'rlnMotionModelVersion': motionMode}
+                if gainFn:
+                    replaceDict['rlnMicrographGainName'] = gainFn
+                if defectFn:
+                    replaceDict['rlnMicrographDefectFile'] = defectFn
 
+                tableGeneral[0] = row._replace(**replaceDict)
                 tableGeneral.writeStar(f, tableName='general', singleRow=True)
                 # Write shifts
                 tableShifts.clearRows()
@@ -269,11 +316,17 @@ class ProtRelionBayesianPolishing(ProtParticles):
                         tableCoeffs.addRow(i, c)
                     tableCoeffs.writeStar(f, tableName='local_motion_model')
 
+                # Write hot pixels
+                tablePixels.clearRows()
+                if hotpix:
+                    for coord in hotpix:
+                        tablePixels.addRow(coord[0], coord[1])
+                    tablePixels.writeStar(f, tableName='hot_pixels')
+
         convert.writeSetOfParticles(inputParts, imgStar,
                                     outputDir=inputPartsFolder,
                                     alignType=ALIGN_PROJ,
-                                    fillMagnification=True,
-                                    fillRandomSubset=True)
+                                    fillMagnification=True)
 
     def trainOrPolishStep(self, operation):
         postProt = self.inputPostprocess.get()
@@ -303,15 +356,19 @@ class ProtRelionBayesianPolishing(ProtParticles):
             args += "--bfac_maxfreq %0.3f " % self.maxResBfactor
             args += "--combine_frames "
 
+        if Plugin.IS_GT31() and self.saveFloat16:
+            args += "--float16 "
+
         args += "--j %d " % self.numberOfThreads
 
-        prog = "relion_motion_refine" + ("_mpi" if self.numberOfMpi > 1 else "")
-        self.runJob(prog, args)
+        self.runJob(self._getProgram('relion_motion_refine'), args)
 
     def createOutputStep(self, id=1):
         imgSet = self.inputParticles.get()
         outImgSet = self._createSetOfParticles()
         outImgSet.copyInfo(imgSet)
+        pixSize = self._getOutputPixSize()
+        outImgSet.setSamplingRate(pixSize)
 
         outImgsFn = md.MetaData('particles@' + self._getFileName('shiny'))
         rowIterator = md.SetMdIterator(outImgsFn, sortByLabel=md.RLN_IMAGE_ID,
@@ -370,8 +427,24 @@ class ProtRelionBayesianPolishing(ProtParticles):
                               "larger than the extraction size")
 
         if self.operation == self.OP_TRAIN and self.numberOfMpi > 1:
-            errors.append("Parameter estimation is not supported in MPI mode.")
+            errors.append("MPI is not supported for parameters estimation.")
+
+        if self.hasAttribute('saveFloat16') and self.saveFloat16:
+            errors.append("MRC float16 format is not yet supported by XMIPP, "
+                          "so you cannot use this option.")
+
         return errors
+
+    def _warnings(self):
+        warnings = ['If you have provided a gain reference or defects file during '
+                    'movie import or motion correction, please *make sure to '
+                    'run first "assign optics groups" protocol for aligned '
+                    'movies*, specifying the gain file etc. Currently, Scipion '
+                    'has no other way of knowing if you have e.g. rotated the '
+                    'gain during motion correction.\n\nOutput movies then can be '
+                    'used in this polishing protocol.']
+
+        return warnings
 
     # -------------------------- UTILS functions ------------------------------
     def _getInputPath(self, *paths):
@@ -388,3 +461,18 @@ class ProtRelionBayesianPolishing(ProtParticles):
     def _updateMic(self, mic, row):
         row['rlnMicrographName'] = os.path.basename(mic.getMicName())
         row['rlnMicrographMetadata'] = self._getMovieStar(mic)
+
+    def _getOutputPixSize(self):
+        parts = self.inputParticles.get()
+        movies = self.inputMovies.get()
+
+        if self.rescaledSize.get() == -1:
+            # no scale or window, return particle pix size
+            return parts.getSamplingRate()
+        else:
+            if self.rescaledSize.get() == self.extrSize.get():
+                # window only, return movie pix size
+                return movies.getSamplingRate()
+            else:
+                # rescale and window
+                return movies.getSamplingRate() * self.extrSize.get() / self.rescaledSize.get()

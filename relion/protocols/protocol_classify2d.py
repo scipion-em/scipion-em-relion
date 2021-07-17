@@ -23,11 +23,14 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-import pwem
+
+from pyworkflow.constants import PROD
+from pwem.constants import ALIGN_2D
 from pwem.objects import SetOfClasses2D
 from pwem.protocols import ProtClassify2D
 
 import relion.convert as convert
+from relion import Plugin
 from .protocol_base import ProtRelionBase
 
 
@@ -35,6 +38,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
     """ This protocol runs Relion 2D classification."""
 
     _label = '2D classification'
+    _devStatus = PROD
     IS_2D = True
     OUTPUT_TYPE = SetOfClasses2D
     
@@ -57,7 +61,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
             args['--offset_step'] = self.offsetSearchStepPix.get() * self._getSamplingFactor()
             args['--psi_step'] = self.inplaneAngularSamplingDeg.get() * self._getSamplingFactor()
 
-            if self.IS_GT30() and self.allowCoarserSampling:
+            if self.allowCoarserSampling:
                 args['--allow_coarser_sampling'] = ''
 
         else:
@@ -66,7 +70,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
     # --------------------------- STEPS functions -----------------------------
     def _fillClassesFromIter(self, clsSet, iteration):
         """ Create the SetOfClasses2D from a given iteration. """
-        classLoader = convert.ClassesLoader(self, pwem.ALIGN_2D)
+        classLoader = convert.ClassesLoader(self, ALIGN_2D)
         classLoader.fillClassesFromIter(clsSet, iteration)
 
     def createOutputStep(self):
@@ -80,7 +84,11 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         
     # --------------------------- INFO functions ------------------------------
     def _validateNormal(self):
-        return []
+        errors = []
+        if Plugin.IS_GT31() and self.useGradientAlg and self.numberOfMpi > 1:
+            errors.append("Gradient refinement is not supported together with MPI")
+
+        return errors
     
     def _validateContinue(self):
         errors = []

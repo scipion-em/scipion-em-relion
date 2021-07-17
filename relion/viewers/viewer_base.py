@@ -33,14 +33,12 @@ from emtable import Table
 import pyworkflow.protocol.params as params
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pyworkflow.viewer import (DESKTOP_TKINTER, WEB_DJANGO)
-import pyworkflow.utils as pwutils
 from pwem.viewers import (EmPlotter, EmProtocolViewer, showj,
                           FscViewer, DataView, ObjectView, ChimeraView,
                           ClassesView, Classes3DView, ChimeraAngDist)
 from pwem.constants import ALIGN_PROJ, NO_INDEX
 from pwem.objects import FSC
 
-from relion import Plugin
 from relion.convert.convert_utils import relionToLocation
 from ..protocols import (ProtRelionClassify2D, ProtRelionClassify3D,
                          ProtRelionRefine3D, ProtRelionInitialModel)
@@ -87,7 +85,7 @@ class RelionPlotter(EmPlotter):
             if nbins is in args then and histogram over y data is made
         """
         table = Table(fileName=mdFilename)
-        self.plotMd(table, mdLabelX, mdLabelY, color='g', **args)
+        self.plotMd(table, mdLabelX, mdLabelY, **args)
 
 
 def protected_show(showFunc):
@@ -324,7 +322,7 @@ Examples:
 
         for it in self._iterations:
             fn = self.protocol._getIterData(it, alignType=ALIGN_PROJ)
-            if not pwutils.exists(fn):
+            if not os.path.exists(fn):
                 raise Exception("Missing data star file '%s'. \n"
                                 "Plese select a valid iteration. "
                                 % fn)
@@ -339,7 +337,7 @@ Examples:
 
         for it in self._iterations:
             optimiserFile = self.protocol._getFileName('optimiser', iter=it)
-            if not pwutils.exists(optimiserFile):
+            if not os.path.exists(optimiserFile):
                 raise Exception("Missing optimiser file '%s'. \n"
                                 "Plese select a valid iteration. "
                                 % optimiserFile)
@@ -394,11 +392,8 @@ Examples:
     # Get classes info per iteration
     # =============================================================================
     def _plotClassDistribution(self, paramName=None):
-        labels = ["rlnClassDistribution", "rlnAccuracyRotations"]
-        if Plugin.IS_GT30():
-            labels.append("rlnAccuracyTranslationsAngst")
-        else:
-            labels.append("rlnAccuracyTranslations")
+        labels = ["rlnClassDistribution", "rlnAccuracyRotations",
+                  "rlnAccuracyTranslationsAngst"]
 
         iterations = range(self.firstIter, self.lastIter + 1)
         classInfo = {}
@@ -481,7 +476,7 @@ Examples:
         print("Computing average changes in offset, angles, and class membership")
         for it in self._getAllIters():
             fn = self.protocol._getFileName('optimiser', iter=it)
-            if not pwutils.exists(fn):
+            if not os.path.exists(fn):
                 continue
             print("Computing data for iteration; %03d" % it)
             fn = self.protocol._getFileName('optimiser', iter=it)
@@ -515,7 +510,7 @@ Examples:
         files = []
         volumes = self._getVolumeNames()
         for volFn in volumes:
-            if not pwutils.exists(volFn.replace(':mrc', '')):
+            if not os.path.exists(volFn.replace(':mrc', '')):
                 raise Exception("Missing volume file: %s\n Please select "
                                 "a valid class or iteration number."
                                 % volFn)
@@ -572,14 +567,14 @@ Examples:
         # If just one reference we can show the angular distribution
         ref3d = self._refsList[0]
         volFn = self._getVolumeNames()[0]
-        if not pwutils.exists(volFn.replace(":mrc", "")):
+        if not os.path.exists(volFn.replace(":mrc", "")):
             raise Exception("This class is empty. Please try with another class")
 
         for prefix in prefixes:
             sqliteFn = self.protocol._getFileName('projections',
                                                   iter=it, ref3d=ref3d,
                                                   half=prefix)
-            if not pwutils.exists(sqliteFn):
+            if not os.path.exists(sqliteFn):
                 mdOut = self._getMdOut(it, prefix, ref3d)
                 self.createAngDistributionSqlite(
                     sqliteFn, nparts,
@@ -590,7 +585,7 @@ Examples:
                 vol = self.protocol.outputVolume
             volOrigin = vol.getOrigin(force=True).getShifts()
             samplingRate = vol.getSamplingRate()
-            return ChimeraAngDist(volFn, self.protocol._getTmpPath(),
+            return ChimeraAngDist(volFn, self.protocol._getPath(),
                                   voxelSize=samplingRate,
                                   volOrigin=volOrigin,
                                   angularDistFile=sqliteFn,
@@ -619,7 +614,7 @@ Examples:
                     title = 'class %d' % ref3d
                 sqliteFn = self.protocol._getFileName('projections',
                                                       iter=it, ref3d=ref3d, half=prefix)
-                if not pwutils.exists(sqliteFn):
+                if not os.path.exists(sqliteFn):
                     self.createAngDistributionSqlite(sqliteFn, nparts,
                                                      itemDataIterator=self._iterAngles(
                                                          self._getMdOut(it, prefix, ref3d)))
@@ -627,7 +622,7 @@ Examples:
 
         for prefix in prefixes:
             dataStar = self._getDataStar(prefix, it)
-            if pwutils.exists(dataStar):
+            if os.path.exists(dataStar):
                 return plotter
             else:
                 return
@@ -650,12 +645,11 @@ Examples:
         for prefix in prefixes:
             for ref3d in self._refsList:
                 plot_title = 'Resolution SSNR %s, for Class %s' % (prefix, ref3d)
-                a = xplotter.createSubPlot(plot_title,
-                                           'Angstroms^-1', 'log(SSNR)', yformat=False)
+                a = xplotter.createSubPlot(plot_title, 'Angstroms^-1', 'log(SSNR)')
                 blockName = 'model_class_%d' % ref3d
                 for it in self._iterations:
                     fn = self._getModelStar(prefix, it)
-                    if pwutils.exists(fn):
+                    if os.path.exists(fn):
                         self._plotSSNR(a, fn, blockName, 'iter %d' % it)
                 xplotter.legend()
                 a.grid(True)
@@ -694,7 +688,7 @@ Examples:
         fscSet = self.protocol._createSetOfFSCs()
         for it in self._iterations:
             model_star = self._getModelStar('half1_', it)
-            if pwutils.exists(model_star):
+            if os.path.exists(model_star):
                 fsc = self._plotFSC(None, model_star, 'iter %d' % it)
                 fscSet.append(fsc)
         fscViewer.visualize(fscSet)
@@ -724,7 +718,7 @@ Examples:
     def createScipionView(self, filename):
         labels = 'enabled id _size _representative._filename '
         labels += '_rlnclassDistribution _rlnAccuracyRotations '
-        labels += '_rlnAccuracyTranslations _rlnAccuracyTranslationsAngst '
+        labels += '_rlnAccuracyTranslationsAngst '
         viewParams = {showj.ORDER: labels,
                       showj.VISIBLE: labels,
                       showj.RENDER: '_representative._filename',
@@ -806,7 +800,7 @@ Examples:
         iterations = range(self.firstIter, self.lastIter + 1)
 
         return [it for it in iterations
-                if pwutils.exists(self.protocol._getFileName('optimiser',
+                if os.path.exists(self.protocol._getFileName('optimiser',
                                                              iter=it))]
 
     def _formatFreq(self, value, pos):
@@ -865,7 +859,7 @@ Examples:
                 for prefix in prefixes:
                     volFn = self.protocol._getFileName(prefix + 'volume',
                                                        iter=it, ref3d=ref3d)
-                    if pwutils.exists(volFn.replace(':mrc', '')):
+                    if os.path.exists(volFn.replace(':mrc', '')):
                         vols.append(volFn)
                     else:
                         raise Exception("Volume %s does not exists. \n"
@@ -876,10 +870,9 @@ Examples:
     def _getMdOut(self, it, prefix, ref3d):
         randomSet = self._getRandomSet(prefix)
         dataStar = self._getDataStar(prefix, it)
-        tableName = 'particles' if Plugin.IS_GT30() else None
         mdOut = []
 
-        table = Table(fileName=dataStar, tableName=tableName)
+        table = Table(fileName=dataStar, tableName='particles')
         for row in table:
             if 0 < randomSet < 3:
                 if int(row.rlnRandomSubset) == randomSet and int(row.rlnClassNumber) == ref3d:

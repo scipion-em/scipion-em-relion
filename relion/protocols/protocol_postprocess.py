@@ -26,25 +26,27 @@
 # *
 # **************************************************************************
 
-from os.path import exists
+import os
 from emtable import Table
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
+from pyworkflow.constants import PROD
 from pwem.protocols import ProtAnalysis3D
 from pwem.emlib.image import ImageHandler
 from pwem.objects import Volume
 
 import relion.convert as convert
-from relion import Plugin
+from .protocol_base import ProtRelionBase
 
 
-class ProtRelionPostprocess(ProtAnalysis3D):
+class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
     """
     Relion post-processing protocol for automated masking,
     overfitting estimation, MTF-correction and B-factor sharpening.
     """
     _label = 'post-processing'
+    _devStatus = PROD
 
     def _getInputPath(self, *paths):
         return self._getPath('input', *paths)
@@ -99,12 +101,11 @@ class ProtRelionPostprocess(ProtAnalysis3D):
                             '[Relion\'s Wiki FAQs]]\n'
                             ' - [[https://www.gatan.com/techniques/cryo-em#MTF][Gatan\'s website]]\n\n'
                             'Relion param: *--mtf*')
-        if Plugin.IS_GT30():
-            group.addParam('origPixelSize', params.FloatParam,
-                           default=-1.0,
-                           label='Original detector pixel size (A)',
-                           help='This is the original pixel size (in Angstroms)'
-                                ' in the raw (non-super-resolution!) micrographs')
+        group.addParam('origPixelSize', params.FloatParam,
+                       default=-1.0,
+                       label='Original detector pixel size (A)',
+                       help='This is the original pixel size (in Angstroms)'
+                            ' in the raw (non-super-resolution!) micrographs')
 
         form.addParam('doAutoBfactor', params.BooleanParam, default=True,
                       label='Estimate B-factor automatically?',
@@ -153,7 +154,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
                            'at a user-provided frequency (in Angstroms). When '
                            'using a resolution that is higher than the '
                            'gold-standard FSC-reported resolution, take care '
-                           'not to interpret noise in the map for signal...')
+                           'not to interpret noise in the map for signal.')
         form.addParam('filterEdgeWidth', params.IntParam, default=2,
                       expertLevel=params.LEVEL_ADVANCED,
                       label='Low-pass filter edge width:',
@@ -166,8 +167,13 @@ class ProtRelionPostprocess(ProtAnalysis3D):
                       help='Randomize phases from the resolution where FSC '
                            'drops below this value\n'
                            'Relion param: *--randomize_at_fsc*')
+        form.addParam('forceMask', params.BooleanParam, default=False,
+                      expertLevel=params.LEVEL_ADVANCED,
+                      label='Force mask?',
+                      help='Use the mask even when the masked resolution '
+                           'is worse than the unmasked resolution.')
 
-        form.addParallelSection(threads=0, mpi=1)
+        form.addParallelSection(threads=0, mpi=0)
 
     # -------------------------- INSERT steps functions ------------------------
     def _insertAllSteps(self):
@@ -199,12 +205,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
     def postProcessStep(self, paramDict):
         params = ' '.join(['%s %s' % (k, str(v))
                            for k, v in self.paramDict.items()])
-
-        program = 'relion_postprocess'
-        if self.numberOfMpi > 1:
-            program += '_mpi'
-
-        self.runJob(program, params)
+        self._runProgram('relion_postprocess', params)
 
     def createOutputStep(self):
         volume = Volume()
@@ -219,7 +220,7 @@ class ProtRelionPostprocess(ProtAnalysis3D):
         errors = []
         mtfFile = self.mtf.get()
 
-        if mtfFile and not exists(mtfFile):
+        if mtfFile and not os.path.exists(mtfFile):
             errors.append("Missing MTF-file '%s'" % mtfFile)
 
         return errors
@@ -230,11 +231,13 @@ class ProtRelionPostprocess(ProtAnalysis3D):
     def _summary(self):
         summary = []
         postStarFn = self._getExtraPath("postprocess.star")
-        if exists(postStarFn):
+        if os.path.exists(postStarFn):
             table = Table(fileName=postStarFn, tableName='general')
             row = table[0]
             summary.append("Final resolution: *%0.2f A*" %
                            float(row.rlnFinalResolution))
+            summary.append("B-factor: *%0.2f A\u00B2*" %
+                           float(row.rlnBfactorUsedForSharpening))
 
         return summary
 
@@ -269,8 +272,11 @@ class ProtRelionPostprocess(ProtAnalysis3D):
             self.paramDict['--skip_fsc_weighting'] = ''
             self.paramDict['--low_pass'] = self.lowRes.get()
 
-        if Plugin.IS_GT30() and self.origPixelSize.get() != -1.0:
+        if self.origPixelSize.get() != -1.0:
             self.paramDict['--mtf_angpix'] = self.origPixelSize.get()
+
+        if self.forceMask:
+            self.paramDict['--force_mask'] = ''
 
     def _getRelionMapFn(self, fn):
         return fn.split(':')[0]

@@ -31,69 +31,8 @@ import numpy as np
 import pwem
 import pwem.convert.transformations as tfs
 
-from ..constants import *
-from .convert_base import WriterBase, ReaderBase
+from .convert_base import ReaderBase
 from .convert_deprecated import readSetOfParticles
-
-
-class Writer(WriterBase):
-    """ Helper class to convert from Scipion SetOfImages subclasses
-    with star file format previous to Relion>3.1, but providing the same
-     interface as the new Writer class.
-    """
-
-    def writeSetOfMovies(self, moviesIterable, starFile):
-        self._writeSetOfMoviesOrMics(moviesIterable, starFile,
-                                     'movies', 'rlnMicrographMovieName')
-
-    def writeSetOfMicrographs(self, micsIterable, starFile):
-        self._writeSetOfMoviesOrMics(micsIterable, starFile,
-                                     'micrographs', 'rlnMicrographName')
-
-    def writeSetOfParticles(self, partsSet, starFile, **kwargs):
-        # FIXME: Remove deprecated import
-        from .convert_deprecated import _writeSetOfParticles
-        _writeSetOfParticles(partsSet, starFile, **kwargs)
-
-    def _writeSetOfMoviesOrMics(self, imgIterable,
-                                starFile, tableName, imgLabelName):
-        """ Internal function to write either movies or micrographs
-        star files. Input can be any iterable of these type of images (e.g
-        set, list, etc).
-        """
-        # Process the first item and create the table based
-        # on the generated columns
-        self._imgLabelName = imgLabelName
-        self._prefix = tableName[:3]
-
-        micRow = OrderedDict()
-        micRow[imgLabelName] = ''  # Just to add label, proper value later
-        iterMics = iter(imgIterable)
-        mic = next(iterMics)
-        self._micToRow(mic, micRow)
-
-        micsTable = self._createTableFromDict(micRow)
-
-        while mic is not None:
-            micRow[imgLabelName] = self._convert(mic)
-            self._micToRow(mic, micRow)
-            micsTable.addRow(**micRow)
-            mic = next(iterMics, None)
-
-        with open(starFile, 'w') as f:
-            f.write("# Star file generated with Scipion\n")
-            micsTable.writeStar(f, tableName=tableName)
-
-    def _micToRow(self, mic, row):
-        WriterBase._micToRow(self, mic, row)
-
-        # Add now the Acquisition labels
-        acq = mic.getAcquisition()
-        row.update({
-            'rlnVoltage': acq.getVoltage(),
-            'rlnSphericalAberration': acq.getSphericalAberration(),
-            'rlnAmplitudeContrast': acq.getAmplitudeContrast()
-        })
 
 
 class Reader(ReaderBase):
@@ -140,7 +79,7 @@ class Reader(ReaderBase):
             elif self._alignType == pwem.ALIGN_PROJ:
                 self.setParticleTransform = self.__setParticleTransformProj
             else:
-                raise Exception("Unexpected alignment type: %s"
+                raise TypeError("Unexpected alignment type: %s"
                                 % self._alignType)
 
         # Call again the modified function
@@ -152,13 +91,12 @@ class Reader(ReaderBase):
     def __setParticleTransform2D(self, particle, row):
         angles = self._angles
         shifts = self._shifts
-        ips = self._invPixelSize
 
         def _get(label):
             return float(getattr(row, label, 0.))
 
-        shifts[0] = _get('rlnOriginX') * ips
-        shifts[1] = _get('rlnOriginY') * ips
+        shifts[0] = _get('rlnOriginX')
+        shifts[1] = _get('rlnOriginY')
         angles[2] = -_get('rlnAnglePsi')
         radAngles = -np.deg2rad(angles)
         M = tfs.euler_matrix(radAngles[0], radAngles[1], radAngles[2], 'szyz')
@@ -168,14 +106,13 @@ class Reader(ReaderBase):
     def __setParticleTransformProj(self, particle, row):
         angles = self._angles
         shifts = self._shifts
-        ips = self._invPixelSize
 
         def _get(label):
             return float(getattr(row, label, 0.))
 
-        shifts[0] = _get('rlnOriginX') * ips
-        shifts[1] = _get('rlnOriginY') * ips
-        shifts[2] = _get('rlnOriginZ') * ips
+        shifts[0] = _get('rlnOriginX')
+        shifts[1] = _get('rlnOriginY')
+        shifts[2] = _get('rlnOriginZ')
 
         angles[0] = _get('rlnAngleRot')
         angles[1] = _get('rlnAngleTilt')
