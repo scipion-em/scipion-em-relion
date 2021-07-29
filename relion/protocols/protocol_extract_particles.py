@@ -284,7 +284,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         params += ' --extract_size %d' % self.boxSize
 
         if Plugin.IS_GT31() and self.saveFloat16:
-            params += "--float16 "
+            params += " --float16 "
 
         if self.backDiameter <= 0:
             diameter = self.boxSize.get() * 0.75

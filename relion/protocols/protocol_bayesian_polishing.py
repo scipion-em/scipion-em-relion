@@ -110,7 +110,7 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
                       label='last')
 
         form.addParam('extrSize', params.IntParam, default=-1,
-                      label="Extraction size (px)",
+                      label="Extraction size (px in unbinned movie)",
                       help="Size of the extracted particles in the "
                            "unbinned original movie(in pixels). "
                            "This should be an even number.")

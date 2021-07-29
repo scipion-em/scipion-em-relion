@@ -182,12 +182,12 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         form.addSection('Autopicking')
 
         group = form.addGroup('Autopick')
-        group.addParam('pickingThreshold', params.FloatParam, default=0.25,
+        group.addParam('pickingThreshold', params.FloatParam, default=0.05,
                        label='Picking threshold:',
                        help='Use lower thresholds to pick more particles '
                             '(and more junk probably)')
 
-        group.addParam('interParticleDistance', params.IntParam, default=-1,
+        group.addParam('interParticleDistance', params.IntParam, default=100,
                        label='Minimum inter-particle distance (A):',
                        help='Particles closer together than this distance \n'
                             'will be consider to be a single cluster. \n'
