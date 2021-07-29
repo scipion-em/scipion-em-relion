@@ -103,7 +103,7 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
 
         params += " --python %s" % Plugin.getVar(RELION_PYTHON)
 
-        self._runJob("relion_class_ranker", params)
+        self.runJob("relion_class_ranker", params)
 
     def createOutputStep(self):
         table = Table(fileName=self._getFileName('cls_selection'))
