@@ -198,12 +198,12 @@ def convertMask(img, outputPath, newPix=None,
         # unfortunately relion does not allow to use
         # add_constant and multiply_constant together
         # so let us multiply first
-        params = '--i %s --o %s --angpix %0.5f' % (imgFn, outFn, inPix)
+        params = '--i "%s" --o "%s" --angpix %0.5f' % (imgFn, outFn, inPix)
         params += ' --multiply_constant -1'
         pwutils.runJob(None, 'relion_image_handler', params, env=Plugin.getEnviron())
         imgFn = outFn
 
-    params = '--i %s --o %s --angpix %0.5f' % (imgFn, outFn, inPix)
+    params = '--i "%s" --o "%s" --angpix %0.5f' % (imgFn, outFn, inPix)
 
     if newPix is not None and not math.isclose(newPix, inPix, abs_tol=0.001):
         # be careful with this rescale param because it may
