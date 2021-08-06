@@ -236,7 +236,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                            "--verb 1\n"
                            "--pad 2\n")
 
-        form.addParallelSection(threads=1, mpi=3)
+        form.addParallelSection(threads=1, mpi=0)
 
     def addSymmetry(self, container):
         pass
