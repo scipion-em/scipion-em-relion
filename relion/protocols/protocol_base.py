@@ -134,6 +134,7 @@ class ProtRelionBase(EMProtocol):
     # -------------------------- DEFINE param functions -----------------------
     def _defineConstants(self):
         self.IS_3D = not self.IS_2D
+        self.useGradientAlg = False
 
     def _defineParams(self, form):
         self._defineConstants()
@@ -422,6 +423,7 @@ class ProtRelionBase(EMProtocol):
                                'over-estimated resolutions and overfitting.')
             form.addParam('numberOfIterations', IntParam, default=25,
                           label='Number of iterations',
+                          condition='not useGradientAlg',
                           help='Number of iterations to be performed. Note '
                                'that the current implementation does NOT '
                                'comprise a convergence criterium. Therefore, '
@@ -448,13 +450,23 @@ class ProtRelionBase(EMProtocol):
                                    ' et al.')
 
             if Plugin.IS_GT31() and self.IS_2D:  # relion4 2D cls case
-                form.addParam('useGradientAlg', BooleanParam, default=False,
+                form.addParam('useGradientAlg', BooleanParam, default=True,
                               condition='not doContinue',
-                              label='Use gradient-driven algorithm?',
-                              help='If set to Yes, use faster NGrad '
-                                   'algorithm instead of the default '
-                                   'expectation maximization. If used, *increase '
-                                   'number of iterations to about 100!*')
+                              label='Use VDAM algorithm?',
+                              help='If set to Yes, the faster VDAM algorithm '
+                                   'will be used. This algorithm was introduced '
+                                   'with Relion-4.0. If set to No, then the '
+                                   'slower EM algorithm needs to be used.')
+
+                form.addParam('numberOfVDAMBatches', IntParam, default=200,
+                              label='Number of VDAM mini-batches',
+                              condition='useGradientAlg',
+                              help='Number of mini-batches to be processed '
+                                   'using the VDAM algorithm. Using 200 has '
+                                   'given good results for many data sets. '
+                                   'Using 100 will run faster, at the expense '
+                                   'of some quality in the results.')
+
                 form.addParam('centerAvg', BooleanParam, default=True,
                               label='Center class averages?',
                               help='If set to Yes, every iteration the class '
@@ -616,8 +628,6 @@ class ProtRelionBase(EMProtocol):
                                    'faster, but has not been tested for '
                                    'many cases for potential loss in '
                                    'reconstruction quality upon convergence.')
-
-
 
         if self.IS_CLASSIFY:
             form.addParam('allowCoarserSampling', BooleanParam,
@@ -998,7 +1008,7 @@ class ProtRelionBase(EMProtocol):
             if self.IS_2D and Plugin.IS_GT31():
                 if self.useGradientAlg:
                     args['--grad'] = ''
-                    args['--init_blobs'] = ''
+                    args['--grad_write_iter'] = 10
                     args['--class_inactivity_threshold'] = 0.1
                 if self.centerAvg:
                     args['--center_classes'] = ''
@@ -1228,7 +1238,10 @@ class ProtRelionBase(EMProtocol):
         return continueIter
 
     def _getnumberOfIters(self):
-        return self._getContinueIter() + self.numberOfIterations.get()
+        if Plugin.IS_GT31() and self.useGradientAlg:
+            return self._getContinueIter() + self.numberOfVDAMBatches.get()
+        else:
+            return self._getContinueIter() + self.numberOfIterations.get()
 
     def _getReferenceVolumes(self):
         """ Return a list with all input references.

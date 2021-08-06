@@ -168,10 +168,24 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                            'per defocus group is reached')
 
         form.addSection('Optimisation')
-        form.addParam('numberOfIter', IntParam, default=100,
-                      label="Number of iterations",
-                      help="How many iterations (i.e. mini-batches) to "
-                           "perform?")
+        form.addParam('numberOfIter', IntParam, default=200,
+                      label="Number of VDAM mini-batches",
+                      help="How many iterations (i.e. mini-batches) "
+                           "to perform with the VDAM algorithm?")
+        form.addParam('regularisationParamT', FloatParam,
+                      default=4,
+                      label='Regularisation parameter T',
+                      help='Bayes law strictly determines the relative '
+                           'weight between the contribution of the '
+                           'experimental data and the prior. '
+                           'However, in practice one may need to adjust '
+                           'this weight to put slightly more weight on the '
+                           'experimental data to allow optimal results. '
+                           'Values greater than 1 for this regularisation '
+                           'parameter (T in the JMB2011 paper) put more '
+                           'weight on the experimental data. Values around '
+                           '2-4 have been observed to be useful for 3D '
+                           'initial model calculations.')
         form.addParam('numberOfClasses', IntParam, default=1,
                       condition='not doContinue',
                       label='Number of classes',
@@ -332,7 +346,8 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         """ Return a dictionary with basic arguments. """
         args.update({'--o': self._getExtraPath('relion'),
                      '--oversampling': 1,
-                     '--pad': 1
+                     '--pad': 1,
+                     '--tau2_fudge': self.regularisationParamT.get()
                      })
 
         if self.doFlattenSolvent:
@@ -347,7 +362,6 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
 
     def _setGradArgs(self, args):
         args['--iter'] = self.numberOfIter.get()
-        args['--grad_write_iter'] = 10
         args['--grad'] = ''
         args['--K'] = self.numberOfClasses.get()
 
