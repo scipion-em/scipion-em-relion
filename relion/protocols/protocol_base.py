@@ -134,7 +134,6 @@ class ProtRelionBase(EMProtocol):
     # -------------------------- DEFINE param functions -----------------------
     def _defineConstants(self):
         self.IS_3D = not self.IS_2D
-        self.useGradientAlg = False
 
     def _defineParams(self, form):
         self._defineConstants()
@@ -143,6 +142,9 @@ class ProtRelionBase(EMProtocol):
         # Some hidden variables to be used for conditions
         form.addHidden('isClassify', BooleanParam, default=self.IS_CLASSIFY)
         form.addHidden('is2D', BooleanParam, default=self.IS_2D)
+
+        if not Plugin.IS_GT31():
+            form.addHidden('useGradientAlg', BooleanParam, default=False)
 
         form.addParam('doContinue', BooleanParam, default=False,
                       label='Continue from a previous run?',
@@ -421,33 +423,6 @@ class ProtRelionBase(EMProtocol):
                                'Too small values yield too-low resolution '
                                'structures; too high values result in '
                                'over-estimated resolutions and overfitting.')
-            form.addParam('numberOfIterations', IntParam, default=25,
-                          label='Number of iterations',
-                          condition='not useGradientAlg',
-                          help='Number of iterations to be performed. Note '
-                               'that the current implementation does NOT '
-                               'comprise a convergence criterium. Therefore, '
-                               'the calculations will need to be stopped '
-                               'by the user if further iterations do not yield '
-                               'improvements in resolution or classes. '
-                               'If continue option is True, you going to do '
-                               'this number of new iterations (e.g. if '
-                               '*Continue from iteration* is set 3 and this '
-                               'param is set 25, the final iteration of the '
-                               'protocol will be the 28th.')
-
-            if (Plugin.IS_GT31() and self.IS_3D) or not Plugin.IS_GT31():
-                form.addParam('useFastSubsets', BooleanParam, default=False,
-                              condition='not doContinue',
-                              label='Use fast subsets (for large data sets)?',
-                              help='If set to Yes, the first 5 iterations will '
-                                   'be done with random subsets of only K*100 '
-                                   'particles (K being the number of classes); '
-                                   'the next 5 with K*300 particles, the next '
-                                   '5 with 30% of the data set; and the final '
-                                   'ones with all data. This was inspired by '
-                                   'a cisTEM implementation by Niko Grigorieff'
-                                   ' et al.')
 
             if Plugin.IS_GT31() and self.IS_2D:  # relion4 2D cls case
                 form.addParam('useGradientAlg', BooleanParam, default=True,
@@ -474,6 +449,34 @@ class ProtRelionBase(EMProtocol):
                                    'center-of-mass. This will work only for '
                                    'positive signals, so the particles should '
                                    'be white.')
+
+            form.addParam('numberOfIterations', IntParam, default=25,
+                          condition='not useGradientAlg',
+                          label='Number of iterations',
+                          help='Number of iterations to be performed. Note '
+                               'that the current implementation does NOT '
+                               'comprise a convergence criterium. Therefore, '
+                               'the calculations will need to be stopped '
+                               'by the user if further iterations do not yield '
+                               'improvements in resolution or classes. '
+                               'If continue option is True, you going to do '
+                               'this number of new iterations (e.g. if '
+                               '*Continue from iteration* is set 3 and this '
+                               'param is set 25, the final iteration of the '
+                               'protocol will be the 28th.')
+
+            if (Plugin.IS_GT31() and self.IS_3D) or not Plugin.IS_GT31():
+                form.addParam('useFastSubsets', BooleanParam, default=False,
+                              condition='not doContinue',
+                              label='Use fast subsets (for large data sets)?',
+                              help='If set to Yes, the first 5 iterations will '
+                                   'be done with random subsets of only K*100 '
+                                   'particles (K being the number of classes); '
+                                   'the next 5 with K*300 particles, the next '
+                                   '5 with 30% of the data set; and the final '
+                                   'ones with all data. This was inspired by '
+                                   'a cisTEM implementation by Niko Grigorieff'
+                                   ' et al.')
 
             form.addParam('limitResolEStep', FloatParam, default=-1,
                           label='Limit resolution E-step to (A)',
