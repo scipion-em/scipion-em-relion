@@ -1288,6 +1288,9 @@ class ProtRelionBase(EMProtocol):
         if outputFn:
             newPix = self._getInputParticles().getSamplingRate()
             newDim = self._getInputParticles().getXDim()
+            if not inputVol.getFileName().endswith('.mrc'):
+                inputVol.setLocation(relion.convert.convertBinaryVol(inputVol,
+                                                                     self._getTmpPath()))
             relion.convert.convertMask(inputVol, outputFn, newPix=newPix,
                                        newDim=newDim, threshold=False)
 
