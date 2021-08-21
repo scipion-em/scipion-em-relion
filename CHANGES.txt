@@ -1,5 +1,5 @@
 4.0:
-    - Relion 4.0 support. Float16 and EER options are disabled for now.
+    - Relion 4.0 support. Float16 is disabled for now. EER is now supported.
 3.1.3: fix ref volume conversion for non-mrc files
 3.1.2:
     - allow to use Environ.setPrepend (depends on scipion-em/scipion-pyworkflow#238) to set different prepend commands (e.g when optimized CPU module is available)
