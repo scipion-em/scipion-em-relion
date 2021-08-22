@@ -143,9 +143,6 @@ class ProtRelionBase(EMProtocol):
         form.addHidden('isClassify', BooleanParam, default=self.IS_CLASSIFY)
         form.addHidden('is2D', BooleanParam, default=self.IS_2D)
 
-        if not Plugin.IS_GT31():
-            form.addHidden('useGradientAlg', BooleanParam, default=False)
-
         form.addParam('doContinue', BooleanParam, default=False,
                       label='Continue from a previous run?',
                       help='If you set to *Yes*, you should select a previous'
@@ -450,20 +447,35 @@ class ProtRelionBase(EMProtocol):
                                    'positive signals, so the particles should '
                                    'be white.')
 
-            form.addParam('numberOfIterations', IntParam, default=25,
-                          condition='not useGradientAlg',
-                          label='Number of iterations',
-                          help='Number of iterations to be performed. Note '
-                               'that the current implementation does NOT '
-                               'comprise a convergence criterium. Therefore, '
-                               'the calculations will need to be stopped '
-                               'by the user if further iterations do not yield '
-                               'improvements in resolution or classes. '
-                               'If continue option is True, you going to do '
-                               'this number of new iterations (e.g. if '
-                               '*Continue from iteration* is set 3 and this '
-                               'param is set 25, the final iteration of the '
-                               'protocol will be the 28th.')
+                form.addParam('numberOfIterations', IntParam, default=25,
+                              condition='not useGradientAlg',
+                              label='Number of iterations',
+                              help='Number of iterations to be performed. Note '
+                                   'that the current implementation does NOT '
+                                   'comprise a convergence criterium. Therefore, '
+                                   'the calculations will need to be stopped '
+                                   'by the user if further iterations do not yield '
+                                   'improvements in resolution or classes. '
+                                   'If continue option is True, you going to do '
+                                   'this number of new iterations (e.g. if '
+                                   '*Continue from iteration* is set 3 and this '
+                                   'param is set 25, the final iteration of the '
+                                   'protocol will be the 28th.')
+
+            else:
+                form.addParam('numberOfIterations', IntParam, default=25,
+                              label='Number of iterations',
+                              help='Number of iterations to be performed. Note '
+                                   'that the current implementation does NOT '
+                                   'comprise a convergence criterium. Therefore, '
+                                   'the calculations will need to be stopped '
+                                   'by the user if further iterations do not yield '
+                                   'improvements in resolution or classes. '
+                                   'If continue option is True, you going to do '
+                                   'this number of new iterations (e.g. if '
+                                   '*Continue from iteration* is set 3 and this '
+                                   'param is set 25, the final iteration of the '
+                                   'protocol will be the 28th.')
 
             if (Plugin.IS_GT31() and self.IS_3D) or not Plugin.IS_GT31():
                 form.addParam('useFastSubsets', BooleanParam, default=False,
@@ -1241,7 +1253,7 @@ class ProtRelionBase(EMProtocol):
         return continueIter
 
     def _getnumberOfIters(self):
-        if Plugin.IS_GT31() and self.useGradientAlg:
+        if Plugin.IS_GT31() and self.IS_2D and self.useGradientAlg:
             return self._getContinueIter() + self.numberOfVDAMBatches.get()
         else:
             return self._getContinueIter() + self.numberOfIterations.get()
