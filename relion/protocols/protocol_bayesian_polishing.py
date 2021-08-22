@@ -215,7 +215,7 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
         firstMovie = inputMovies.getFirstItem()
         a0, aN = firstMovie.getAlignment().getRange()
         moviesPixelSize = inputMovies.getSamplingRate()
-        binningFactor = inputParts.getSamplingRate() / moviesPixelSize
+        binningFactor = 1.0  # this is binning during mc, but it's not used here
 
         og = convert.OpticsGroups.fromImages(inputMovies)
         writer = convert.createWriter(optics=og)
