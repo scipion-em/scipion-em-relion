@@ -168,10 +168,24 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                            'per defocus group is reached')
 
         form.addSection('Optimisation')
-        form.addParam('numberOfIter', IntParam, default=100,
-                      label="Number of iterations",
-                      help="How many iterations (i.e. mini-batches) to "
-                           "perform?")
+        form.addParam('numberOfIter', IntParam, default=200,
+                      label="Number of VDAM mini-batches",
+                      help="How many iterations (i.e. mini-batches) "
+                           "to perform with the VDAM algorithm?")
+        form.addParam('regularisationParamT', FloatParam,
+                      default=4,
+                      label='Regularisation parameter T',
+                      help='Bayes law strictly determines the relative '
+                           'weight between the contribution of the '
+                           'experimental data and the prior. '
+                           'However, in practice one may need to adjust '
+                           'this weight to put slightly more weight on the '
+                           'experimental data to allow optimal results. '
+                           'Values greater than 1 for this regularisation '
+                           'parameter (T in the JMB2011 paper) put more '
+                           'weight on the experimental data. Values around '
+                           '2-4 have been observed to be useful for 3D '
+                           'initial model calculations.')
         form.addParam('numberOfClasses', IntParam, default=1,
                       condition='not doContinue',
                       label='Number of classes',
@@ -193,37 +207,21 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         form.addParam('symmetryGroup', StringParam, default='c1',
                       condition='not doContinue',
                       label="Symmetry",
-                      help='SGD sometimes works better in C1. If you make an '
-                           'initial model in C1 but want to run Class3D/Refine3D '
-                           'with a higher point group symmetry, the reference model '
-                           'must be rotated to conform the symmetry convention. '
-                           'You can do this by the relion_align_symmetry command.')
+                      help='The initial model is always generated in C1 '
+                           'and then aligned to and symmetrized with the '
+                           'specified point group. If the automatic alignment '
+                           'fails, please manually rotate run_itNNN_class001.mrc '
+                           '(NNN is the number of iterations) so that it '
+                           'conforms the symmetry convention.')
 
-        group = form.addGroup('Sampling')
-        group.addParam('angularSamplingDeg', EnumParam, default=1,
-                       choices=relion.ANGULAR_SAMPLING_LIST,
-                       label='Initial angular sampling (deg)',
-                       help='There are only a few discrete angular samplings'
-                            ' possible because we use the HealPix library to'
-                            ' generate the sampling of the first two Euler '
-                            'angles on the sphere. The samplings are '
-                            'approximate numbers and vary slightly over '
-                            'the sphere.')
-        group.addParam('offsetSearchRangePix', FloatParam, default=6,
-                       label='Offset search range (pix)',
-                       help='Probabilities will be calculated only for '
-                            'translations in a circle with this radius (in '
-                            'pixels). The center of this circle changes at '
-                            'every iteration and is placed at the optimal '
-                            'translation for each image in the previous '
-                            'iteration.')
-        group.addParam('offsetSearchStepPix', FloatParam, default=2,
-                       label='Offset search step (pix)',
-                       help='Translations will be sampled with this step-size '
-                            '(in pixels). Translational sampling is also done '
-                            'using the adaptive approach. Therefore, if '
-                            'adaptive=1, the translations will first be '
-                            'evaluated on a 2x coarser grid.')
+        form.addParam('runInC1', BooleanParam, default=True,
+                      condition='not doContinue',
+                      label='Run in C1 and apply symmetry later?',
+                      help='If set to Yes, the gradient-driven optimisation '
+                           'is run in C1 and the symmetry orientation is searched '
+                           'and applied later. If set to No, the entire '
+                           'optimisation is run in the symmetry point group '
+                           'indicated above.')
 
         form.addSection('Compute')
         self._defineComputeParams(form)
@@ -238,7 +236,7 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                            "--verb 1\n"
                            "--pad 2\n")
 
-        form.addParallelSection(threads=1, mpi=3)
+        form.addParallelSection(threads=1, mpi=0)
 
     def addSymmetry(self, container):
         pass
@@ -285,20 +283,17 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(self.inputParticles, outImgSet)
 
-        # Run symmetrization if not using C1, only single volume allowed
+        # Run symmetrization for the largest volume if necessary
         sym = self.symmetryGroup.get()
-        if sym.lower() != "c1":
-            inFn = volumes[0].getFileName()
-            alignedFn = self._getPath('volume_aligned_sym%s.mrc' % sym)
+        if sym.lower() != "c1" and self.runInC1:
+            inFn = self._getFileName('model', iter=self._lastIter())
             symFn = self._getPath('volume_sym%s.mrc' % sym)
             pixSize = imgSet.getSamplingRate()
 
             self.runJob("relion_align_symmetry",
+                        "--apply_sym --select_largest_class "
                         "--i %s --o %s --sym %s --angpix %0.5f" % (
-                            inFn, alignedFn, sym, pixSize))
-
-            self.runJob("relion_image_handler",
-                        "--i %s --o %s --sym %s" % (alignedFn, symFn, sym))
+                            inFn, symFn, sym, pixSize))
 
             def _defineOutputVol(name, fn):
                 vol = Volume()
@@ -306,16 +301,11 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                 vol.setLocation(fn)
                 self._defineOutputs(**{name: vol})
 
-            _defineOutputVol('outputVolumeAligned', alignedFn)
             _defineOutputVol('outputVolumeSymmetrized', symFn)
 
     # -------------------------- INFO functions -------------------------------
     def _validateNormal(self):
         errors = []
-        sym = self.symmetryGroup.get().lower()
-        if sym != "c1" and self.numberOfClasses > 1:
-            errors.append("Non-C1 symmetry is only possible when using "
-                          "a single class!")
 
         return errors
 
@@ -355,29 +345,24 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
     def _setBasicArgs(self, args):
         """ Return a dictionary with basic arguments. """
         args.update({'--o': self._getExtraPath('relion'),
-                     '--oversampling': '1'
+                     '--oversampling': 1,
+                     '--pad': 1,
+                     '--tau2_fudge': self.regularisationParamT.get()
                      })
 
         if self.doFlattenSolvent:
             args['--flatten_solvent'] = ''
         if not self.doContinue:
-            args.update({'--sym': "C1"})
+            args['--sym'] = 'C1' if self.runInC1 else self.symmetryGroup.get()
         if self.skipGridding:
             args['--skip_gridding'] = ''
-
-        if relion.Plugin.IS_GT31():
-            args['--pad'] = 1
-        else:
-            args['--pad'] = 1 if self.skipPadding else 2
 
         self._setGradArgs(args)
         self._setSamplingArgs(args)
 
     def _setGradArgs(self, args):
         args['--iter'] = self.numberOfIter.get()
-        args['--grad_write_iter'] = 10
         args['--grad'] = ''
-        args['--init_blobs'] = ''
         args['--K'] = self.numberOfClasses.get()
 
         if not self.doContinue:
@@ -386,9 +371,10 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
     def _setSamplingArgs(self, args):
         """ Set sampling related params"""
         if not self.doContinue:
-            args['--healpix_order'] = self.angularSamplingDeg.get()
-            args['--offset_range'] = self.offsetSearchRangePix.get()
-            args['--offset_step'] = self.offsetSearchStepPix.get() * 2
+            args['--healpix_order'] = 1
+            args['--offset_range'] = 6
+            args['--offset_step'] = 2
+            args['--auto_sampling'] = ''
 
     def _fillDataFromIter(self, imgSet, iteration):
         outImgsFn = self._getFileName('data', iter=iteration)

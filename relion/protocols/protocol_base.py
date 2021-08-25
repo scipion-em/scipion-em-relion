@@ -420,19 +420,62 @@ class ProtRelionBase(EMProtocol):
                                'Too small values yield too-low resolution '
                                'structures; too high values result in '
                                'over-estimated resolutions and overfitting.')
-            form.addParam('numberOfIterations', IntParam, default=25,
-                          label='Number of iterations',
-                          help='Number of iterations to be performed. Note '
-                               'that the current implementation does NOT '
-                               'comprise a convergence criterium. Therefore, '
-                               'the calculations will need to be stopped '
-                               'by the user if further iterations do not yield '
-                               'improvements in resolution or classes. '
-                               'If continue option is True, you going to do '
-                               'this number of new iterations (e.g. if '
-                               '*Continue from iteration* is set 3 and this '
-                               'param is set 25, the final iteration of the '
-                               'protocol will be the 28th.')
+
+            if Plugin.IS_GT31() and self.IS_2D:  # relion4 2D cls case
+                form.addParam('useGradientAlg', BooleanParam, default=True,
+                              condition='not doContinue',
+                              label='Use VDAM algorithm?',
+                              help='If set to Yes, the faster VDAM algorithm '
+                                   'will be used. This algorithm was introduced '
+                                   'with Relion-4.0. If set to No, then the '
+                                   'slower EM algorithm needs to be used.')
+
+                form.addParam('numberOfVDAMBatches', IntParam, default=200,
+                              label='Number of VDAM mini-batches',
+                              condition='useGradientAlg',
+                              help='Number of mini-batches to be processed '
+                                   'using the VDAM algorithm. Using 200 has '
+                                   'given good results for many data sets. '
+                                   'Using 100 will run faster, at the expense '
+                                   'of some quality in the results.')
+
+                form.addParam('centerAvg', BooleanParam, default=True,
+                              label='Center class averages?',
+                              help='If set to Yes, every iteration the class '
+                                   'average images will be centered on their '
+                                   'center-of-mass. This will work only for '
+                                   'positive signals, so the particles should '
+                                   'be white.')
+
+                form.addParam('numberOfIterations', IntParam, default=25,
+                              condition='not useGradientAlg',
+                              label='Number of iterations',
+                              help='Number of iterations to be performed. Note '
+                                   'that the current implementation does NOT '
+                                   'comprise a convergence criterium. Therefore, '
+                                   'the calculations will need to be stopped '
+                                   'by the user if further iterations do not yield '
+                                   'improvements in resolution or classes. '
+                                   'If continue option is True, you going to do '
+                                   'this number of new iterations (e.g. if '
+                                   '*Continue from iteration* is set 3 and this '
+                                   'param is set 25, the final iteration of the '
+                                   'protocol will be the 28th.')
+
+            else:
+                form.addParam('numberOfIterations', IntParam, default=25,
+                              label='Number of iterations',
+                              help='Number of iterations to be performed. Note '
+                                   'that the current implementation does NOT '
+                                   'comprise a convergence criterium. Therefore, '
+                                   'the calculations will need to be stopped '
+                                   'by the user if further iterations do not yield '
+                                   'improvements in resolution or classes. '
+                                   'If continue option is True, you going to do '
+                                   'this number of new iterations (e.g. if '
+                                   '*Continue from iteration* is set 3 and this '
+                                   'param is set 25, the final iteration of the '
+                                   'protocol will be the 28th.')
 
             if (Plugin.IS_GT31() and self.IS_3D) or not Plugin.IS_GT31():
                 form.addParam('useFastSubsets', BooleanParam, default=False,
@@ -446,22 +489,6 @@ class ProtRelionBase(EMProtocol):
                                    'ones with all data. This was inspired by '
                                    'a cisTEM implementation by Niko Grigorieff'
                                    ' et al.')
-
-            if Plugin.IS_GT31() and self.IS_2D:  # relion4 2D cls case
-                form.addParam('useGradientAlg', BooleanParam, default=False,
-                              condition='not doContinue',
-                              label='Use gradient-driven algorithm?',
-                              help='If set to Yes, use faster NGrad '
-                                   'algorithm instead of the default '
-                                   'expectation maximization. If used, *increase '
-                                   'number of iterations to about 100!*')
-                form.addParam('centerAvg', BooleanParam, default=True,
-                              label='Center class averages?',
-                              help='If set to Yes, every iteration the class '
-                                   'average images will be centered on their '
-                                   'center-of-mass. This will work only for '
-                                   'positive signals, so the particles should '
-                                   'be white.')
 
             form.addParam('limitResolEStep', FloatParam, default=-1,
                           label='Limit resolution E-step to (A)',
@@ -616,8 +643,6 @@ class ProtRelionBase(EMProtocol):
                                    'faster, but has not been tested for '
                                    'many cases for potential loss in '
                                    'reconstruction quality upon convergence.')
-
-
 
         if self.IS_CLASSIFY:
             form.addParam('allowCoarserSampling', BooleanParam,
@@ -998,7 +1023,7 @@ class ProtRelionBase(EMProtocol):
             if self.IS_2D and Plugin.IS_GT31():
                 if self.useGradientAlg:
                     args['--grad'] = ''
-                    args['--init_blobs'] = ''
+                    args['--grad_write_iter'] = 10
                     args['--class_inactivity_threshold'] = 0.1
                 if self.centerAvg:
                     args['--center_classes'] = ''
@@ -1228,7 +1253,10 @@ class ProtRelionBase(EMProtocol):
         return continueIter
 
     def _getnumberOfIters(self):
-        return self._getContinueIter() + self.numberOfIterations.get()
+        if Plugin.IS_GT31() and self.IS_2D and self.useGradientAlg:
+            return self._getContinueIter() + self.numberOfVDAMBatches.get()
+        else:
+            return self._getContinueIter() + self.numberOfIterations.get()
 
     def _getReferenceVolumes(self):
         """ Return a list with all input references.
@@ -1272,6 +1300,9 @@ class ProtRelionBase(EMProtocol):
         if outputFn:
             newPix = self._getInputParticles().getSamplingRate()
             newDim = self._getInputParticles().getXDim()
+            if not inputVol.getFileName().endswith('.mrc'):
+                inputVol.setLocation(relion.convert.convertBinaryVol(inputVol,
+                                                                     self._getTmpPath()))
             relion.convert.convertMask(inputVol, outputFn, newPix=newPix,
                                        newDim=newDim, threshold=False)
 

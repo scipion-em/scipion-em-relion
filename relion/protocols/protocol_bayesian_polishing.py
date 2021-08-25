@@ -110,7 +110,7 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
                       label='last')
 
         form.addParam('extrSize', params.IntParam, default=-1,
-                      label="Extraction size (px)",
+                      label="Extraction size (px in unbinned movie)",
                       help="Size of the extracted particles in the "
                            "unbinned original movie(in pixels). "
                            "This should be an even number.")
@@ -215,7 +215,7 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
         firstMovie = inputMovies.getFirstItem()
         a0, aN = firstMovie.getAlignment().getRange()
         moviesPixelSize = inputMovies.getSamplingRate()
-        binningFactor = inputParts.getSamplingRate() / moviesPixelSize
+        binningFactor = 1.0  # this is binning during mc, but it's not used here
 
         og = convert.OpticsGroups.fromImages(inputMovies)
         writer = convert.createWriter(optics=og)
