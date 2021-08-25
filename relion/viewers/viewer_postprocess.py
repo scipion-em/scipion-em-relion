@@ -71,7 +71,7 @@ class PostprocessViewer(ProtocolViewer):
         group.addParam('resolutionPlotsFSC', params.EnumParam,
                        choices=['Corrected', 'Unmasked Maps', 'Masked Maps',
                                 'Phase Randomized Masked Maps', 'all'],
-                       default=FSC_CORRECTED,
+                       default=FSC_ALL,
                        display=params.EnumParam.DISPLAY_COMBO,
                        label='Display resolution plots (FSC)')
         group.addParam('resolutionThresholdFSC',
