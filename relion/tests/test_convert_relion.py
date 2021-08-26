@@ -43,7 +43,6 @@ from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_3D
 
 from relion import Plugin
 import relion.convert as convert
-from relion.convert.threading import Generator, Processor
 from relion.convert.convert31 import OpticsGroups
 from emtable import Table
 
@@ -916,43 +915,6 @@ class TestRelionOpticsGroups(BaseTest):
             self.assertAlmostEqual(ogx.rlnVoltage, 200.)
 
 
-class TestThreading(BaseTest):
-    def test_threads_processors(self):
-
-        def generate():
-            n = 10
-            for i in range(1, n+1):
-                mic = Micrograph(location="mic_%03d.mrc" % i)
-                print("Created micrograph: %s" % mic.getFileName())
-                yield mic
-                time.sleep(1)
-
-        def filter(mic):
-            fn = mic.getFileName()
-            print("Filtering micrograph: %s" % fn)
-            time.sleep(2)
-            mic.setFileName(fn.replace(".mrc", "_filtered.mrc"))
-            return mic
-
-        def picking(mic):
-            fn = mic.getFileName()
-            print("Picking micrograph: %s" % fn)
-            time.sleep(2)
-            m = 100
-            xRand = np.random.randint(0, 1000, m)
-            yRand = np.random.randint(0, 1000, m)
-            coords = [(x, y) for x, y in zip(xRand, yRand)]
-            time.sleep(1)
-            return mic, coords
-
-
-        p = convert.threading.Pipe(generate,
-                                   filter,
-                                   picking)
-
-        p.start()
-
-        p.join()
 
 
 
