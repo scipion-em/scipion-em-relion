@@ -156,8 +156,8 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
             extraParams='--maxsig 25',
             pooledParticles=30,
             doGpu=True,
-            numberOfThreads=4,
-            numberOfMpi=GPUS+1,
+            numberOfThreads=8,
+            numberOfMpi=1,
             allParticlesRam=True
         )
 
@@ -169,9 +169,9 @@ class TestWorkflowRelion3Betagal(TestWorkflow):
         relionIniModel = self.newProtocol(ProtRelionInitialModel,
                                           doCTF=False, doGpu=True,
                                           maskDiameterA=200,
-                                          numberOfIterations=5,
+                                          numberOfIterations=50,
                                           symmetryGroup='d2',
-                                          numberOfMpi=3, numberOfThreads=2)
+                                          numberOfMpi=1, numberOfThreads=8)
         relionIniModel.inputParticles.set(protRelion2D.outputParticles)
         protInitModel = self.launchProtocol(relionIniModel)
         return protInitModel
