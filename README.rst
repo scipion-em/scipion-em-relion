@@ -66,7 +66,7 @@ To check the installation, simply run one of the tests. A complete list of tests
 Supported versions
 ------------------
 
-3.1.0, 3.1.1, 3.1.2, 4.0
+3.1.0, 3.1.1, 3.1.2, 3.1.3, 4.0
 
 Protocols
 ---------
