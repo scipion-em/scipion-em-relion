@@ -185,6 +185,7 @@ def convertMask(img, outputPath, newPix=None,
     Return:
         new file name of the mask.
     """
+    ih = ImageHandler()
     index, filename = img.getLocation()
     imgFn = locationToRelion(index, filename)
     inPix = img.getSamplingRate()
@@ -193,6 +194,11 @@ def convertMask(img, outputPath, newPix=None,
         outFn = os.path.join(outputPath, pwutils.replaceBaseExt(imgFn, 'mrc'))
     else:
         outFn = outputPath
+
+    if not imgFn.endswith(".mrc"):
+        # convert to mrc first
+        ih.convert(imgFn, outFn.replace(".mrc", "_tmp.mrc"))
+        imgFn = outFn.replace(".mrc", "_tmp.mrc")
 
     if invert:
         # unfortunately relion does not allow to use
