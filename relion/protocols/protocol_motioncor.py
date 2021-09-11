@@ -406,6 +406,7 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
     def _getMovieShifts(self, movie, outStarFn=None):
         outStar = outStarFn or self._getMovieExtraFn(movie, '.star')
         first, last = self._getFrameRange()
+        n = last - first + 1
         table = md.Table(fileName=outStar, tableName='global_shift')
         xShifts, yShifts = [], []
 
@@ -415,7 +416,7 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
             # Shifts are in pixels of the original (unbinned) movies
             xShifts.append(float(row.rlnMicrographShiftX))
             yShifts.append(float(row.rlnMicrographShiftY))
-            if i > last:
+            if len(xShifts) == n:
                 break
         return xShifts, yShifts
 
@@ -564,7 +565,8 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
                          state=pwobj.Set.STREAM_OPEN):
         """ Redefine this method to update optics info. """
 
-        ogDict = {'rlnMicrographOriginalPixelSize': self.inputMovies.get().getSamplingRate()}
+        ogDict = {'rlnMicrographOriginalPixelSize': self.inputMovies.get().getSamplingRate(),
+                  'rlnMicrographStartFrame': self.sumFrame0.get()}
 
         if self.isEER:
             ogDict.update({'rlnEERUpsampling': self.eerSampling.get() + 1,
