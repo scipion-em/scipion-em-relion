@@ -27,13 +27,12 @@
 import os
 
 import pyworkflow.protocol.params as params
+import pyworkflow.object as pwobj
 import pyworkflow.utils as pwutils
 from pyworkflow.constants import PROD
 from pwem.protocols import ProtAlignMovies
 from pwem.objects import MovieAlignment
 from pyworkflow.protocol import STEPS_PARALLEL
-
-import relion
 
 
 class ProtRelionCompressMovies(ProtAlignMovies):
@@ -43,38 +42,54 @@ class ProtRelionCompressMovies(ProtAlignMovies):
     _label = 'compress movies'
     _devStatus = PROD
 
-    OP_COMPRESS = 0
-    OP_ESTIMATE = 1
-
     def __init__(self, **kwargs):
-
         ProtAlignMovies.__init__(self, **kwargs)
+        self.isEER = False
         self.stepsExecutionMode = STEPS_PARALLEL
 
     def _getConvertExtension(self, filename):
         """ Check whether it is needed to convert to .mrc or not """
         ext = pwutils.getExt(filename).lower()
-        return None if ext in ['.mrc', '.mrcs', '.tiff', '.tif'] else 'mrc'
+        return None if ext in ['.mrc', '.mrcs', '.tiff', '.tif', '.eer'] else 'mrc'
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineAlignmentParams(self, form):
+        form.addParam('gainType', params.EnumParam, default=1,
+                      choices=['none', 'from movies',
+                               'from estimate gain protocol'],
+                      label='Gain reference source')
 
-        form.addParam('inputGainProt', params.PointerParam, allowsNull=True,
+        form.addParam('inputGainProt', params.PointerParam,
+                      condition='gainType==2',
                       pointerClass='ProtRelionCompressEstimateGain',
-                      label='Input gain (Optional)',
-                      help='Provide as input a compress estimate protocol '
-                           'from where the estimated gain file will be taken.')
+                      label='Input gain estimation protocol',
+                      help='Provide an estimate gain reference protocol '
+                           'from where the gain file will be taken.')
 
         group = form.addGroup("TIFF Options")
-
         group.addParam('compression', params.EnumParam, default=1,
                        choices=['none', 'auto', 'zip', 'lzw'],
                        label='Compression type')
-
         group.addParam('deflateLevel', params.IntParam, default=6,
                        label='Deflate level',
                        help="deflate level. 1 (fast) "
                             "to 9 (slowest but best compression)")
+
+        form.addSection("EER")
+        form.addParam('eerGroup', params.IntParam, default=32,
+                      label='EER fractionation',
+                      help="The number of hardware frames to group into one "
+                           "fraction. This option is relevant only for Falcon4 "
+                           "movies in the EER format. Falcon 4 operates at "
+                           "248 frames/s.\nFractionate such that each fraction "
+                           "has about 0.5 to 1.25 e/A2.")
+        form.addParam('eerSampling', params.EnumParam, default=0,
+                      choices=['1', '2'],
+                      display=params.EnumParam.DISPLAY_HLIST,
+                      label='EER upsampling',
+                      help="EER upsampling (1 = 4K or 2 = 8K). 8K rendering is not "
+                           "recommended by Relion. See "
+                           "https://relion.readthedocs.io/en/latest/Reference/MovieCompression.html")
 
         form.addParallelSection(threads=4, mpi=1)
 
@@ -82,15 +97,23 @@ class ProtRelionCompressMovies(ProtAlignMovies):
     def _convertInputStep(self):
         self.info("Relion version:")
         self.runJob("relion_convert_to_tiff --version", "", numberOfMpi=1)
-        self.info("Detected version from config: %s"
-                  % relion.Plugin.getActiveVersion())
         # Create a local link to the input gain file if necessary
-        inputGain = self.getInputGain()
-        if inputGain:
+        inputMovies = self.inputMovies.get()
+
+        if self.gainType == 2:
+            inputGainProt = self.inputGainProt.get()
+            inputGainProt._createFilenameTemplates()
+
             tmpGain = self._getTmpPath('gain_estimate.bin')
-            pwutils.createLink(inputGain, tmpGain)
-            pwutils.createLink(inputGain.replace('.bin', '_reliablity.bin'),
+            pwutils.createLink(inputGainProt._getFileName("output_gain"), tmpGain)
+            pwutils.createLink(inputGainProt._getFileName("output_gain_extra"),
                                tmpGain.replace('.bin', '_reliablity.bin'))
+        elif self.gainType == 1:
+            gainFn = inputMovies.getGain()
+            self.tmpGain = self._getTmpPath(os.path.basename(gainFn))
+            pwutils.createLink(gainFn, self.tmpGain)
+
+
         ProtAlignMovies._convertInputStep(self)
 
     def _processMovie(self, movie):
@@ -98,14 +121,20 @@ class ProtRelionCompressMovies(ProtAlignMovies):
         baseName = os.path.basename(fn)
         compression = self.getEnumText('compression')
         pwutils.createLink(fn, self._getTmpPath(baseName))
-        args = "--i %s --o ../extra/ " % baseName
-        args += "--compression %s " % compression
+        args = " --i %s --o ../extra/" % baseName
+        args += " --compression %s" % compression
         # TODO: Check if deflateLevel is only valid for zip (deflate)
         if compression == 'zip':  # deflate
-            args += "--deflate_level %d" % self.deflateLevel
+            args += " --deflate_level %d" % self.deflateLevel
 
-        if self.getInputGain():
-            args += "--gain gain_estimate.bin "
+        if self.gainType == 2:
+            args += " --gain gain_estimate.bin"
+        elif self.gainType == 1:
+            args += " --gain %s" % self.tmpGain
+
+        if self.isEER:
+            args += " --eer_grouping %d" % self.eerGroup
+            args += " --eer_upsampling %d" % (self.eerSampling.get() + 1)
 
         self.runJob('relion_convert_to_tiff', args, cwd=self._getTmpPath())
 
@@ -118,8 +147,12 @@ class ProtRelionCompressMovies(ProtAlignMovies):
         return ['Zivanov2019']
 
     def _validate(self):
-        # Check base validation before the specific ones for Motioncor
-        errors = ProtAlignMovies._validate(self)
+        errors = []
+
+        firstMovie = self.inputMovies.get().getFirstItem()
+        self.isEER = pwutils.getExt(firstMovie.getFileName()) == ".eer"
+
+        errors.extend(ProtAlignMovies._validate(self))
 
         return errors
 
@@ -152,10 +185,11 @@ class ProtRelionCompressMovies(ProtAlignMovies):
                                              xshifts=[0]*n, yshifts=[0]*n))
         return newMovie
 
-    def getInputGain(self):
-        inputGainProt = self.inputGainProt.get()
-        if inputGainProt is not None:
-            inputGain = inputGainProt.getOutputGain()
-            if os.path.exists(inputGain):
-                return inputGain
-        return None
+    def _updateOutputSet(self, outputName, outputSet,
+                         state=pwobj.Set.STREAM_OPEN):
+        """ Redefine this method to update gain file. """
+        first = getattr(self, '_firstUpdate', True)
+        if first and self.gainType == 2:
+            outputSet.setGain(os.path.abspath(self._getExtraPath("gain-reference.mrc")))
+
+        ProtAlignMovies._updateOutputSet(self, outputName, outputSet, state=state)

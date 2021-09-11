@@ -78,11 +78,6 @@ class Relion3TestProtocolBase(TestWorkflow):
         return protImport
 
     def _runRelionMc(self, protImport, **kwargs):
-        # if not relion.Plugin.IS_30():
-        #     protInput = self._runAssignOptics(protImport)
-        # else:
-        #     protInput = protImport
-
         protInput = protImport
 
         args = {
