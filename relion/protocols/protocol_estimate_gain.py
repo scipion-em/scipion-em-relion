@@ -118,8 +118,12 @@ class ProtRelionCompressEstimateGain(ProtProcessMovies):
 
     def _validate(self):
         errors = []
+        inputMovies = self.inputMovies.get()
 
-        firstMovie = self.inputMovies.get().getFirstItem()
+        if self.moviesSubset.get() > len(inputMovies):
+            errors.append("Subset size cannot be bigger than input set!")
+
+        firstMovie = inputMovies.getFirstItem()
         if pwutils.getExt(firstMovie.getFileName()) not in [".mrcs", ".mrc"]:
             errors.append("Gain estimation only makes sense for 32-bit float MRC(S) format.")
 

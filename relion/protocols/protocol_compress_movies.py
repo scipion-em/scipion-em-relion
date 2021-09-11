@@ -54,15 +54,10 @@ class ProtRelionCompressMovies(ProtAlignMovies):
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineAlignmentParams(self, form):
-        form.addParam('gainType', params.EnumParam, default=1,
-                      choices=['none', 'from movies',
-                               'from estimate gain protocol'],
-                      label='Gain reference source')
-
         form.addParam('inputGainProt', params.PointerParam,
-                      condition='gainType==2',
+                      allowsNull=True,
                       pointerClass='ProtRelionCompressEstimateGain',
-                      label='Input gain estimation protocol',
+                      label='Input gain estimation protocol (optional)',
                       help='Provide an estimate gain reference protocol '
                            'from where the gain file will be taken.')
 
@@ -98,21 +93,15 @@ class ProtRelionCompressMovies(ProtAlignMovies):
         self.info("Relion version:")
         self.runJob("relion_convert_to_tiff --version", "", numberOfMpi=1)
         # Create a local link to the input gain file if necessary
-        inputMovies = self.inputMovies.get()
-
-        if self.gainType == 2:
+        if self.inputGainProt.get():
             inputGainProt = self.inputGainProt.get()
             inputGainProt._createFilenameTemplates()
 
             tmpGain = self._getTmpPath('gain_estimate.bin')
-            pwutils.createLink(inputGainProt._getFileName("output_gain"), tmpGain)
-            pwutils.createLink(inputGainProt._getFileName("output_gain_extra"),
-                               tmpGain.replace('.bin', '_reliablity.bin'))
-        elif self.gainType == 1:
-            gainFn = inputMovies.getGain()
-            self.tmpGain = self._getTmpPath(os.path.basename(gainFn))
-            pwutils.createLink(gainFn, self.tmpGain)
-
+            pwutils.createAbsLink(os.path.abspath(inputGainProt._getFileName("output_gain")),
+                                  tmpGain)
+            pwutils.createAbsLink(os.path.abspath(inputGainProt._getFileName("output_gain_extra")),
+                                  tmpGain.replace('.bin', '_reliablity.bin'))
 
         ProtAlignMovies._convertInputStep(self)
 
@@ -120,17 +109,15 @@ class ProtRelionCompressMovies(ProtAlignMovies):
         fn = movie.getAttributeValue('_originalFileName', movie.getFileName())
         baseName = os.path.basename(fn)
         compression = self.getEnumText('compression')
-        pwutils.createLink(fn, self._getTmpPath(baseName))
+        pwutils.createAbsLink(os.path.abspath(fn), self._getTmpPath(baseName))
         args = " --i %s --o ../extra/" % baseName
         args += " --compression %s" % compression
         # TODO: Check if deflateLevel is only valid for zip (deflate)
         if compression == 'zip':  # deflate
             args += " --deflate_level %d" % self.deflateLevel
 
-        if self.gainType == 2:
+        if self.inputGainProt.get():
             args += " --gain gain_estimate.bin"
-        elif self.gainType == 1:
-            args += " --gain %s" % self.tmpGain
 
         if self.isEER:
             args += " --eer_grouping %d" % self.eerGroup
@@ -148,13 +135,20 @@ class ProtRelionCompressMovies(ProtAlignMovies):
 
     def _validate(self):
         errors = []
-
         firstMovie = self.inputMovies.get().getFirstItem()
         self.isEER = pwutils.getExt(firstMovie.getFileName()) == ".eer"
 
         errors.extend(ProtAlignMovies._validate(self))
 
         return errors
+
+    def _warnings(self):
+        warnings = []
+        if self.isEER:
+            warnings.append("Note that after compression into TIFF the "
+                            "original EER gain reference should be inverted.")
+
+        return warnings
 
     # ------------------------ Extra BASE functions ---------------------------
     def _getRelPath(self, baseName, refPath):
@@ -189,7 +183,7 @@ class ProtRelionCompressMovies(ProtAlignMovies):
                          state=pwobj.Set.STREAM_OPEN):
         """ Redefine this method to update gain file. """
         first = getattr(self, '_firstUpdate', True)
-        if first and self.gainType == 2:
+        if first and self.inputGainProt.get():
             outputSet.setGain(os.path.abspath(self._getExtraPath("gain-reference.mrc")))
 
         ProtAlignMovies._updateOutputSet(self, outputName, outputSet, state=state)
