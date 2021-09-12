@@ -66,11 +66,14 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
     def _defineParams(self, form):
         form.addSection(label='Input')
         form.addParam('protRefine', params.PointerParam,
-                      pointerClass="ProtRefine3D",
+                      pointerClass="ProtRefine3D, ProtRelionMultiBody",
                       label='Select a previous refinement protocol',
                       help='Select any previous refinement protocol to get the '
                            '3D half maps. Note that it is recommended that the '
                            'refinement protocol uses a gold-standard method.')
+        form.addParam('bodyNum', params.IntParam, default=1,
+                      label="Which body to process?",
+                      help="Only relevant if input protocol is 3D multi-body.")
         form.addParam('solventMask', params.PointerParam,
                       pointerClass="VolumeMask",
                       label='Solvent mask',
@@ -187,9 +190,17 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
     # -------------------------- STEPS functions -------------------------------
     def convertInputStep(self, protId):
         pwutils.makePath(self._getInputPath())
-
         protRef = self.protRefine.get()
-        outVol = protRef.outputVolume
+
+        if self._isInputMbody():
+            for i, vol in enumerate(protRef.outputVolumes):
+                if i == self.bodyNum.get()-1:
+                    outVol = vol
+                    print("Using multi-body input:", vol.getFileName())
+                    break
+        else:  # ProtRefine3D
+            outVol = protRef.outputVolume
+
         newDim = outVol.getXDim()
         newPix = outVol.getSamplingRate()
         vols = outVol.getHalfMaps().split(',')
@@ -210,7 +221,10 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
     def createOutputStep(self):
         volume = Volume()
         volume.setFileName(self._getFileName('outputVolume'))
-        vol = self.protRefine.get().outputVolume
+        if self._isInputMbody():
+            vol = self.protRefine.get().outputVolumes
+        else:
+            vol = self.protRefine.get().outputVolume
         volume.setSamplingRate(self._getOutputPixelSize())
         self._defineOutputs(outputVolume=volume)
         self._defineSourceRelation(vol, volume)
@@ -281,9 +295,15 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
     def _getRelionMapFn(self, fn):
         return fn.split(':')[0]
 
+    def _isInputMbody(self):
+        return self.protRefine.get().getClassName() == "ProtRelionMultiBody"
+
     def _getOutputPixelSize(self):
         """ Return the output pixel size, using the calibrated
         pixel size if non zero, or the input one. """
-        volume = self.protRefine.get().outputVolume
+        if self._isInputMbody():
+            volume = self.protRefine.get().outputVolumes
+        else:
+            volume = self.protRefine.get().outputVolume
         cps = self.calibratedPixelSize.get()
         return cps if cps > 0 else volume.getSamplingRate()
