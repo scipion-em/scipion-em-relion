@@ -110,7 +110,10 @@ class ProtRelionBase(EMProtocol):
             'finalSGDvolume': self._getExtraPath("relion_it%(iter)03d_class%(ref3d)03d.mrc:mrc"),
             'preprocess_particles': self._getPath("preprocess_particles.mrcs"),
             'preprocess_particles_star': self._getPath("preprocess_particles.star"),
-            'preprocess_particles_prefix': "preprocess_particles"
+            'preprocess_particles_prefix': "preprocess_particles",
+            'finalvolume_mbody': self._getExtraPath("relion_body%(ref3d)03d.mrc:mrc"),
+            'final_half1_volume_mbody': self._getExtraPath("relion_half1_body%(ref3d)03d_unfil.mrc:mrc"),
+            'final_half2_volume_mbody': self._getExtraPath("relion_half2_body%(ref3d)03d_unfil.mrc:mrc"),
         }
         # add to keys, data.star, optimiser.star and sampling.star
         for key in self.FILE_KEYS:
@@ -121,6 +124,7 @@ class ProtRelionBase(EMProtocol):
         for p in self.PREFIXES:
             myDict['%smodel' % p] = self.extraIter + '%smodel.star' % p
             myDict['%svolume' % p] = self.extraIter + p + 'class%(ref3d)03d.mrc:mrc'
+            myDict['%svolume_mbody' % p] = self.extraIter + p + 'body%(ref3d)03d.mrc:mrc'
 
         self._updateFilenamesDict(myDict)
 
