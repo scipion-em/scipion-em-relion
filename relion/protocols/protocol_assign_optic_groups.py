@@ -40,6 +40,8 @@ from .protocol_base import ProtRelionBase
 class ProtRelionAssignOpticsGroup(ProtRelionBase):
     """ Assign Optics Group name and related parameters to an input set.
      Input set can be: movies, micrographs or particles.
+
+     Warning: all optics parameters from the input set itself are removed!
     """
     _label = 'assign optics groups'
     _devStatus = PROD

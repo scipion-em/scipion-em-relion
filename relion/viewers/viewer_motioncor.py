@@ -149,7 +149,7 @@ class RelionMotioncorrViewer(EmProtocolViewer):
                                                 markersStr='. . .',
                                                 xcolumn='id',
                                                 ylabel='Motion per frame (A)',
-                                                xlabel='Micrograph',
+                                                xlabel='Micrograph id',
                                                 title='Accumulated motion per frame',
                                                 bins=False,
                                                 orderColumn='id',

@@ -30,15 +30,15 @@ from emtable import Table
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtInitialVolume
 from pwem.objects import Volume
-from pyworkflow.constants import PROD
 from pyworkflow.protocol.params import (PointerParam, FloatParam,
                                         LabelParam, IntParam,
                                         EnumParam, StringParam,
-                                        BooleanParam)
+                                        BooleanParam,
+                                        LEVEL_ADVANCED)
 
 import relion
 import relion.convert as convert
-from .protocol_base import ProtRelionBase
+from ..protocol_base import ProtRelionBase
 
 
 class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
@@ -48,7 +48,6 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
     Relion Stochastic Gradient Descent (SGD) algorithm.
     """
     _label = '3D initial model'
-    _devStatus = PROD
     IS_CLASSIFY = False
     IS_3D_INIT = True
     IS_2D = False
@@ -168,24 +167,6 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                            'per defocus group is reached')
 
         form.addSection('Optimisation')
-        form.addParam('numberOfIter', IntParam, default=200,
-                      label="Number of VDAM mini-batches",
-                      help="How many iterations (i.e. mini-batches) "
-                           "to perform with the VDAM algorithm?")
-        form.addParam('regularisationParamT', FloatParam,
-                      default=4,
-                      label='Regularisation parameter T',
-                      help='Bayes law strictly determines the relative '
-                           'weight between the contribution of the '
-                           'experimental data and the prior. '
-                           'However, in practice one may need to adjust '
-                           'this weight to put slightly more weight on the '
-                           'experimental data to allow optimal results. '
-                           'Values greater than 1 for this regularisation '
-                           'parameter (T in the JMB2011 paper) put more '
-                           'weight on the experimental data. Values around '
-                           '2-4 have been observed to be useful for 3D '
-                           'initial model calculations.')
         form.addParam('numberOfClasses', IntParam, default=1,
                       condition='not doContinue',
                       label='Number of classes',
@@ -207,21 +188,56 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         form.addParam('symmetryGroup', StringParam, default='c1',
                       condition='not doContinue',
                       label="Symmetry",
-                      help='The initial model is always generated in C1 '
-                           'and then aligned to and symmetrized with the '
-                           'specified point group. If the automatic alignment '
-                           'fails, please manually rotate run_itNNN_class001.mrc '
-                           '(NNN is the number of iterations) so that it '
-                           'conforms the symmetry convention.')
+                      help='SGD sometimes works better in C1. If you make an '
+                           'initial model in C1 but want to run Class3D/Refine3D '
+                           'with a higher point group symmetry, the reference model '
+                           'must be rotated to conform the symmetry convention. '
+                           'You can do this by the relion_align_symmetry command.')
 
-        form.addParam('runInC1', BooleanParam, default=True,
+        group = form.addGroup('Sampling')
+        group.addParam('angularSamplingDeg', EnumParam, default=1,
+                       choices=relion.ANGULAR_SAMPLING_LIST,
+                       label='Initial angular sampling (deg)',
+                       help='There are only a few discrete angular samplings'
+                            ' possible because we use the HealPix library to'
+                            ' generate the sampling of the first two Euler '
+                            'angles on the sphere. The samplings are '
+                            'approximate numbers and vary slightly over '
+                            'the sphere.')
+        group.addParam('offsetSearchRangePix', FloatParam, default=6,
+                       label='Offset search range (pix)',
+                       help='Probabilities will be calculated only for '
+                            'translations in a circle with this radius (in '
+                            'pixels). The center of this circle changes at '
+                            'every iteration and is placed at the optimal '
+                            'translation for each image in the previous '
+                            'iteration.')
+        group.addParam('offsetSearchStepPix', FloatParam, default=2,
+                       label='Offset search step (pix)',
+                       help='Translations will be sampled with this step-size '
+                            '(in pixels). Translational sampling is also done '
+                            'using the adaptive approach. Therefore, if '
+                            'adaptive=1, the translations will first be '
+                            'evaluated on a 2x coarser grid.')
+
+        form.addSection(label='SGD')
+        self._defineSGD3(form)
+
+        form.addParam('sgdNoiseVar', IntParam, default=-1,
                       condition='not doContinue',
-                      label='Run in C1 and apply symmetry later?',
-                      help='If set to Yes, the gradient-driven optimisation '
-                           'is run in C1 and the symmetry orientation is searched '
-                           'and applied later. If set to No, the entire '
-                           'optimisation is run in the symmetry point group '
-                           'indicated above.')
+                      expertLevel=LEVEL_ADVANCED,
+                      label='Increased noise variance half-life',
+                      help='When set to a positive value, the initial '
+                           'estimates of the noise variance will internally '
+                           'be multiplied by 8, and then be gradually '
+                           'reduced, having 50% after this many particles '
+                           'have been processed. By default, this option '
+                           'is switched off by setting this value to a '
+                           'negative number. In some difficult cases, '
+                           'switching this option on helps. In such cases, '
+                           'values around 1000 have found to be useful. '
+                           'Change the factor of eight with the additional '
+                           'argument *--sgd_sigma2fudge_ini*')
 
         form.addSection('Compute')
         self._defineComputeParams(form)
@@ -236,7 +252,66 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                            "--verb 1\n"
                            "--pad 2\n")
 
-        form.addParallelSection(threads=1, mpi=0)
+        form.addParallelSection(threads=1, mpi=3)
+
+    def _defineSGD3(self, form):
+        """ Define SGD parameters for Relion version 3. """
+        group = form.addGroup('Iterations')
+        group.addParam('numberOfIterInitial', IntParam, default=50,
+                       label='Number of initial iterations',
+                       help='Number of initial SGD iterations, at which the '
+                            'initial resolution cutoff and the initial subset '
+                            'size will be used, and multiple references are '
+                            'kept the same. 50 seems to work well in many '
+                            'cases. Increase if the correct solution is not '
+                            'found.')
+        group.addParam('numberOfIterInBetween', IntParam, default=200,
+                       label='Number of in-between iterations',
+                       help='Number of SGD iterations between the initial and '
+                            'final ones. During these in-between iterations, '
+                            'the resolution is linearly increased, together '
+                            'with the mini-batch or subset size. In case of a '
+                            'multi-class refinement, the different references '
+                            'are also increasingly left to become dissimilar. '
+                            '200 seems to work well in many cases. Increase '
+                            'if multiple references have trouble separating, '
+                            'or the correct solution is not found.')
+        group.addParam('numberOfIterFinal', IntParam, default=50,
+                       label='Number of final iterations',
+                       help='Number of final SGD iterations, at which the '
+                            'final resolution cutoff and the final subset '
+                            'size will be used, and multiple references are '
+                            'left dissimilar. 50 seems to work well in many '
+                            'cases. Perhaps increase when multiple reference '
+                            'have trouble separating.')
+        group.addParam('writeIter', IntParam, default=10,
+                       expertLevel=LEVEL_ADVANCED,
+                       label='Write-out frequency (iter)',
+                       help='Every how many iterations do you want to write the '
+                            'model to disk. Negative value means only write '
+                            'out model after entire iteration.')
+
+        line = form.addLine('Resolution (A)',
+                            help='This is the resolution cutoff (in A) that '
+                                 'will be applied during the initial and final '
+                                 'SGD iterations. 35A and 15A respectively '
+                                 'seems to work well in many cases.')
+        line.addParam('initialRes', IntParam, default=35, label='Initial')
+        line.addParam('finalRes', IntParam, default=15, label='Final')
+
+        line = form.addLine('Mini-batch size',
+                            help='The number of particles that will be processed '
+                                 'during the initial and final iterations. \n\n'
+                                 'For initial, 100 seems to work well in many '
+                                 'cases. Lower values may result in wider '
+                                 'searches of the energy landscape, but possibly '
+                                 'at reduced resolutions. \n\n'
+                                 'For final, 300-500 seems to work well in many '
+                                 'cases. Higher values may result in increased '
+                                 'resolutions, but at increased computational '
+                                 'costs.')
+        line.addParam('initialBatch', IntParam, default=100, label='Initial')
+        line.addParam('finalBatch', IntParam, default=500, label='Final')
 
     def addSymmetry(self, container):
         pass
@@ -248,7 +323,8 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         """ Return the list of volumes generated.
         The number of volumes in the list will be equal to
         the number of classes requested by the user in the protocol. """
-        k = self.numberOfClasses.get()
+        # Provide 1 as default value for making it backward compatible
+        k = self.getAttributeValue('numberOfClasses', 1)
         pixelSize = self._getInputParticles().getSamplingRate()
         lastIter = self._lastIter()
         volumes = []
@@ -283,30 +359,9 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         self._defineOutputs(outputParticles=outImgSet)
         self._defineTransformRelation(self.inputParticles, outImgSet)
 
-        # Run symmetrization for the largest volume if necessary
-        sym = self.symmetryGroup.get()
-        if sym.lower() != "c1" and self.runInC1:
-            inFn = self._getFileName('model', iter=self._lastIter())
-            symFn = self._getPath('volume_sym%s.mrc' % sym)
-            pixSize = imgSet.getSamplingRate()
-
-            self.runJob("relion_align_symmetry",
-                        "--apply_sym --select_largest_class "
-                        "--i %s --o %s --sym %s --angpix %0.5f" % (
-                            inFn, symFn, sym, pixSize))
-
-            def _defineOutputVol(name, fn):
-                vol = Volume()
-                vol.copyInfo(volumes[0])
-                vol.setLocation(fn)
-                self._defineOutputs(**{name: vol})
-
-            _defineOutputVol('outputVolumeSymmetrized', symFn)
-
     # -------------------------- INFO functions -------------------------------
     def _validateNormal(self):
         errors = []
-
         return errors
 
     def _validateContinue(self):
@@ -345,43 +400,47 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
     def _setBasicArgs(self, args):
         """ Return a dictionary with basic arguments. """
         args.update({'--o': self._getExtraPath('relion'),
-                     '--oversampling': 1,
-                     '--pad': 1,
-                     '--tau2_fudge': self.regularisationParamT.get()
+                     '--oversampling': '1'
                      })
 
         if self.doFlattenSolvent:
             args['--flatten_solvent'] = ''
         if not self.doContinue:
-            args['--sym'] = 'C1' if self.runInC1 else self.symmetryGroup.get()
+            args.update({'--sym': self.symmetryGroup.get()})
+        args['--pad'] = 1 if self.skipPadding else 2
         if self.skipGridding:
             args['--skip_gridding'] = ''
 
-        self._setGradArgs(args)
+        self._setSGDArgs(args)
         self._setSamplingArgs(args)
 
-    def _setGradArgs(self, args):
-        args['--iter'] = self.numberOfIter.get()
-        args['--grad'] = ''
+    def _setSGDArgs(self, args):
+        args['--sgd'] = ''
+        args['--sgd_ini_iter'] = self.numberOfIterInitial.get()
+        args['--sgd_inbetween_iter'] = self.numberOfIterInBetween.get()
+        args['--sgd_fin_iter'] = self.numberOfIterFinal.get()
+        args['--sgd_write_iter'] = self.writeIter.get()
+        args['--sgd_ini_resol'] = self.initialRes.get()
+        args['--sgd_fin_resol'] = self.finalRes.get()
+        args['--sgd_ini_subset'] = self.initialBatch.get()
+        args['--sgd_fin_subset'] = self.finalBatch.get()
         args['--K'] = self.numberOfClasses.get()
 
         if not self.doContinue:
             args['--denovo_3dref'] = ''
+            args['--sgd_sigma2fudge_halflife'] = self.sgdNoiseVar.get()
 
     def _setSamplingArgs(self, args):
         """ Set sampling related params"""
         if not self.doContinue:
-            args['--healpix_order'] = 1
-            args['--offset_range'] = 6
-            args['--offset_step'] = 2
-            args['--auto_sampling'] = ''
+            args['--healpix_order'] = self.angularSamplingDeg.get()
+            args['--offset_range'] = self.offsetSearchRangePix.get()
+            args['--offset_step'] = self.offsetSearchStepPix.get() * 2
 
     def _fillDataFromIter(self, imgSet, iteration):
         outImgsFn = self._getFileName('data', iter=iteration)
         imgSet.setAlignmentProj()
-        px = imgSet.getSamplingRate()
-        self.reader = convert.createReader(alignType=ALIGN_PROJ,
-                                           pixelSize=px)
+        self.reader = convert.createReader(alignType=ALIGN_PROJ)
         mdIter = convert.Table.iterRows('particles@' + outImgsFn, key='rlnImageId')
         imgSet.copyItems(self._getInputParticles(), doClone=False,
                          updateItemCallback=self._createItemMatrix,

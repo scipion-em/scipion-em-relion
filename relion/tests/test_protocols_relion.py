@@ -219,7 +219,7 @@ class TestRelionPicking(TestRelionBase):
             streamingBatchSize=5,
         )
         self.launchProtocol(protPickRef)
-        self._checkOutput(protPickRef, 240, 330)
+        self._checkOutput(protPickRef, 320, 370)
 
 
 class TestRelionClassify2D(TestRelionBase):
@@ -235,9 +235,9 @@ class TestRelionClassify2D(TestRelionBase):
             print(magentaStr("\n==> Testing relion - classify 2d:"))
             prot2D = self.newProtocol(ProtRelionClassify2D,
                                       doCTF=False, maskDiameterA=340,
-                                      numberOfMpi=4, numberOfThreads=1)
+                                      numberOfMpi=1, numberOfThreads=8)
             prot2D.numberOfClasses.set(4)
-            prot2D.numberOfIterations.set(3)
+            prot2D.numberOfVDAMBatches.set(100)
             prot2D.inputParticles.set(self.protNormalize.outputParticles)
             prot2D.setObjLabel(label)
             prot2D.doGpu.set(doGpu)
@@ -392,12 +392,9 @@ class TestRelionInitialModel(TestRelionBase):
                 'maskDiameterA': 340,
                 'symmetryGroup': 'C1',
                 'allParticlesRam': True,
-                'numberOfMpi': 3,
-                'numberOfThreads': 2
+                'numberOfMpi': 1,
+                'numberOfThreads': 8
             }
-            kwargs.update({'numberOfIterInitial': 10,
-                           'numberOfIterInBetween': 30,
-                           'numberOfIterFinal': 10})
 
             print(magentaStr("\n==> Testing relion - initial model:"))
             relionIniModel = self.newProtocol(ProtRelionInitialModel, **kwargs)

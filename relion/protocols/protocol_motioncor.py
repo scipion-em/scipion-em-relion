@@ -42,6 +42,7 @@ from pyworkflow.gui.plotter import Plotter
 from pyworkflow.protocol import STEPS_SERIAL
 
 import relion
+from relion import Plugin
 import relion.convert as convert
 from relion.convert.convert31 import OpticsGroups
 from .protocol_base import ProtRelionBase
@@ -103,6 +104,15 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
                       help='McMullan et al. (Ultramicroscopy, 2015) '
                            'suggests summing power spectra every '
                            '4.0 e/A2 gives optimal Thon rings.')
+
+        if Plugin.IS_GT31():
+            form.addParam('saveFloat16', params.BooleanParam, default=False,
+                          label="Write output in float16?",
+                          expertLevel=params.LEVEL_ADVANCED,
+                          lavel="Write output in float16?",
+                          help="Relion can write output images in float16 "
+                               "MRC (mode 12) format to save disk space. "
+                               "By default, float32 format is used.")
 
         form.addParam('doComputePSD', params.BooleanParam, default=False,
                       label="Compute PSD?",
@@ -245,15 +255,15 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
 
         inputMovies = self.inputMovies.get()
         if inputMovies.getGain():
-            args += ' --gainref "%s" ' % inputMovies.getGain()
-            args += ' --gain_rot %d ' % self.gainRot
-            args += ' --gain_flip %d ' % self.gainFlip
+            args += '--gainref "%s" ' % inputMovies.getGain()
+            args += '--gain_rot %d ' % self.gainRot
+            args += '--gain_flip %d ' % self.gainFlip
 
         if self.defectFile.get():
-            args += ' --defect_file "%s" ' % self.defectFile.get()
+            args += '--defect_file "%s" ' % self.defectFile.get()
 
         if self._savePsSum():
-            args += ' --grouping_for_ps %d ' % self._calcPsDose()
+            args += '--grouping_for_ps %d ' % self._calcPsDose()
 
         if self.doDW:
             args += "--dose_weighting "
@@ -265,11 +275,14 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
             args += "--preexposure %f " % preExp
 
             if self.saveNonDW:
-                args += " --save_noDW "
+                args += "--save_noDW "
 
         if self.isEER:
-            args += " --eer_grouping %d " % self.eerGroup
-            args += " --eer_upsampling %d " % (self.eerSampling.get() + 1)
+            args += "--eer_grouping %d " % self.eerGroup
+            args += "--eer_upsampling %d " % (self.eerSampling.get() + 1)
+
+        if Plugin.IS_GT31() and self.saveFloat16:
+            args += "--float16 "
 
         if self.extraParams.hasValue():
             args += " " + self.extraParams.get()
@@ -311,11 +324,7 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
         # check frames range
         _, lastFrame, _ = inputMovies.getFramesRange()
 
-        #FIXME: Remove once EER support is enabled
-        if pwutils.getExt(firstMovie.getFileName()) == ".eer":
-            errors.append("EER support is not available yet in this plugin")
-
-        #self.isEER = pwutils.getExt(firstMovie.getFileName()) == ".eer"
+        self.isEER = pwutils.getExt(firstMovie.getFileName()) == ".eer"
         if self.isEER:
             lastFrame //= self.eerGroup.get()
 
@@ -352,6 +361,10 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
             except:
                 errors.append("EMAN2 plugin not found!\nComputing thumbnails "
                               "or PSD requires EMAN2 plugin and binaries installed.")
+
+        if self.hasAttribute('saveFloat16') and self.saveFloat16:
+            errors.append("MRC float16 format is not yet supported by XMIPP, "
+                          "so you cannot use this option.")
 
         return errors
 
@@ -397,13 +410,14 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
         table = md.Table(fileName=outStar, tableName='global_shift')
         xShifts, yShifts = [], []
 
-        for row in table:
+        for i, row in enumerate(table):
+            if i < first-1:
+                continue
             # Shifts are in pixels of the original (unbinned) movies
             xShifts.append(float(row.rlnMicrographShiftX))
             yShifts.append(float(row.rlnMicrographShiftY))
             if len(xShifts) == n:
                 break
-
         return xShifts, yShifts
 
     def _getBinFactor(self):
@@ -551,7 +565,8 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
                          state=pwobj.Set.STREAM_OPEN):
         """ Redefine this method to update optics info. """
 
-        ogDict = {'rlnMicrographOriginalPixelSize': self.inputMovies.get().getSamplingRate()}
+        ogDict = {'rlnMicrographOriginalPixelSize': self.inputMovies.get().getSamplingRate(),
+                  'rlnMicrographStartFrame': self.sumFrame0.get()}
 
         if self.isEER:
             ogDict.update({'rlnEERUpsampling': self.eerSampling.get() + 1,
