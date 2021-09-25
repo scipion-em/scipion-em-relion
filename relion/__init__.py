@@ -86,8 +86,14 @@ class Plugin(pwem.Plugin):
                             ['bin/relion_refine'])]
 
         for v in cls._supportedVersions:
-            env.addPackage('relion', version=v,
-                           url='https://github.com/3dem/relion/archive/%s.tar.gz' % v,
-                           commands=relion_commands,
-                           updateCuda=True,
-                           default=v == V4_0)
+            if v == V4_0:
+                env.addPackage('relion', version=v,
+                               url='https://github.com/3dem/relion/archive/refs/heads/ver4.0.zip',
+                               commands=relion_commands,
+                               updateCuda=True,
+                               default=True)
+            else:
+                env.addPackage('relion', version=v,
+                               url='https://github.com/3dem/relion/archive/%s.tar.gz' % v,
+                               commands=relion_commands,
+                               updateCuda=True)
