@@ -32,7 +32,7 @@ import pwem
 from .constants import *
 
 
-__version__ = '4.0b2'
+__version__ = '4.0b3'
 _logo = "relion_logo.jpg"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016', 'Zivanov2018']
 
@@ -84,10 +84,20 @@ class Plugin(pwem.Plugin):
         relion_commands = [('cmake -DGUI=OFF -DCMAKE_INSTALL_PREFIX=./ .', []),
                            ('make -j %d' % env.getProcessors(),
                             ['bin/relion_refine'])]
+        warning = [('echo "We do not provide Relion binaries for 4.0beta release. '
+                    'You should skip binaries installation and '
+                    'read https://relion.readthedocs.io/en/release-4.0/Installation.html '
+                    'for instructions."', 'fail')]
 
-        for v in cls._supportedVersions:
+
+        for v in cls._supportedVersions[:-1]:
             env.addPackage('relion', version=v,
                            url='https://github.com/3dem/relion/archive/%s.tar.gz' % v,
                            commands=relion_commands,
-                           updateCuda=True,
-                           default=v == V4_0)
+                           updateCuda=True)
+
+        env.addPackage('relion', version=V4_0,
+                       tar='void.tgz',
+                       commands=warning,
+                       updateCuda=True,
+                       default=True)
