@@ -73,7 +73,8 @@ class OpticsGroups:
 
     def __store(self, og):
         self._dict[og.rlnOpticsGroup] = og
-        self._dictName[og.rlnOpticsGroupName] = og
+        groupName = og.rlnOpticsGroupName if hasattr(og, 'rlnOpticsGroupName') else 'optics_group_%s' % og.rlnOpticsGroup
+        self._dictName[groupName] = og
 
     def __getitem__(self, item):
         if isinstance(item, int):
