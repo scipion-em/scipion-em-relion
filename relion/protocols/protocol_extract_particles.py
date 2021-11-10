@@ -159,6 +159,9 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         self._extractMicrographList([mic], params)
 
     def _extractMicrographList(self, micList, params):
+        if not micList:  # do not process when empty list, need to check this properly
+            return
+
         workingDir = self.getWorkingDir()
         micsStar = self._getMicsStar(micList)
         og = OpticsGroups.fromImages(self.getInputMicrographs())
