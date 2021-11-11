@@ -31,6 +31,7 @@ newer Relion3.1 routines and old ones.
 """
 
 import os
+import math
 from emtable import Table
 
 import pyworkflow.utils as pwutils
@@ -184,6 +185,7 @@ def convertMask(img, outputPath, newPix=None,
     Return:
         new file name of the mask.
     """
+    ih = ImageHandler()
     index, filename = img.getLocation()
     imgFn = locationToRelion(index, filename)
     inPix = img.getSamplingRate()
@@ -192,6 +194,11 @@ def convertMask(img, outputPath, newPix=None,
         outFn = os.path.join(outputPath, pwutils.replaceBaseExt(imgFn, 'mrc'))
     else:
         outFn = outputPath
+
+    if not imgFn.endswith(".mrc"):
+        # convert to mrc first
+        ih.convert(imgFn, outFn.replace(".mrc", "_tmp.mrc"))
+        imgFn = outFn.replace(".mrc", "_tmp.mrc")
 
     if invert:
         # unfortunately relion does not allow to use
@@ -204,10 +211,9 @@ def convertMask(img, outputPath, newPix=None,
 
     params = '--i %s --o %s --angpix %0.5f' % (imgFn, outFn, inPix)
 
-    if newPix is not None:
-        # be careful with this rescale param
-        # because introduce some artefacts even if
-        # the sampling is the same than the input 3D mask
+    if newPix is not None and not math.isclose(newPix, inPix, abs_tol=0.001):
+        # be careful with this rescale param because it may
+        # introduce some artefacts if the sampling is the same as the input
         params += ' --rescale_angpix %0.5f' % newPix
 
     if newDim is not None:

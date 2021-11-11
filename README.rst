@@ -25,19 +25,11 @@ This plugin provide wrappers around several programs of `RELION <https://www3.mr
         :alt: Downloads
 
 
-+--------------+----------------+--------------------+
-| prod: |prod| | devel: |devel| | support: |support| |
-+--------------+----------------+--------------------+
-
-.. |prod| image:: http://scipion-test.cnb.csic.es:9980/badges/relion_prod.svg
-.. |devel| image:: http://scipion-test.cnb.csic.es:9980/badges/relion_devel.svg
-.. |support| image:: http://scipion-test.cnb.csic.es:9980/badges/relion_support.svg
-
 **IMPORTANT NOTES!**
 
     1. If you have imported movies with a gain file in **DM4** format, you need to **flip the gain reference upside-down** in the motion correction protocol! (`bug details <https://github.com/I2PC/xmippCore/issues/39>`_)
-    2. We found the bug causing omission of the gain reference during polishing job. This affects all plugin versions prior to 3.0.0. Starting from 3.0.0, if you have provided a gain reference or defects file during movie import or motion correction, please **make sure to run first "assign optics groups" protocol for aligned movies**, specifying the gain file etc. Currently, Scipion has no other way of knowing if you have e.g. rotated the gain during motion correction. Output movies then can be used in this polishing protocol.
-    3. EER movies processing is not available yet, as it requires Scipion core changes.
+    2. If you have provided a gain reference or defects file during movie import or motion correction, please **make sure to run first "assign optics groups" protocol for aligned movies**, specifying the gain file etc. Currently, Scipion has no other way of knowing if you have e.g. rotated the gain during motion correction. Output movies then can be used in this polishing protocol.
+    3. When importing EER movies, you should specify dose per single EER frame during import step. Pixel size should be the physical pixel size unless you plan to render EER on 8K grid. In the Motioncor protocol choose binning, EER fractionation and upsampling (default=1 is for 4K grid).
 
 Installation
 ------------
@@ -64,18 +56,22 @@ b) Developer's version
 
       scipion installp -p path_to_scipion-em-relion --devel
 
-RELION sources will be downloaded and compiled automatically with the plugin, but you can also link an existing installation. Default installation path assumed is ``software/em/relion-3.1.2``, if you want to change it, set *RELION_HOME* in ``scipion.conf`` file to the folder where the RELION is installed. If you need to use CUDA different from the one used during Scipion installation (defined by *CUDA_LIB*), you can add *RELION_CUDA_LIB* variable to the config file. Moreover, if you have to use a MPI for Relion different from Scipion MPI, you can set *RELION_MPI_BIN* and *RELION_MPI_LIB* variables in the config file.
+- RELION sources will be downloaded and compiled automatically with the plugin, but you can also link an existing installation. Default installation path assumed is ``software/em/relion-4.0``, if you want to change it, set *RELION_HOME* in ``scipion.conf`` file to the folder where the RELION is installed.
+- If you need to use CUDA different from the one used during Scipion installation (defined by *CUDA_LIB*), you can add *RELION_CUDA_LIB* variable to the config file.
+- If you have to use a MPI for Relion different from Scipion MPI, you can set *RELION_MPI_BIN* and *RELION_MPI_LIB* variables in the config file.
+- If you want to use **2D class ranker** protocol, you also need to set *RELION_PYTHON* that points to a Python which includes torch and numpy modules.
 
 To check the installation, simply run one of the tests. A complete list of tests can be displayed by executing ``scipion test --show --grep relion``
 
 Supported versions
 ------------------
 
-3.1.0, 3.1.1, 3.1.2
+3.1.0, 3.1.1, 3.1.2, 3.1.3, 4.0
 
 Protocols
 ---------
 
+* 2D class ranker
 * 2D classification         
 * 3D auto-refine            
 * 3D classification         

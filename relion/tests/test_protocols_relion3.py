@@ -281,8 +281,7 @@ class Relion3TestMultiBody(Relion3TestProtocolBase):
                                        pooledParticles=30,
                                        skipPadding=True,
                                        doGpu=True,
-                                       gpusToUse='0,1:2,3',
-                                       numberOfThreads=12,
+                                       numberOfThreads=8,
                                        numberOfMpis=3)
         protRef = self._setupRefinement()
         relionMbody.protRefine.set(protRef)

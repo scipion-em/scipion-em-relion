@@ -54,20 +54,18 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
     """
     _label = '3D multi-body'
     _devStatus = PROD
+    IS_CLASSIFY = False
+    PREFIXES = ['half1_', 'half2_']
+
+    def _initialize(self):
+        """ This function is mean to be called after the
+        working dir for the protocol have been set. (maybe after recovery from mapper)
+        """
+        self._createFilenameTemplates()
+        self._createIterTemplates()
 
     def _getInputPath(self, *paths):
         return self._getPath('input', *paths)
-
-    def _createFilenameTemplates(self):
-        """ Centralize how files are called for iterations and references. """
-        myDict = {
-            'finalModel': self._getExtraPath("run_model.star"),
-            'input': self._getExtraPath("input_body.star"),
-            'body': self._getExtraPath("run_body%(body)03d.mrc"),
-            'half1': self._getExtraPath("run_half1_body%(body)03d_unfil.mrc"),
-            'half2': self._getExtraPath("run_half2_body%(body)03d_unfil.mrc")
-        }
-        self._updateFilenamesDict(myDict)
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
@@ -231,7 +229,8 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
     def flexAnalysisStep(self, args):
         params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.items()])
         # use runJob since MPI is not allowed
-        self.runJob('relion_flex_analyse', params)
+        self.runJob('relion_flex_analyse', params, numberOfMpi=1,
+                    numberOfThreads=1)
 
     def createOutputStep(self):
         protRefine = self.protRefine.get()
@@ -275,7 +274,32 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         return ['Nakane2018']
 
     def _summary(self):
-        summary = []
+        self._initialize()
+        lastIter = self._lastIter()
+
+        if lastIter is not None:
+            iterMsg = 'Iteration %d' % lastIter
+        else:
+            iterMsg = 'No iteration finished yet.'
+
+        summary = [iterMsg]
+
+        if not hasattr(self, 'outputVolumes'):
+            summary.append("Output volumes not ready yet.")
+            it = self._lastIter() or -1
+            if it >= 1:
+                table = Table(fileName=self._getFileName('half1_model', iter=it),
+                              tableName='model_general')
+                row = table[0]
+                resol = float(row.rlnCurrentResolution)
+                summary.append("Current resolution: *%0.2f A*" % resol)
+        else:
+            table = Table(fileName=self._getFileName('modelFinal'),
+                          tableName='model_general')
+            row = table[0]
+            resol = float(row.rlnCurrentResolution)
+            summary.append("Final resolution: *%0.2f A*" % resol)
+
         return summary
 
     # -------------------------- UTILS functions ------------------------------
@@ -284,24 +308,23 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         from the *model.star file.
         """
         self._volsInfo = {}
-        mdTable = Table(fileName=self._getFileName('finalModel'),
+        mdTable = Table(fileName=self._getFileName('modelFinal'),
                         tableName='model_bodies')
 
         for body, row in enumerate(mdTable):
             self._volsInfo[body + 1] = row
 
     def _getNumberOfBodies(self):
-        table = Table(fileName=self._getFileName('input'))
+        table = Table(fileName=self._getExtraPath("input_body.star"))
         return int(table.size())
 
     def _updateVolume(self, bodyNum, item):
-        item.setFileName(self._getFileName('body', body=bodyNum))
-        half1 = self._getFileName('half1', body=bodyNum)
-        half2 = self._getFileName('half2', body=bodyNum)
+        item.setFileName(self._getFileName('finalvolume_mbody', ref3d=bodyNum))
+        half1 = self._getFileName('final_half1_volume_mbody', ref3d=bodyNum)
+        half2 = self._getFileName('final_half1_volume_mbody', ref3d=bodyNum)
         item.setHalfMaps([half1, half2])
 
         row = self._volsInfo[bodyNum]
-        # TODO: check if the following makes sense for Volume
         item._rlnAccuracyRotations = Float(row.rlnAccuracyRotations)
         item._rlnAccuracyTranslationsAngst = Float(row.rlnAccuracyTranslationsAngst)
 
@@ -317,7 +340,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         args = {
             '--continue': fnOptimiser,
             '--multibody_masks': self._getExtraPath('input_body.star'),
-            '--o': self._getExtraPath('run'),
+            '--o': self._getExtraPath('relion'),
             '--solvent_correct_fsc': '',
             '--oversampling': 1,
             '--pad': 1 if self.skipPadding else 2,
@@ -330,13 +353,15 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         if self.skipGridding:
             args['--skip_gridding'] = ''
 
-        # restore mask for previous refinement protocol
-        # it's not used by multibody but required by relion cmd
+        # Due to Relion bug we recreate mask from previous refinement protocol
+        # it's not used by multibody
         if protRefine.referenceMask.hasValue():
-            tmp = protRefine._getTmpPath()
+            table = Table(fileName=fnOptimiser,
+                          tableName='optimiser_general')
+            maskFn = table[0].rlnSolventMaskName
             newDim = protRefine._getInputParticles().getXDim()
             newPix = protRefine._getInputParticles().getSamplingRate()
-            convert.convertMask(protRefine.referenceMask.get(), tmp,
+            convert.convertMask(protRefine.referenceMask.get(), maskFn,
                                 newPix, newDim)
 
         self._setComputeArgs(args)
@@ -349,8 +374,8 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
     def _getAnalyseArgs(self):
         args = {
             '--PCA_orient': '',
-            '--model': self._getExtraPath('run_model.star'),
-            '--data': self._getExtraPath('run_data.star'),
+            '--model': self._getFileName('modelFinal'),
+            '--data': self._getFileName('dataFinal'),
             '--bodies': self._getExtraPath('input_body.star'),
             '--o': self._getExtraPath('analyse'),
             '--do_maps': '',
