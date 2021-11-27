@@ -32,14 +32,14 @@ import pwem
 from .constants import *
 
 
-__version__ = '4.0b7'
+__version__ = '4.0b8'
 _logo = "relion_logo.jpg"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016', 'Zivanov2018']
 
 
 class Plugin(pwem.Plugin):
     _homeVar = RELION_HOME
-    _supportedVersions = [V3_1_0, V3_1_1, V3_1_2, V3_1_3, V4_0]
+    _supportedVersions = [V3_1_3, V4_0]
     _url = "https://github.com/scipion-em/scipion-em-relion"
 
     @classmethod
