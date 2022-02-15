@@ -35,7 +35,7 @@ RELION_CUDA_LIB = 'RELION_CUDA_LIB'
 RELION_PYTHON = 'RELION_PYTHON'
 
 # Supported versions:
-V3_1_3 = '3.1.3'
+V3_1 = '3.1'
 V4_0 = '4.0'
 
 MASK_FILL_ZERO = 0
