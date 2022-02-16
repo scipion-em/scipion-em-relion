@@ -2,7 +2,7 @@
 Relion plugin
 =============
 
-This plugin provide wrappers around several programs of `RELION <https://www3.mrc-lmb.cam.ac.uk/relion/index.php/Main_Page>`_ software suite.
+This plugin provides wrappers for several programs of `RELION <https://www3.mrc-lmb.cam.ac.uk/relion/index.php/Main_Page>`_ software suite.
 
 .. image:: https://img.shields.io/pypi/v/scipion-em-relion.svg
         :target: https://pypi.python.org/pypi/scipion-em-relion
@@ -54,7 +54,7 @@ b) Developer's version
 
    .. code-block::
 
-      scipion installp -p path_to_scipion-em-relion --devel
+      scipion installp -p /path/to/scipion-em-relion --devel
 
 - RELION sources will be downloaded and compiled automatically with the plugin, but you can also link an existing installation. Default installation path assumed is ``software/em/relion-4.0``, if you want to change it, set *RELION_HOME* in ``scipion.conf`` file to the folder where the RELION is installed.
 - If you need to use CUDA different from the one used during Scipion installation (defined by *CUDA_LIB*), you can add *RELION_CUDA_LIB* variable to the config file.
