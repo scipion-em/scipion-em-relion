@@ -86,10 +86,11 @@ class Plugin(pwem.Plugin):
     @classmethod
     def defineBinaries(cls, env):
         for ver in cls._supportedVersions:
-            installCmd = [('git clone https://github.com/3dem/relion.git && '
-                           'cd relion && git checkout ver%s && '
-                           'cmake -DCMAKE_INSTALL_PREFIX=./ .' % ver, []),
-                          ('cd relion && make -j %d' % env.getProcessors(),
+            installCmd = [(f'cd .. && rmdir relion-{ver} && '
+                           f'git clone https://github.com/3dem/relion.git relion-{ver} && '
+                           f'cd relion-{ver} && git checkout ver{ver} && '
+                           'cmake -DCMAKE_INSTALL_PREFIX=./ .', []),
+                          (f'make -j {env.getProcessors()}',
                            ['relion/bin/relion_refine'])]
 
             env.addPackage('relion', version=ver,
