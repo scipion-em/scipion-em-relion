@@ -31,8 +31,10 @@ from pwem.protocols import ProtPreprocessVolumes
 from pwem.emlib.image import ImageHandler
 from pwem.objects import Volume
 
+from .protocol_base import ProtRelionBase
 
-class ProtRelionResizeVolume(ProtPreprocessVolumes):
+
+class ProtRelionResizeVolume(ProtPreprocessVolumes, ProtRelionBase):
     """ This protocol rescales/resizes 3D volumes using relion_image_handler. """
 
     _label = 'crop/resize volumes'

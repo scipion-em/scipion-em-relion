@@ -32,10 +32,11 @@ from pwem.protocols import ProtCreateMask3D
 from pwem.objects import VolumeMask
 
 import relion.convert as convert
+from .protocol_base import ProtRelionBase
 from ..constants import MASK_AND
 
 
-class ProtRelionCreateMask3D(ProtCreateMask3D):
+class ProtRelionCreateMask3D(ProtCreateMask3D, ProtRelionBase):
     """ This protocols creates a 3D mask using Relion.
     The mask is created from a 3d volume or by comparing two input volumes.
     """

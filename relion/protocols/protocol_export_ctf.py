@@ -27,15 +27,16 @@
 import os
 
 from pwem.objects import SetOfMicrographs
-from pwem.protocols import EMProtocol
 from pyworkflow.constants import PROD
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 
+from .protocol_base import ProtRelionBase
+
 import relion.convert as convert
 
 
-class ProtRelionExportCtf(EMProtocol):
+class ProtRelionExportCtf(ProtRelionBase):
     """ Export a SetOfCTF to a Relion STAR file. """
 
     _label = 'export ctf'

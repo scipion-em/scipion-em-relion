@@ -30,8 +30,10 @@ from pwem.objects import Volume
 from pwem.emlib.image import ImageHandler
 from pwem.protocols import ProtAlignVolume
 
+from .protocol_base import ProtRelionBase
 
-class ProtRelionSymmetrizeVolume(ProtAlignVolume):
+
+class ProtRelionSymmetrizeVolume(ProtAlignVolume, ProtRelionBase):
     """
     Symmetrize a volume using Relion programs:
         *relion_align_symmetry* and *relion_image_handler*.

@@ -50,8 +50,8 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
                      'rlnOverallAccuracyTranslationsAngst',
                      'rlnChangesOptimalClasses']
     
-    def __init__(self, **args):        
-        ProtRelionBase.__init__(self, **args)
+    def __init__(self, **kwargs):
+        ProtRelionBase.__init__(self, **kwargs)
         
     def _initialize(self):
         """ This function is mean to be called after the 

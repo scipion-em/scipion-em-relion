@@ -31,10 +31,12 @@ from pyworkflow.object import String
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtProcessParticles
 
+from .protocol_base import ProtRelionBase
+
 import relion.convert as convert
 
  
-class ProtRelionExpandSymmetry(ProtProcessParticles):
+class ProtRelionExpandSymmetry(ProtProcessParticles, ProtRelionBase):
     """ This protocols wraps relion_particle_symmetry_expand program.
 
     Given an input set of particles with angular assignment,
