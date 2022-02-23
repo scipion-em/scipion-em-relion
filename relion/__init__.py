@@ -91,7 +91,7 @@ class Plugin(pwem.Plugin):
                            f'cd relion-{ver} && git checkout ver{ver} && '
                            'cmake -DCMAKE_INSTALL_PREFIX=./ .', []),
                           (f'make -j {env.getProcessors()}',
-                           ['relion/bin/relion_refine'])]
+                           ['bin/relion_refine'])]
 
             env.addPackage('relion', version=ver,
                            tar='void.tgz',
