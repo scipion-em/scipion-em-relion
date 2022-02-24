@@ -138,6 +138,8 @@ class ProtRelionExportCtf(ProtRelionBase):
         starWriter.writeSetOfMicrographs(micSet, self._getStarFile())
 
     # -------------------------- INFO functions -------------------------------
+    def _validate(self):
+        return []
 
     def _summary(self):
         summary = []

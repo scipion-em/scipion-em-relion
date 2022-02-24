@@ -40,7 +40,7 @@ class ProtRelionSymmetrizeVolume(ProtAlignVolume, ProtRelionBase):
     """
     _label = 'symmetrize volume'
     _devStatus = PROD
-    
+
     # --------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')
@@ -86,3 +86,10 @@ class ProtRelionSymmetrizeVolume(ProtAlignVolume, ProtRelionBase):
 
         _defineOutputVol('outputVolumeAligned', alignedFn)
         _defineOutputVol('outputVolumeSymmetrized', symFn)
+
+    # -------------------------- INFO functions -------------------------------
+    def _validate(self):
+        return []
+
+    def _summary(self):
+        return []
