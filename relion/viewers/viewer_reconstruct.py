@@ -1,8 +1,7 @@
 # ******************************************************************************
 # *
-# * Authors:     Grigory Sharov     (gsharov@mrc-lmb.cam.ac.uk)
+# * Authors:     Roberto Marabini
 # *
-# * MRC Laboratory of Molecular Biology, MRC-LMB
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -24,11 +23,10 @@
 # *
 # ******************************************************************************
 
-from .viewer_base import *
-from .viewer_ctfrefine import ProtCtfRefineViewer
-from .viewer_postprocess import PostprocessViewer
-from .viewer_motioncor import RelionMotioncorrViewer
-from .viewer_locres import RelionLocalResViewer
-from .viewer_polishing import RelionPolishViewer
-from .viewer_multibody import MultibodyViewer
-from .viewer_reconstruct import ReconstructViewer
+
+from pwem.viewers.viewer_volumes import viewerProtImportVolumes
+from ..protocols import ProtRelionReconstruct
+
+class ReconstructViewer(viewerProtImportVolumes):
+    _label = 'viewer reconstruction'
+    _targets = [ProtRelionReconstruct]
