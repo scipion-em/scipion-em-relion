@@ -81,7 +81,7 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def getDependencies(cls):
-        return ['git', 'gcc', 'cmake', 'nvcc', 'mpirun', 'mpicxx', 'make']
+        return ['git', 'gcc', 'cmake', 'make']
 
     @classmethod
     def defineBinaries(cls, env):
