@@ -60,6 +60,7 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
 
         form.addParam('boxSize', params.IntParam,
                       label='Box size (px)',
+                      allowsPointers=True,
                       help="Box size in pixels.")
 
         group = form.addGroup('Laplacian of Gaussian')

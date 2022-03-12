@@ -32,14 +32,14 @@ import pwem
 from .constants import *
 
 
-__version__ = '4.0b8'
+__version__ = '4.0'
 _logo = "relion_logo.jpg"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016', 'Zivanov2018']
 
 
 class Plugin(pwem.Plugin):
     _homeVar = RELION_HOME
-    _supportedVersions = [V3_1_3, V4_0]
+    _supportedVersions = [V3_1, V4_0]
     _url = "https://github.com/scipion-em/scipion-em-relion"
 
     @classmethod
@@ -80,24 +80,22 @@ class Plugin(pwem.Plugin):
         return cls.getActiveVersion().startswith('4')
 
     @classmethod
+    def getDependencies(cls):
+        return ['git', 'gcc', 'cmake', 'make']
+
+    @classmethod
     def defineBinaries(cls, env):
-        relion_commands = [('cmake -DGUI=OFF -DCMAKE_INSTALL_PREFIX=./ .', []),
-                           ('make -j %d' % env.getProcessors(),
-                            ['bin/relion_refine'])]
-        warning = [('echo "We do not provide Relion binaries for 4.0beta release. '
-                    'You should skip binaries installation and '
-                    'read https://relion.readthedocs.io/en/release-4.0/Installation.html '
-                    'for instructions."', 'fail')]
+        for ver in cls._supportedVersions:
+            installCmd = [(f'cd .. && rmdir relion-{ver} && '
+                           f'git clone https://github.com/3dem/relion.git relion-{ver} && '
+                           f'cd relion-{ver} && git checkout ver{ver} && '
+                           'cmake -DCMAKE_INSTALL_PREFIX=./ .', []),
+                          (f'make -j {env.getProcessors()}',
+                           ['bin/relion_refine'])]
 
-
-        for v in cls._supportedVersions[:-1]:
-            env.addPackage('relion', version=v,
-                           url='https://github.com/3dem/relion/archive/%s.tar.gz' % v,
-                           commands=relion_commands,
-                           updateCuda=True)
-
-        env.addPackage('relion', version=V4_0,
-                       tar='void.tgz',
-                       commands=warning,
-                       updateCuda=True,
-                       default=True)
+            env.addPackage('relion', version=ver,
+                           tar='void.tgz',
+                           commands=installCmd,
+                           neededProgs=cls.getDependencies(),
+                           updateCuda=True,
+                           default=True)

@@ -1,12 +1,12 @@
 4.0:
     - Relion 4.0 support:
+        - download sources from github
         - all protocols updated with new args / params
         - new 2D class ranker protocol (test still missing)
         - new env var RELION_PYTHON for Python with Torch & Numpy modules (required for the protocol above)
         - separate initial model protocol for 4.0 (3.x is incompatible)
         - float16 option disabled
         - EER enabled, needs more testing
-        - 3.1.3 binary added
         - BUGFIX: wrong shifts were saved in motioncor when skipping frames
         - rlnMicrographStartFrame is saved in optics for mc output movies
         - Multi-body protocol improvements, viewer added
