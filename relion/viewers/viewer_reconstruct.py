@@ -1,7 +1,6 @@
 # ******************************************************************************
 # *
-# * Authors:     Roberto Marabini
-# *
+# * Authors:    Roberto Marabini       (roberto@cnb.csic.es) [1]
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -26,6 +25,7 @@
 
 from pwem.viewers.viewer_volumes import viewerProtImportVolumes
 from ..protocols import ProtRelionReconstruct
+
 
 class ReconstructViewer(viewerProtImportVolumes):
     _label = 'viewer reconstruction'
