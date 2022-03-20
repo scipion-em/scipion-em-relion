@@ -2,7 +2,7 @@
 Relion plugin
 =============
 
-This plugin provides wrappers for several programs of `RELION <https://www3.mrc-lmb.cam.ac.uk/relion/index.php/Main_Page>`_ software suite.
+This plugin provides wrappers for several programs of `RELION <https://relion.readthedocs.io/en/latest/index.html>`_ software suite.
 
 .. image:: https://img.shields.io/pypi/v/scipion-em-relion.svg
         :target: https://pypi.python.org/pypi/scipion-em-relion
@@ -109,3 +109,4 @@ References
 2. Scheres et al., JSB, 2012 
 3. Kimanius et al., eLife, 2016 
 4. Zivanov et al., eLife, 2018
+5. Kimanius et al., Biochemical Journal, 2021
