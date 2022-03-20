@@ -125,7 +125,8 @@ class ClassesLoader:
         self._reader = createReader(alignType=self._alignType,
                                     pixelSize=pixelSize)
 
-        mdIter = Table.iterRows('particles@' + dataStar, key='rlnImageId')
+        mdIter = Table.iterRows('particles@' + dataStar, key='rlnImageId',
+                                types=LABELS_DICT)
         clsSet.classifyItems(updateItemCallback=self._updateParticle,
                              updateClassCallback=self._updateClass,
                              itemDataIterator=mdIter,
