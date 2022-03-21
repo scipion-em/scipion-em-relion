@@ -68,10 +68,10 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
         line = group.addLine('Diameter for LoG filter (A)',
                              help="Min and Max of LoG filter")
 
-        line.addParam('minDiameter', params.IntParam, default=200,
+        line.addParam('minDiameter', params.IntParam, default=200, allowsPointers=True,
                       label='Min')
 
-        line.addParam('maxDiameter', params.IntParam, default=250,
+        line.addParam('maxDiameter', params.IntParam, default=250, llowsPointers=True,
                       label='Max')
 
         group.addParam('areParticlesWhite', params.BooleanParam,
