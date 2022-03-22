@@ -203,6 +203,10 @@ class ProtRelionBase(EMProtocol):
                            'better when filling the solvent area with random '
                            'noise, some classifications go better when using '
                            'zeros.')
+        form.addParam('outputReferences', BooleanParam, default=False,
+                      label='Output Representatives?',
+                      help='If set to Yes, then the Class Representatives will be'
+                           ' included in the output.')
         form.addParam('continueRun', PointerParam,
                       pointerClass=self.getClassName(),
                       condition='doContinue', allowsNull=True,
