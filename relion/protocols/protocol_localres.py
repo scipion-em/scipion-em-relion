@@ -199,9 +199,3 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
 
         if self.solventMask.hasValue():
             self.paramDict['--mask'] = self._getFileName('solventMask')
-
-    def _getRelionMapFn(self, fn):
-        return fn.split(':')[0]
-
-    def _getMaskFn(self):
-        return self._getPath('solvent_mask.mrc')
