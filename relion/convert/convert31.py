@@ -43,7 +43,7 @@ import pwem.convert.transformations as tfs
 from .convert_base import WriterBase, ReaderBase
 from .convert_utils import (convertBinaryFiles, locationToRelion,
                             relionToLocation)
-from relion.constants import PARTICLE_EXTRA_LABELS
+from relion.constants import PARTICLE_EXTRA_LABELS, LABELS_DICT
 
 
 def getPixelSizeLabel(imageSet):
@@ -523,7 +523,8 @@ class Reader(ReaderBase):
                                   'rlnImagePixelSize', 1.0)
         self._invPixelSize = 1. / self._pixelSize
 
-        partsReader = Table.Reader(starFile, tableName='particles')
+        partsReader = Table.Reader(starFile, tableName='particles',
+                                   types=LABELS_DICT)
 
         firstRow = partsReader.getRow()
         self._setClassId = hasattr(firstRow, 'rlnClassNumber')

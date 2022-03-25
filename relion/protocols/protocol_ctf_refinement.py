@@ -260,7 +260,7 @@ class ProtRelionCtfRefinement(ProtParticles, ProtRelionBase):
 
         # self._optics = convert.getOpticsDict(outImgsFn)
         mdIter = convert.Table.iterRows('particles@' + outImgsFn,
-                                        key='rlnImageId')
+                                        key='rlnImageId', types=convert.LABELS_DICT)
         outImgSet.copyItems(imgSet,
                             updateItemCallback=self._updateItem,
                             itemDataIterator=mdIter,
