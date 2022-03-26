@@ -46,6 +46,7 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
     """
     _label = 'local resolution'
     _devStatus = PROD
+    relionInput = True
 
     def _createFilenameTemplates(self):
         """ Centralize how files are called for iterations and references. """
