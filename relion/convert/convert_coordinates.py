@@ -221,7 +221,7 @@ def writeMicCoordinates(mic, coordList, outputFn, getPosFunc=None):
     if getPosFunc is None:
         getPosFunc = lambda coord: coord.getPosition()
 
-    extraLabels = coordList[0].hasAttribute('_rlnClassNumber')
+    extraLabels = coordList[0].hasAttribute('_rlnAutopickFigureOfMerit')
     f = openStar(outputFn, extraLabels)
 
     for coord in coordList:
