@@ -629,6 +629,8 @@ class Reader(ReaderBase):
 
         extraLabels = kwargs.get('extraLabels', []) + self.COORD_LABELS[3:]
         self.createExtraLabels(coord, firstRow, extraLabels)
+        if self._postprocessCoordRow:
+            self._postprocessCoordRow(coord, firstRow)
         coordSet.append(coord)
 
         objId = 1
