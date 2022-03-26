@@ -589,21 +589,70 @@ class Reader(ReaderBase):
 
         # TODO: coord extra labels, partId, micId,
         if self._setCoord:
-            coord = self.rowToCoord(row)
+            coord = Coordinate()
+            self.rowToCoord(row, coord)
             particle.setCoordinate(coord)
 
         if self._postprocessImageRow:
             self._postprocessImageRow(particle, row)
 
-    @staticmethod
-    def rowToCoord(row):
-        """ Create a Coordinate from the row. """
+    def readSetOfCoordinates(self, starFile, coordSet, micList=None, **kwargs):
+        """ Convert a star file into a set of coordinates.
+
+        Params:
+            starFile: the filename of the star file
+            coordSet: output coordinates set
+            micList: list of micNames to match coordSet
+
+        Keyword Arguments:
+            postprocessCoordRow:
+            extraLabels:
+
+        """
+        self._postprocessCoordRow = kwargs.get('postprocessCoordRow', None)
+        coordsReader = Table.Reader(starFile, tableName='', types=LABELS_DICT)
+        if not coordsReader.hasAllColumns(self.COORD_LABELS[:3]):
+            raise Exception("STAR file should include columns: ", self.COORD_LABELS[:3])
+
+        coordsReader = sorted(coordsReader, key=lambda r: getattr(r, 'rlnMicrographName'))
+        coordsReader = [row for row in coordsReader if row.rlnMicrographName in micList]
+
+        firstRow = coordsReader[0]
+        hasMicId = firstRow.get('rlnMicrographId', False)
+
         coord = Coordinate()
+        self.rowToCoord(firstRow, coord)
+        if hasMicId:
+            coord.setMicId(firstRow.rlnMicrographId)
+        else:
+            coord.setMicId(1)
+
+        extraLabels = kwargs.get('extraLabels', []) + self.COORD_LABELS[3:]
+        self.createExtraLabels(coord, firstRow, extraLabels)
+        coordSet.append(coord)
+
+        objId = 1
+        for row in coordsReader[1:]:
+            objId += 1
+            self.rowToCoord(row, coord)
+            coord.setObjId(objId)
+            if hasMicId:
+                coord.setMicId(row.rlnMicrographId)
+            else:
+                micId = micList.index(row.rlnMicrographName) + 1
+                coord.setMicId(micId)
+            self.setExtraLabels(coord, row)
+            if self._postprocessCoordRow:
+                self._postprocessCoordRow(coord, row)
+
+            coordSet.append(coord)
+
+    @staticmethod
+    def rowToCoord(row, coord):
+        """ Create a Coordinate from the row. """
         coord.setPosition(row.rlnCoordinateX,
                           row.rlnCoordinateY)
         coord.setMicName(row.rlnMicrographName)
-
-        return coord
 
     @staticmethod
     def rowToCtf(row, ctf):
