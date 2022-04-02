@@ -1,7 +1,8 @@
 # ******************************************************************************
 # *
-# * Authors:     Roberto Marabini
+# * Authors:    Roberto Marabini       (roberto@cnb.csic.es) [1]
 # *
+# * [1] Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -26,6 +27,7 @@
 
 from pwem.viewers.viewer_volumes import viewerProtImportVolumes
 from ..protocols import ProtRelionReconstruct
+
 
 class ReconstructViewer(viewerProtImportVolumes):
     _label = 'viewer reconstruction'

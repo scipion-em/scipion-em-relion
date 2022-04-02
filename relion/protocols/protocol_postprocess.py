@@ -65,13 +65,36 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
     # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')
+        form.addParam('relionInput', params.BooleanParam,
+                      default=True,
+                      expertLevel=params.LEVEL_ADVANCED,
+                      label="Start from Relion refinement?",
+                      help="Set to Yes if you wish to use as input "
+                           "a Relion protocol. Otherwise set it to No")
+        form.addParam('inputHalf1', params.PointerParam, pointerClass='Volume',
+                      label="Input half map 1",
+                      important=True, allowsNull=True,
+                      condition="not relionInput",
+                      help='You might want to provide input half maps manually, '
+                           'in case you did not use 3D auto-refine or multi-body protocol '
+                           'that generates them automatically.')
+        form.addParam('inputHalf2', params.PointerParam, pointerClass='Volume',
+                      label="Input half map 2",
+                      important=True, allowsNull=True,
+                      condition="not relionInput",
+                      help='You might want to provide input half maps manually, '
+                           'in case you did not use 3D auto-refine or multi-body protocol '
+                           'that generates them automatically.')
+
         form.addParam('protRefine', params.PointerParam,
                       pointerClass="ProtRefine3D, ProtRelionMultiBody",
+                      condition="relionInput",
                       label='Select a previous refinement protocol',
                       help='Select any previous refinement protocol to get the '
                            '3D half maps. Note that it is recommended that the '
                            'refinement protocol uses a gold-standard method.')
         form.addParam('bodyNum', params.IntParam, default=1,
+                      condition="relionInput",
                       label="Which body to process?",
                       help="Only relevant if input protocol is 3D multi-body.")
         form.addParam('solventMask', params.PointerParam,
@@ -180,38 +203,52 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
 
     # -------------------------- INSERT steps functions ------------------------
     def _insertAllSteps(self):
-        objId = self.protRefine.get().getObjId()
+        if self.relionInput:
+            objsId = [self.protRefine.get().getObjId()]
+        else:
+            objsId = [self.inputHalf1.get().getObjId(),
+                     self.inputHalf2.get().getObjId()]
         self._createFilenameTemplates()
         self._defineParamDict()
-        self._insertFunctionStep('convertInputStep', objId)
+        self._insertFunctionStep('convertInputStep', objsId)
         self._insertFunctionStep('postProcessStep', self.paramDict)
         self._insertFunctionStep('createOutputStep')
 
     # -------------------------- STEPS functions -------------------------------
-    def convertInputStep(self, protId):
+    def convertInputStep(self, objsId):
         pwutils.makePath(self._getInputPath())
-        protRef = self.protRefine.get()
-
-        if self._isInputMbody():
-            for i, vol in enumerate(protRef.outputVolumes):
-                if i == self.bodyNum.get()-1:
-                    outVol = vol
-                    print("Using multi-body input:", vol.getFileName())
-                    break
-        else:  # ProtRefine3D
-            outVol = protRef.outputVolume
-
-        newDim = outVol.getXDim()
-        newPix = outVol.getSamplingRate()
-        vols = outVol.getHalfMaps().split(',')
-        vols.insert(0, outVol.getFileName())
         ih = ImageHandler()
+
+        if self.relionInput:
+            protRef = self.protRefine.get()
+
+            if self._isInputMbody():
+                for i, vol in enumerate(protRef.outputVolumes):
+                    if i == self.bodyNum.get()-1:
+                        outVol = vol
+                        print("Using multi-body input:", vol.getFileName())
+                        break
+            else:  # ProtRefine3D
+                outVol = protRef.outputVolume
+
+            newDim = outVol.getXDim()
+            newPix = outVol.getSamplingRate()
+            vols = outVol.getHalfMaps().split(',')
+            vols.insert(0, outVol.getFileName())
+
+            for vol, key in zip(vols, ['outputVolume', 'half1', 'half2']):
+                ih.convert(vol, self._getFileName(key))
+        else:
+            half1 = self.inputHalf1.get()
+            half2 = self.inputHalf2.get()
+            newDim = half1.getXDim()
+            newPix = half1.getSamplingRate()
+
+            ih.convert(half1.getFileName(), self._getFileName('half1'))
+            ih.convert(half2.getFileName(), self._getFileName('half2'))
 
         convert.convertMask(self.solventMask.get(),
                             self._getFileName('mask'), newPix, newDim)
-
-        for vol, key in zip(vols, ['outputVolume', 'half1', 'half2']):
-            ih.convert(vol, self._getFileName(key))
 
     def postProcessStep(self, paramDict):
         params = ' '.join(['%s %s' % (k, str(v))
@@ -221,10 +258,13 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
     def createOutputStep(self):
         volume = Volume()
         volume.setFileName(self._getFileName('outputVolume'))
-        if self._isInputMbody():
+        if not self.relionInput:
+            vol = self.inputHalf1
+        elif self._isInputMbody():
             vol = self.protRefine.get().outputVolumes
         else:
             vol = self.protRefine.get().outputVolume
+
         volume.setSamplingRate(self._getOutputPixelSize())
         self._defineOutputs(outputVolume=volume)
         self._defineSourceRelation(vol, volume)
@@ -292,16 +332,15 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
         if self.forceMask:
             self.paramDict['--force_mask'] = ''
 
-    def _getRelionMapFn(self, fn):
-        return fn.split(':')[0]
-
     def _isInputMbody(self):
         return self.protRefine.get().getClassName() == "ProtRelionMultiBody"
 
     def _getOutputPixelSize(self):
         """ Return the output pixel size, using the calibrated
         pixel size if non zero, or the input one. """
-        if self._isInputMbody():
+        if not self.relionInput:
+            volume = self.inputHalf1.get()
+        elif self._isInputMbody():
             volume = self.protRefine.get().outputVolumes
         else:
             volume = self.protRefine.get().outputVolume

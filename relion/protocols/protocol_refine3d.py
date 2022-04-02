@@ -173,7 +173,8 @@ leads to objective and high-quality results.
         self.reader = convert.createReader(alignType=ALIGN_PROJ,
                                            pixelSize=imgSet.getSamplingRate())
 
-        mdIter = Table.iterRows('particles@' + outImgsFn, key='rlnImageId')
+        mdIter = Table.iterRows('particles@' + outImgsFn, key='rlnImageId',
+                                types=convert.LABELS_DICT)
         imgSet.copyItems(self._getInputParticles(), doClone=False,
                          updateItemCallback=self._updateParticle,
                          itemDataIterator=mdIter)

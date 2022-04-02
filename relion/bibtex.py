@@ -124,4 +124,16 @@ pages = "5-17",
 doi = {http://dx.doi.org/10.1107/S205225251801463X},
 }
 
+@article{Kimanius2021,
+    author = {Kimanius, Dari and Dong, Liyi and Sharov, Grigory and Nakane, Takanori and Scheres, Sjors H. W.},
+    title = "{New tools for automated cryo-EM single-particle analysis in RELION-4.0}",
+    journal = {Biochemical Journal},
+    volume = {478},
+    number = {24},
+    pages = {4169-4185},
+    year = {2021},
+    month = {12},
+    doi = {10.1042/BCJ20210708},
+}
+
 """

@@ -787,7 +787,8 @@ class TestRelionReader(BaseTest):
 
     def test_readSetOfParticlesAfterCtf(self):
         starFile = self.ds.getFile("CtfRefine/job023/particles_ctf_refine.star")
-        partsReader = Table.Reader(starFile, tableName='particles')
+        partsReader = Table.Reader(starFile, tableName='particles',
+                                   types=convert.LABELS_DICT)
         firstRow = partsReader.getRow()
 
         partsSet = self.__readParticles(starFile)
@@ -812,7 +813,8 @@ class TestRelionReader(BaseTest):
         fog = OpticsGroups.fromStar(outputStar).first()
         self.assertTrue(all(hasattr(fog, l) for l in ogLabels))
 
-        partsReader = Table.Reader(outputStar, tableName='particles')
+        partsReader = Table.Reader(outputStar, tableName='particles',
+                                   types=convert.LABELS_DICT)
         firstRow = partsReader.getRow()
         for l in extraLabels:
             value = getattr(first, '_%s' % l)
