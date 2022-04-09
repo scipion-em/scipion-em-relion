@@ -1428,3 +1428,41 @@ class TestRelionResizeVolume(TestRelionBase):
         self.launchProtocol(resizeProt)
 
         self._validations(resizeProt.outputVol, 128, 1.5)
+
+
+class TestRelionImportCoords(TestRelionBase):
+    @classmethod
+    def setUpClass(cls):
+        setupTestProject(cls)
+        cls.ds = DataSet.getDataSet('relion31_tutorial_precalculated')
+        cls.mics = cls.ds.getFile('MotionCorr/job002/Movies/*frameImage.mrc')
+        cls.parts = cls.ds.getFile('Refine3D/job029/run_it018_data.star')
+
+    def runImportMics(self):
+        print(magentaStr("\n==> Importing data - micrographs:"))
+        protImportMics = self.newProtocol(
+            ProtImportMicrographs,
+            samplingRateMode=0,
+            filesPath=self.mics,
+            samplingRate=0.885,
+            voltage=200,
+            sphericalAberration=0.14)
+        self.launchProtocol(protImportMics, wait=True)
+        self.assertIsNotNone(protImportMics.outputMicrographs,
+                             "SetOfMicrographs has not been produced.")
+
+        return protImportMics
+
+    def testImportCoords(self):
+        """ Run an Import coords protocol. """
+        protImportMics = self.runImportMics()
+        print(magentaStr("\n==> Importing coordinates (from star file):"))
+        self.protImport = self.newProtocol(ProtRelionImportCoords,
+                                           filePath=self.parts,
+                                           boxSize=128)
+        self.protImport.inputMicrographs.set(protImportMics.outputMicrographs)
+        self.launchProtocol(self.protImport)
+        self.assertIsNotNone(self.protImport.outputCoordinates,
+                             "SetOfCoordinates has not been produced.")
+        self.assertEqual(self.protImport.outputCoordinates.getSize(),
+                         4501, "Output size is not 4501!")

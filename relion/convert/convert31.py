@@ -610,15 +610,20 @@ class Reader(ReaderBase):
 
         """
         self._postprocessCoordRow = kwargs.get('postprocessCoordRow', None)
-        coordsReader = Table.Reader(starFile, tableName='', types=LABELS_DICT)
+        coordsReader = Table.Reader(starFile, types=LABELS_DICT)
+        if coordsReader.hasColumn('rlnOpticsGroup'):
+            coordsReader = Table.Reader(starFile, tableName='particles', types=LABELS_DICT)
+
         if not coordsReader.hasAllColumns(self.COORD_LABELS[:3]):
             raise Exception("STAR file should include columns: ", self.COORD_LABELS[:3])
 
         coordsReader = sorted(coordsReader, key=lambda r: getattr(r, 'rlnMicrographName'))
-        coordsReader = [row for row in coordsReader if row.rlnMicrographName in micList]
+        coordsReader = [row for row in coordsReader if os.path.basename(row.rlnMicrographName) in micList]
+        if not len(coordsReader):
+            raise Exception("Could not match micNames between micrographs and star file!")
 
         firstRow = coordsReader[0]
-        hasMicId = firstRow.get('rlnMicrographId', False)
+        hasMicId = hasattr(firstRow, 'rlnMicrographId')
 
         coord = Coordinate()
         self.rowToCoord(firstRow, coord)
@@ -641,7 +646,7 @@ class Reader(ReaderBase):
             if hasMicId:
                 coord.setMicId(row.rlnMicrographId)
             else:
-                micId = micList.index(row.rlnMicrographName) + 1
+                micId = micList.index(os.path.basename(row.rlnMicrographName)) + 1
                 coord.setMicId(micId)
             self.setExtraLabels(coord, row)
             if self._postprocessCoordRow:
@@ -654,7 +659,7 @@ class Reader(ReaderBase):
         """ Create a Coordinate from the row. """
         coord.setPosition(row.rlnCoordinateX,
                           row.rlnCoordinateY)
-        coord.setMicName(row.rlnMicrographName)
+        coord.setMicName(os.path.basename(row.rlnMicrographName))
 
     @staticmethod
     def rowToCtf(row, ctf):
