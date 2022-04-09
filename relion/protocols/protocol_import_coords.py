@@ -27,6 +27,7 @@
 from pwem.protocols import EMProtocol
 from pyworkflow.constants import BETA
 import pyworkflow.protocol.params as params
+import pyworkflow.utils as pwutils
 
 from relion import convert
 
@@ -67,7 +68,7 @@ class ProtRelionImportCoords(EMProtocol):
     # --------------------------- STEPS functions -----------------------------
     def createOutputStep(self, coordStar):
         inputMics = self.getMicrographList()
-        micList = [mic.getMicName() for mic in inputMics]
+        micList = [pwutils.removeExt(mic.getMicName()) for mic in inputMics]
         coordsSet = self._createSetOfCoordinates(inputMics)
         coordsSet.setBoxSize(self.boxSize.get())
 

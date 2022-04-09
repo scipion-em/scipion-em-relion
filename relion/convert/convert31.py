@@ -34,7 +34,7 @@ import numpy as np
 from collections import OrderedDict
 from emtable import Table
 
-
+import pyworkflow.utils as pwutils
 from pwem.constants import ALIGN_NONE, ALIGN_PROJ, ALIGN_2D, ALIGN_3D
 from pwem.objects import (Micrograph, SetOfMicrographsBase, SetOfMovies,
                           Particle, CTFModel, Acquisition, Transform, Coordinate)
@@ -618,7 +618,7 @@ class Reader(ReaderBase):
             raise Exception("STAR file should include columns: ", self.COORD_LABELS[:3])
 
         coordsReader = sorted(coordsReader, key=lambda r: getattr(r, 'rlnMicrographName'))
-        coordsReader = [row for row in coordsReader if os.path.basename(row.rlnMicrographName) in micList]
+        coordsReader = [row for row in coordsReader if pwutils.removeExt(os.path.basename(row.rlnMicrographName)) in micList]
         if not len(coordsReader):
             raise Exception("Could not match micNames between micrographs and star file!")
 
@@ -646,7 +646,7 @@ class Reader(ReaderBase):
             if hasMicId:
                 coord.setMicId(row.rlnMicrographId)
             else:
-                micId = micList.index(os.path.basename(row.rlnMicrographName)) + 1
+                micId = micList.index(pwutils.removeExt(os.path.basename(row.rlnMicrographName))) + 1
                 coord.setMicId(micId)
             self.setExtraLabels(coord, row)
             if self._postprocessCoordRow:
@@ -659,7 +659,7 @@ class Reader(ReaderBase):
         """ Create a Coordinate from the row. """
         coord.setPosition(row.rlnCoordinateX,
                           row.rlnCoordinateY)
-        coord.setMicName(os.path.basename(row.rlnMicrographName))
+        coord.setMicName(pwutils.removeExt(os.path.basename(row.rlnMicrographName)))
 
     @staticmethod
     def rowToCtf(row, ctf):
