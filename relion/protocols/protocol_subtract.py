@@ -270,7 +270,8 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
         px = imgSet.getSamplingRate()
         self.reader = convert.createReader(alignType=ALIGN_PROJ,
                                            pixelSize=px)
-        mdIter = convert.Table.iterRows('particles@' + outImgsFn)
+        mdIter = convert.Table.iterRows('particles@' + outImgsFn,
+                                        types=convert.LABELS_DICT)
         outImgSet.copyItems(imgSet, doClone=False,
                             updateItemCallback=self._updateItem,
                             itemDataIterator=mdIter)

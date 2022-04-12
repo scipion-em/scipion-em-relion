@@ -382,7 +382,8 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
         px = imgSet.getSamplingRate()
         self.reader = convert.createReader(alignType=ALIGN_PROJ,
                                            pixelSize=px)
-        mdIter = convert.Table.iterRows('particles@' + outImgsFn, key='rlnImageId')
+        mdIter = convert.Table.iterRows('particles@' + outImgsFn, key='rlnImageId',
+                                        types=convert.LABELS_DICT)
         imgSet.copyItems(self._getInputParticles(), doClone=False,
                          updateItemCallback=self._createItemMatrix,
                          itemDataIterator=mdIter)
