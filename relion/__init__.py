@@ -32,7 +32,7 @@ import pwem
 from .constants import *
 
 
-__version__ = '4.0.1'
+__version__ = '4.0.2'
 _logo = "relion_logo.jpg"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016', 'Zivanov2018', 'Kimanius2021']
 
