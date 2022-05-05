@@ -81,15 +81,6 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         
         self._defineOutputs(outputClasses=classes2D)
         self._defineSourceRelation(self.inputParticles, classes2D)
-
-        if self.outputReferences.get():
-            references2D = self._createSetOfAverages()
-            for class2D in classes2D.iterItems():
-                references2D.append(class2D.getRepresentative().clone())
-
-            references2D.copyInfo(partSet)
-            self._defineOutputs(outputRepresentatives=references2D)
-            self._defineSourceRelation(self.inputParticles, references2D)
         
     # --------------------------- INFO functions ------------------------------
     def _validateNormal(self):
