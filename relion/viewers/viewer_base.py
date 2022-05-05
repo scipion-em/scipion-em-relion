@@ -515,7 +515,8 @@ Examples:
                                 "a valid class or iteration number."
                                 % volFn)
             print("Adding vol: %s" % volFn)
-            files.append(volFn + ":mrc")
+            if not volFn.endswith(":mrc"):
+                files.append(volFn + ":mrc")
 
         self.createVolumesSqlite(files, path, samplingRate)
         return [ObjectView(self._project, self.protocol.strId(), path)]
@@ -529,6 +530,7 @@ Examples:
                 # We assume that the chimera script will be generated
                 # at the same folder as relion volumes
                 localVol = os.path.basename(vol)
+                vol = vol.replace(":mrc", "")
                 if os.path.exists(vol):
                     f.write("open %s\n" % localVol)
             f.write('tile\n')
@@ -858,6 +860,7 @@ Examples:
                     volFn = self.protocol._getFileName(prefix + 'volume',
                                                        iter=it, ref3d=ref3d)
                     if os.path.exists(volFn):
+                        volFn = volFn.replace(":mrc", "")
                         vols.append(volFn)
                     else:
                         raise Exception("Volume %s does not exists. \n"

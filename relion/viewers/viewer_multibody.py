@@ -97,7 +97,8 @@ class MultibodyViewer(RelionViewer):
                                 "a valid class or iteration number."
                                 % volFn)
             print("Adding vol: %s" % volFn)
-            files.append(volFn + ":mrc")
+            if not volFn.endswith(":mrc"):
+                files.append(volFn + ":mrc")
 
         self.createVolumesSqlite(files, path, samplingRate)
         return [ObjectView(self._project, self.protocol.strId(), path)]
@@ -113,6 +114,7 @@ class MultibodyViewer(RelionViewer):
                     volFn = self.protocol._getFileName(prefix + 'volume_mbody',
                                                        iter=it, ref3d=ref3d)
                     if os.path.exists(volFn):
+                        volFn = volFn.replace(":mrc", "")
                         vols.append(volFn)
                     else:
                         raise Exception("Volume %s does not exists. \n"
