@@ -428,7 +428,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
                 errors.append("Relion only works with even values for the "
                               "average dimensions!")
         else:
-            if self.particleDiameter <= 0:
+            if not Plugin.IS_GT31() and (self.particleDiameter <= 0):
                 errors.append('When using Gaussian blobs, you need to specify '
                               'the particles diameter manually. ')
 

@@ -1,3 +1,4 @@
+4.0.2: minor fix for auto-picking ref-based protocol
 4.0.1:
     - Postprocessing now supports half maps input
     - emtable requirement updated

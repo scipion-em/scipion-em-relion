@@ -194,6 +194,20 @@ class ReaderBase:
         """
         pass
 
+    def readSetOfCoordinates(self, starFile, coordSet, micList=None, **kwargs):
+        """ Convert a star file into a set of coordinates.
+
+        Params:
+            starFile: the filename of the star file
+            coordSet: output coordinates set
+            micList: list of micrographs to match coordSet
+
+        Keyword Arguments:
+            postprocessCoordRow:
+
+        """
+        pass
+
     def setParticleTransform(self, particle, row):
         """ Set the transform values from the row. """
         pass
