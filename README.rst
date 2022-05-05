@@ -91,7 +91,8 @@ Protocols
 * expand symmetry
 * export coordinates
 * export ctf                
-* export particles          
+* export particles
+* import coordinates
 * local resolution          
 * motion correction
 * particles extraction
