@@ -114,7 +114,7 @@ class PostprocessViewer(ProtocolViewer):
         return [view]
 
     def _showVolume(self, paramName=None):
-        volPath = self.protocol._getExtraPath('postprocess.mrc:mrc')
+        volPath = self.protocol._getExtraPath('postprocess.mrc')
 
         if self.displayVol == VOLUME_CHIMERA:
             return self._showVolumesChimera(volPath)
@@ -123,7 +123,7 @@ class PostprocessViewer(ProtocolViewer):
             return self._showVolumeShowj(volPath)
 
     def _showMaskedVolume(self, paramName=None):
-        volPath = self.protocol._getExtraPath('postprocess_masked.mrc:mrc')
+        volPath = self.protocol._getExtraPath('postprocess_masked.mrc')
 
         if self.displayMaskedVol == VOLUME_CHIMERA:
             return self._showVolumesChimera(volPath)

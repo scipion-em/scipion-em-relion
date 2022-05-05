@@ -148,7 +148,7 @@ class ClassesLoader:
             index, fn, row = self._classesInfo[classId]
             item.setAlignment(self._alignType)
             if self._alignType == ALIGN_PROJ:
-                fn += ':mrc'  # mark reference as a MRC volume
+                fn += ':mrc'  # FIXME: mark reference as a MRC volume
             item.getRepresentative().setLocation(index, fn)
             item._rlnClassDistribution = Float(row.rlnClassDistribution)
             item._rlnAccuracyRotations = Float(row.rlnAccuracyRotations)
