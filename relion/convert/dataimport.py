@@ -130,7 +130,7 @@ class RelionImport:
         classId = item.getObjId()
         if classId in self._classesDict:
             index, fn, row = self._classesDict[classId]
-            if fn.endswith('.mrc'):
+            if fn.endswith('.mrc'):  # FIXME
                 fn += ':mrc'  # Specify that are volumes to read them properly in xmipp
             item.getRepresentative().setLocation(index, fn)
             item._rlnclassDistribution = Float(row.get('rlnClassDistribution'))

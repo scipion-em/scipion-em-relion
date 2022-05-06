@@ -52,7 +52,7 @@ class ProtRelionBase(EMProtocol):
     line and the files produced.
 
     Most of the Relion protocols, have two modes: NORMAL or CONTINUE. That's why
-    some of the function have a template pattern approach to define the behaviour
+    some functions have a template pattern approach to define the behaviour
     depending on the case.
     """
     _label = None
@@ -73,13 +73,13 @@ class ProtRelionBase(EMProtocol):
         EMProtocol.__init__(self, **args)
 
     def _initialize(self):
-        """ This function is mean to be called after the
+        """ This function is meant to be called after the
         working dir for the protocol have been set. (maybe after recovery from mapper)
         """
         self._createFilenameTemplates()
         self._createIterTemplates()
 
-        self.ClassFnTemplate = '%(rootDir)s/relion_it%(iter)03d_class%(ref)03d.mrc:mrc'
+        self.ClassFnTemplate = '%(rootDir)s/relion_it%(iter)03d_class%(ref)03d.mrc'
         if not self.doContinue:
             self.continueRun.set(None)
         else:
@@ -104,16 +104,16 @@ class ProtRelionBase(EMProtocol):
             'selected_volumes': self._getPath('selected_volumes_xmipp.xmd'),
             'dataFinal': self._getExtraPath("relion_data.star"),
             'modelFinal': self._getExtraPath("relion_model.star"),
-            'finalvolume': self._getExtraPath("relion_class%(ref3d)03d.mrc:mrc"),
-            'final_half1_volume': self._getExtraPath("relion_half1_class%(ref3d)03d_unfil.mrc:mrc"),
-            'final_half2_volume': self._getExtraPath("relion_half2_class%(ref3d)03d_unfil.mrc:mrc"),
-            'finalSGDvolume': self._getExtraPath("relion_it%(iter)03d_class%(ref3d)03d.mrc:mrc"),
+            'finalvolume': self._getExtraPath("relion_class%(ref3d)03d.mrc"),
+            'final_half1_volume': self._getExtraPath("relion_half1_class%(ref3d)03d_unfil.mrc"),
+            'final_half2_volume': self._getExtraPath("relion_half2_class%(ref3d)03d_unfil.mrc"),
+            'finalSGDvolume': self._getExtraPath("relion_it%(iter)03d_class%(ref3d)03d.mrc"),
             'preprocess_particles': self._getPath("preprocess_particles.mrcs"),
             'preprocess_particles_star': self._getPath("preprocess_particles.star"),
             'preprocess_particles_prefix': "preprocess_particles",
-            'finalvolume_mbody': self._getExtraPath("relion_body%(ref3d)03d.mrc:mrc"),
-            'final_half1_volume_mbody': self._getExtraPath("relion_half1_body%(ref3d)03d_unfil.mrc:mrc"),
-            'final_half2_volume_mbody': self._getExtraPath("relion_half2_body%(ref3d)03d_unfil.mrc:mrc"),
+            'finalvolume_mbody': self._getExtraPath("relion_body%(ref3d)03d.mrc"),
+            'final_half1_volume_mbody': self._getExtraPath("relion_half1_body%(ref3d)03d_unfil.mrc"),
+            'final_half2_volume_mbody': self._getExtraPath("relion_half2_body%(ref3d)03d_unfil.mrc"),
         }
         # add to keys, data.star, optimiser.star and sampling.star
         for key in self.FILE_KEYS:
@@ -123,8 +123,8 @@ class ProtRelionBase(EMProtocol):
         # add other keys that depends on prefixes
         for p in self.PREFIXES:
             myDict['%smodel' % p] = self.extraIter + '%smodel.star' % p
-            myDict['%svolume' % p] = self.extraIter + p + 'class%(ref3d)03d.mrc:mrc'
-            myDict['%svolume_mbody' % p] = self.extraIter + p + 'body%(ref3d)03d.mrc:mrc'
+            myDict['%svolume' % p] = self.extraIter + p + 'class%(ref3d)03d.mrc'
+            myDict['%svolume_mbody' % p] = self.extraIter + p + 'body%(ref3d)03d.mrc'
 
         self._updateFilenamesDict(myDict)
 
