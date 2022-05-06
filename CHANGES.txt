@@ -1,7 +1,6 @@
 4.0.3:
     - allowPointers for box size related parameters
     - new protocol: import coordinates from a particles star file
-    - create conda env for 2D class ranker
     - remove :mrc postfix from volume names if possible
 4.0.2: minor fix for auto-picking ref-based protocol
 4.0.1:
