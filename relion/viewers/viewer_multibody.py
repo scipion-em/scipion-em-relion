@@ -85,19 +85,20 @@ class MultibodyViewer(RelionViewer):
                 }
 
     def _createVolumesSqlite(self):
-        """ Write an sqlite with all volumes selected for visualization. """
+        """ Write a sqlite with all volumes selected for visualization. """
         path = self.protocol._getExtraPath('relion_viewer_volumes.sqlite')
         samplingRate = self.protocol.protRefine.get()._getInputParticles().getSamplingRate()
 
         files = []
         volumes = self._getVolumeNames()
         for volFn in volumes:
-            if not os.path.exists(volFn.replace(':mrc', '')):
+            if not os.path.exists(volFn):
                 raise Exception("Missing volume file: %s\n Please select "
                                 "a valid class or iteration number."
                                 % volFn)
             print("Adding vol: %s" % volFn)
-            files.append(volFn)
+            if not volFn.endswith(":mrc"):
+                files.append(volFn + ":mrc")
 
         self.createVolumesSqlite(files, path, samplingRate)
         return [ObjectView(self._project, self.protocol.strId(), path)]
@@ -112,7 +113,8 @@ class MultibodyViewer(RelionViewer):
                 for prefix in prefixes:
                     volFn = self.protocol._getFileName(prefix + 'volume_mbody',
                                                        iter=it, ref3d=ref3d)
-                    if os.path.exists(volFn.replace(':mrc', '')):
+                    if os.path.exists(volFn):
+                        volFn = volFn.replace(":mrc", "")
                         vols.append(volFn)
                     else:
                         raise Exception("Volume %s does not exists. \n"
