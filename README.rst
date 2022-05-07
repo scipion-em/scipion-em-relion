@@ -28,7 +28,7 @@ This plugin provides wrappers for several programs of `RELION <https://relion.re
 **IMPORTANT NOTES!**
 
     1. If you have imported movies with a gain file in **DM4** format, you need to **flip the gain reference upside-down** in the motion correction protocol! (`bug details <https://github.com/I2PC/xmippCore/issues/39>`_)
-    2. If you have provided a gain reference or defects file during movie import or motion correction, please **make sure to run first "assign optics groups" protocol for aligned movies**, specifying the gain file etc. Currently, Scipion has no other way of knowing if you have e.g. rotated the gain during motion correction. Output movies then can be used in this polishing protocol.
+    2. If you have provided a gain reference or defects file during movie import or motion correction and plan to run bayesian polishing, please **make sure to run first "assign optics groups" protocol for aligned movies**, specifying the gain file etc. Currently, Scipion has no other way of knowing if you have e.g. rotated the gain during motion correction. Output movies then can be used in the polishing protocol.
     3. When importing EER movies, you should specify dose per single EER frame during import step. Pixel size should be the physical pixel size unless you plan to render EER on 8K grid. In the Motioncor protocol choose binning, EER fractionation and upsampling (default=1 is for 4K grid).
 
 Installation
