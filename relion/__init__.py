@@ -27,14 +27,16 @@
 import os
 
 import pyworkflow.utils as pwutils
+from pyworkflow import Config
 import pwem
 
 from .constants import *
 
 
-__version__ = '4.0.3'
+__version__ = '4.0.4'
 _logo = "relion_logo.jpg"
-_references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016', 'Zivanov2018', 'Kimanius2021']
+_references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016',
+               'Zivanov2018', 'Kimanius2021']
 
 
 class Plugin(pwem.Plugin):
@@ -46,7 +48,7 @@ class Plugin(pwem.Plugin):
     def _defineVariables(cls):
         cls._defineEmVar(RELION_HOME, 'relion-%s' % V4_0)
         cls._defineVar(RELION_CUDA_LIB, pwem.Config.CUDA_LIB)
-        cls._defineVar(RELION_PYTHON, None)
+        cls._defineVar(RELION_ENV_ACTIVATION, DEFAULT_ACTIVATION_CMD)
 
     @classmethod
     def getEnviron(cls):
@@ -73,6 +75,11 @@ class Plugin(pwem.Plugin):
         if 'RELION_MPI_BIN' in os.environ:
             environ.set('PATH', os.environ['RELION_MPI_BIN'],
                         position=pwutils.Environ.BEGIN)
+
+        if 'PYTHONPATH' in environ:
+            # this is required for python virtual env to work
+            del environ['PYTHONPATH']
+
         return environ
 
     @classmethod
@@ -81,7 +88,28 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def getDependencies(cls):
-        return ['git', 'gcc', 'cmake', 'make']
+        """ Return a list of dependencies. Include conda if
+                activation command was not found. """
+        condaActivationCmd = cls.getCondaActivationCmd()
+        neededProgs = ['git', 'gcc', 'cmake', 'make']
+        if not condaActivationCmd:
+            neededProgs.append('conda')
+
+        return neededProgs
+
+    @classmethod
+    def getRelionEnvActivation(cls):
+        """ Remove the scipion home and activate the conda environment. """
+        activation = cls.getVar(RELION_ENV_ACTIVATION)
+        scipionHome = Config.SCIPION_HOME + os.path.sep
+
+        return activation.replace(scipionHome, "", 1)
+
+    @classmethod
+    def getActivationCmd(cls):
+        """ Return the activation command. """
+        return '%s %s' % (cls.getCondaActivationCmd(),
+                          cls.getRelionEnvActivation())
 
     @classmethod
     def defineBinaries(cls, env):
@@ -92,6 +120,9 @@ class Plugin(pwem.Plugin):
                            'cmake -DCMAKE_INSTALL_PREFIX=./ .', []),
                           (f'make -j {env.getProcessors()}',
                            ['bin/relion_refine'])]
+
+            installCmd.append(('%s conda create -y -n relion-python python=3 numpy pytorch' %
+                               cls.getCondaActivationCmd(), []))
 
             env.addPackage('relion', version=ver,
                            tar='void.tgz',
