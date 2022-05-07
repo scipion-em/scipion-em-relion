@@ -65,14 +65,11 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
 
         group = form.addGroup('Laplacian of Gaussian')
 
-        line = group.addLine('Diameter for LoG filter (A)',
-                             help="Min and Max of LoG filter")
-
         group.addParam('minDiameter', params.IntParam, default=200, allowsPointers=True,
-                      label='Min')
+                       label='Min diameter (A)')
 
         group.addParam('maxDiameter', params.IntParam, default=250, allowsPointers=True,
-                      label='Max')
+                       label='Max diameter (A)')
 
         group.addParam('areParticlesWhite', params.BooleanParam,
                        default=False,
