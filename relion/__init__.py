@@ -121,8 +121,9 @@ class Plugin(pwem.Plugin):
                           (f'make -j {env.getProcessors()}',
                            ['bin/relion_refine'])]
 
-            installCmd.append(('%s conda create -y -n relion-python python=3 numpy pytorch' %
-                               cls.getCondaActivationCmd(), []))
+            if ver != V3_1:
+                installCmd.append(('%s conda create -y -n relion-python python=3 numpy pytorch' %
+                                   cls.getCondaActivationCmd(), []))
 
             env.addPackage('relion', version=ver,
                            tar='void.tgz',
