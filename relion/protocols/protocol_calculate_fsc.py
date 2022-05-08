@@ -32,6 +32,7 @@ import pyworkflow.protocol.params as params
 from pyworkflow.constants import BETA
 from pwem.protocols import ProtAnalysis3D
 from pwem.objects import FSC
+from pwem.emlib.image import ImageHandler
 
 from ..constants import (FSC_TYPE_OVERALL, FSC_TYPE_MODEL_MAP,
                          FSC_TYPE_WORK_FREE)
@@ -105,13 +106,13 @@ class ProtRelionCalculateFSC(ProtAnalysis3D, ProtRelionBase):
     def _insertAllSteps(self):
         self._createFilenameTemplates()
         self._insertFunctionStep('convertInputStep')
-        self._insertFunctionStep('calculateStep')
+        self._insertFunctionStep('calculateFSCStep')
         self._insertFunctionStep('createOutputStep')
 
     # -------------------------- STEPS functions -------------------------------
     def convertInputStep(self, *args):
         """ Create links and convert pdb to mrc. """
-        if self._getFSCType() != FSC_TYPE_MODEL_MAP:
+        if self._getFSCType() == FSC_TYPE_OVERALL:
             self._createInputLink(self.half1.get().getFileName(), 'half1')
             self._createInputLink(self.half2.get().getFileName(), 'half2')
 
@@ -124,15 +125,13 @@ class ProtRelionCalculateFSC(ProtAnalysis3D, ProtRelionBase):
             self._model2Map(self.model.get().getFileName(),
                             self._getFileName('model'), box, apix)
 
-        elif self._getFSCType() == FSC_TYPE_WORK_FREE:
+        else:
             self._createInputLink(self.half1.get().getFileName(), 'half1')
             self._createInputLink(self.half2.get().getFileName(), 'half2')
 
             box = self.half1.get().getDim()[0]
             apix = self.half1.get().getSamplingRate()
 
-            self._model2Map(self.model.get().getFileName(),
-                            self._getFileName('model'), box, apix)
             self._model2Map(self.model_half1.get().getFileName(),
                             self._getFileName('model_half1'), box, apix)
 
@@ -175,7 +174,7 @@ class ProtRelionCalculateFSC(ProtAnalysis3D, ProtRelionBase):
             self._defineOutputs(outputFSC=fsc)
 
         else:
-            fscSet = self.protocol._createSetOfFSCs()
+            fscSet = self._createSetOfFSCs()
             fscw = self._getFSC(self._getFileName('fsc_work'),
                                 'FSC work')
             fscf = self._getFSC(self._getFileName('fsc_free'),
@@ -205,7 +204,11 @@ class ProtRelionCalculateFSC(ProtAnalysis3D, ProtRelionBase):
 
     # -------------------------- UTILS functions ------------------------------
     def _createInputLink(self, fn, link):
-        pwutils.createAbsLink(os.path.abspath(fn), self._getFileName(link))
+        if pwutils.getExt(fn) == ".mrc":
+            pwutils.createAbsLink(os.path.abspath(fn), self._getFileName(link))
+        else:
+            ih = ImageHandler()
+            ih.convert(fn, self._getFileName(link))
 
     def _getFSCType(self):
         return self.fscType.get()

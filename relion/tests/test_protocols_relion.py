@@ -1466,3 +1466,61 @@ class TestRelionImportCoords(TestRelionBase):
                              "SetOfCoordinates has not been produced.")
         self.assertEqual(self.protImport.outputCoordinates.getSize(),
                          4501, "Output size is not 4501!")
+
+
+class TestRelionCalculateFSC(TestRelionBase):
+    @classmethod
+    def setUpClass(cls):
+        setupTestProject(cls)
+        cls.ds = DataSet.getDataSet('model_building_tutorial')
+        cls.half1 = cls.ds.getFile('volumes/emd_3488_Noisy_half1.vol')
+        cls.half2 = cls.ds.getFile('volumes/emd_3488_Noisy_half2.vol')
+        cls.map = cls.ds.getFile('volumes/emd_3488.map')
+        cls.model = cls.ds.getFile('PDBx_mmCIF/5ni1.pdb')
+
+        cls.protImport1 = cls.runImportVolumes(cls.half1, 1.05)
+        cls.protImport2 = cls.runImportVolumes(cls.half2, 1.05)
+        cls.protImportMap = cls.runImportVolumes(cls.map, 1.05)
+
+        print(magentaStr("\n==> Importing data - pdb:"))
+        cls.protImportModel = cls.newProtocol(ProtImportPdb,
+                                              inputPdbData=1,
+                                              pdbFile=cls.model)
+        cls.launchProtocol(cls.protImportModel)
+
+    def test_fsc_overall(self):
+        print(magentaStr("\n==> Testing relion - calculate fsc:"))
+        calcRun = self.newProtocol(
+            ProtRelionCalculateFSC,
+            objLabel='FSC overall',
+            fscType=0,
+            half1=self.protImport1.outputVolume,
+            half2=self.protImport2.outputVolume
+        )
+        self.launchProtocol(calcRun)
+        self.assertIsNotNone(calcRun.outputFSC)
+
+    def test_fsc_model_map(self):
+        print(magentaStr("\n==> Testing relion - calculate fsc:"))
+        calcRun = self.newProtocol(
+            ProtRelionCalculateFSC,
+            objLabel='FSC model-map',
+            fscType=1,
+            model=self.protImportModel.outputPdb,
+            map=self.protImportMap.outputVolume
+        )
+        self.launchProtocol(calcRun)
+        self.assertIsNotNone(calcRun.outputFSC)
+
+    def test_fsc_work_free(self):
+        print(magentaStr("\n==> Testing relion - calculate fsc:"))
+        calcRun = self.newProtocol(
+            ProtRelionCalculateFSC,
+            objLabel='FSC work/free',
+            fscType=2,
+            model_half1=self.protImportModel.outputPdb,
+            half1=self.protImport1.outputVolume,
+            half2=self.protImport2.outputVolume
+        )
+        self.launchProtocol(calcRun)
+        self.assertIsNotNone(calcRun.outputSetOfFSCs)
