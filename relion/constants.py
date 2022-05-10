@@ -32,7 +32,8 @@ import pwem.emlib.metadata as md
 
 RELION_HOME = 'RELION_HOME'
 RELION_CUDA_LIB = 'RELION_CUDA_LIB'
-RELION_PYTHON = 'RELION_PYTHON'
+RELION_ENV_ACTIVATION = 'RELION_ENV_ACTIVATION'
+DEFAULT_ACTIVATION_CMD = 'conda activate relion-python'
 
 # Supported versions:
 V3_1 = '3.1'
