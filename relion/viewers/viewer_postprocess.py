@@ -24,10 +24,10 @@
 # *
 # ******************************************************************************
 
-from pyworkflow.viewer import ProtocolViewer
+from pyworkflow.viewer import ProtocolViewer, Viewer
 
 from .viewer_base import *
-from ..protocols import ProtRelionPostprocess
+from ..protocols import ProtRelionPostprocess, ProtRelionCalculateFSC
 
 
 class PostprocessViewer(ProtocolViewer):
@@ -253,3 +253,25 @@ class PostprocessViewer(ProtocolViewer):
             return 'log(Amplitudes) Sharpened'
         else:
             return 'log(Amplitudes) Intercept'
+
+
+class ProtFSCViewer(Viewer):
+    """ Modified FSC viewer to pass the threshold param. """
+    _environments = [DESKTOP_TKINTER]
+    _label = 'fsc viewer'
+    _targets = [ProtRelionCalculateFSC]
+
+    def __init__(self, **args):
+        Viewer.__init__(self, **args)
+
+    def _visualize(self, obj, **kwargs):
+        thr = 0.143 if self.protocol._getFSCType() == 0 else 0.5
+        viewer = FscViewer(
+            project=self.getProject(),
+            protocol=self.protocol,
+            threshold=thr)
+
+        if self.protocol._getFSCType() == 2:
+            return [viewer.visualize(self.protocol.outputSetOfFSCs)]
+        else:
+            return [viewer.visualize(self.protocol.outputFSC)]

@@ -112,6 +112,10 @@ COLOR_CHOICES[COLOR_GNU_PLOT] = 'gnuplot'
 COLOR_CHOICES[COLOR_GNU_PLOT2] = 'gnuplot2'
 COLOR_CHOICES[COLOR_OTHER] = 'other'
 
+FSC_TYPE_OVERALL = 0
+FSC_TYPE_MODEL_MAP = 1
+FSC_TYPE_WORK_FREE = 2
+
 # This dictionary will be used to map
 # between CTFModel properties and Xmipp labels
 

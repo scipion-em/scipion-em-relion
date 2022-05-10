@@ -26,7 +26,7 @@
 
 from .viewer_base import *
 from .viewer_ctfrefine import ProtCtfRefineViewer
-from .viewer_postprocess import PostprocessViewer
+from .viewer_postprocess import PostprocessViewer, ProtFSCViewer
 from .viewer_motioncor import RelionMotioncorrViewer
 from .viewer_locres import RelionLocalResViewer
 from .viewer_polishing import RelionPolishViewer

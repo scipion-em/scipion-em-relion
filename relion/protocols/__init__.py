@@ -29,6 +29,7 @@ from .protocol_assign_optic_groups import ProtRelionAssignOpticsGroup
 from .protocol_autopick_log import ProtRelionAutopickLoG
 from .protocol_autopick_ref import ProtRelion2Autopick
 from .protocol_bayesian_polishing import ProtRelionBayesianPolishing
+from .protocol_calculate_fsc import ProtRelionCalculateFSC
 from .protocol_center_averages import ProtRelionCenterAverages
 from .protocol_classify2d import ProtRelionClassify2D
 from .protocol_classify3d import ProtRelionClassify3D
