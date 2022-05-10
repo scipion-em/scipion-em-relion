@@ -91,7 +91,7 @@ class Plugin(pwem.Plugin):
         """ Return a list of dependencies. Include conda if
                 activation command was not found. """
         condaActivationCmd = cls.getCondaActivationCmd()
-        neededProgs = ['git', 'gcc', 'cmake', 'make']
+        neededProgs = []
         if not condaActivationCmd:
             neededProgs.append('conda')
 
@@ -121,13 +121,17 @@ class Plugin(pwem.Plugin):
                           (f'make -j {env.getProcessors()}',
                            ['bin/relion_refine'])]
 
-            if ver != V3_1:
-                installCmd.append(('%s conda create -y -n relion-python python=3 numpy pytorch' %
-                                   cls.getCondaActivationCmd(), []))
-
             env.addPackage('relion', version=ver,
                            tar='void.tgz',
                            commands=installCmd,
-                           neededProgs=cls.getDependencies(),
+                           neededProgs=['git', 'gcc', 'cmake', 'make'],
                            updateCuda=True,
                            default=True)
+
+            if ver != V3_1:
+                env.addPackage('relion-python', version=ver,
+                               tar='void.tgz',
+                               commands=[('%s conda create -y -n relion-python python=3 numpy pytorch' %
+                                          cls.getCondaActivationCmd(), [])],
+                               neededProgs=cls.getDependencies(),
+                               default=True)
