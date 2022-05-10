@@ -80,7 +80,8 @@ Protocols
 * assign optics groups
 * auto-picking (reference-based)
 * auto-picking LoG          
-* bayesian polishing        
+* bayesian polishing
+* calculate fsc
 * center averages
 * clean project
 * compress movies
