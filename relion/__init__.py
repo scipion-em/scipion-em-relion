@@ -129,9 +129,9 @@ class Plugin(pwem.Plugin):
                            default=True)
 
             if ver != V3_1:
-                env.addPackage('relion-python', version=ver,
+                env.addPackage('relion_python', version=ver,
                                tar='void.tgz',
-                               commands=[('%s conda create -y -n relion-python python=3 numpy pytorch' %
-                                          cls.getCondaActivationCmd(), [])],
-                               neededProgs=cls.getDependencies(),
-                               default=True)
+                               commands=[('%s conda create -y -n relion-python python=3 numpy pytorch &&'
+                                          'touch installed' %
+                                          cls.getCondaActivationCmd(), ['installed'])],
+                               neededProgs=cls.getDependencies())
