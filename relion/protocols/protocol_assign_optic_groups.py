@@ -247,19 +247,20 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
             def updateItem(item, row):
                 micName = getMicName(item)
 
-                if micName not in micDict:
-                    self.warning("Micrograph name (aka micName) '%s' was "
-                                 "not found in the 'data_micrographs' table of "
-                                 "the input star file: %s"
-                                 % (micName, inputStar))
-                    row._appendItem = False  # Do not add this row to the output set
-                else:
+                if micName in micDict:
+                    item._appendItem = True
                     ogNumber = micDict[micName]
 
                     if not hasattr(item, '_rlnOpticsGroup'):
                         item._rlnOpticsGroup = Integer()
 
                     item._rlnOpticsGroup.set(ogNumber)
+                else:
+                    item._appendItem = False  # Do not add this row to the output set
+                    self.warning("Micrograph name (aka micName) '%s' was "
+                                 "not found in the 'data_micrographs' table of "
+                                 "the input star file: %s"
+                                 % (micName, inputStar))
 
             outputSet.copyItems(inputSet,
                                 updateItemCallback=updateItem,
