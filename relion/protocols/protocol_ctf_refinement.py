@@ -51,20 +51,20 @@ class ProtRelionCtfRefinement(ProtParticles, ProtRelionBase):
         myDict = {
             'output_star': self._getExtraPath("particles_ctf_refine.star"),
             'ctf_sqlite': self._getExtraPath("ctf_analyze.sqlite"),
-            'mag_obs_x': self._getExtraPath("mag_disp_x_optics-group_%(og)d.mrc:mrc"),
-            'mag_obs_y': self._getExtraPath("mag_disp_y_optics-group_%(og)d.mrc:mrc"),
-            'mag_fit_x': self._getExtraPath("mag_disp_x_fit_optics-group_%(og)d.mrc:mrc"),
-            'mag_fit_y': self._getExtraPath("mag_disp_y_fit_optics-group_%(og)d.mrc:mrc"),
-            'tetrafoil_it_fit': self._getExtraPath("aberr_delta-phase_iter-fit_optics-group_%(og)d_N-4.mrc:mrc"),
-            'tetrafoil_fit': self._getExtraPath("aberr_delta-phase_lin-fit_optics-group_%(og)d_N-4.mrc:mrc"),
-            'tetrafoil_residual_fit': self._getExtraPath("aberr_delta-phase_lin-fit_optics-group_%(og)d_N-4_residual.mrc:mrc"),
-            'tetrafoil_obs': self._getExtraPath("aberr_delta-phase_per-pixel_optics-group_%(og)d.mrc:mrc"),
-            'beamtilt_it_fit': self._getExtraPath("beamtilt_delta-phase_iter-fit_optics-group_%(og)d.mrc:mrc"),
-            'beamtilt_fit': self._getExtraPath("beamtilt_delta-phase_lin-fit_optics-group_%(og)d.mrc:mrc"),
-            'trefoil_it_fit': self._getExtraPath("beamtilt_delta-phase_iter-fit_optics-group_%(og)d_N-3.mrc:mrc"),
-            'trefoil_fit': self._getExtraPath("beamtilt_delta-phase_lin-fit_optics-group_%(og)d_N-3.mrc:mrc"),
-            'trefoil_residual_fit': self._getExtraPath("beamtilt_delta-phase_lin-fit_optics-group_%(og)d_N-3_residual.mrc:mrc"),
-            'beamtilt_obs': self._getExtraPath("beamtilt_delta-phase_per-pixel_optics-group_%(og)d.mrc:mrc")
+            'mag_obs_x': self._getExtraPath("mag_disp_x_optics-group_%(og)d.mrc"),
+            'mag_obs_y': self._getExtraPath("mag_disp_y_optics-group_%(og)d.mrc"),
+            'mag_fit_x': self._getExtraPath("mag_disp_x_fit_optics-group_%(og)d.mrc"),
+            'mag_fit_y': self._getExtraPath("mag_disp_y_fit_optics-group_%(og)d.mrc"),
+            'tetrafoil_it_fit': self._getExtraPath("aberr_delta-phase_iter-fit_optics-group_%(og)d_N-4.mrc"),
+            'tetrafoil_fit': self._getExtraPath("aberr_delta-phase_lin-fit_optics-group_%(og)d_N-4.mrc"),
+            'tetrafoil_residual_fit': self._getExtraPath("aberr_delta-phase_lin-fit_optics-group_%(og)d_N-4_residual.mrc"),
+            'tetrafoil_obs': self._getExtraPath("aberr_delta-phase_per-pixel_optics-group_%(og)d.mrc"),
+            'beamtilt_it_fit': self._getExtraPath("beamtilt_delta-phase_iter-fit_optics-group_%(og)d.mrc"),
+            'beamtilt_fit': self._getExtraPath("beamtilt_delta-phase_lin-fit_optics-group_%(og)d.mrc"),
+            'trefoil_it_fit': self._getExtraPath("beamtilt_delta-phase_iter-fit_optics-group_%(og)d_N-3.mrc"),
+            'trefoil_fit': self._getExtraPath("beamtilt_delta-phase_lin-fit_optics-group_%(og)d_N-3.mrc"),
+            'trefoil_residual_fit': self._getExtraPath("beamtilt_delta-phase_lin-fit_optics-group_%(og)d_N-3_residual.mrc"),
+            'beamtilt_obs': self._getExtraPath("beamtilt_delta-phase_per-pixel_optics-group_%(og)d.mrc")
         }
 
         self._updateFilenamesDict(myDict)
@@ -260,7 +260,7 @@ class ProtRelionCtfRefinement(ProtParticles, ProtRelionBase):
 
         # self._optics = convert.getOpticsDict(outImgsFn)
         mdIter = convert.Table.iterRows('particles@' + outImgsFn,
-                                        key='rlnImageId')
+                                        key='rlnImageId', types=convert.LABELS_DICT)
         outImgSet.copyItems(imgSet,
                             updateItemCallback=self._updateItem,
                             itemDataIterator=mdIter,

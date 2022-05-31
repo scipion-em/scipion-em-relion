@@ -1,12 +1,22 @@
+4.0.4: removed RELION_PYTHON, replaced by conda env variable RELION_ENV_ACTIVATION
+4.0.3:
+    - allowPointers for box size related parameters
+    - new protocol: import coordinates from a particles star file
+    - remove :mrc postfix from volume names if possible
+4.0.2: minor fix for auto-picking ref-based protocol
+4.0.1:
+    - Postprocessing now supports half maps input
+    - emtable requirement updated
+    - close #325 by providing some column types to particle Tables
 4.0:
     - Relion 4.0 support:
+        - download sources from github
         - all protocols updated with new args / params
         - new 2D class ranker protocol (test still missing)
         - new env var RELION_PYTHON for Python with Torch & Numpy modules (required for the protocol above)
         - separate initial model protocol for 4.0 (3.x is incompatible)
         - float16 option disabled
         - EER enabled, needs more testing
-        - 3.1.3 binary added
         - BUGFIX: wrong shifts were saved in motioncor when skipping frames
         - rlnMicrographStartFrame is saved in optics for mc output movies
         - Multi-body protocol improvements, viewer added
@@ -29,7 +39,7 @@
     - fix shifts conversion for pre-3.1 (origins are in px already)
     - fix accuracy label, use Angstroms by default
     - add a warning about polishing gain bug
-    - subtract protocol suppot non-Relion input (thanks @rmarabini)
+    - subtract protocol supports non-Relion input (thanks @rmarabini)
     - add a protocol to "gentle clean" all Relion jobs
 3.0.4: bugfix for the missing option "Consider alignment as priors" (reported by Serban Ilca)
 3.0.3: another bugfix in assign optics: abs paths are not allowed by Relion

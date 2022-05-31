@@ -34,7 +34,7 @@ import numpy as np
 from collections import OrderedDict
 from emtable import Table
 
-
+import pyworkflow.utils as pwutils
 from pwem.constants import ALIGN_NONE, ALIGN_PROJ, ALIGN_2D, ALIGN_3D
 from pwem.objects import (Micrograph, SetOfMicrographsBase, SetOfMovies,
                           Particle, CTFModel, Acquisition, Transform, Coordinate)
@@ -43,7 +43,7 @@ import pwem.convert.transformations as tfs
 from .convert_base import WriterBase, ReaderBase
 from .convert_utils import (convertBinaryFiles, locationToRelion,
                             relionToLocation)
-from relion.constants import PARTICLE_EXTRA_LABELS
+from relion.constants import PARTICLE_EXTRA_LABELS, LABELS_DICT
 
 
 def getPixelSizeLabel(imageSet):
@@ -523,7 +523,8 @@ class Reader(ReaderBase):
                                   'rlnImagePixelSize', 1.0)
         self._invPixelSize = 1. / self._pixelSize
 
-        partsReader = Table.Reader(starFile, tableName='particles')
+        partsReader = Table.Reader(starFile, tableName='particles',
+                                   types=LABELS_DICT)
 
         firstRow = partsReader.getRow()
         self._setClassId = hasattr(firstRow, 'rlnClassNumber')
@@ -588,21 +589,77 @@ class Reader(ReaderBase):
 
         # TODO: coord extra labels, partId, micId,
         if self._setCoord:
-            coord = self.rowToCoord(row)
+            coord = Coordinate()
+            self.rowToCoord(row, coord)
             particle.setCoordinate(coord)
 
         if self._postprocessImageRow:
             self._postprocessImageRow(particle, row)
 
-    @staticmethod
-    def rowToCoord(row):
-        """ Create a Coordinate from the row. """
+    def readSetOfCoordinates(self, starFile, coordSet, micList=None, **kwargs):
+        """ Convert a star file into a set of coordinates.
+
+        Params:
+            starFile: the filename of the star file
+            coordSet: output coordinates set
+            micList: list of micNames to match coordSet
+
+        Keyword Arguments:
+            postprocessCoordRow:
+            extraLabels:
+
+        """
+        self._postprocessCoordRow = kwargs.get('postprocessCoordRow', None)
+        coordsReader = Table.Reader(starFile, types=LABELS_DICT)
+        if coordsReader.hasColumn('rlnOpticsGroup'):
+            coordsReader = Table.Reader(starFile, tableName='particles', types=LABELS_DICT)
+
+        if not coordsReader.hasAllColumns(self.COORD_LABELS[:3]):
+            raise Exception("STAR file should include columns: ", self.COORD_LABELS[:3])
+
+        coordsReader = sorted(coordsReader, key=lambda r: getattr(r, 'rlnMicrographName'))
+        coordsReader = [row for row in coordsReader if pwutils.removeExt(os.path.basename(row.rlnMicrographName)) in micList]
+        if not len(coordsReader):
+            raise Exception("Could not match micNames between micrographs and star file!")
+
+        firstRow = coordsReader[0]
+        hasMicId = hasattr(firstRow, 'rlnMicrographId')
+
         coord = Coordinate()
+        self.rowToCoord(firstRow, coord)
+        if hasMicId:
+            coord.setMicId(firstRow.rlnMicrographId)
+        else:
+            coord.setMicId(1)
+
+        extraLabels = kwargs.get('extraLabels', []) + self.COORD_LABELS[3:]
+        self.createExtraLabels(coord, firstRow, extraLabels)
+        if self._postprocessCoordRow:
+            self._postprocessCoordRow(coord, firstRow)
+        coordSet.append(coord)
+
+        objId = 1
+        for row in coordsReader[1:]:
+            objId += 1
+            self.rowToCoord(row, coord)
+            coord.setObjId(objId)
+            if hasMicId:
+                coord.setMicId(row.rlnMicrographId)
+            else:
+                micId = micList.index(pwutils.removeExt(os.path.basename(row.rlnMicrographName))) + 1
+                coord.setMicId(micId)
+            self.setExtraLabels(coord, row)
+            if self._postprocessCoordRow:
+                self._postprocessCoordRow(coord, row)
+
+            coordSet.append(coord)
+
+    @staticmethod
+    def rowToCoord(row, coord):
+        """ Create a Coordinate from the row. """
         coord.setPosition(row.rlnCoordinateX,
                           row.rlnCoordinateY)
-        coord.setMicName(row.rlnMicrographName)
-
-        return coord
+        coord.setMicName(pwutils.removeExt(os.path.basename(row.rlnMicrographName)))
 
     @staticmethod
     def rowToCtf(row, ctf):

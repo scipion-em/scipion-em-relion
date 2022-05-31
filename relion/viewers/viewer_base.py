@@ -510,12 +510,13 @@ Examples:
         files = []
         volumes = self._getVolumeNames()
         for volFn in volumes:
-            if not os.path.exists(volFn.replace(':mrc', '')):
+            if not os.path.exists(volFn):
                 raise Exception("Missing volume file: %s\n Please select "
                                 "a valid class or iteration number."
                                 % volFn)
             print("Adding vol: %s" % volFn)
-            files.append(volFn)
+            if not volFn.endswith(":mrc"):
+                files.append(volFn + ":mrc")
 
         self.createVolumesSqlite(files, path, samplingRate)
         return [ObjectView(self._project, self.protocol.strId(), path)]
@@ -526,11 +527,10 @@ Examples:
         cmdFile = self.protocol._getExtraPath('chimera_volumes.cxc')
         with open(cmdFile, 'w+') as f:
             for vol in volumes:
-                # remove ":mrc" extension needed by xmipp
-                vol = vol.replace(":mrc", "")
                 # We assume that the chimera script will be generated
                 # at the same folder as relion volumes
                 localVol = os.path.basename(vol)
+                vol = vol.replace(":mrc", "")
                 if os.path.exists(vol):
                     f.write("open %s\n" % localVol)
             f.write('tile\n')
@@ -567,7 +567,7 @@ Examples:
         # If just one reference we can show the angular distribution
         ref3d = self._refsList[0]
         volFn = self._getVolumeNames()[0]
-        if not os.path.exists(volFn.replace(":mrc", "")):
+        if not os.path.exists(volFn):
             raise Exception("This class is empty. Please try with another class")
 
         for prefix in prefixes:
@@ -859,7 +859,8 @@ Examples:
                 for prefix in prefixes:
                     volFn = self.protocol._getFileName(prefix + 'volume',
                                                        iter=it, ref3d=ref3d)
-                    if os.path.exists(volFn.replace(':mrc', '')):
+                    if os.path.exists(volFn):
+                        volFn = volFn.replace(":mrc", "")
                         vols.append(volFn)
                     else:
                         raise Exception("Volume %s does not exists. \n"

@@ -24,7 +24,7 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Logs**
-Attach run.stdout log file from the failing protocol.
+Attach run.stderr log file from the failing protocol.
 
 **Desktop (please complete the following information):**
  - Scipion version: [e.g. 2.0.0]

@@ -56,6 +56,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
     def _definePreprocessParams(self, form):
         form.addParam('boxSize', params.IntParam,
                       label='Particle box size (px)',
+                      allowsPointers=True,
                       validators=[params.Positive],
                       help='This is size of the boxed particles (in pixels).')
 

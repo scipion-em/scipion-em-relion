@@ -1428,3 +1428,99 @@ class TestRelionResizeVolume(TestRelionBase):
         self.launchProtocol(resizeProt)
 
         self._validations(resizeProt.outputVol, 128, 1.5)
+
+
+class TestRelionImportCoords(TestRelionBase):
+    @classmethod
+    def setUpClass(cls):
+        setupTestProject(cls)
+        cls.ds = DataSet.getDataSet('relion31_tutorial_precalculated')
+        cls.mics = cls.ds.getFile('MotionCorr/job002/Movies/*frameImage.mrc')
+        cls.parts = cls.ds.getFile('Refine3D/job029/run_it018_data.star')
+
+    def runImportMics(self):
+        print(magentaStr("\n==> Importing data - micrographs:"))
+        protImportMics = self.newProtocol(
+            ProtImportMicrographs,
+            samplingRateMode=0,
+            filesPath=self.mics,
+            samplingRate=0.885,
+            voltage=200,
+            sphericalAberration=0.14)
+        self.launchProtocol(protImportMics, wait=True)
+        self.assertIsNotNone(protImportMics.outputMicrographs,
+                             "SetOfMicrographs has not been produced.")
+
+        return protImportMics
+
+    def testImportCoords(self):
+        """ Run an Import coords protocol. """
+        protImportMics = self.runImportMics()
+        print(magentaStr("\n==> Importing coordinates (from star file):"))
+        self.protImport = self.newProtocol(ProtRelionImportCoords,
+                                           filePath=self.parts,
+                                           boxSize=128)
+        self.protImport.inputMicrographs.set(protImportMics.outputMicrographs)
+        self.launchProtocol(self.protImport)
+        self.assertIsNotNone(self.protImport.outputCoordinates,
+                             "SetOfCoordinates has not been produced.")
+        self.assertEqual(self.protImport.outputCoordinates.getSize(),
+                         4501, "Output size is not 4501!")
+
+
+class TestRelionCalculateFSC(TestRelionBase):
+    @classmethod
+    def setUpClass(cls):
+        setupTestProject(cls)
+        cls.ds = DataSet.getDataSet('model_building_tutorial')
+        cls.half1 = cls.ds.getFile('volumes/emd_3488_Noisy_half1.vol')
+        cls.half2 = cls.ds.getFile('volumes/emd_3488_Noisy_half2.vol')
+        cls.map = cls.ds.getFile('volumes/emd_3488.map')
+        cls.model = cls.ds.getFile('PDBx_mmCIF/5ni1.pdb')
+
+        cls.protImport1 = cls.runImportVolumes(cls.half1, 1.05)
+        cls.protImport2 = cls.runImportVolumes(cls.half2, 1.05)
+        cls.protImportMap = cls.runImportVolumes(cls.map, 1.05)
+
+        print(magentaStr("\n==> Importing data - pdb:"))
+        cls.protImportModel = cls.newProtocol(ProtImportPdb,
+                                              inputPdbData=1,
+                                              pdbFile=cls.model)
+        cls.launchProtocol(cls.protImportModel)
+
+    def test_fsc_overall(self):
+        print(magentaStr("\n==> Testing relion - calculate fsc:"))
+        calcRun = self.newProtocol(
+            ProtRelionCalculateFSC,
+            objLabel='FSC overall',
+            fscType=0,
+            half1=self.protImport1.outputVolume,
+            half2=self.protImport2.outputVolume
+        )
+        self.launchProtocol(calcRun)
+        self.assertIsNotNone(calcRun.outputFSC)
+
+    def test_fsc_model_map(self):
+        print(magentaStr("\n==> Testing relion - calculate fsc:"))
+        calcRun = self.newProtocol(
+            ProtRelionCalculateFSC,
+            objLabel='FSC model-map',
+            fscType=1,
+            model=self.protImportModel.outputPdb,
+            map=self.protImportMap.outputVolume
+        )
+        self.launchProtocol(calcRun)
+        self.assertIsNotNone(calcRun.outputFSC)
+
+    def test_fsc_work_free(self):
+        print(magentaStr("\n==> Testing relion - calculate fsc:"))
+        calcRun = self.newProtocol(
+            ProtRelionCalculateFSC,
+            objLabel='FSC work/free',
+            fscType=2,
+            model_half1=self.protImportModel.outputPdb,
+            half1=self.protImport1.outputVolume,
+            half2=self.protImport2.outputVolume
+        )
+        self.launchProtocol(calcRun)
+        self.assertIsNotNone(calcRun.outputSetOfFSCs)

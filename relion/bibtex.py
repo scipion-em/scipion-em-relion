@@ -124,4 +124,27 @@ pages = "5-17",
 doi = {http://dx.doi.org/10.1107/S205225251801463X},
 }
 
+@article{Kimanius2021,
+    author = {Kimanius, Dari and Dong, Liyi and Sharov, Grigory and Nakane, Takanori and Scheres, Sjors H. W.},
+    title = "{New tools for automated cryo-EM single-particle analysis in RELION-4.0}",
+    journal = {Biochemical Journal},
+    volume = {478},
+    number = {24},
+    pages = {4169-4185},
+    year = {2021},
+    month = {12},
+    doi = {10.1042/BCJ20210708},
+}
+
+@article{Amunts2014,
+author = {Alexey Amunts  and Alan Brown  and Xiao-chen Bai and Jose L. Llacer  and Tanweer Hussain  and Paul Emsley  and Fei Long  and Garib Murshudov  and Sjors H. W. Scheres  and V. Ramakrishnan },
+title = {Structure of the Yeast Mitochondrial Large Ribosomal Subunit},
+journal = {Science},
+volume = {343},
+number = {6178},
+pages = {1485-1489},
+year = {2014},
+doi = {10.1126/science.1249410}
+}
+
 """

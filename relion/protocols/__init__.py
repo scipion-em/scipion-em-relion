@@ -29,10 +29,11 @@ from .protocol_assign_optic_groups import ProtRelionAssignOpticsGroup
 from .protocol_autopick_log import ProtRelionAutopickLoG
 from .protocol_autopick_ref import ProtRelion2Autopick
 from .protocol_bayesian_polishing import ProtRelionBayesianPolishing
+from .protocol_calculate_fsc import ProtRelionCalculateFSC
 from .protocol_center_averages import ProtRelionCenterAverages
 from .protocol_classify2d import ProtRelionClassify2D
 from .protocol_classify3d import ProtRelionClassify3D
-from .protocol_compress_estimate_gain import ProtRelionCompressEstimateGain
+from .protocol_estimate_gain import ProtRelionCompressEstimateGain
 from .protocol_compress_movies import ProtRelionCompressMovies
 from .protocol_create_mask3d import ProtRelionCreateMask3D
 from .protocol_crop_resize import ProtRelionResizeVolume
@@ -43,6 +44,7 @@ from .protocol_export_ctf import ProtRelionExportCtf
 from .protocol_export_particles import ProtRelionExportParticles
 from .protocol_extract_particles import ProtRelionExtractParticles
 from .protocol_gentle_clean import ProtRelionCleanJobs
+from .protocol_import_coords import ProtRelionImportCoords
 from .protocol_localres import ProtRelionLocalRes
 from .protocol_motioncor import ProtRelionMotioncor
 from .protocol_multibody import ProtRelionMultiBody
