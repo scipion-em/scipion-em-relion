@@ -36,6 +36,7 @@ import pyworkflow.utils as pwutils
 
 from .convert31 import OpticsGroups
 from .convert_utils import relionToLocation
+from ..constants import LABELS_DICT
 
 
 class FileTransform:
@@ -246,7 +247,8 @@ class RelionImport:
                 autoRefine = int(modelRow.rlnNrClasses) == 1
             else:
                 optimiserRow = Table(fileName=self._optimiserFile,
-                                     tableName='optimiser_general')[0]
+                                     tableName='optimiser_general',
+                                     types=LABELS_DICT)[0]
                 autoRefine = optimiserRow.get('rlnModelStarFile2', False)
 
             self.alignType = ALIGN_PROJ
@@ -414,8 +416,8 @@ class RelionImport:
             if acqRow.get('rlnSphericalAberration', False):
                 acquisitionDict['sphericalAberration'] = acqRow.rlnSphericalAberration
 
-            if modelRow is not None and modelRow.get('rlnPixelSize', False):
-                acquisitionDict['samplingRate'] = modelRow.rlnPixelSize
+            if acqRow.get('rlnImagePixelSize', False):
+                acquisitionDict['samplingRate'] = acqRow.rlnImagePixelSize
 
         except Exception as ex:
             print("Error loading acquisition: ", str(ex))
