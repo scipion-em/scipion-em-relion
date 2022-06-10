@@ -172,9 +172,6 @@ opticsGroup3            3 mtf_k2_200kV.star     0.885000   200.000000     1.4000
 data_micrographs
 
 loop_
-data_micrographs
-
-loop_ 
 _rlnMicrographName #1 
 _rlnOpticsGroup #2 
 20170629_00025_frameImage.tiff 1

@@ -234,10 +234,8 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
             if og.hasColumn('rlnMtfFileName'):
                 for i in og:
                     if not os.path.exists(i.rlnMtfFileName):
-                        self.warning("MTF file %s not found for %s" % (
-                            i.rlnMtfFileName, i.rlnOpticsGroupName
-                        ))
-
+                        self.warning("MTF file %s not found for %s" %
+                                     (i.rlnMtfFileName, i.rlnOpticsGroupName))
             # check if gain file exists
             if og.hasColumn('rlnMicrographGainName'):
                 for i in og:
@@ -249,18 +247,20 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
             def updateItem(item, row):
                 micName = getMicName(item)
 
-                if micName not in micDict:
-                    raise Exception("Micrograph name (aka micName) '%s' was "
-                                    "not found in the 'data_micrographs' table of "
-                                    "the input star file: %s"
-                                    % (micName, inputStar))
+                if micName in micDict:
+                    item._appendItem = True
+                    ogNumber = micDict[micName]
 
-                ogNumber = micDict[micName]
+                    if not hasattr(item, '_rlnOpticsGroup'):
+                        item._rlnOpticsGroup = Integer()
 
-                if not hasattr(item, '_rlnOpticsGroup'):
-                    item._rlnOpticsGroup = Integer()
-
-                item._rlnOpticsGroup.set(ogNumber)
+                    item._rlnOpticsGroup.set(ogNumber)
+                else:
+                    item._appendItem = False  # Do not add this row to the output set
+                    self.warning("Micrograph name (aka micName) '%s' was "
+                                 "not found in the 'data_micrographs' table of "
+                                 "the input star file: %s"
+                                 % (micName, inputStar))
 
             outputSet.copyItems(inputSet,
                                 updateItemCallback=updateItem,
