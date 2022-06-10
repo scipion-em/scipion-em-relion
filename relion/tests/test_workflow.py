@@ -39,7 +39,7 @@ CPUS = os.environ.get('SCIPION_TEST_CPUS', 4)
 GPUS = os.environ.get('SCIPION_TEST_GPUS', 2)
 
 
-class TestWorkflowRelion3Betagal(TestWorkflow):
+class TestWorkflowRelionBetagal(TestWorkflow):
     @classmethod
     def setUpClass(cls):
         pwtests.setupTestProject(cls)
