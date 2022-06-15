@@ -1352,7 +1352,7 @@ class ProtRelionBase(EMProtocol):
 
     def useGpu(self):
         """
-        Return True if the protocol has gpu option and it has been selected.
+        Return True if the protocol has gpu option, and it has been selected.
         """
         return self.getAttributeValue('doGpu', False)
 

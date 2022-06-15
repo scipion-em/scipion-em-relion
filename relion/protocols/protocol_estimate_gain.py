@@ -30,10 +30,12 @@ from pyworkflow.protocol import STEPS_SERIAL
 from pyworkflow.constants import PROD
 from pwem.protocols import ProtProcessMovies
 
+from .protocol_base import ProtRelionBase
+
 import relion.convert as convert
 
 
-class ProtRelionCompressEstimateGain(ProtProcessMovies):
+class ProtRelionCompressEstimateGain(ProtProcessMovies, ProtRelionBase):
     """
     Using *relion_convert_to_tiff* to estimate the gain reference from a set of movies.
     """

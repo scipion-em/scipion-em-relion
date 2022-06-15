@@ -34,8 +34,10 @@ from pwem.protocols import ProtAlignMovies
 from pwem.objects import MovieAlignment
 from pyworkflow.protocol import STEPS_PARALLEL
 
+from .protocol_base import ProtRelionBase
 
-class ProtRelionCompressMovies(ProtAlignMovies):
+
+class ProtRelionCompressMovies(ProtAlignMovies, ProtRelionBase):
     """
     Using *relion_convert_to_tiff* to compress a set of movies.
     """

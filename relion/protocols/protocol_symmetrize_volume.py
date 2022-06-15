@@ -30,15 +30,17 @@ from pwem.objects import Volume
 from pwem.emlib.image import ImageHandler
 from pwem.protocols import ProtAlignVolume
 
+from .protocol_base import ProtRelionBase
 
-class ProtRelionSymmetrizeVolume(ProtAlignVolume):
+
+class ProtRelionSymmetrizeVolume(ProtAlignVolume, ProtRelionBase):
     """
     Symmetrize a volume using Relion programs:
         *relion_align_symmetry* and *relion_image_handler*.
     """
     _label = 'symmetrize volume'
     _devStatus = PROD
-    
+
     # --------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')
@@ -84,3 +86,10 @@ class ProtRelionSymmetrizeVolume(ProtAlignVolume):
 
         _defineOutputVol('outputVolumeAligned', alignedFn)
         _defineOutputVol('outputVolumeSymmetrized', symFn)
+
+    # -------------------------- INFO functions -------------------------------
+    def _validate(self):
+        return []
+
+    def _summary(self):
+        return []
