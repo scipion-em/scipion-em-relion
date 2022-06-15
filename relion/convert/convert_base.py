@@ -69,7 +69,7 @@ class WriterBase:
         self.outputStack = None
         self.useBaseName = False
         self.extensions = ['mrc']
-        self.update(['rootDir', 'outputDir', 'userBaseName', 'extensions'],
+        self.update(['rootDir', 'outputDir', 'useBaseName', 'extensions'],
                     **kwargs)
         self._ih = ImageHandler()  # used to convert images
         self._filesDict = {}  # used to map file names (converted or linked)
@@ -77,7 +77,7 @@ class WriterBase:
         self._imageSize = None
 
     def update(self, attrsList, **kwargs):
-        """ Update the some attributes with values from kwargs. """
+        """ Update some attributes with values from kwargs. """
         for attr in attrsList:
             if attr in kwargs:
                 setattr(self, attr, kwargs[attr])

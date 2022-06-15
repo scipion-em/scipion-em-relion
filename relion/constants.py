@@ -650,7 +650,7 @@ LABELS_DICT = {
     #"rlnSgdSigma2FudgeInitial": float,
     #"rlnSgdSkipAnneal": bool,
     #"rlnSgdStepsize": float,
-    #"rlnSgdStepsizeScheme": str,  # used by two labels, str and int
+    "rlnSgdStepsizeScheme": str,  # used by two labels, str and int
     #"rlnSgdSubsetSize": int,
     #"rlnSgdWriteEverySubset": int,
     #"rlnSigma2Noise": float,
