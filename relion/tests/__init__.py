@@ -24,10 +24,10 @@
 # *
 # **************************************************************************
 
-from .test_convert_relion import *
-from .test_protocols_relion import *
-from .test_protocols_relion3 import *
-from .test_workflow_relion3 import *
+from .test_convert import *
+from .test_protocols_2d import *
+from .test_protocols_3d import *
+from .test_workflow import *
 from .test_projection_subtraction_no_relion import *
 
 from pyworkflow.tests import DataSet

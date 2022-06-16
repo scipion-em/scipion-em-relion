@@ -891,7 +891,7 @@ class ProtRelionBase(EMProtocol):
     def _getEnviron(self):
         env = Plugin.getEnviron()
 
-        if self.useGpu():
+        if self.usesGpu():
             prepend = env.get('RELION_PREPEND', '')
         else:
             prepend = env.get('RELION_PREPEND_CPU', '')
@@ -1080,14 +1080,7 @@ class ProtRelionBase(EMProtocol):
         args['--pool'] = self.pooledParticles.get()
 
         if self.doGpu:
-            gpuStr = self.gpusToUse.get().strip()
-            if gpuStr:
-                if not gpuStr.startswith('"'):
-                    gpuStr = '"' + gpuStr
-                if not gpuStr.endswith('"'):
-                    gpuStr += '"'
-
-            args['--gpu'] = gpuStr
+            args['--gpu'] = self._getGpuStr()
 
     def _getSamplingFactor(self):
         return 1 if self.oversampling == 0 else 2 * self.oversampling.get()
@@ -1350,11 +1343,50 @@ class ProtRelionBase(EMProtocol):
     def _useFastSubsets(self):
         return self.getAttributeValue('useFastSubsets', False)
 
-    def useGpu(self):
-        """
-        Return True if the protocol has gpu option and it has been selected.
-        """
+    def _getGpuStr(self):
+        gpuStr = self.getAttributeValue('gpusToUse', '').strip()
+        if gpuStr:
+            if not gpuStr.startswith('"'):
+                gpuStr = '"' + gpuStr
+            if not gpuStr.endswith('"'):
+                gpuStr += '"'
+
+        return gpuStr
+
+    def allowsGpu(self):
+        """ Returns True if this protocol allows GPU computation. """
+        #FIXME: We need to re-think this behaviour if we make all protocols
+        #FIXME: to inherit from the base class, since all will have the attribute
+        #FIXME: but not might be allowed
+        return self.hasAttribute('gpusToUse')
+
+    def requiresGpu(self):
+        """ Return True if this protocol can only be executed in GPU. """
+        # FIXME: Check if this is completely true
+        return False
+
+    def usesGpu(self):
+        """ Return True if the protocol has gpu option and
+        it has been selected. """
         return self.getAttributeValue('doGpu', False)
+
+    def getGpuList(self):
+        gpuStr = self._getGpuStr()
+        if gpuStr.startswith('"'):
+            gpuStr = gpuStr[1:-1]
+
+        gpuList = []
+        parts = gpuStr.split(':')
+        for p in parts:
+            parts2 = p.split(',')
+            for p2 in parts2:
+                if p2:
+                    gpu = int(p2)
+                    if not gpu in gpuList:
+                        gpuList.append(gpu)
+        gpuList.sort()
+
+        return gpuList
 
     def _copyAlignAsPriors(self, mdParts, alignType):
         # set priors equal to orig. values

@@ -1,3 +1,9 @@
+4.0.4:
+    - removed RELION_PYTHON, replaced by conda env variable RELION_ENV_ACTIVATION
+    - update citations
+    - fix parsing of pixel size upon import
+    - fix wrong kwarg name useBaseName which caused ignoring micnames in export protocols
+    - fix assign optics when some mics are missing (@delarosatrevin)
 4.0.3:
     - allowPointers for box size related parameters
     - new protocol: import coordinates from a particles star file

@@ -31,7 +31,6 @@ from pwem.protocols import ProtProcessParticles
 from pwem.objects import SetOfClasses2D
 
 from relion import Plugin
-from ..constants import RELION_PYTHON
 from .protocol_base import ProtRelionBase
 
 
@@ -95,15 +94,14 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
         params += " --fn_sel_classavgs class_averages.star"
         params += " --fn_root rank --do_granularity_features"
         params += " --auto_select"
+        params += " --python python"
 
         if self.minParts != -1:
             params += " --select_min_nr_particles %d" % self.minParts
         if self.minCls != -1:
             params += " --select_min_nr_classes %d" % self.minCls
 
-        params += " --python %s" % Plugin.getVar(RELION_PYTHON)
-
-        self.runJob("relion_class_ranker", params)
+        self.runJob("%s && relion_class_ranker" % Plugin.getActivationCmd(), params)
 
     def createOutputStep(self):
         table = Table(fileName=self._getFileName('cls_selection'))
@@ -124,11 +122,6 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
 
     def _validate(self):
         errors = []
-        if Plugin.getVar(RELION_PYTHON) is None:
-            errors.append("%s is not defined in the Scipion configuration!\n"
-                          "Please set it to point to a Python that "
-                          "includes torch and numpy modules." % RELION_PYTHON)
-
         if self.minParts != -1 and self.minCls != -1:
             errors.append("You cannot choose both min. number of particles "
                           "and classes.")

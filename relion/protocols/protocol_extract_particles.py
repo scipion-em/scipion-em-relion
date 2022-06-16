@@ -169,7 +169,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         self._extractMicrographList([mic], params)
 
     def _extractMicrographList(self, micList, params):
-        if not micList:  # do not process when empty list, need to check this properly
+        if len(micList) <= 0:  # do not process when empty list, need to check this properly
             return
 
         workingDir = self.getWorkingDir()

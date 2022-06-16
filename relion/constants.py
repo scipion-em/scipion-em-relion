@@ -32,7 +32,8 @@ import pwem.emlib.metadata as md
 
 RELION_HOME = 'RELION_HOME'
 RELION_CUDA_LIB = 'RELION_CUDA_LIB'
-RELION_PYTHON = 'RELION_PYTHON'
+RELION_ENV_ACTIVATION = 'RELION_ENV_ACTIVATION'
+DEFAULT_ACTIVATION_CMD = 'conda activate relion-python'
 
 # Supported versions:
 V3_1 = '3.1'
@@ -110,6 +111,10 @@ COLOR_CHOICES[COLOR_GIST_NCAR] = 'gist_ncar'
 COLOR_CHOICES[COLOR_GNU_PLOT] = 'gnuplot'
 COLOR_CHOICES[COLOR_GNU_PLOT2] = 'gnuplot2'
 COLOR_CHOICES[COLOR_OTHER] = 'other'
+
+FSC_TYPE_OVERALL = 0
+FSC_TYPE_MODEL_MAP = 1
+FSC_TYPE_WORK_FREE = 2
 
 # This dictionary will be used to map
 # between CTFModel properties and Xmipp labels
@@ -645,7 +650,7 @@ LABELS_DICT = {
     #"rlnSgdSigma2FudgeInitial": float,
     #"rlnSgdSkipAnneal": bool,
     #"rlnSgdStepsize": float,
-    #"rlnSgdStepsizeScheme": str,  # used by two labels, str and int
+    "rlnSgdStepsizeScheme": str,  # used by two labels, str and int
     #"rlnSgdSubsetSize": int,
     #"rlnSgdWriteEverySubset": int,
     #"rlnSigma2Noise": float,

@@ -28,7 +28,7 @@ This plugin provides wrappers for several programs of `RELION <https://relion.re
 **IMPORTANT NOTES!**
 
     1. If you have imported movies with a gain file in **DM4** format, you need to **flip the gain reference upside-down** in the motion correction protocol! (`bug details <https://github.com/I2PC/xmippCore/issues/39>`_)
-    2. If you have provided a gain reference or defects file during movie import or motion correction, please **make sure to run first "assign optics groups" protocol for aligned movies**, specifying the gain file etc. Currently, Scipion has no other way of knowing if you have e.g. rotated the gain during motion correction. Output movies then can be used in this polishing protocol.
+    2. If you have provided a gain reference or defects file during movie import or motion correction and plan to run bayesian polishing, please **make sure to run first "assign optics groups" protocol for aligned movies**, specifying the gain file etc. Currently, Scipion has no other way of knowing if you have e.g. rotated the gain during motion correction. Output movies then can be used in the polishing protocol.
     3. When importing EER movies, you should specify dose per single EER frame during import step. Pixel size should be the physical pixel size unless you plan to render EER on 8K grid. In the Motioncor protocol choose binning, EER fractionation and upsampling (default=1 is for 4K grid).
 
 Installation
@@ -59,7 +59,7 @@ b) Developer's version
 - RELION sources will be downloaded and compiled automatically with the plugin, but you can also link an existing installation. Default installation path assumed is ``software/em/relion-4.0``, if you want to change it, set *RELION_HOME* in ``scipion.conf`` file to the folder where the RELION is installed.
 - If you need to use CUDA different from the one used during Scipion installation (defined by *CUDA_LIB*), you can add *RELION_CUDA_LIB* variable to the config file.
 - If you have to use a MPI for Relion different from Scipion MPI, you can set *RELION_MPI_BIN* and *RELION_MPI_LIB* variables in the config file.
-- If you want to use **2D class ranker** protocol, you also need to set *RELION_PYTHON* that points to a Python which includes torch and numpy modules.
+- If you want to use **2D class ranker** protocol, you need to set *RELION_ENV_ACTIVATION* that points to a conda environment which includes torch and numpy modules. Default = ``conda activate relion-python``
 
 To check the installation, simply run one of the tests. A complete list of tests can be displayed by executing ``scipion test --show --grep relion``
 
@@ -80,7 +80,8 @@ Protocols
 * assign optics groups
 * auto-picking (reference-based)
 * auto-picking LoG          
-* bayesian polishing        
+* bayesian polishing
+* calculate fsc
 * center averages
 * clean project
 * compress movies
