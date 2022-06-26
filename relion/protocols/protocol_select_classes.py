@@ -118,6 +118,9 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
     def _summary(self):
         summary = []
 
+        if hasattr(self, "outputClasses"):
+            summary.append("Selected *%d* best classes" % self.outputClasses.getSize())
+
         return summary
 
     def _validate(self):

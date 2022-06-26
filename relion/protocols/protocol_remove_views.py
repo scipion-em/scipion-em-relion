@@ -146,6 +146,10 @@ class ProtRelionRemovePrefViews(ProtParticles):
     def _summary(self):
         summary = []
 
+        if hasattr(self, "outputParticles"):
+            summary.append("Input particles: %d" % self.inputParticles.get().getSize())
+            summary.append("Output particles: %d" % self.outputParticles.get().getSize())
+
         return summary
 
     def _validate(self):

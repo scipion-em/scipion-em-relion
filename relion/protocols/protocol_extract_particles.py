@@ -222,12 +222,15 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         summary = list()
         summary.append("Micrographs source: %s"
                        % self.getEnumText("downsampleType"))
-        summary.append("Particle box size: %d" % self.boxSize)
+        summary.append("Particle box size: *%d* px" % self.boxSize)
+
+        if self.doRescale:
+            summary.append("Rescaled box size: *%d* px" % self.rescaledSize)
 
         if not hasattr(self, 'outputParticles'):
             summary.append("Output images not ready yet.")
         else:
-            summary.append("Particles extracted: %d" %
+            summary.append("Particles extracted: *%d*" %
                            self.outputParticles.getSize())
 
         return summary

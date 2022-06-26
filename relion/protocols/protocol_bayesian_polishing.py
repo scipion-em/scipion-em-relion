@@ -385,10 +385,10 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
         summary = []
 
         def _params(label, *params):
-            summary.append('*%s params:*' % label)
-            summary.append('    Sigma for velocity: %0.3f' % params[0])
-            summary.append('    Sigma for divergence: %0.1f' % params[1])
-            summary.append('    Sigma for acceleration: %0.2f' % params[2])
+            summary.append('%s params:' % label)
+            summary.append('    Sigma for velocity: *%0.3f*' % params[0])
+            summary.append('    Sigma for divergence: *%0.1f*' % params[1])
+            summary.append('    Sigma for acceleration: *%0.2f*' % params[2])
 
         if self.operation != self.OP_TRAIN:
             _params('Input', self.sigmaVel, self.sigmaDiv, self.sigmaAcc)

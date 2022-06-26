@@ -84,3 +84,12 @@ class ProtRelionSymmetrizeVolume(ProtAlignVolume):
 
         _defineOutputVol('outputVolumeAligned', alignedFn)
         _defineOutputVol('outputVolumeSymmetrized', symFn)
+
+    # -------------------------- INFO functions -------------------------------
+    def _summary(self):
+        summary = []
+        if not hasattr(self, 'outputVolumeSymmetrized'):
+            summary.append("Output is not ready yet.")
+        else:
+            summary.append("Symmetry used: *%s*" % self.symmetryGroup.get())
+        return summary

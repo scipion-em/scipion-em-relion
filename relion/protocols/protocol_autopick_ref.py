@@ -440,6 +440,17 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
 
     def _summary(self):
         summary = []
+        if self.getInputMicrographs() is not None:
+            summary.append("Using Relion reference-based picker.")
+            summary.append("Number of input micrographs: *%d*"
+                           % self.getInputMicrographs().getSize())
+        if self.getOutputsSize() > 0:
+            summary.append("Number of particles picked: *%d*"
+                           % self.getCoords().getSize())
+            summary.append("Particle size: *%d* px"
+                           % self.getCoords().getBoxSize())
+        else:
+            summary.append(Message.TEXT_NO_OUTPUT_CO)
         return summary
 
     def _citations(self):

@@ -177,11 +177,11 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
 
     def _summary(self):
         messages = [
-            "Created a mask from input volume using threshold %0.3f"
+            "Created a mask from input volume using threshold *%0.5f*"
             % self.threshold.get(),
             "*Mask processing*",
-            "   Extend by %d pixels" % self.extend,
-            "   Apply soft edge of %d pixels" % self.edge]
+            "   Extend by *%d* pixels" % self.extend,
+            "   Apply soft edge of *%d* pixels" % self.edge]
         if self.doInvert:
             messages.append("   Inverted")
 

@@ -200,6 +200,9 @@ class ProtRelionCalculateFSC(ProtAnalysis3D, ProtRelionBase):
     def _summary(self):
         summary = []
 
+        if hasattr(self, "outputFSC") or hasattr(self, "outputSetOfFSCs"):
+            summary.append("FSC calculation ran with relion_image_handler")
+
         return summary
 
     # -------------------------- UTILS functions ------------------------------

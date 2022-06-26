@@ -45,6 +45,9 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
     """
     _label = 'assign optics groups'
     _devStatus = PROD
+    _possibleOutputs = {"outputMovies": SetOfMovies,
+                        "outputMicrographs": SetOfMicrographs,
+                        "outputParticles": SetOfParticles}
     
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -295,6 +298,13 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
     
     def _summary(self):
         summary = []
+
+        if any(hasattr(self, out) for out in self._possibleOutputs.keys()):
+            if self.inputType == 0:
+                summary.append("Assigned optics group: %s" % self.opticsGroupName.get())
+            else:
+                summary.append("Assigned optics group(s) from star file: %s" % self.inputStar.get())
+
         return summary
     
     def _methods(self):

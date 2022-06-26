@@ -81,12 +81,16 @@ class ProtRelionCenterAverages(ProtProcessParticles, ProtRelionBase):
         return []
 
     def _summary(self):
-        summary = ['']
+        summary = []
+
+        if hasattr(self, "outputAverages"):
+            summary.append('Class averages were aligned by relion_image_handler '
+                           'using their center of mass.')
+
         return summary
 
     def _methods(self):
-        return ['Class averages were aligned by relion_image_handler '
-                'using their center of mass.']
+        return []
 
     def _getStackFn(self):
         return self._getPath('centered_averages.mrcs')

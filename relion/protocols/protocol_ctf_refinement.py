@@ -290,7 +290,7 @@ class ProtRelionCtfRefinement(ProtParticles, ProtRelionBase):
     def _summary(self):
         summary = []
         if self.estimateAnisoMag:
-            summary.append("Estimate anisotropic Magnification: *Yes*")
+            summary.append("Estimate anisotropic magnification: *Yes*")
         else:
             if self.doCtfFitting:
                 summary.append("CTF parameter fitting: *Yes*")

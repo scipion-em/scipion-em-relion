@@ -304,6 +304,11 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
         summary = []
+
+        if any([hasattr(self, "outputMicrographs"),
+                hasattr(self, "outputMicrographsDoseWeighted")]):
+            summary.append("Ran relion_motioncorr%s" % (" with dose-weighting" if self.doDW else ""))
+
         return summary
 
     def _citations(self):
