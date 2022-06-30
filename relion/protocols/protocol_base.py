@@ -1353,18 +1353,6 @@ class ProtRelionBase(EMProtocol):
 
         return gpuStr
 
-    def allowsGpu(self):
-        """ Returns True if this protocol allows GPU computation. """
-        #FIXME: We need to re-think this behaviour if we make all protocols
-        #FIXME: to inherit from the base class, since all will have the attribute
-        #FIXME: but not might be allowed
-        return self.hasAttribute('gpusToUse')
-
-    def requiresGpu(self):
-        """ Return True if this protocol can only be executed in GPU. """
-        # FIXME: Check if this is completely true
-        return False
-
     def usesGpu(self):
         """ Return True if the protocol has gpu option and
         it has been selected. """
