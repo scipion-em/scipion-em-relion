@@ -25,17 +25,22 @@
 # **************************************************************************
 
 import os
+from enum import Enum
 from emtable import Table
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 from pyworkflow.constants import PROD
-from pwem.objects import Volume, Float
+from pwem.objects import Volume, Float, SetOfVolumes
 from pwem.protocols import ProtAnalysis3D
 
 import relion.convert as convert
 from ..constants import ANGULAR_SAMPLING_LIST
 from .protocol_base import ProtRelionBase
+
+
+class outputs(Enum):
+    outputVolumes = SetOfVolumes
 
 
 class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
@@ -54,6 +59,7 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
     """
     _label = '3D multi-body'
     _devStatus = PROD
+    _possibleOutputs = outputs
     IS_CLASSIFY = False
     PREFIXES = ['half1_', 'half2_']
 
@@ -245,7 +251,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
             self._updateVolume(item, vol)
             volumes.append(vol)
 
-        self._defineOutputs(outputVolumes=volumes)
+        self._defineOutputs(**{outputs.outputVolumes.name: volumes})
         vol = self.protRefine.get().outputVolume
         self._defineSourceRelation(vol, volumes)
 

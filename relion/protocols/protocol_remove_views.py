@@ -26,11 +26,17 @@
 
 import numpy as np
 from random import sample
+from enum import Enum
 
 import pyworkflow.protocol.params as params
 from pyworkflow.constants import PROD
 from pwem.protocols import ProtParticles
+from pwem.objects import SetOfParticles
 import pwem.convert.transformations as tfs
+
+
+class outputs(Enum):
+    outputParticles = SetOfParticles
 
 
 class ProtRelionRemovePrefViews(ProtParticles):
@@ -41,6 +47,7 @@ class ProtRelionRemovePrefViews(ProtParticles):
     """
     _label = 'remove preferential views'
     _devStatus = PROD
+    _possibleOutputs = outputs
 
     def _defineParams(self, form):
         form.addSection(label='Input')
@@ -135,7 +142,7 @@ class ProtRelionRemovePrefViews(ProtParticles):
         outImgSet.copyInfo(imgSet)
         imgSet.setAlignmentProj()
         outImgSet.copyItems(imgSet, updateItemCallback=self._removeViews)
-        self._defineOutputs(outputParticles=outImgSet)
+        self._defineOutputs(**{outputs.outputParticles.name: outImgSet})
         self._defineTransformRelation(self.inputParticles, outImgSet)
 
     def _removeViews(self, item, row):

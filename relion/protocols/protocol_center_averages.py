@@ -24,11 +24,18 @@
 # *
 # **************************************************************************
 
+from enum import Enum
+
 from pwem.protocols import ProtProcessParticles
+from pwem.objects import SetOfAverages
 from pyworkflow.protocol.params import PointerParam
 from pyworkflow.constants import PROD
 
 from .protocol_base import ProtRelionBase
+
+
+class outputs(Enum):
+    outputAverages = SetOfAverages
 
 
 class ProtRelionCenterAverages(ProtProcessParticles, ProtRelionBase):
@@ -38,6 +45,7 @@ class ProtRelionCenterAverages(ProtProcessParticles, ProtRelionBase):
     """
     _label = 'center averages'
     _devStatus = PROD
+    _possibleOutputs = outputs
     
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -72,7 +80,7 @@ class ProtRelionCenterAverages(ProtProcessParticles, ProtRelionBase):
 
         avgSet.copyInfo(inputSet)
         avgSet.copyItems(inputSet, updateItemCallback=self._setFileName)
-        self._defineOutputs(outputAverages=avgSet)
+        self._defineOutputs(**{outputs.outputAverages.name: avgSet})
         self._defineTransformRelation(inputSet, avgSet)
 
     # --------------------------- INFO functions ------------------------------

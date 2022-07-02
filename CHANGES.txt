@@ -1,3 +1,5 @@
+4.0.5:
+    - add possible outputs class
 4.0.4:
     - removed RELION_PYTHON, replaced by conda env variable RELION_ENV_ACTIVATION
     - update citations

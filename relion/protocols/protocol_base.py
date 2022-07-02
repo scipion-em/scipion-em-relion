@@ -1370,7 +1370,7 @@ class ProtRelionBase(EMProtocol):
             for p2 in parts2:
                 if p2:
                     gpu = int(p2)
-                    if not gpu in gpuList:
+                    if gpu not in gpuList:
                         gpuList.append(gpu)
         gpuList.sort()
 

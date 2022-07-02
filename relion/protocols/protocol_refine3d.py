@@ -23,16 +23,23 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+from enum import Enum
 from emtable import Table
 
 from pyworkflow.constants import PROD
 from pwem.constants import ALIGN_PROJ
-from pwem.objects import Volume, FSC
+from pwem.objects import Volume, FSC, SetOfParticles
 from pwem.protocols import ProtRefine3D
 
 import relion.convert as convert
 from ..constants import PARTICLE_EXTRA_LABELS
 from .protocol_base import ProtRelionBase
+
+
+class outputs(Enum):
+    outputVolume = Volume
+    outputParticles = SetOfParticles
+    outputFSC = FSC
 
 
 class ProtRelionRefine3D(ProtRefine3D, ProtRelionBase):
@@ -46,6 +53,7 @@ leads to objective and high-quality results.
     """    
     _label = '3D auto-refine'
     _devStatus = PROD
+    _possibleOutputs = outputs
     IS_CLASSIFY = False
     CHANGE_LABELS = ['rlnChangesOptimalOrientations',
                      'rlnChangesOptimalOffsets',
@@ -102,9 +110,9 @@ leads to objective and high-quality results.
         outImgSet.copyInfo(imgSet)
         self._fillDataFromIter(outImgSet, self._lastIter())
 
-        self._defineOutputs(outputVolume=vol)
+        self._defineOutputs(**{outputs.outputVolume.name: vol})
         self._defineSourceRelation(self.inputParticles, vol)
-        self._defineOutputs(outputParticles=outImgSet)
+        self._defineOutputs(**{outputs.outputParticles.name: outImgSet})
         self._defineTransformRelation(self.inputParticles, outImgSet)
 
         fsc = FSC(objLabel=self.getRunName())
@@ -114,7 +122,7 @@ leads to objective and high-quality results.
         frc = table.getColumnValues('rlnGoldStandardFsc')
         fsc.setData(resolution_inv, frc)
 
-        self._defineOutputs(outputFSC=fsc)
+        self._defineOutputs(**{outputs.outputFSC.name: fsc})
         self._defineSourceRelation(vol, fsc)
 
     # -------------------------- INFO functions -------------------------------

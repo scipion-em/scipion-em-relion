@@ -25,6 +25,7 @@
 # **************************************************************************
 
 import math
+from enum import Enum
 
 import pyworkflow.protocol.params as params
 from pyworkflow.constants import PROD
@@ -35,12 +36,17 @@ import relion.convert as convert
 from ..constants import MASK_AND
 
 
+class outputs(Enum):
+    outputMask = VolumeMask
+
+
 class ProtRelionCreateMask3D(ProtCreateMask3D):
     """ This protocols creates a 3D mask using Relion.
     The mask is created from a 3d volume or by comparing two input volumes.
     """
     _label = 'create 3d mask'
     _devStatus = PROD
+    _possibleOutputs = outputs
 
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -159,7 +165,7 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
         volMask.setFileName(self.maskFile)
         volMask.setSamplingRate(self.inputVolume.get().getSamplingRate())
 
-        self._defineOutputs(outputMask=volMask)
+        self._defineOutputs(**{outputs.outputMask.name: volMask})
         self._defineSourceRelation(self.inputVolume, self.outputMask)
         
     # --------------------------- INFO functions ------------------------------

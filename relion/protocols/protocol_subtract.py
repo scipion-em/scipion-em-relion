@@ -24,16 +24,23 @@
 # *
 # **************************************************************************
 
+from enum import Enum
+
 from pyworkflow.object import String, Integer
 from pyworkflow.constants import PROD
 from pyworkflow.protocol.params import (PointerParam, BooleanParam,
                                         IntParam, LabelParam, LEVEL_ADVANCED)
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtOperateParticles
+from pwem.objects import SetOfParticles
 
 import relion.convert as convert
 from relion import Plugin
 from .protocol_base import ProtRelionBase
+
+
+class outputs(Enum):
+    outputParticles = SetOfParticles
 
 
 class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
@@ -45,6 +52,7 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
     """
     _label = 'subtract projection'
     _devStatus = PROD
+    _possibleOutputs = outputs
 
     def _initialize(self):
         self._createFilenameTemplates()
@@ -223,7 +231,6 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
         params += ' --angpix %0.3f' % volume.getSamplingRate()
         params += self._convertMask(resize=False, invert=True)
 
-
         if self.doCTF:
             params += ' --ctf'
             if self.ignoreCTFUntilFirstPeak:
@@ -276,7 +283,7 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
                             updateItemCallback=self._updateItem,
                             itemDataIterator=mdIter)
 
-        self._defineOutputs(outputParticles=outImgSet)
+        self._defineOutputs(**{outputs.outputParticles.name: outImgSet})
         self._defineTransformRelation(imgSet, outImgSet)
 
     # -------------------------- INFO functions -------------------------------

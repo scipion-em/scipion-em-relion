@@ -24,10 +24,13 @@
 # *
 # ******************************************************************************
 
+from enum import Enum
+
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 from pyworkflow.constants import PROD
 from pwem.constants import ALIGN_PROJ
+from pwem.objects import SetOfParticles
 from pwem.protocols import ProtParticles
 
 import relion
@@ -38,10 +41,15 @@ from .protocol_base import ProtRelionBase
 from ..objects import CtfRefineGlobalInfo
 
 
+class outputs(Enum):
+    outputParticles = SetOfParticles
+
+
 class ProtRelionCtfRefinement(ProtParticles, ProtRelionBase):
     """ Wrapper protocol for the Relion's CTF refinement. """
     _label = 'ctf refinement'
     _devStatus = PROD
+    _possibleOutputs = outputs
 
     def _initialize(self):
         self._createFilenameTemplates()
@@ -268,7 +276,7 @@ class ProtRelionCtfRefinement(ProtParticles, ProtRelionBase):
         og = OpticsGroups.fromStar(outImgsFn)
         og.toImages(outImgSet)
 
-        self._defineOutputs(outputParticles=outImgSet)
+        self._defineOutputs(**{outputs.outputParticles.name: outImgSet})
         self._defineTransformRelation(self.inputParticles, outImgSet)
 
     def createGlobalInfo(self, filename):

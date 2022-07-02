@@ -38,6 +38,10 @@ class ProtRelionSymmetrizeVolume(ProtAlignVolume):
     """
     _label = 'symmetrize volume'
     _devStatus = PROD
+    _possibleOutputs = {
+        'outputVolumeAligned': Volume,
+        'outputVolumeSymmetrized': Volume
+    }
     
     # --------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
