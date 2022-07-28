@@ -35,7 +35,7 @@ from pwem.objects import Volume, Float, SetOfVolumes
 from pwem.protocols import ProtAnalysis3D
 
 import relion.convert as convert
-from ..constants import ANGULAR_SAMPLING_LIST
+from ..constants import ANGULAR_SAMPLING_LIST, LABELS_DICT
 from .protocol_base import ProtRelionBase
 
 
@@ -365,7 +365,8 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         # it's not used by multibody
         if protRefine.referenceMask.hasValue():
             table = Table(fileName=fnOptimiser,
-                          tableName='optimiser_general')
+                          tableName='optimiser_general',
+                          types=LABELS_DICT)
             maskFn = table[0].rlnSolventMaskName
             newDim = protRefine._getInputParticles().getXDim()
             newPix = protRefine._getInputParticles().getSamplingRate()
