@@ -34,7 +34,7 @@ from pwem.objects import Volume, Float
 from pwem.protocols import ProtAnalysis3D
 
 import relion.convert as convert
-from ..constants import ANGULAR_SAMPLING_LIST
+from ..constants import ANGULAR_SAMPLING_LIST, LABELS_DICT
 from .protocol_base import ProtRelionBase
 
 
@@ -85,7 +85,7 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
                       help='Provide the STAR file with all information '
                            'about the bodies to be used in multi-body '
                            'refinement. An example for a three-body '
-                           'refinement would look like this:\n'
+                           'refinement would look like this:\n\n'
                            'data_\n'
                            'loop_\n'
                            '_rlnBodyMaskName\n'
@@ -93,8 +93,10 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
                            '_rlnBodySigmaAngles\n'
                            '_rlnBodySigmaOffset\n'
                            'large_body_mask.mrc 2 10 2\n'
-                           'small_body_mask.mrc 1 10 2 \n'
-                           'head_body_mask.mrc 2 10 2 \n')
+                           'small_body_mask.mrc 1 10 2\n'
+                           'head_body_mask.mrc 2 10 2\n\n'
+                           'The mask name should be relative to '
+                           'the project folder.')
 
         """
  Where each data line represents a different body, and:
@@ -357,7 +359,8 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         # it's not used by multibody
         if protRefine.referenceMask.hasValue():
             table = Table(fileName=fnOptimiser,
-                          tableName='optimiser_general')
+                          tableName='optimiser_general',
+                          types=LABELS_DICT)
             maskFn = table[0].rlnSolventMaskName
             newDim = protRefine._getInputParticles().getXDim()
             newPix = protRefine._getInputParticles().getSamplingRate()
