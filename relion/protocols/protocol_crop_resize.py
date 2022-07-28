@@ -116,7 +116,6 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
             vol.copyInfo(volInput)
             vol.setLocation(self._getFileName('output_vol', volId=1))
             vol.setSamplingRate(self._getNewSampling())
-            #self._defineOutputs(outputVolume=vol)
             self._defineOutputs(outputVol=vol)
         else:
             volumes = self._createSetOfVolumes()
