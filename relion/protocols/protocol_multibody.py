@@ -85,7 +85,7 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
                       help='Provide the STAR file with all information '
                            'about the bodies to be used in multi-body '
                            'refinement. An example for a three-body '
-                           'refinement would look like this:\n'
+                           'refinement would look like this:\n\n'
                            'data_\n'
                            'loop_\n'
                            '_rlnBodyMaskName\n'
@@ -93,8 +93,10 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
                            '_rlnBodySigmaAngles\n'
                            '_rlnBodySigmaOffset\n'
                            'large_body_mask.mrc 2 10 2\n'
-                           'small_body_mask.mrc 1 10 2 \n'
-                           'head_body_mask.mrc 2 10 2 \n')
+                           'small_body_mask.mrc 1 10 2\n'
+                           'head_body_mask.mrc 2 10 2\n\n'
+                           'The mask name should be relative to '
+                           'the project folder.')
 
         """
  Where each data line represents a different body, and:
