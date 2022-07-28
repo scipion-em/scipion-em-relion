@@ -1,5 +1,7 @@
-4.0.5:
+4.0.6:
     - add possible outputs class
+4.0.5.1: hotfix for multi-body protocol
+4.0.5: hotfix for GPU parameters
 4.0.4:
     - removed RELION_PYTHON, replaced by conda env variable RELION_ENV_ACTIVATION
     - update citations
