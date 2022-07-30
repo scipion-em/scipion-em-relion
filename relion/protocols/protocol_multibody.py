@@ -101,19 +101,18 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
                            'large_body_mask.mrc 2 10 2\n'
                            'small_body_mask.mrc 1 10 2\n'
                            'head_body_mask.mrc 2 10 2\n\n'
-                           'The mask name should be relative to '
-                           'the project folder.')
+                           ''
 
         """
  Where each data line represents a different body, and:
-  - rlnBodyMaskName contains the name of a soft-edged mask with values in [0,1] that define the body;
+ - rlnBodyMaskName contains the name of a soft-edged mask with values in [0,1] that define the body; the mask name should be relative to the project folder;
  - rlnBodyRotateRelativeTo defines relative to which other body this body rotates (first body is number 1);
  - rlnBodySigmaAngles and _rlnBodySigmaOffset are the standard deviations (widths) of Gaussian priors on the consensus rotations and translations;
 
  Optionally, there can be a fifth column with _rlnBodyReferenceName. Entries can be 'None' (without the ''s) or the name of a MRC map with an initial reference for that body. In case the entry is None, the reference will be taken from the density in the consensus refinement.
 
-Also note that larger bodies should be above smaller bodies in the STAR file. For more information, see the multi-body paper.')
-        """
+Also note that larger bodies should be above smaller bodies in the STAR file. For more information, see the multi-body paper.
+        """)
 
         form.addParam('recSubtractedBodies', params.BooleanParam, default=True,
                       label='Reconstruct subtracted bodies?',
