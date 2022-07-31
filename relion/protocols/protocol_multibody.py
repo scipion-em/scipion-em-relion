@@ -48,7 +48,7 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
     Relion protocol for multi-body refinement.
 
     This approach models flexible complexes as a user-defined number of rigid
-    bodies that move independently from each other.
+    bodies that move independently of each other.
     Using separate focused refinements with iteratively improved partial
     signal subtraction, improved reconstructions are generated for
     each of the defined bodies.
@@ -64,7 +64,7 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
     PREFIXES = ['half1_', 'half2_']
 
     def _initialize(self):
-        """ This function is mean to be called after the
+        """ This function is meant to be called after the
         working dir for the protocol have been set. (maybe after recovery from mapper)
         """
         self._createFilenameTemplates()
@@ -78,7 +78,13 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
         self._defineConstants()
 
         form.addSection(label='Input')
+        form.addParam('doContinue', params.BooleanParam, default=False,
+                      label='Continue from a previous run?',
+                      help='If you set to *Yes*, you should select a previous '
+                           'MultiBody protocol and most of the input parameters '
+                           'will be taken from it.')
         form.addParam('protRefine', params.PointerParam,
+                      condition='not doContinue',
                       pointerClass="ProtRefine3D",
                       label='Consensus refinement protocol',
                       help='Select any previous refinement protocol from '
@@ -87,6 +93,7 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
                            'parameters from the optimiser.star file. ')
         # FIXME: Find an easy way to avoid input a file here
         form.addParam('bodyStarFile', params.FileParam,
+                      condition='not doContinue',
                       label='Body STAR file',
                       help='Provide the STAR file with all information '
                            'about the bodies to be used in multi-body '
@@ -116,6 +123,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         """
 
         form.addParam('recSubtractedBodies', params.BooleanParam, default=True,
+                      condition='not doContinue',
                       label='Reconstruct subtracted bodies?',
                       help='If set to Yes, then the reconstruction of each of '
                            'the bodies will use the subtracted images. This '
@@ -125,9 +133,23 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
                            'subtracted ones are still used for alignment). '
                            'This will result in fuzzy densities for bodies '
                            'outside the one used for refinement.')
+        form.addParam('continueRun', params.PointerParam,
+                      pointerClass='ProtRelionMultiBody',
+                      condition='doContinue', allowsNull=True,
+                      label='Select previous run',
+                      help='Select a previous run to continue from.')
+        form.addParam('continueIter', params.StringParam, default='last',
+                      condition='doContinue',
+                      label='Continue from iteration',
+                      help='Select from which iteration do you want to '
+                           'continue. If you use *last*, then the last '
+                           'iteration will be used. Otherwise, a valid '
+                           'iteration number should be provided.')
 
-        group = form.addGroup('Auto-Sampling')
+        group = form.addGroup('Auto-Sampling',
+                              condition='not doContinue')
         group.addParam('initialAngularSampling', params.EnumParam, default=4,
+                       condition='not doContinue',
                        choices=ANGULAR_SAMPLING_LIST,
                        label='Initial angular sampling (deg)',
                        help='There are only a few discrete angular samplings'
@@ -140,6 +162,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
                             'first few iteration(s): the sampling rate will '
                             'be increased automatically after that.')
         group.addParam('initialOffsetRange', params.FloatParam, default=3,
+                       condition='not doContinue',
                        label='Initial offset range (pix)',
                        help='Probabilities will be calculated only for '
                             'translations in a circle with this radius (in '
@@ -151,6 +174,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
                             'first few iteration(s): the sampling rate will '
                             'be increased automatically after that.')
         group.addParam('initialOffsetStep', params.FloatParam, default=0.75,
+                       condition='not doContinue',
                        label='Initial offset step (pix)',
                        help='Translations will be sampled with this step-size '
                             '(in pixels). Translational sampling is also done '
@@ -213,7 +237,10 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
     # -------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self):
         self._createFilenameTemplates()
-        objId = self.protRefine.get().getObjId()
+        if self.doContinue:
+            objId = self.continueRun.get().getObjId()
+        else:
+            objId = self.protRefine.get().getObjId()
         self._insertFunctionStep('convertInputStep', objId)
         self._insertFunctionStep('multibodyRefineStep',
                                  self._getRefineArgs())
@@ -224,11 +251,12 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
     
     # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self, protId):
-        self.info("Relion version:")
-        self.runJob("relion_refine --version", "", numberOfMpi=1)
+        if self.doContinue:
+            bodyFn = self.continueRun.get().bodyStarFile.get()
+        else:
+            bodyFn = self.bodyStarFile.get()
 
-        pwutils.copyFile(self.bodyStarFile.get(),
-                         self._getExtraPath('input_body.star'))
+        pwutils.copyFile(bodyFn, self._getExtraPath('input_body.star'))
 
     def multibodyRefineStep(self, args):
         params = ' '.join(['%s %s' % (k, str(v)) for k, v in args.items()])
@@ -241,7 +269,10 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
                     numberOfThreads=1)
 
     def createOutputStep(self):
-        protRefine = self.protRefine.get()
+        protRefine = self._getProtRefine()
+        if self.doContinue:
+            # get original 3D refine protocol
+            protRefine = protRefine.protRefine.get()
         sampling = protRefine._getInputParticles().getSamplingRate()
         volumes = self._createSetOfVolumes()
         volumes.setSamplingRate(sampling)
@@ -254,28 +285,47 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
             volumes.append(vol)
 
         self._defineOutputs(**{outputs.outputVolumes.name: volumes})
-        vol = self.protRefine.get().outputVolume
+        vol = protRefine.outputVolume
         self._defineSourceRelation(vol, volumes)
 
     # -------------------------- INFO functions -------------------------------
     def _validate(self):
         errors = []
-        bodyFn = self.bodyStarFile.get()
-        if not os.path.exists(bodyFn):
-            errors.append("Input body star file %s does not exist." % bodyFn)
+        if self.doContinue:
+            continueProtocol = self.continueRun.get()
+            if (continueProtocol is not None and
+                    continueProtocol.getObjId() == self.getObjId()):
+                errors.append('In Scipion you must create a new Relion run '
+                              'and select the continue option rather than '
+                              'select continue from the same run.\n')
+
+            continueProtocol._initialize()
+            lastIter = continueProtocol._lastIter()
+
+            if self.continueIter.get() == 'last':
+                continueIter = lastIter
+            else:
+                continueIter = int(self.continueIter.get())
+
+            if continueIter > lastIter:
+                errors.append("You can continue only from the iteration %01d or less" % lastIter)
         else:
-            table = Table(fileName=bodyFn)
-            missing = []
-            for row in table:
-                if not os.path.exists(row.rlnBodyMaskName):
-                    missing.append(row.rlnBodyMaskName)
-                ref = getattr(row, 'rlnBodyReferenceName', 'None')
-                if ref != 'None' and not os.path.exists(ref):
-                    missing.append(ref)
-            if missing:
-                errors.append("Missing files from input star file: ")
-                for f in missing:
-                    errors.append(" - %s" % f)
+            bodyFn = self.bodyStarFile.get()
+            if not os.path.exists(bodyFn):
+                errors.append("Input body star file %s does not exist." % bodyFn)
+            else:
+                table = Table(fileName=bodyFn)
+                missing = []
+                for row in table:
+                    if not os.path.exists(row.rlnBodyMaskName):
+                        missing.append(row.rlnBodyMaskName)
+                    ref = getattr(row, 'rlnBodyReferenceName', 'None')
+                    if ref != 'None' and not os.path.exists(ref):
+                        missing.append(ref)
+                if missing:
+                    errors.append("Missing files from input star file: ")
+                    for f in missing:
+                        errors.append(" - %s" % f)
         return errors
 
     def _citations(self):
@@ -337,46 +387,53 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         item._rlnAccuracyTranslationsAngst = Float(row.rlnAccuracyTranslationsAngst)
 
     def _getRefineArgs(self):
-        """ Define all parameters to run relion_refine.
-        """
-        protRefine = self.protRefine.get()
+        """ Define all parameters to run relion_refine. """
+        args = {'--o': self._getExtraPath('relion')}
+        protRefine = self._getProtRefine()
         protRefine._initialize()
-        fnOptimiser = protRefine._getFileName('optimiser',
-                                              iter=protRefine._lastIter())
-        healpix = self.initialAngularSampling.get()
 
-        args = {
-            '--continue': fnOptimiser,
-            '--multibody_masks': self._getExtraPath('input_body.star'),
-            '--o': self._getExtraPath('relion'),
-            '--solvent_correct_fsc': '',
-            '--oversampling': 1,
-            '--pad': 1 if self.skipPadding else 2,
-            '--healpix_order': healpix,
-            '--auto_local_healpix_order': healpix,
-            '--offset_range': self.initialOffsetRange.get(),
-            '--offset_step': self.initialOffsetStep.get()
-        }
+        if self.doContinue:
+            continueIter = self._getContinueIter()
+            fnOptimiser = protRefine._getFileName('optimiser',
+                                                  iter=continueIter)
 
+            if protRefine.recSubtractedBodies:
+                args['--reconstruct_subtracted_bodies'] = ''
+
+        else:
+            fnOptimiser = protRefine._getFileName('optimiser',
+                                                  iter=protRefine._lastIter())
+            args.update({
+                '--multibody_masks': self._getExtraPath('input_body.star'),
+                '--solvent_correct_fsc': '',
+                '--oversampling': 1,
+                '--pad': 1 if self.skipPadding else 2,
+                '--healpix_order': self.initialAngularSampling.get(),
+                '--auto_local_healpix_order': self.initialAngularSampling.get(),
+                '--offset_range': self.initialOffsetRange.get(),
+                '--offset_step': self.initialOffsetStep.get()
+            })
+
+            if self.recSubtractedBodies:
+                args['--reconstruct_subtracted_bodies'] = ''
+
+            # Due to Relion bug we create a fake mask from previous refinement protocol
+            # it's not used by multi-body
+            if protRefine.referenceMask.hasValue():
+                table = Table(fileName=fnOptimiser,
+                              tableName='optimiser_general',
+                              types=LABELS_DICT)
+                maskFn = table[0].rlnSolventMaskName
+                bodyFn = self.bodyStarFile.get()
+                maskBody1 = Table(fileName=bodyFn)[0].rlnBodyMaskName
+                os.makedirs(os.path.dirname(maskFn), exist_ok=True)
+                pwutils.createAbsLink(os.path.abspath(maskBody1), maskFn)
+
+        args['--continue'] = fnOptimiser
         if self.skipGridding:
             args['--skip_gridding'] = ''
 
-        # Due to Relion bug we recreate mask from previous refinement protocol
-        # it's not used by multibody
-        if protRefine.referenceMask.hasValue():
-            table = Table(fileName=fnOptimiser,
-                          tableName='optimiser_general',
-                          types=LABELS_DICT)
-            maskFn = table[0].rlnSolventMaskName
-            newDim = protRefine._getInputParticles().getXDim()
-            newPix = protRefine._getInputParticles().getSamplingRate()
-            convert.convertMask(protRefine.referenceMask.get(), maskFn,
-                                newPix, newDim)
-
         self._setComputeArgs(args)
-
-        if self.recSubtractedBodies:
-            args['--reconstruct_subtracted_bodies'] = ''
 
         return args
 
@@ -399,3 +456,6 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
             })
 
         return args
+
+    def _getProtRefine(self):
+        return self.continueRun.get() if self.doContinue else self.protRefine.get()
