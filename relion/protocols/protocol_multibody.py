@@ -61,6 +61,7 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
     _devStatus = PROD
     _possibleOutputs = outputs
     IS_CLASSIFY = False
+    IS_3D_MB = True
     PREFIXES = ['half1_', 'half2_']
 
     def _initialize(self):

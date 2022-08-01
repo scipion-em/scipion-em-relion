@@ -59,6 +59,7 @@ class ProtRelionBase(EMProtocol):
     IS_CLASSIFY = True
     IS_2D = False
     IS_3D_INIT = False
+    IS_3D_MB = False
     OUTPUT_TYPE = SetOfClasses3D
     FILE_KEYS = ['data', 'optimiser', 'sampling']
     CLASS_LABEL = 'rlnClassNumber'
@@ -725,7 +726,7 @@ class ProtRelionBase(EMProtocol):
                            'increased RAM usage.')
         if self.IS_3D:
             if not (Plugin.IS_GT31() and self.IS_3D_INIT):
-                form.addParam('skipPadding', BooleanParam, default=False,
+                form.addParam('skipPadding', BooleanParam, default=self.IS_3D_MB,
                               label='Skip padding',
                               help='If set to Yes, the calculations will not use '
                                    'padding in Fourier space for better '
