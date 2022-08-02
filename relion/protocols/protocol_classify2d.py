@@ -24,6 +24,8 @@
 # *
 # **************************************************************************
 
+from enum import Enum
+
 from pyworkflow.constants import PROD
 from pwem.constants import ALIGN_2D
 from pwem.objects import SetOfClasses2D
@@ -34,11 +36,16 @@ from relion import Plugin
 from .protocol_base import ProtRelionBase
 
 
+class outputs(Enum):
+    outputClasses = SetOfClasses2D
+
+
 class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
     """ This protocol runs Relion 2D classification."""
 
     _label = '2D classification'
     _devStatus = PROD
+    _possibleOutputs = outputs
     IS_2D = True
     OUTPUT_TYPE = SetOfClasses2D
     
@@ -79,7 +86,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         classes2D = self._createSetOfClasses2D(partSet)
         self._fillClassesFromIter(classes2D, self._lastIter())
         
-        self._defineOutputs(outputClasses=classes2D)
+        self._defineOutputs(**{outputs.outputClasses.name: classes2D})
         self._defineSourceRelation(self.inputParticles, classes2D)
         
     # --------------------------- INFO functions ------------------------------

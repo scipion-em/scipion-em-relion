@@ -24,7 +24,9 @@
 # *
 # **************************************************************************
 
+from enum import Enum
 from emtable import Table
+
 import pyworkflow.protocol.params as params
 from pyworkflow.constants import NEW
 from pwem.protocols import ProtProcessParticles
@@ -34,12 +36,17 @@ from relion import Plugin
 from .protocol_base import ProtRelionBase
 
 
+class outputs(Enum):
+    outputClasses = SetOfClasses2D
+
+
 class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
     """
     Relion protocol to auto-select 2D class averages.
     """
     _label = '2D class ranker'
     _devStatus = NEW
+    _possibleOutputs = outputs
 
     @classmethod
     def isDisabled(cls):
@@ -112,11 +119,14 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
         output.copyInfo(inputClasses)
         output.appendFromClasses(inputClasses, filterClassFunc=self._appendClass)
 
-        self._defineOutputs(outputClasses=output)
+        self._defineOutputs(**{outputs.outputClasses.name: output})
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
         summary = []
+
+        if hasattr(self, "outputClasses"):
+            summary.append("Selected *%d* best classes" % self.outputClasses.getSize())
 
         return summary
 

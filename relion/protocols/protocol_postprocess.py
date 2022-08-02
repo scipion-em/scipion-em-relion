@@ -27,6 +27,7 @@
 # **************************************************************************
 
 import os
+from enum import Enum
 from emtable import Table
 
 import pyworkflow.utils as pwutils
@@ -40,6 +41,10 @@ import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
 
+class outputs(Enum):
+    outputVolume = Volume
+
+
 class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
     """
     Relion post-processing protocol for automated masking,
@@ -47,6 +52,7 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
     """
     _label = 'post-processing'
     _devStatus = PROD
+    _possibleOutputs = outputs
 
     def _getInputPath(self, *paths):
         return self._getPath('input', *paths)
@@ -207,7 +213,7 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
             objsId = [self.protRefine.get().getObjId()]
         else:
             objsId = [self.inputHalf1.get().getObjId(),
-                     self.inputHalf2.get().getObjId()]
+                      self.inputHalf2.get().getObjId()]
         self._createFilenameTemplates()
         self._defineParamDict()
         self._insertFunctionStep('convertInputStep', objsId)
@@ -266,7 +272,7 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
             vol = self.protRefine.get().outputVolume
 
         volume.setSamplingRate(self._getOutputPixelSize())
-        self._defineOutputs(outputVolume=volume)
+        self._defineOutputs(**{outputs.outputVolume.name: volume})
         self._defineSourceRelation(vol, volume)
 
     # -------------------------- INFO functions --------------------------------

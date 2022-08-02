@@ -480,7 +480,7 @@ Examples:
                 continue
             print("Computing data for iteration; %03d" % it)
             fn = self.protocol._getFileName('optimiser', iter=it)
-            table = Table(fileName=fn, tableName='optimiser_general')
+            table = Table(fileName=fn, tableName='optimiser_general', types=LABELS_DICT)
             row = table[0]
             cols = [getattr(row, value) for value in self.protocol.CHANGE_LABELS]
             tableChanges.addRow(it, *cols)

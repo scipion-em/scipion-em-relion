@@ -29,14 +29,12 @@ from emtable import Table
 
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtInitialVolume
-from pwem.objects import Volume
+from pwem.objects import Volume, SetOfVolumes, SetOfParticles
 from pyworkflow.constants import PROD
 from pyworkflow.protocol.params import (PointerParam, FloatParam,
                                         LabelParam, IntParam,
-                                        EnumParam, StringParam,
-                                        BooleanParam)
+                                        StringParam, BooleanParam)
 
-import relion
 import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
@@ -49,6 +47,12 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
     """
     _label = '3D initial model'
     _devStatus = PROD
+    _possibleOutputs = {
+        "outputVolume": Volume,
+        "outputVolumeSymmetrized": Volume,
+        "outputVolumes": SetOfVolumes,
+        "outputParticles": SetOfParticles
+    }
     IS_CLASSIFY = False
     IS_3D_INIT = True
     IS_2D = False
@@ -295,13 +299,10 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                         "--i %s --o %s --sym %s --angpix %0.5f" % (
                             inFn, symFn, sym, pixSize))
 
-            def _defineOutputVol(name, fn):
-                vol = Volume()
-                vol.copyInfo(volumes[0])
-                vol.setLocation(fn)
-                self._defineOutputs(**{name: vol})
-
-            _defineOutputVol('outputVolumeSymmetrized', symFn)
+            vol = Volume()
+            vol.copyInfo(volumes[0])
+            vol.setLocation(symFn)
+            self._defineOutputs(outputVolumeSymmetrized=vol)
 
     # -------------------------- INFO functions -------------------------------
     def _validateNormal(self):

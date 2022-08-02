@@ -24,6 +24,8 @@
 # *
 # **************************************************************************
 
+from enum import Enum
+
 from pyworkflow.protocol.params import (PointerParam, FloatParam,  
                                         StringParam, BooleanParam,
                                         EnumParam, IntParam, LEVEL_ADVANCED)
@@ -36,6 +38,10 @@ import relion.convert as convert
 from .protocol_base import ProtRelionBase
 
 
+class outputs(Enum):
+    outputVolume = Volume
+
+
 class ProtRelionReconstruct(ProtReconstruct3D, ProtRelionBase):
     """ This protocol reconstructs a volume using Relion.
 
@@ -45,6 +51,7 @@ class ProtRelionReconstruct(ProtReconstruct3D, ProtRelionBase):
     """
     _label = 'reconstruct'
     _devStatus = PROD
+    _possibleOutputs = outputs
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
@@ -154,7 +161,7 @@ class ProtRelionReconstruct(ProtReconstruct3D, ProtRelionBase):
         volume.setFileName(self._getFileName('output_volume'))
         volume.setSamplingRate(imgSet.getSamplingRate())
         
-        self._defineOutputs(outputVolume=volume)
+        self._defineOutputs(**{outputs.outputVolume.name: volume})
         self._defineSourceRelation(self.inputParticles, volume)
     
     # -------------------------- INFO functions -------------------------------

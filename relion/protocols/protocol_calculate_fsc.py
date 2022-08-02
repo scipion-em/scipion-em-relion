@@ -31,7 +31,7 @@ import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 from pyworkflow.constants import BETA
 from pwem.protocols import ProtAnalysis3D
-from pwem.objects import FSC
+from pwem.objects import FSC, SetOfFSCs
 from pwem.emlib.image import ImageHandler
 
 from ..constants import (FSC_TYPE_OVERALL, FSC_TYPE_MODEL_MAP,
@@ -45,6 +45,10 @@ class ProtRelionCalculateFSC(ProtAnalysis3D, ProtRelionBase):
     """
     _label = 'calculate fsc'
     _devStatus = BETA
+    _possibleOutputs = {
+        'outputFSC': FSC,
+        'outputSetOfFSCs': SetOfFSCs
+    }
 
     def _createFilenameTemplates(self):
         """ Centralize how the files are called. """
@@ -199,6 +203,9 @@ class ProtRelionCalculateFSC(ProtAnalysis3D, ProtRelionBase):
 
     def _summary(self):
         summary = []
+
+        if hasattr(self, "outputFSC") or hasattr(self, "outputSetOfFSCs"):
+            summary.append("FSC calculation ran with relion_image_handler")
 
         return summary
 

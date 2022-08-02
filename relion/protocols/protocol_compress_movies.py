@@ -127,7 +127,9 @@ class ProtRelionCompressMovies(ProtAlignMovies):
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
-        summary = []
+        summary = ["Movies compressed by relion_convert_to_tiff, "
+                   "compression type: %s" % self.getEnumText('compression')]
+
         return summary
 
     def _citations(self):

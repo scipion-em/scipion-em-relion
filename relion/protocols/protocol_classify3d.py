@@ -23,14 +23,21 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+from enum import Enum
 from emtable import Table
 
 from pyworkflow.constants import PROD
 from pwem.constants import ALIGN_PROJ
+from pwem.objects import SetOfClasses3D, SetOfVolumes
 from pwem.protocols import ProtClassify3D
 
 import relion.convert as convert
 from .protocol_base import ProtRelionBase
+
+
+class outputs(Enum):
+    outputClasses = SetOfClasses3D
+    outputVolumes = SetOfVolumes
 
 
 class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
@@ -44,6 +51,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
 
     _label = '3D classification'
     _devStatus = PROD
+    _possibleOutputs = outputs
     CHANGE_LABELS = ['rlnChangesOptimalOrientations',
                      'rlnChangesOptimalOffsets',
                      'rlnOverallAccuracyRotations',
@@ -91,7 +99,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
         classes3D = self._createSetOfClasses3D(partSet)
         self._fillClassesFromIter(classes3D, self._lastIter())
         
-        self._defineOutputs(outputClasses=classes3D)
+        self._defineOutputs(**{outputs.outputClasses.name: classes3D})
         self._defineSourceRelation(self.inputParticles, classes3D)
 
         # create a SetOfVolumes and define its relations
@@ -103,7 +111,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
             vol.setObjId(class3D.getObjId())
             volumes.append(vol)
         
-        self._defineOutputs(outputVolumes=volumes)
+        self._defineOutputs(**{outputs.outputVolumes.name: volumes})
         self._defineSourceRelation(self.inputParticles, volumes)
         
         if not self.doContinue:

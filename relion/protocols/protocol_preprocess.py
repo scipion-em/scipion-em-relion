@@ -23,6 +23,7 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+from enum import Enum
 
 import pyworkflow.utils as pwutils
 from pyworkflow.protocol.params import (PointerParam, BooleanParam,
@@ -30,11 +31,15 @@ from pyworkflow.protocol.params import (PointerParam, BooleanParam,
 from pyworkflow.protocol import STEPS_PARALLEL
 from pyworkflow.constants import PROD
 from pwem.constants import NO_INDEX
-from pwem.objects import SetOfAverages
+from pwem.objects import SetOfAverages, SetOfParticles
 from pwem.protocols import ProtProcessParticles
 
 import relion.convert as convert
 from .protocol_base import ProtRelionBase
+
+
+class outputs(Enum):
+    outputParticles = SetOfParticles
 
 
 class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
@@ -45,6 +50,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
     """
     _label = 'preprocess particles'
     _devStatus = PROD
+    _possibleOutputs = outputs
     
     def __init__(self, **args):
         ProtProcessParticles.__init__(self, **args)
@@ -186,7 +192,7 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
             imgSet.setSamplingRate(newSampling)
 
         imgSet.copyItems(inputSet, updateItemCallback=self._setFileName)
-        self._defineOutputs(outputParticles=imgSet)
+        self._defineOutputs(**{outputs.outputParticles.name: imgSet})
         self._defineTransformRelation(inputSet, imgSet)
     
     # --------------------------- INFO functions ------------------------------

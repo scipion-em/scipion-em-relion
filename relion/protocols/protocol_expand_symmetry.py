@@ -23,6 +23,7 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+from enum import Enum
 from emtable import Table
 
 from pyworkflow.protocol.params import StringParam
@@ -30,8 +31,13 @@ from pyworkflow.constants import PROD
 from pyworkflow.object import String
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtProcessParticles
+from pwem.objects import SetOfParticles
 
 import relion.convert as convert
+
+
+class outputs(Enum):
+    outputParticles = SetOfParticles
 
  
 class ProtRelionExpandSymmetry(ProtProcessParticles):
@@ -42,6 +48,7 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
     """
     _label = 'expand symmetry'
     _devStatus = PROD
+    _possibleOutputs = outputs
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineProcessParams(self, form):
@@ -94,7 +101,7 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
             alignType=ALIGN_PROJ,
             postprocessImageRow=self._postprocessImageRow)
 
-        self._defineOutputs(outputParticles=partSet)
+        self._defineOutputs(**{outputs.outputParticles.name: partSet})
         self._defineSourceRelation(imgSet, partSet)
 
     # -------------------------- INFO functions -------------------------------

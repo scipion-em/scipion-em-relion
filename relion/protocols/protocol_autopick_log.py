@@ -27,6 +27,7 @@
 from os.path import relpath
 
 import pyworkflow.protocol.params as params
+from pyworkflow.utils.properties import Message
 from pyworkflow.constants import PROD
 from pyworkflow.protocol import STEPS_SERIAL
 from pwem.protocols import ProtParticlePickingAuto
@@ -165,6 +166,18 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
 
     def _summary(self):
         summary = []
+
+        if self.getInputMicrographs() is not None:
+            summary.append("Using Relion LoG picker.")
+            summary.append("Number of input micrographs: *%d*"
+                           % self.getInputMicrographs().getSize())
+        if self.getOutputsSize() > 0:
+            summary.append("Number of particles picked: *%d*"
+                           % self.getCoords().getSize())
+            summary.append("Particle size: *%d* px"
+                           % self.getCoords().getBoxSize())
+        else:
+            summary.append(Message.TEXT_NO_OUTPUT_CO)
         return summary
 
     # -------------------------- UTILS functions -------------------------------

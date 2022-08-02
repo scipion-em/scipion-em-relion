@@ -110,7 +110,7 @@ class ProtRelionCompressEstimateGain(ProtProcessMovies):
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
-        summary = []
+        summary = ["Using relion_convert_to_tiff to estimate gain reference"]
         return summary
 
     def _citations(self):

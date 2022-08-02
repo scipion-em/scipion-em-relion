@@ -59,7 +59,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
     def _defineParams(self, form):
         self._env = os.environ.copy()
         showBeamTilt = self.protocol.doBeamtiltEstimation.get()
-        showTrefoil = self.protocol.doEstimateTrefoil.get()
+        showTrefoil = self.protocol.doEstimateTrefoil.get() and showBeamTilt
         showTetrafoil = self.protocol.doEstimate4thOrder.get()
         showDefocus = self.protocol.doCtfFitting.get()
         showAnisoMag = self.protocol.estimateAnisoMag.get()

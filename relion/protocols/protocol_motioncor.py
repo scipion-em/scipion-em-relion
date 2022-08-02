@@ -128,7 +128,7 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
 
         form.addParam('extraParams', params.StringParam, default='',
                       expertLevel=cons.LEVEL_ADVANCED,
-                      label='Additional parameters',
+                      label='Additional arguments',
                       help="Extra parameters for Relion motion correction. ")
 
         form.addSection("Motion")
@@ -304,6 +304,11 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
         summary = []
+
+        if any([hasattr(self, "outputMicrographs"),
+                hasattr(self, "outputMicrographsDoseWeighted")]):
+            summary.append("Ran relion_motioncorr%s" % (" with dose-weighting" if self.doDW else ""))
+
         return summary
 
     def _citations(self):

@@ -87,7 +87,12 @@ class MultibodyViewer(RelionViewer):
     def _createVolumesSqlite(self):
         """ Write a sqlite with all volumes selected for visualization. """
         path = self.protocol._getExtraPath('relion_viewer_volumes.sqlite')
-        samplingRate = self.protocol.protRefine.get()._getInputParticles().getSamplingRate()
+        if self.protocol.doContinue:
+            protRef = self.protocol.continueRun.get().protRefine.get()
+        else:
+            protRef = self.protocol.protRefine.get()
+
+        samplingRate = protRef._getInputParticles().getSamplingRate()
 
         files = []
         volumes = self._getVolumeNames()

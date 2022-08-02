@@ -341,58 +341,6 @@ class TestRelionLocalRes(TestRelionBase):
         self.launchProtocol(restProt)
 
 
-class TestRelionMultiBody(TestRelionBase):
-    @classmethod
-    def setUpClass(cls):
-        setupTestProject(cls)
-        cls.ds = DataSet.getDataSet('relion30_tutorial')
-        cls.extra = cls.ds.getFile("multibody/extra")
-        cls.ref3d = cls.ds.getFile("multibody/ref3d")
-        cls.ptcls = cls.ds.getFile("multibody/ref3d/relion_it017_data.star")
-
-    def _setupRefinement(self):
-        from pyworkflow.protocol.constants import STATUS_FINISHED
-        relionRefine = self.newProtocol(ProtRelionRefine3D,
-                                        objLabel='fake 3D refinement',
-                                        referenceMask=None)
-        self.saveProtocol(relionRefine)
-        relionRefine.setStatus(STATUS_FINISHED)
-
-        # copy ref3d files into protocol dir
-        currDir2 = os.path.join(self.proj.getPath(), relionRefine._getExtraPath())
-        print("Copying files from %s to %s" % (self.ref3d, currDir2))
-        pwutils.copyTree(self.ref3d, currDir2)
-
-        return relionRefine
-
-    def testMultibody(self):
-        print(pwutils.magentaStr("\n==> Testing relion - multi-body:"))
-        relionMbody = self.newProtocol(ProtRelionMultiBody,
-                                       initialOffsetRange=2.0,
-                                       initialOffsetStep=0.5,
-                                       runFlexAnalysis=False,
-                                       pooledParticles=30,
-                                       skipPadding=True,
-                                       doGpu=True,
-                                       numberOfThreads=8,
-                                       numberOfMpis=3)
-        protRef = self._setupRefinement()
-        relionMbody.protRefine.set(protRef)
-
-        # copy m-body files into protocol dir
-        currDir1 = os.path.join(self.proj.getPath(), relionMbody._getPath("Uploads"))
-        print("Copying files from %s to %s" % (self.extra, currDir1))
-        pwutils.copyTree(self.extra, currDir1)
-
-        bodyFn = os.path.join(self.proj.getPath(), relionMbody._getPath('Uploads/2-bodies.star'))
-        relionMbody.bodyStarFile.set(bodyFn)
-
-        self.saveProtocol(relionMbody)
-        self.launchProtocol(relionMbody)
-        self.assertIsNotNone(relionMbody.outputVolumes,
-                             "There was a problem with Relion multi-body")
-
-
 class TestRelionPostprocess(TestRelionBase):
     """ This class helps to test postprocess protocol from Relion. """
 

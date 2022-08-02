@@ -28,6 +28,7 @@
 
 import os
 import json
+from enum import Enum
 from emtable import Table
 
 import pyworkflow.utils as pwutils
@@ -36,10 +37,15 @@ from pyworkflow.constants import PROD
 from pwem.protocols import ProtParticles
 import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ
+from pwem.objects import SetOfParticles
 
 from relion import Plugin
 import relion.convert as convert
 from .protocol_base import ProtRelionBase
+
+
+class outputs(Enum):
+    outputParticles = SetOfParticles
 
 
 class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
@@ -63,6 +69,7 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
 
     _label = 'bayesian polishing'
     _devStatus = PROD
+    _possibleOutputs = outputs
 
     OP_TRAIN = 0
     OP_POLISH = 1
@@ -377,7 +384,7 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
         outImgSet.copyItems(imgSet,
                             updateItemCallback=rowIterator.updateItem)
 
-        self._defineOutputs(outputParticles=outImgSet)
+        self._defineOutputs(**{outputs.outputParticles.name: outImgSet})
         self._defineTransformRelation(self.inputParticles, outImgSet)
 
     # --------------------------- INFO functions ------------------------------
@@ -385,10 +392,10 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
         summary = []
 
         def _params(label, *params):
-            summary.append('*%s params:*' % label)
-            summary.append('    Sigma for velocity: %0.3f' % params[0])
-            summary.append('    Sigma for divergence: %0.1f' % params[1])
-            summary.append('    Sigma for acceleration: %0.2f' % params[2])
+            summary.append('%s params:' % label)
+            summary.append('    Sigma for velocity: *%0.3f*' % params[0])
+            summary.append('    Sigma for divergence: *%0.1f*' % params[1])
+            summary.append('    Sigma for acceleration: *%0.2f*' % params[2])
 
         if self.operation != self.OP_TRAIN:
             _params('Input', self.sigmaVel, self.sigmaDiv, self.sigmaAcc)

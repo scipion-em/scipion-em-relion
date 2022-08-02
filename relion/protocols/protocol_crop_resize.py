@@ -147,10 +147,10 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
         messages = []
 
         if self.doRescale:
-            messages.append("- Rescaled volumes to pixel size of %0.3f"
+            messages.append("- Rescaled volumes to pixel size of *%0.3f*"
                             % self.rescaleSamplingRate.get())
         if self.doResize:
-            messages.append("- Resized volumes to box size of %d"
+            messages.append("- Resized volumes to box size of *%d*"
                             % self.resizeSize.get())
 
         return messages

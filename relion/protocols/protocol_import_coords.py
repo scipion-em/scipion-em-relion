@@ -24,12 +24,19 @@
 # *
 # **************************************************************************
 
+from enum import Enum
+
 from pwem.protocols import EMProtocol
+from pwem.objects import SetOfCoordinates
 from pyworkflow.constants import BETA
 import pyworkflow.protocol.params as params
 import pyworkflow.utils as pwutils
 
 from relion import convert
+
+
+class outputs(Enum):
+    outputCoordinates = SetOfCoordinates
 
 
 class ProtRelionImportCoords(EMProtocol):
@@ -38,6 +45,7 @@ class ProtRelionImportCoords(EMProtocol):
     """
     _label = 'import coordinates'
     _devStatus = BETA
+    _possibleOutputs = outputs
 
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -77,7 +85,7 @@ class ProtRelionImportCoords(EMProtocol):
             coordStar, coordsSet, micList,
             postprocessCoordRow=self._postprocessCoordRow)
 
-        self._defineOutputs(outputCoordinates=coordsSet)
+        self._defineOutputs(**{outputs.outputCoordinates.name: coordsSet})
         self._defineSourceRelation(self.inputMicrographs, coordsSet)
 
     # --------------------------- INFO functions ------------------------------
