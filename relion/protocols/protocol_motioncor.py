@@ -128,7 +128,7 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
 
         form.addParam('extraParams', params.StringParam, default='',
                       expertLevel=cons.LEVEL_ADVANCED,
-                      label='Additional parameters',
+                      label='Additional arguments',
                       help="Extra parameters for Relion motion correction. ")
 
         form.addSection("Motion")

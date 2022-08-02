@@ -370,11 +370,11 @@ class TestRelionMultiBody(TestRelionBase):
         relionMbody = self.newProtocol(ProtRelionMultiBody,
                                        initialOffsetRange=2.0,
                                        initialOffsetStep=0.5,
-                                       runFlexAnalysis=False,
+                                       runFlexAnalysis=True,
                                        pooledParticles=30,
                                        skipPadding=True,
                                        doGpu=True,
-                                       numberOfThreads=8,
+                                       numberOfThreads=4,
                                        numberOfMpis=3)
         protRef = self._setupRefinement()
         relionMbody.protRefine.set(protRef)
