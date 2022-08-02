@@ -31,16 +31,18 @@ from emtable import Table
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 from pyworkflow.constants import PROD
-from pwem.objects import Volume, Float, SetOfVolumes
+from pwem.objects import Volume, Float, SetOfVolumes, SetOfParticles
 from pwem.protocols import ProtAnalysis3D
+from pwem.constants import ALIGN_PROJ
 
 import relion.convert as convert
-from ..constants import ANGULAR_SAMPLING_LIST, LABELS_DICT
+from ..constants import ANGULAR_SAMPLING_LIST, LABELS_DICT, PARTICLE_EXTRA_LABELS
 from .protocol_base import ProtRelionBase
 
 
 class outputs(Enum):
     outputVolumes = SetOfVolumes
+    outputParticles = SetOfParticles
 
 
 class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
@@ -237,7 +239,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
     
     # -------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self):
-        self._createFilenameTemplates()
+        self._initialize()
         if self.doContinue:
             objId = self.continueRun.get().getObjId()
         else:
@@ -277,7 +279,10 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
         if self.doContinue:
             # get original 3D refine protocol
             protRefine = protRefine.protRefine.get()
-        sampling = protRefine._getInputParticles().getSamplingRate()
+
+        # get refine 3d output parts pointer
+        inputPartsSet = protRefine.outputParticles
+        sampling = inputPartsSet.getSamplingRate()
         volumes = self._createSetOfVolumes()
         volumes.setSamplingRate(sampling)
 
@@ -288,9 +293,14 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
             self._updateVolume(item, vol)
             volumes.append(vol)
 
+        outImgSet = self._createSetOfParticles()
+        outImgSet.copyInfo(inputPartsSet)
+        self._fillDataFromIter(inputPartsSet, outImgSet, self._lastIter())
+
         self._defineOutputs(**{outputs.outputVolumes.name: volumes})
-        vol = protRefine.outputVolume
-        self._defineSourceRelation(vol, volumes)
+        self._defineSourceRelation(protRefine.outputVolume, volumes)
+        self._defineOutputs(**{outputs.outputParticles.name: outImgSet})
+        self._defineTransformRelation(inputPartsSet, outImgSet)
 
     # -------------------------- INFO functions -------------------------------
     def _validate(self):
@@ -463,3 +473,24 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
 
     def _getProtRefine(self):
         return self.continueRun.get() if self.doContinue else self.protRefine.get()
+
+    def _fillDataFromIter(self, inputSet, outSet, iteration):
+        outImgsFn = self._getFileName('data', iter=iteration)
+        outSet.setAlignmentProj()
+        self.reader = convert.createReader(alignType=ALIGN_PROJ,
+                                           pixelSize=outSet.getSamplingRate())
+
+        mdIter = Table.iterRows('particles@' + outImgsFn, key='rlnImageId',
+                                types=convert.LABELS_DICT)
+        outSet.copyItems(inputSet, doClone=False,
+                         updateItemCallback=self._updateParticle,
+                         itemDataIterator=mdIter)
+
+    def _updateParticle(self, particle, row):
+        self.reader.setParticleTransform(particle, row)
+
+        if getattr(self, '__updatingFirst', True):
+            self.reader.createExtraLabels(particle, row, PARTICLE_EXTRA_LABELS)
+            self.__updatingFirst = False
+        else:
+            self.reader.setExtraLabels(particle, row)

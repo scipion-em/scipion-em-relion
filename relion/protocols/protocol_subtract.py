@@ -75,12 +75,13 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
                            "a Relion protocol. Otherwise set it to No")
         form.addParam('inputProtocol', PointerParam,
                       important=True,
-                      pointerClass='ProtRelionRefine3D, ProtRelionClassify3D',
+                      pointerClass='ProtRelionRefine3D, ProtRelionClassify3D,'
+                                   'ProtRelionMultiBody',
                       label="Input Relion protocol",
                       condition="relionInput",
-                      help="Select the 3D refinement/classification run which "
-                           "you want to use for subtraction. It will use the "
-                           "maps from this run for the subtraction.")
+                      help="Select the 3D refinement/classification or multi-body "
+                           "run which you want to use for subtraction. It will "
+                           "use the maps from this run for the subtraction.")
         form.addParam('inputVolume', PointerParam, pointerClass='Volume',
                       label="Input map to be projected",
                       important=True,
