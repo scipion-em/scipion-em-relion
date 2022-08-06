@@ -232,7 +232,7 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
                 for i, vol in enumerate(protRef.outputVolumes):
                     if i == self.bodyNum.get()-1:
                         outVol = vol
-                        print("Using multi-body input:", vol.getFileName())
+                        self.info("Using multi-body input: %s" % outVol.getHalfMaps())
                         break
             else:  # ProtRefine3D
                 outVol = protRef.outputVolume
@@ -240,9 +240,8 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
             newDim = outVol.getXDim()
             newPix = outVol.getSamplingRate()
             vols = outVol.getHalfMaps().split(',')
-            vols.insert(0, outVol.getFileName())
 
-            for vol, key in zip(vols, ['outputVolume', 'half1', 'half2']):
+            for vol, key in zip(vols, ['half1', 'half2']):
                 ih.convert(vol, self._getFileName(key))
         else:
             half1 = self.inputHalf1.get()
@@ -258,7 +257,7 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
 
     def postProcessStep(self, paramDict):
         params = ' '.join(['%s %s' % (k, str(v))
-                           for k, v in self.paramDict.items()])
+                           for k, v in paramDict.items()])
         self._runProgram('relion_postprocess', params)
 
     def createOutputStep(self):
@@ -304,14 +303,11 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
     # -------------------------- UTILS functions ------------------------------
     def _defineParamDict(self):
         """ Define all parameters to run relion_postprocess"""
-        # It seems that in Relion3 now the input should be the map
-        # filename and not the prefix as before
         inputFn = self._getFileName('half1')
 
         self.paramDict = {'--i': inputFn,
                           '--o': self._getExtraPath('postprocess'),
                           '--angpix': self._getOutputPixelSize(),
-                          # Expert params
                           '--filter_edge_width': self.filterEdgeWidth.get(),
                           '--randomize_at_fsc': self.randomizeAtFsc.get(),
                           '--mask': self._getFileName('mask')

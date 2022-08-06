@@ -393,7 +393,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
     def _updateVolume(self, bodyNum, item):
         item.setFileName(self._getFileName('finalvolume_mbody', ref3d=bodyNum))
         half1 = self._getFileName('final_half1_volume_mbody', ref3d=bodyNum)
-        half2 = self._getFileName('final_half1_volume_mbody', ref3d=bodyNum)
+        half2 = self._getFileName('final_half2_volume_mbody', ref3d=bodyNum)
         item.setHalfMaps([half1, half2])
 
         row = self._volsInfo[bodyNum]
