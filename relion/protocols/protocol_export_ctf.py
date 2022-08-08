@@ -93,19 +93,19 @@ class ProtRelionExportCtf(EMProtocol):
         if hasPsd:
             psdPath = self._getExportPath('PSD')
             pwutils.makePath(psdPath)
-            print("Writing PSD files to %s" % psdPath)
+            self.info(f"Writing PSD files to {psdPath}")
 
         for ctf in inputCTF:
             # Get the corresponding micrograph
             mic = ctfMicSet[ctf.getObjId()]
             if mic is None:
-                print("Skipping CTF id: %s, it is missing from input "
-                      "micrographs. " % ctf.getObjId())
+                self.warning(f"Skipping CTF id: {ctf.getObjId()}, it is missing from input "
+                             f"micrographs. ")
                 continue
 
             micFn = mic.getFileName()
             if not os.path.exists(micFn):
-                print("Skipping micrograph %s, it does not exists. " % micFn)
+                self.warning(f"Skipping micrograph {micFn}, it does not exists.")
                 continue
 
             mic2 = mic.clone()
@@ -115,8 +115,8 @@ class ProtRelionExportCtf(EMProtocol):
                 newPsdFile = os.path.join(psdPath,
                                           '%s_psd.mrc' % pwutils.removeExt(mic.getMicName()))
                 if not os.path.exists(psdFile):
-                    print("PSD file %s does not exits" % psdFile)
-                    print("Skipping micrograph %s" % micFn)
+                    self.warning(f"PSD file {psdFile} does not exits\n"
+                                 f"Skipping micrograph {micFn}")
                     continue
                 pwutils.copyFile(psdFile, newPsdFile)
                 # PSD path is relative to Export dir
@@ -127,7 +127,7 @@ class ProtRelionExportCtf(EMProtocol):
                 ctf.setPsdFile(None)
             micSet.append(mic2)
 
-        print("Writing set: %s to: %s" % (inputCTF, self._getStarFile()))
+        self.info(f"Writing set: {inputCTF} to: {self._getStarFile()}")
 
         micDir = self._getExportPath('Micrographs')
         pwutils.makePath(micDir)

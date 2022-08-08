@@ -30,6 +30,8 @@
 
 from os.path import basename
 import numpy as np
+import logging
+logger = logging.getLogger(__name__)
 
 from pyworkflow.object import ObjectWrap, String, Integer
 from pwem.constants import ALIGN_2D, ALIGN_3D, ALIGN_PROJ, ALIGN_NONE
@@ -203,7 +205,7 @@ def alignmentToRow(alignment, alignmentRow, alignType):
 
         flip = bool(np.linalg.det(matrix[0:2, 0:2]) < 0)
         if flip:
-            print("FLIP in 2D not implemented")
+            logger.error("FLIP in 2D not implemented")
     elif is3D:
         raise Exception("3D alignment conversion for Relion not implemented. "
                         "It seems the particles were generated with an "
@@ -302,12 +304,12 @@ def readSetOfCoordinates(coordSet, coordFiles, micList=None):
     for mic, coordFn in zip(micList, coordFiles):
 
         if not os.path.exists(coordFn):
-            print("WARNING: Missing coordinates star file: ", coordFn)
+            logger.warning(f"WARNING: Missing coordinates star file: {coordFn}")
 
         try:
             readCoordinates(mic, coordFn, coordSet)
         except Exception:
-            print("WARNING: Error reading coordinates star file: ", coordFn)
+            logger.warning(f"WARNING: Error reading coordinates star file: {coordFn}")
 
 
 def readCoordinates(mic, fileName, coordsSet):

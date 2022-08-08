@@ -29,6 +29,8 @@
 import os
 from math import radians, log
 from emtable import Table
+import logging
+logger = logging.getLogger(__name__)
 
 import pyworkflow.protocol.params as params
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
@@ -473,12 +475,12 @@ Examples:
         labels = ['rlnIterationNumber'] + self.protocol.CHANGE_LABELS
         tableChanges = Table(columns=labels)
 
-        print("Computing average changes in offset, angles, and class membership")
+        logger.info("Computing average changes in offset, angles, and class membership")
         for it in self._getAllIters():
             fn = self.protocol._getFileName('optimiser', iter=it)
             if not os.path.exists(fn):
                 continue
-            print("Computing data for iteration; %03d" % it)
+            logger.info(f"Computing data for iteration {it:03d}")
             fn = self.protocol._getFileName('optimiser', iter=it)
             table = Table(fileName=fn, tableName='optimiser_general', types=LABELS_DICT)
             row = table[0]
@@ -514,7 +516,7 @@ Examples:
                 raise Exception("Missing volume file: %s\n Please select "
                                 "a valid class or iteration number."
                                 % volFn)
-            print("Adding vol: %s" % volFn)
+            logger.debug(f"Adding vol: {volFn}")
             if not volFn.endswith(":mrc"):
                 files.append(volFn + ":mrc")
 
@@ -677,7 +679,7 @@ Examples:
     # plotFSC
     # =============================================================================
     def _showFSC(self, paramName=None):
-        print("Showing FSC for iterations: ", self._iterations)
+        logger.info("Showing FSC for iterations: {self._iterations}")
         threshold = self.resolutionThresholdFSC.get()
 
         fscViewer = FscViewer(project=self.protocol.getProject(),
@@ -853,7 +855,7 @@ Examples:
     def _getVolumeNames(self):
         vols = []
         prefixes = self._getVolumePrefixes()
-        print("self._iterations: ", self._iterations)
+        logger.debug(f"self._iterations: {self._iterations}")
         for it in self._iterations:
             for ref3d in self._refsList:
                 for prefix in prefixes:

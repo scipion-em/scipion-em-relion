@@ -32,6 +32,8 @@ newer Relion3.1 routines and old ones.
 
 import os
 from emtable import Table
+import logging
+logger = logging.getLogger(__name__)
 
 import pyworkflow.utils as pwutils
 from pwem.constants import NO_INDEX
@@ -86,7 +88,7 @@ def writeSetOfCoordinates(posDir, coordSet, getStarFileFunc, scale=1):
 
         if micId != lastMicId:
             if micId not in posDict:
-                print("Warning: micId %s not found" % micId)
+                logger.warning(f"Warning: micId {micId} not found")
                 continue
             # we need to close previous opened file
             if f:
@@ -177,7 +179,7 @@ def writeCoordsConfig(configFn, boxSize, state):
         state: picker state
     """
     # Write config.xmd metadata
-    print("writeCoordsConfig: state=", state)
+    logger.debug(f"writeCoordsConfig: state={state}")
     table = Table(columns=['particleSize', 'pickingState'])
     table.addRow(int(boxSize), state)
     table.write(configFn, tableName='properties')

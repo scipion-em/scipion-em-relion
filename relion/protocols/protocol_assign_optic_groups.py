@@ -269,7 +269,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                                 updateItemCallback=updateItem,
                                 doClone=False)
 
-        print(og)
+        self.info(og)
 
         og.toImages(outputSet)
 

@@ -33,6 +33,8 @@ newer Relion3.1 routines and old ones.
 import os
 import math
 from emtable import Table
+import logging
+logger = logging.getLogger(__name__)
 
 import pyworkflow.utils as pwutils
 from pwem.constants import NO_INDEX
@@ -106,7 +108,7 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
         newFn = getUniqueFileName(fn, extension)
         if not os.path.exists(newFn):
             pwutils.createLink(fn, newFn)
-            print("   %s -> %s" % (newFn, fn))
+            logger.info(f"\t{newFn} -> {fn}")
         return newFn
 
     def convertStack(fn):
@@ -115,7 +117,7 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
         """
         newFn = getUniqueFileName(fn, 'mrcs')
         ih.convertStack(fn, newFn)
-        print("   %s -> %s" % (newFn, fn))
+        logger.info(f"\t{newFn} -> {fn}")
         return newFn
 
     def replaceRoot(fn):
@@ -125,19 +127,18 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
         return fn.replace(rootDir, outputRoot)
 
     if forceConvert:
-        print("convertBinaryFiles: forceConvert = True")
+        logger.debug("convertBinaryFiles: forceConvert = True")
         mapFunc = convertStack
     elif ext == extension:
-        print("convertBinaryFiles: creating soft links.")
-        print("   Root: %s -> %s" % (outputRoot, rootDir))
+        logger.debug(f"convertBinaryFiles: creating soft links."
+                     f"\tRoot: {outputRoot} -> {rootDir}")
         mapFunc = replaceRoot
         pwutils.createAbsLink(os.path.abspath(rootDir), outputRoot)
     elif ext == 'mrc' and extension == 'mrcs':
-        print("convertBinaryFiles: creating soft links (mrcs -> mrc).")
+        logger.debug("convertBinaryFiles: creating soft links (mrcs -> mrc).")
         mapFunc = createBinaryLink
     elif ext.endswith('hdf'):  # assume eman .hdf format
-        print("convertBinaryFiles: converting stacks. (%s -> %s)"
-              % (extension, ext))
+        logger.debug(f"convertBinaryFiles: converting stacks ({extension} -> {ext})")
         mapFunc = convertStack
     else:
         mapFunc = None
