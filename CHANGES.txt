@@ -1,4 +1,4 @@
-4.0.8: tbd
+4.0.8: better integration with sidesplitter plugin
 4.0.7: fix typo in half2 output name from MB protocol
 4.0.6:
     - add possible outputs class

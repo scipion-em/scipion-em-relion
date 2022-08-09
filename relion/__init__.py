@@ -49,6 +49,8 @@ class Plugin(pwem.Plugin):
         cls._defineEmVar(RELION_HOME, 'relion-%s' % V4_0)
         cls._defineVar(RELION_CUDA_LIB, pwem.Config.CUDA_LIB)
         cls._defineVar(RELION_ENV_ACTIVATION, DEFAULT_ACTIVATION_CMD)
+        cls._defineVar(RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE,
+                       os.getenv(RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE, None))
 
     @classmethod
     def getEnviron(cls):
@@ -79,6 +81,15 @@ class Plugin(pwem.Plugin):
         if 'PYTHONPATH' in environ:
             # this is required for python virtual env to work
             del environ['PYTHONPATH']
+
+        # Set SIDESPLITTER env var if possible
+        if SIDESPLITTER_HOME in os.environ:
+            environ.update({
+                SIDESPLITTER:
+                    os.path.join(cls.getVar(SIDESPLITTER_HOME), 'sidesplitter'),
+                RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE:
+                    os.path.join(cls.getVar(SIDESPLITTER_HOME), 'sidesplitter_wrapper.sh')
+            })
 
         return environ
 
