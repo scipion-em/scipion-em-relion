@@ -85,7 +85,9 @@ class Plugin(pwem.Plugin):
         # Set SIDESPLITTER env var if possible
         if SIDESPLITTER_HOME in os.environ:
             environ.update({
-                SIDESPLITTER: os.path.join(os.getenv(SIDESPLITTER_HOME), 'sidesplitter')
+                SIDESPLITTER: os.path.join(os.getenv(SIDESPLITTER_HOME), 'sidesplitter'),
+                RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE: os.path.join(os.getenv(SIDESPLITTER_HOME),
+                                                                     'sidesplitter_wrapper.sh')
             })
 
         return environ
