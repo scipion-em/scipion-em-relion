@@ -86,10 +86,14 @@ class Plugin(pwem.Plugin):
         if SIDESPLITTER_HOME in os.environ:
             environ.update({
                 SIDESPLITTER:
-                    os.path.join(cls.getVar(SIDESPLITTER_HOME), 'sidesplitter'),
-                RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE:
-                    os.path.join(cls.getVar(SIDESPLITTER_HOME), 'sidesplitter_wrapper.sh')
+                    os.path.join(cls.getVar(SIDESPLITTER_HOME), 'sidesplitter')
             })
+            if cls.getVar(RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE) is None:
+                environ.update({
+                    RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE:
+                        os.path.join(cls.getVar(SIDESPLITTER_HOME),
+                                     'sidesplitter_wrapper.sh')
+                })
 
         return environ
 
