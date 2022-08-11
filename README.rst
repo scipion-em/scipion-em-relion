@@ -50,6 +50,13 @@ b) Developer's version
 
       git clone https://github.com/scipion-em/scipion-em-relion.git
 
+
+   * change to devel branch
+
+   .. code-block::
+
+      git checkout devel
+
    * install
 
    .. code-block::
