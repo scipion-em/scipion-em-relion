@@ -83,7 +83,7 @@ class Plugin(pwem.Plugin):
             del environ['PYTHONPATH']
 
         # Set SIDESPLITTER env var if possible
-        if SIDESPLITTER_HOME in os.environ:
+        if cls.getVar(SIDESPLITTER_HOME, None) is not None):
             environ.update({
                 SIDESPLITTER:
                     os.path.join(cls.getVar(SIDESPLITTER_HOME), 'sidesplitter')
