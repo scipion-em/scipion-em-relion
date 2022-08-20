@@ -87,8 +87,8 @@ class TestWorkflowRelionBetagal(TestWorkflow):
         protRelionMc = self.newProtocol(
             ProtRelionMotioncor,
             objLabel='relion - motioncor',
-            patchX=5, patchY=5,
-            numberOfThreads=CPUS)
+            patchX=1, patchY=1,
+            numberOfMpi=CPUS//2)
 
         protRelionMc.inputMovies.set(protImport.outputMovies)
         protRelionMc = self.launchProtocol(protRelionMc)
@@ -100,10 +100,10 @@ class TestWorkflowRelionBetagal(TestWorkflow):
         protRelionLog = self.newProtocol(
             ProtRelionAutopickLoG,
             objLabel='relion - autopick log',
-            boxSize=250,
+            boxSize=100,
             minDiameter=150, maxDiameter=180,
-            areParticlesWhite=False,
-            numberOfThreads=CPUS)
+            threshold2=5.0,
+            numberOfMpi=CPUS//2)
 
         protRelionLog.inputMicrographs.set(protRelionMc.outputMicrographsDoseWeighted)
         protRelionLog = self.launchProtocol(protRelionLog)
@@ -136,8 +136,8 @@ class TestWorkflowRelionBetagal(TestWorkflow):
             boxSize=256, doRescale=True, rescaledSize=64,
             doInvert=True, doNormalize=True,
             backDiameter=200,
-            numberOfMpi=CPUS/2,
-            downsamplingType=0,  # Micrographs same as picking
+            numberOfMpi=CPUS,
+            downsamplingType=0  # Micrographs same as picking
         )
 
         protRelionExtract.ctfRelations.set(protCtf.outputCTF)
@@ -151,12 +151,13 @@ class TestWorkflowRelionBetagal(TestWorkflow):
         protRelion2D = self.newProtocol(
             ProtRelionClassify2D,
             objLabel='relion - 2d',
+            inplaneAngularSamplingDeg=11,
             maskDiameterA=200,
-            numberOfClasses=100,
+            numberOfClasses=20,
             extraParams='--maxsig 25',
             pooledParticles=30,
             doGpu=True,
-            numberOfThreads=8,
+            numberOfThreads=CPUS,
             numberOfMpi=1,
             allParticlesRam=True
         )
@@ -164,15 +165,16 @@ class TestWorkflowRelionBetagal(TestWorkflow):
         protRelion2D.inputParticles.set(protExtract.outputParticles)
         return self.launchProtocol(protRelion2D)
 
-    def _runInitModel(self, protRelion2D):
+    def _runInitModel(self, protExtract):
         print(magentaStr("\n==> Testing relion - initial model:"))
         relionIniModel = self.newProtocol(ProtRelionInitialModel,
-                                          doCTF=False, doGpu=True,
+                                          doCTF=True, doGpu=True,
                                           maskDiameterA=200,
-                                          numberOfIterations=50,
-                                          symmetryGroup='d2',
-                                          numberOfMpi=1, numberOfThreads=8)
-        relionIniModel.inputParticles.set(protRelion2D.outputParticles)
+                                          numberOfIter=50,
+                                          symmetryGroup='D2',
+                                          pooledParticles=30,
+                                          numberOfThreads=CPUS)
+        relionIniModel.inputParticles.set(protExtract.outputParticles)
         protInitModel = self.launchProtocol(relionIniModel)
         return protInitModel
 
@@ -183,4 +185,6 @@ class TestWorkflowRelionBetagal(TestWorkflow):
         protRelionLog = self._runRelionLog(protRelionMc)
         protRelionExtract = self._runRelionExtract(protRelionLog, protGctf)
         protRelion2D = self._runRelion2D(protRelionExtract)
-        # protInitModel = self._runRelion2D(protRelion2D)
+        protInitModel = self._runInitModel(protRelionExtract)
+        self.assertIsNotNone(protRelion2D.outputClasses, protRelion2D.getErrorMessage())
+        self.assertIsNotNone(protInitModel.outputVolume, protInitModel.getErrorMessage())

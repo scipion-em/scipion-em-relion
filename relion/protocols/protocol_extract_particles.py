@@ -357,7 +357,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                        int(float(part.rlnCoordinateY)))
 
                 if pos in posSet:
-                    print("Duplicate coordinate at: %s, IGNORED. " % str(pos))
+                    self.warning(f"Duplicate coordinate at: {str(pos)}, IGNORED.")
                     coord = None
                 else:
                     coord = coordDict.get(pos, None)

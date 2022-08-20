@@ -299,7 +299,7 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
 
             self._moveFiles(movie)
         except:
-            print("ERROR processing movie: ", movie.getFileName())
+            self.error(f"ERROR processing movie: {movie.getFileName()}")
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
@@ -527,8 +527,8 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
                                  tableName='local_motion_model')
                 coeffs = [row.rlnMotionModelCoeff for row in table]
             except:
-                print("Failed to parse local motion from: %s" %
-                      os.path.abspath(self._getMovieExtraFn(movie, '.star')))
+                self.warning(f"Failed to parse local motion from: "
+                             f"{os.path.abspath(self._getMovieExtraFn(movie, '.star'))}")
                 coeffs = []  # Failed to parse the local motion
             m._rlnMotionModelCoeff = pwobj.String(json.dumps(coeffs))
 

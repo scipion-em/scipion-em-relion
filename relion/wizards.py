@@ -27,6 +27,8 @@
 # **************************************************************************
 
 import os
+import logging
+logger = logging.getLogger(__name__)
 
 from pwem.constants import UNIT_PIXEL, UNIT_ANGSTROM, FILTER_LOW_PASS_NO_DECAY
 from pwem.viewers import EmPlotter
@@ -195,7 +197,7 @@ class RelionWizCtfGroupsDisplay(EmWizard):
     def show(self, form, *args):
         prot = form.protocol
         defocusGroups = prot.createDefocusGroups()
-        print(defocusGroups)
+        logger.info(defocusGroups)
 
         plotter = EmPlotter(windowTitle='%d Defocus Groups' % len(defocusGroups),
                             figsize=(8, 6))

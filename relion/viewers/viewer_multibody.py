@@ -23,6 +23,8 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # ******************************************************************************
+import logging
+logger = logging.getLogger(__name__)
 
 from pyworkflow.protocol.constants import STATUS_FINISHED
 
@@ -101,7 +103,7 @@ class MultibodyViewer(RelionViewer):
                 raise Exception("Missing volume file: %s\n Please select "
                                 "a valid class or iteration number."
                                 % volFn)
-            print("Adding vol: %s" % volFn)
+            logger.debug(f"Adding vol: {volFn}")
             if not volFn.endswith(":mrc"):
                 files.append(volFn + ":mrc")
 
@@ -112,7 +114,7 @@ class MultibodyViewer(RelionViewer):
         vols = []
         prefixes = self._getVolumePrefixes()
         num = self.protocol._getNumberOfBodies()
-        print("self._iterations: ", self._iterations)
+        logger.debug(f"self._iterations: {self._iterations}")
         for it in self._iterations:
             for ref3d in range(1, num+1):
                 for prefix in prefixes:

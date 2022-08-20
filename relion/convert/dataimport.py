@@ -27,6 +27,8 @@
 import os
 from collections import OrderedDict
 from emtable import Table
+import logging
+logger = logging.getLogger(__name__)
 
 from pyworkflow.object import Float
 from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_NONE
@@ -277,7 +279,7 @@ class RelionImport:
             else:
                 self.alignType = ALIGN_NONE
 
-        print("alignType: ", self.alignType)
+        logger.debug(f"alignType: {self.alignType}")
             
         # Check if the MetaData contains either rlnMicrographName
         # or rlnMicrographId, this will be used when imported
@@ -420,7 +422,7 @@ class RelionImport:
                 acquisitionDict['samplingRate'] = acqRow.rlnImagePixelSize
 
         except Exception as ex:
-            print("Error loading acquisition: ", str(ex))
+            logger.error(f"Error loading acquisition: {str(ex)}")
 
         return acquisitionDict
 

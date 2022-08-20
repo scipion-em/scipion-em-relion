@@ -861,7 +861,7 @@ class ProtRelionBase(EMProtocol):
 
             if self.doCtfManualGroups:
                 self._defocusGroups = self.createDefocusGroups()
-                print(self._defocusGroups)
+                self.info(self._defocusGroups)
 
             relion.convert.writeSetOfParticles(
                 imgSet, imgStar,

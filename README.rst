@@ -48,7 +48,7 @@ b) Developer's version
 
    .. code-block::
 
-      git clone https://github.com/scipion-em/scipion-em-relion.git
+      git clone -b devel https://github.com/scipion-em/scipion-em-relion.git
 
    * install
 
@@ -60,6 +60,7 @@ b) Developer's version
 - If you need to use CUDA different from the one used during Scipion installation (defined by *CUDA_LIB*), you can add *RELION_CUDA_LIB* variable to the config file.
 - If you have to use a MPI for Relion different from Scipion MPI, you can set *RELION_MPI_BIN* and *RELION_MPI_LIB* variables in the config file.
 - If you want to use **2D class ranker** protocol, you need to set *RELION_ENV_ACTIVATION* that points to a conda environment which includes torch and numpy modules. Default = ``conda activate relion-python``
+- If you want to use SIDESPLITTER, you need the `sidesplitter <https://github.com/scipion-em/scipion-em-sidesplitter>`_ plugin installed and *SIDESPLITTER_HOME* set properly. After that, you only need to add *--external_reconstruct* into Additional arguments field of a 3D auto-refine or multi-body job.
 
 To check the installation, simply run one of the tests. A complete list of tests can be displayed by executing ``scipion test --show --grep relion``
 
