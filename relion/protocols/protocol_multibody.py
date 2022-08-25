@@ -444,8 +444,6 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
                 pwutils.createAbsLink(os.path.abspath(maskBody1), maskFn)
 
         args['--continue'] = fnOptimiser
-        if self.skipGridding:
-            args['--skip_gridding'] = ''
 
         self._setComputeArgs(args)
 
