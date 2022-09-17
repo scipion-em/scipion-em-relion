@@ -30,6 +30,7 @@ from pyworkflow.constants import PROD
 from pwem.protocols import ProtPreprocessVolumes
 from pwem.emlib.image import ImageHandler
 from pwem.objects import Volume
+from pwem.convert import Ccp4Header
 
 
 class ProtRelionResizeVolume(ProtPreprocessVolumes):
@@ -146,12 +147,17 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
     def _summary(self):
         messages = []
 
-        if self.doRescale:
-            messages.append("- Rescaled volumes to pixel size of *%0.3f*"
-                            % self.rescaleSamplingRate.get())
-        if self.doResize:
-            messages.append("- Resized volumes to box size of *%d*"
-                            % self.resizeSize.get())
+        if hasattr(self, "outputVol"):
+            if self.doResize:
+                messages.append(f"Resized volumes to box size of "
+                                f"*{self.resizeSize.get()}* px")
+            if self.doRescale:
+                messages.append(f"The output pixel size might be different than the "
+                                f"requested {self.rescaleSamplingRate.get()}A "
+                                f"due to rounding of the box size "
+                                f"to an even number by RELION")
+        else:
+            messages.append("Output is not ready")
 
         return messages
 
@@ -167,6 +173,10 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
 
     def _getNewSampling(self):
         if self.doRescale:
-            return self.rescaleSamplingRate.get()
+            ccp4header = Ccp4Header(self._getFileName('output_vol', volId=1),
+                                    readHeader=True)
+            sampling, _, _ = ccp4header.getSampling()
+
+            return sampling
         else:
             return self.inputVolumes.get().getSamplingRate()
