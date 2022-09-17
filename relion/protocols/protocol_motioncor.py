@@ -577,6 +577,10 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
             ogDict.update({'rlnEERUpsampling': self.eerSampling.get() + 1,
                            'rlnEERGrouping': self.eerGroup.get()})
 
+        gain = self.inputMovies.get().getGain()
+        if gain:
+            ogDict['rlnMicrographGainName'] = gain
+
         if outputName not in self.updatedSets:
             og = OpticsGroups.fromImages(outputSet)
             og.updateAll(**ogDict)
