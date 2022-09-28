@@ -57,7 +57,6 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         form.addParam('boxSize', params.IntParam,
                       label='Particle box size (px)',
                       allowsPointers=True,
-                      validators=[params.Positive],
                       help='This is size of the boxed particles (in pixels).')
 
         form.addParam('doRescale', params.BooleanParam, default=False,

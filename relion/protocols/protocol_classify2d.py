@@ -81,9 +81,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
         classLoader.fillClassesFromIter(clsSet, iteration)
 
     def createOutputStep(self):
-        partSet = self.inputParticles.get()       
-        
-        classes2D = self._createSetOfClasses2D(partSet)
+        classes2D = self._createSetOfClasses2D(self.inputParticles)
         self._fillClassesFromIter(classes2D, self._lastIter())
         
         self._defineOutputs(**{outputs.outputClasses.name: classes2D})
