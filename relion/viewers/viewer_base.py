@@ -679,7 +679,7 @@ Examples:
     # plotFSC
     # =============================================================================
     def _showFSC(self, paramName=None):
-        logger.info("Showing FSC for iterations: {self._iterations}")
+        logger.info(f"Showing FSC for iterations: {self._iterations}")
         threshold = self.resolutionThresholdFSC.get()
 
         fscViewer = FscViewer(project=self.protocol.getProject(),

@@ -10,5 +10,8 @@ include CHANGES.txt
 # Include conf file
 include relion/protocols.conf
 
+# Include templates
+include relion/templates/*template
+
 # Include MTF files
 include relion/convert/mtfs/*star

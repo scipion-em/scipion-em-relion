@@ -736,11 +736,7 @@ class ProtRelionBase(EMProtocol):
                                    '(i.e. use --pad 1) gives nearly as good results '
                                    'as using --pad 2, but some artifacts may appear '
                                    'in the corners from signal that is folded back.')
-            form.addParam('skipGridding', BooleanParam, default=True,
-                          label='Skip gridding',
-                          help='If set to Yes, the calculations will '
-                               'skip gridding in the M step to save time, '
-                               'typically with just as good results.')
+            form.addHidden('skipGridding', BooleanParam, default=True)  # removed from relion-4.0-stable
 
         form.addParam('allParticlesRam', BooleanParam, default=False,
                       label='Pre-read all particles into RAM?',
@@ -1104,8 +1100,6 @@ class ProtRelionBase(EMProtocol):
         # Padding can be set in a normal run or in a continue
         if self.IS_3D:
             args['--pad'] = 1 if self.skipPadding else 2
-            if self.skipGridding:
-                args['--skip_gridding'] = ''
 
         self._setSamplingArgs(args)
         self._setMaskArgs(args)

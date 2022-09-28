@@ -355,8 +355,6 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
             args['--flatten_solvent'] = ''
         if not self.doContinue:
             args['--sym'] = 'C1' if self.runInC1 else self.symmetryGroup.get()
-        if self.skipGridding:
-            args['--skip_gridding'] = ''
 
         self._setGradArgs(args)
         self._setSamplingArgs(args)

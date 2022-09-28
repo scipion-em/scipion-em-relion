@@ -33,7 +33,7 @@ import pwem
 from .constants import *
 
 
-__version__ = '4.0.8'
+__version__ = '4.0.9'
 _logo = "relion_logo.jpg"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016',
                'Zivanov2018', 'Kimanius2021']
@@ -83,13 +83,17 @@ class Plugin(pwem.Plugin):
             del environ['PYTHONPATH']
 
         # Set SIDESPLITTER env var if possible
-        if SIDESPLITTER_HOME in os.environ:
+        if cls.getVar(SIDESPLITTER_HOME, None) is not None:
             environ.update({
                 SIDESPLITTER:
-                    os.path.join(cls.getVar(SIDESPLITTER_HOME), 'sidesplitter'),
-                RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE:
-                    os.path.join(cls.getVar(SIDESPLITTER_HOME), 'sidesplitter_wrapper.sh')
+                    os.path.join(cls.getVar(SIDESPLITTER_HOME), 'sidesplitter')
             })
+            if cls.getVar(RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE) is None:
+                environ.update({
+                    RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE:
+                        os.path.join(cls.getVar(SIDESPLITTER_HOME),
+                                     'sidesplitter_wrapper.sh')
+                })
 
         return environ
 

@@ -194,10 +194,8 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
             outputSet.copyItems(inputSet)
 
             if len(og) > 1:
-                raise Exception("Multiple optics groups detected in the input!\n"
-                                "Assigning single optics group params "
-                                "is valid only when the input set contains "
-                                "one optics group.")
+                # force a single group assignment
+                og = OpticsGroups([og.first()])
 
             acq = inputSet.getAcquisition()
             params = {
@@ -309,6 +307,19 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
     
     def _methods(self):
         return []
+
+    def _warnings(self):
+        warnings = []
+
+        if self.inputType == 0:  # single group params
+            inputSet = self.inputSet.get()
+            og = OpticsGroups.fromImages(inputSet)
+            if len(og) > 1:
+                warnings.append("Multiple optics groups detected in the input!\n"
+                                "Are you sure you want to assign a single optics "
+                                "group params?")
+
+        return warnings
 
     # -------------------------- UTILS functions ------------------------------
     def _convertGain(self):
