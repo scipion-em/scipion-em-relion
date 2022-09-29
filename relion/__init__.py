@@ -130,7 +130,7 @@ class Plugin(pwem.Plugin):
     @classmethod
     def defineBinaries(cls, env):
         for ver in [V4_0]:
-            installCmd = [(f'cd .. && rm -r relion-{ver} && '
+            installCmd = [(f'cd .. && rm -rf relion-{ver} && '
                            f'git clone https://github.com/3dem/relion.git relion-{ver} && '
                            f'cd relion-{ver} && git checkout ver{ver} && '
                            'cmake -DCMAKE_INSTALL_PREFIX=./ .', []),
