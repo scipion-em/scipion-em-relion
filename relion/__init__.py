@@ -33,7 +33,7 @@ import pwem
 from .constants import *
 
 
-__version__ = '4.0.9'
+__version__ = '4.0.10'
 _logo = "relion_logo.jpg"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016',
                'Zivanov2018', 'Kimanius2021']
@@ -41,6 +41,7 @@ _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016',
 
 class Plugin(pwem.Plugin):
     _homeVar = RELION_HOME
+    _pathVars = [RELION_HOME]
     _supportedVersions = [V3_1, V4_0]
     _url = "https://github.com/scipion-em/scipion-em-relion"
 
@@ -128,7 +129,7 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def defineBinaries(cls, env):
-        for ver in cls._supportedVersions:
+        for ver in [V4_0]:
             installCmd = [(f'cd .. && rmdir relion-{ver} && '
                            f'git clone https://github.com/3dem/relion.git relion-{ver} && '
                            f'cd relion-{ver} && git checkout ver{ver} && '
@@ -143,10 +144,10 @@ class Plugin(pwem.Plugin):
                            updateCuda=True,
                            default=True)
 
-            if ver != V3_1:
-                env.addPackage('relion_python', version=ver,
-                               tar='void.tgz',
-                               commands=[('%s conda create -y -n relion-python python=3 numpy pytorch &&'
-                                          'touch installed' %
-                                          cls.getCondaActivationCmd(), ['installed'])],
-                               neededProgs=cls.getDependencies())
+            env.addPackage('relion_python', version=ver,
+                           tar='void.tgz',
+                           commands=[('%s conda create -y -n relion-python python=3 numpy pytorch &&'
+                                      'touch installed' %
+                                      cls.getCondaActivationCmd(), ['installed'])],
+                           neededProgs=cls.getDependencies(),
+                           default=True)

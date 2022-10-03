@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 import pyworkflow.protocol.params as params
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
 from pyworkflow.viewer import (DESKTOP_TKINTER, WEB_DJANGO)
+import pyworkflow.utils as pwutils
 from pwem.viewers import (EmPlotter, EmProtocolViewer, showj,
                           FscViewer, DataView, ObjectView, ChimeraView,
                           ClassesView, Classes3DView, ChimeraAngDist)
@@ -679,7 +680,7 @@ Examples:
     # plotFSC
     # =============================================================================
     def _showFSC(self, paramName=None):
-        logger.info("Showing FSC for iterations: {self._iterations}")
+        logger.info(f"Showing FSC for iterations: {self._iterations}")
         threshold = self.resolutionThresholdFSC.get()
 
         fscViewer = FscViewer(project=self.protocol.getProject(),
@@ -760,7 +761,7 @@ Examples:
             self._errors.append('Provide %s selection.' % label)
             result = []
         else:
-            result = self._getListFromRangeString(value)
+            result = pwutils.getListFromRangeString(value)
 
         return result
 

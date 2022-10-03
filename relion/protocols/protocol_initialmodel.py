@@ -36,6 +36,7 @@ from pyworkflow.protocol.params import (PointerParam, FloatParam,
                                         StringParam, BooleanParam)
 
 import relion.convert as convert
+from relion import Plugin
 from .protocol_base import ProtRelionBase
 
 
@@ -59,11 +60,15 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
     CHANGE_LABELS = ['rlnChangesOptimalOrientations',
                      'rlnChangesOptimalOffsets']
 
+    @classmethod
+    def isDisabled(cls):
+        return not Plugin.IS_GT31()
+
     def __init__(self, **args):
         ProtRelionBase.__init__(self, **args)
 
     def _initialize(self):
-        """ This function is mean to be called after the
+        """ This function is meant to be called after the
         working dir for the protocol have been set.
         (maybe after recovery from mapper)
         """

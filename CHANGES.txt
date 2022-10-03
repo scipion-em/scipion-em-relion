@@ -1,12 +1,18 @@
+4.0.10:
+    - allow to force assign a single optics group to a multi-group input
+    - in the protocol Classify2D when defining the output Classes, particles should be assigned with an indirect pointer to avoid problems when running workflows on streaming and unattended.
+    - in the protocol Extract particles the boxsize validator (positive) prevented the protocol from executing when an inputPointer was used to fill this parameter.
+    - relion 3.1 removed from the installer
+    - add missing _pathVars to Plugin class
 4.0.9: fix output pixel size in the resize volume protocol
 4.0.8: better integration with sidesplitter plugin
-4.0.7: fix typo in half2 output name from MB protocol
+4.0.7: fix typo in half2 output name from multi-body protocol
 4.0.6:
     - add possible outputs class
     - fake a mask to bypass Relion multi-body bug
     - add continue mode for multi-body
-    - output particle set from mb
-    - subtract protocol supports mb input
+    - output particle set from multi-body
+    - subtract protocol supports mukti-body input
 4.0.5.1: hotfix for multi-body protocol
 4.0.5: hotfix for GPU parameters
 4.0.4:
