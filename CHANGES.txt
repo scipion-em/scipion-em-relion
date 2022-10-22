@@ -1,3 +1,5 @@
+4.0.11:
+    - fixed the bug calling system python instead of conda env's one in relion class selection protocol
 4.0.10:
     - allow to force assign a single optics group to a multi-group input
     - in the protocol Classify2D when defining the output Classes, particles should be assigned with an indirect pointer to avoid problems when running workflows on streaming and unattended.
