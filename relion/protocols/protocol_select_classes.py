@@ -101,7 +101,7 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
         params += " --fn_sel_classavgs class_averages.star"
         params += " --fn_root rank --do_granularity_features"
         params += " --auto_select"
-        params += " --python python"
+        params += " --python $CONDA_PREFIX/bin/python"
 
         if self.minParts != -1:
             params += " --select_min_nr_particles %d" % self.minParts
