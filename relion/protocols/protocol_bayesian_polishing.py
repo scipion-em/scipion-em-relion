@@ -105,12 +105,11 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
                            'postprocessing will be applied to the unfiltered '
                            'half-maps and should encompass the entire complex. '
                            'The resulting FSC curve will be used for weighting '
-                           'the different frequencies. ')
+                           'the different frequencies.')
         line = form.addLine('Movie frames',
                             help='First and last frames to take into account '
-                                 'in motion fit and combination step. '
-                                 '(starts counting at 1 and 0 as last '
-                                 'means util the last frame in the movie).')
+                                 'in motion fit and combination step '
+                                 '(first frame is 1, last is 0).')
         line.addParam('frame0', params.IntParam, default=1,
                       label='first')
         line.addParam('frameN', params.IntParam, default=0,
@@ -119,7 +118,7 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
         form.addParam('extrSize', params.IntParam, default=-1,
                       label="Extraction size (px in unbinned movie)",
                       help="Size of the extracted particles in the "
-                           "unbinned original movie(in pixels). "
+                           "unbinned original movie (in pixels). "
                            "This should be an even number.")
         form.addParam('rescaledSize', params.IntParam, default=-1,
                       label="Re-scaled size (px)",

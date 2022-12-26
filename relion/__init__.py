@@ -43,7 +43,7 @@ class Plugin(pwem.Plugin):
     _homeVar = RELION_HOME
     _pathVars = [RELION_HOME]
     _supportedVersions = [V3_1, V4_0]
-    _url = "https://github.com/scipion-em/scipion-em-relion"
+    _url = "https://relion.readthedocs.io/"
 
     @classmethod
     def _defineVariables(cls):
