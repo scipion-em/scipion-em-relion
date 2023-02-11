@@ -133,7 +133,7 @@ doi = {http://dx.doi.org/10.1107/S205225251801463X},
     pages = {4169-4185},
     year = {2021},
     month = {12},
-    doi = {10.1042/BCJ20210708},
+    doi = {http://dx.doi.org/10.1042/BCJ20210708},
 }
 
 @article{Amunts2014,
@@ -144,7 +144,7 @@ volume = {343},
 number = {6178},
 pages = {1485-1489},
 year = {2014},
-doi = {10.1126/science.1249410}
+doi = {http://dx.doi.org/10.1126/science.1249410}
 }
 
 """

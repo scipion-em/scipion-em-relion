@@ -243,16 +243,8 @@ class RelionImport:
             modelRow = Table(fileName=self._modelStarFile,
                              tableName='model_general')[0]
             classDimensionality = int(modelRow.rlnReferenceDimensionality)
-            self._optimiserFile = self._starFile.replace('_data.star',
-                                                         '_optimiser.star')
-            if not os.path.exists(self._optimiserFile):
-                autoRefine = int(modelRow.rlnNrClasses) == 1
-            else:
-                optimiserRow = Table(fileName=self._optimiserFile,
-                                     tableName='optimiser_general',
-                                     types=LABELS_DICT)[0]
-                autoRefine = optimiserRow.get('rlnModelStarFile2', False)
-
+            autoRefine = (int(modelRow.rlnNrClasses) == 1 and
+                          modelRow.rlnTau2FudgeFactor == 1.0)
             self.alignType = ALIGN_PROJ
 
             if not autoRefine:

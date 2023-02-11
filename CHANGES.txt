@@ -1,3 +1,5 @@
+4.0.12:
+    - remove reading optimiser file during particles import (fix #373)
 4.0.11:
     - fixed the bug calling system python instead of conda env's one in relion class selection protocol
 4.0.10:

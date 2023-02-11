@@ -33,7 +33,7 @@ import pwem
 from .constants import *
 
 
-__version__ = '4.0.11'
+__version__ = '4.0.12'
 _logo = "relion_logo.jpg"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016',
                'Zivanov2018', 'Kimanius2021']
@@ -43,7 +43,7 @@ class Plugin(pwem.Plugin):
     _homeVar = RELION_HOME
     _pathVars = [RELION_HOME]
     _supportedVersions = [V3_1, V4_0]
-    _url = "https://github.com/scipion-em/scipion-em-relion"
+    _url = "https://relion.readthedocs.io/"
 
     @classmethod
     def _defineVariables(cls):
