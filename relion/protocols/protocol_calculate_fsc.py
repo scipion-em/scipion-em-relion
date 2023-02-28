@@ -29,7 +29,7 @@ from emtable import Table
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
-from pyworkflow.constants import BETA
+from pyworkflow.constants import PROD
 from pwem.protocols import ProtAnalysis3D
 from pwem.objects import FSC, SetOfFSCs
 from pwem.emlib.image import ImageHandler
@@ -44,7 +44,7 @@ class ProtRelionCalculateFSC(ProtAnalysis3D, ProtRelionBase):
     Relion protocol to calculate various FSC curves using relion_image_handler.
     """
     _label = 'calculate fsc'
-    _devStatus = BETA
+    _devStatus = PROD
     _possibleOutputs = {
         'outputFSC': FSC,
         'outputSetOfFSCs': SetOfFSCs

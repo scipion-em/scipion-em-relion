@@ -28,7 +28,7 @@ from enum import Enum
 
 from pwem.protocols import EMProtocol
 from pwem.objects import SetOfCoordinates
-from pyworkflow.constants import BETA
+from pyworkflow.constants import PROD
 import pyworkflow.protocol.params as params
 import pyworkflow.utils as pwutils
 
@@ -44,7 +44,7 @@ class ProtRelionImportCoords(EMProtocol):
     Import coordinates from a particles star file.
     """
     _label = 'import coordinates'
-    _devStatus = BETA
+    _devStatus = PROD
     _possibleOutputs = outputs
 
     # --------------------------- DEFINE param functions ----------------------
