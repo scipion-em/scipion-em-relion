@@ -1,3 +1,4 @@
+4.0.13: fix relion-python env for 2D class ranker, requires a specific pytorch version
 4.0.12:
     - remove reading optimiser file during particles import (fix #373)
 4.0.11:
