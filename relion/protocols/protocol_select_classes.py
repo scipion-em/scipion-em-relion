@@ -27,17 +27,20 @@
 from enum import Enum
 from emtable import Table
 
+from pyworkflow.object import Float
 import pyworkflow.protocol.params as params
 from pyworkflow.constants import PROD
 from pwem.protocols import ProtProcessParticles
-from pwem.objects import SetOfClasses2D
+from pwem.objects import SetOfClasses2D, SetOfParticles
 
 from relion import Plugin
 from .protocol_base import ProtRelionBase
+from relion.convert import locationToRelion
 
 
 class outputs(Enum):
     outputClasses = SetOfClasses2D
+    outputParticles = SetOfParticles
 
 
 class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
@@ -51,14 +54,6 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
     @classmethod
     def isDisabled(cls):
         return not Plugin.IS_GT31()
-
-    def __init__(self, **kwargs):
-        ProtProcessParticles.__init__(self, **kwargs)
-
-    def _createFilenameTemplates(self):
-        """ Centralize how files are called. """
-        myDict = {'cls_selection': self._getExtraPath('backup_selection.star')}
-        self._updateFilenamesDict(myDict)
 
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -111,24 +106,48 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
         self.runJob("%s && relion_class_ranker" % Plugin.getActivationCmd(), params)
 
     def createOutputStep(self):
-        table = Table(fileName=self._getFileName('cls_selection'))
-        self._clsSelection = table.getColumnValues('rlnSelected')
+        table = Table(fileName=self._getExtraPath('backup_selection.star'))
+        selected = len([s for s in table.getColumnValues('rlnSelected') if s])
 
-        inputClasses = self.inputProtocol.get().outputClasses
-        output = SetOfClasses2D.create(self._getExtraPath())
-        output.copyInfo(inputClasses)
-        output.appendFromClasses(inputClasses, filterClassFunc=self._appendClass)
+        if selected:
+            classesStar = self._getExtraPath('class_averages.star')
+            clsDict = {row.rlnReferenceImage: row
+                       for row in Table.iterRows(classesStar)}
 
-        self._defineOutputs(**{outputs.outputClasses.name: output})
+            inputClasses = self.inputProtocol.get().outputClasses
+            outputClasses = SetOfClasses2D.create(self._getExtraPath())
+            outputClasses.copyInfo(inputClasses)
+            inputParticles = inputClasses.getImages()
+            outputParticles = SetOfParticles.create(self._getExtraPath())
+            outputParticles.copyInfo(inputParticles)
+
+            def _getClassRow(cls2d):
+                idx, fn = cls2d.getRepresentative().getLocation()
+                return clsDict.get(locationToRelion(idx, fn), None)
+
+            def _updateClass(cls2d):
+                row = _getClassRow(cls2d)
+                cls2d._rlnPredictedClassScore = Float(row.rlnPredictedClassScore)
+                cls2d._rlnEstimatedResolution = Float(row.rlnEstimatedResolution)
+
+            outputClasses.appendFromClasses(inputClasses,
+                                     filterClassFunc=_getClassRow,
+                                     updateClassCallback=_updateClass)
+
+            self.summaryVar.set(f"Selected *{selected}* best classes. \n"
+                                f"Threshold: *{self.minThreshold.get()}*. ")
+            outputParticles.appendFromClasses(outputClasses)
+            self._defineOutputs(**{outputs.outputClasses.name: outputClasses,
+                                   outputs.outputParticles.name: outputParticles})
+            self._defineSourceRelation(inputClasses, outputClasses)
+            self._defineSourceRelation(inputParticles, outputParticles)
+        else:
+            self.summaryVar.set(f"No classes were selected. \n"
+                                f"Try with a lower threshold.")
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
-        summary = []
-
-        if hasattr(self, "outputClasses"):
-            summary.append("Selected *%d* best classes" % self.outputClasses.getSize())
-
-        return summary
+        return [self.summaryVar.get(default="No summary information")]
 
     def _validate(self):
         errors = []
