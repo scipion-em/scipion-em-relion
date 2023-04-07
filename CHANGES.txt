@@ -1,3 +1,8 @@
+4.0.14: 2D class ranker improvements (JMRT)
+    - Generated outputParticles
+    - outputClasses now have rlnEstimatedResolution and rlnPredictedClassScore attributes
+    - Improved summary using summaryVar and handling when no output
+    - Added viewer for RelionSelect2DClasses
 4.0.13: fix relion-python env for 2D class ranker, requires a specific pytorch version
 4.0.12:
     - remove reading optimiser file during particles import (fix #373)

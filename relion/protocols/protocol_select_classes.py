@@ -79,7 +79,6 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
-        self._createFilenameTemplates()
         self._insertFunctionStep('runSelectStep')
         self._insertFunctionStep('createOutputStep')
 
@@ -131,18 +130,18 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
                 cls2d._rlnEstimatedResolution = Float(row.rlnEstimatedResolution)
 
             outputClasses.appendFromClasses(inputClasses,
-                                     filterClassFunc=_getClassRow,
-                                     updateClassCallback=_updateClass)
+                                            filterClassFunc=_getClassRow,
+                                            updateClassCallback=_updateClass)
 
-            self.summaryVar.set(f"Selected *{selected}* best classes. \n"
-                                f"Threshold: *{self.minThreshold.get()}*. ")
+            self.summaryVar.set(f"Selected *{selected}* best classes.\n"
+                                f"Threshold: *{self.minThreshold.get()}*")
             outputParticles.appendFromClasses(outputClasses)
             self._defineOutputs(**{outputs.outputClasses.name: outputClasses,
                                    outputs.outputParticles.name: outputParticles})
             self._defineSourceRelation(inputClasses, outputClasses)
             self._defineSourceRelation(inputParticles, outputParticles)
         else:
-            self.summaryVar.set(f"No classes were selected. \n"
+            self.summaryVar.set(f"No classes were selected.\n"
                                 f"Try with a lower threshold.")
 
     # --------------------------- INFO functions ------------------------------
@@ -156,7 +155,3 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
                           "and classes.")
 
         return errors
-
-    # --------------------------- UTILS functions -----------------------------
-    def _appendClass(self, item):
-        return False if not self._clsSelection[item.getObjId()-1] else True
