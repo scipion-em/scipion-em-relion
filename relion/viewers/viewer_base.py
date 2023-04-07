@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 import pyworkflow.protocol.params as params
 from pyworkflow.protocol.constants import LEVEL_ADVANCED
-from pyworkflow.viewer import (DESKTOP_TKINTER, WEB_DJANGO)
+from pyworkflow.viewer import (DESKTOP_TKINTER, WEB_DJANGO, Viewer)
 import pyworkflow.utils as pwutils
 from pwem.viewers import (EmPlotter, EmProtocolViewer, showj,
                           FscViewer, DataView, ObjectView, ChimeraView,
@@ -44,7 +44,8 @@ from pwem.objects import FSC
 
 from relion.convert.convert_utils import relionToLocation
 from ..protocols import (ProtRelionClassify2D, ProtRelionClassify3D,
-                         ProtRelionRefine3D, ProtRelionInitialModel)
+                         ProtRelionRefine3D, ProtRelionInitialModel,
+                         ProtRelionSelectClasses2D)
 from ..constants import *
 
 
@@ -912,3 +913,23 @@ Examples:
             return 2
         else:
             return 3
+
+
+class RelionSelectClassesViewer(Viewer):
+    _targets = [ProtRelionSelectClasses2D]
+    def _visualize(self, obj, **kwargs):
+        order = '_rlnPredictedClassScore'
+        labels = 'enabled id _size _representative._filename '
+        labels += '_rlnClassDistribution _rlnPredictedClassScore '
+        labels += '_rlnEstimatedResolution '
+        viewParams = {showj.ORDER: labels,
+                      showj.VISIBLE: labels,
+                      showj.RENDER: '_representative._filename',
+                      showj.SORT_BY: '_rlnPredictedClassScore desc',
+                      showj.MODE: showj.MODE_MD
+                      }
+        prot = self.protocol
+        output = prot.outputClasses
+        view = ClassesView(self.getProject(), prot.strId(), output.getFileName(),
+                           viewParams=viewParams)
+        return [view]
