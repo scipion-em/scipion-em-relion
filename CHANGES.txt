@@ -1,3 +1,4 @@
+4.0.15: Extending the conversion of incompatibles formats (Yunior)
 4.0.14: 2D class ranker improvements (JMRT)
     - Generated outputParticles
     - outputClasses now have rlnEstimatedResolution and rlnPredictedClassScore attributes
