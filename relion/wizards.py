@@ -209,3 +209,15 @@ class RelionWizCtfGroupsDisplay(EmWizard):
                    align='edge')
 
         plotter.show()
+
+
+class RelionAngDist(EmWizard):
+    _targets = [(ProtRelionRemovePrefViews, ['inputParticles'])]
+
+    def show(self, form, *args):
+        prot = form.protocol
+        imgSet = prot.inputParticles.get()
+        plotter = EmPlotter(x=1, y=1, windowTitle='Angular distribution')
+        plotter.plotAngularDistributionFromSet(imgSet, "Angular distribution",
+                                               histogram=True)
+        plotter.show()

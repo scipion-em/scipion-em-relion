@@ -90,41 +90,33 @@ class ProtRelionRemovePrefViews(ProtParticles):
 
     # -------------------------- STEPS functions ------------------------------
     def _insertAllSteps(self):
-        self._insertFunctionStep('convertInputStep')
-        self._insertFunctionStep('processAnglesStep')
-        self._insertFunctionStep('createOutputStep')
-
-    def convertInputStep(self):
-        inputParts = self.inputParticles.get()
-        self.rotDict, self.tiltDict, self.psiDict = {}, {}, {}
-        for part in inputParts:
-            alignment = part.getTransform()
-            matrix = np.linalg.inv(alignment.getMatrix())
-            angles = -np.rad2deg(tfs.euler_from_matrix(matrix, axes='szyz'))
-            self.rotDict[part.getObjId()] = angles[0]
-            self.tiltDict[part.getObjId()] = angles[1]
-            self.psiDict[part.getObjId()] = angles[2]
+        self._insertFunctionStep(self.processAnglesStep)
+        self._insertFunctionStep(self.createOutputStep)
 
     def processAnglesStep(self):
-        self.removedList = []
+        inputParts = self.inputParticles.get()
         ptclToRemove = self.numToRemove.get()
         rmin, rmax = self.rotMin.get(), self.rotMax.get()
         tmin, tmax = self.tiltMin.get(), self.tiltMax.get()
         pmin, pmax = self.psiMin.get(), self.psiMax.get()
 
-        for (k, r), (k2, t), (k3, p) in zip(self.rotDict.items(),
-                                            self.tiltDict.items(),
-                                            self.psiDict.items()):
+        self.removedList = []
+        for part in inputParts.iterItems():
+            matrix = np.linalg.inv(part.getTransform().getMatrix())
+            rot, tilt, psi = -np.rad2deg(tfs.euler_from_matrix(matrix, axes='szyz'))
+
             if not self.removePsi:
                 # check only rot & tilt
-                if (self.withinLimits(r, rmin, rmax) and
-                        self.withinLimits(t, tmin, tmax)):
-                    self.removedList.append(k)
+                if (self.withinLimits(rot, rmin, rmax) and
+                        self.withinLimits(tilt, tmin, tmax)):
+                    self.removedList.append(part.getObjId())
             else:
-                if (self.withinLimits(r, rmin, rmax) and
-                        self.withinLimits(t, tmin, tmax) and
-                        self.withinLimits(p, pmin, pmax)):
-                    self.removedList.append(k)
+                if (self.withinLimits(rot, rmin, rmax) and
+                        self.withinLimits(tilt, tmin, tmax) and
+                        self.withinLimits(psi, pmin, pmax)):
+                    self.removedList.append(part.getObjId())
+
+        self.info(f"Found {len(self.removedList)} particles matching.")
 
         if ptclToRemove > len(self.removedList):
             self.info("Number to remove (%d) is more than maximum available (%d). "
@@ -154,8 +146,8 @@ class ProtRelionRemovePrefViews(ProtParticles):
         summary = []
 
         if hasattr(self, "outputParticles"):
-            summary.append("Input particles: %d" % self.inputParticles.get().getSize())
-            summary.append("Output particles: %d" % self.outputParticles.get().getSize())
+            summary.append("Input particles: %d" % self.inputParticles.getSize())
+            summary.append("Output particles: %d" % self.outputParticles.getSize())
 
         return summary
 
