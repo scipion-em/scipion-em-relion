@@ -95,16 +95,16 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
     
     # -------------------------- STEPS functions ------------------------------
     def createOutputStep(self):
-        partSet = self.inputParticles.get()
+        partSet = self.inputParticles
         classes3D = self._createSetOfClasses3D(partSet)
         self._fillClassesFromIter(classes3D, self._lastIter())
         
         self._defineOutputs(**{outputs.outputClasses.name: classes3D})
-        self._defineSourceRelation(self.inputParticles, classes3D)
+        self._defineSourceRelation(partSet, classes3D)
 
         # create a SetOfVolumes and define its relations
         volumes = self._createSetOfVolumes()
-        volumes.setSamplingRate(partSet.getSamplingRate())
+        volumes.setSamplingRate(partSet.get().getSamplingRate())
         
         for class3D in classes3D:
             vol = class3D.getRepresentative()
@@ -112,7 +112,7 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
             volumes.append(vol)
         
         self._defineOutputs(**{outputs.outputVolumes.name: volumes})
-        self._defineSourceRelation(self.inputParticles, volumes)
+        self._defineSourceRelation(partSet, volumes)
         
         if not self.doContinue:
             self._defineSourceRelation(self.referenceVolume, classes3D)

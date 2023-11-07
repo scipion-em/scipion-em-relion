@@ -391,8 +391,10 @@ class Writer(WriterBase):
                                                    os.path.dirname(starFile))
         if self.outputDir is not None:
             forceConvert = kwargs.get('forceConvert', False)
+            incompatibleExtensions = kwargs.get('incompatibleExtensions', None)
             self._filesDict = convertBinaryFiles(partsSet, self.outputDir,
-                                                 forceConvert=forceConvert)
+                                                 forceConvert=forceConvert,
+                                                 incompatibleExtensions=incompatibleExtensions)
 
         # Compute some flags from the first particle...
         # when flags are True, some operations will be applied to all particles

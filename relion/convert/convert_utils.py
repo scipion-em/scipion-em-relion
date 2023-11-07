@@ -63,7 +63,8 @@ def relionToLocation(filename):
         return NO_INDEX, str(filename)
 
 
-def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
+def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False,
+                       incompatibleExtensions=None):
     """ Convert binary images files to a format read by Relion.
     Or create links if there is no need to convert the binary files.
 
@@ -72,6 +73,7 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
         outputDir: where to put the converted file(s)
         extension: extension accepted by the program
         forceConvert: if True, the files will be converted and no root will be used
+        incompatibleExtensions: list of incompatible extension
     Return:
         A dictionary with old-file as key and new-file as value
         If empty, not conversion was done.
@@ -83,6 +85,9 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
     stackFiles = imgSet.getFiles()
     ext = pwutils.getExt(next(iter(stackFiles)))[1:]
     rootDir = pwutils.commonPath(list(stackFiles))
+
+    if incompatibleExtensions is None:
+        incompatibleExtensions = ['hdf']
 
     def getUniqueFileName(fn, extension):
         """ Get an unique file for either link or convert files.
@@ -137,7 +142,7 @@ def convertBinaryFiles(imgSet, outputDir, extension='mrcs', forceConvert=False):
     elif ext == 'mrc' and extension == 'mrcs':
         logger.debug("convertBinaryFiles: creating soft links (mrcs -> mrc).")
         mapFunc = createBinaryLink
-    elif ext.endswith('hdf'):  # assume eman .hdf format
+    elif ext in incompatibleExtensions:  # assume eman .hdf or any incompatible format
         logger.debug(f"convertBinaryFiles: converting stacks ({extension} -> {ext})")
         mapFunc = convertStack
     else:
