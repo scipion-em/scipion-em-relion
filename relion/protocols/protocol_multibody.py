@@ -113,7 +113,7 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
                            'head_body_mask.mrc 2 10 2\n\n'
                            ''
 
-        """
+                           """
  Where each data line represents a different body, and:
  - rlnBodyMaskName contains the name of a soft-edged mask with values in [0,1] that define the body; the mask name should be relative to the project folder;
  - rlnBodyRotateRelativeTo defines relative to which other body this body rotates (first body is number 1);
@@ -122,7 +122,7 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
  Optionally, there can be a fifth column with _rlnBodyReferenceName. Entries can be 'None' (without the ''s) or the name of a MRC map with an initial reference for that body. In case the entry is None, the reference will be taken from the density in the consensus refinement.
 
 Also note that larger bodies should be above smaller bodies in the STAR file. For more information, see the multi-body paper.
-        """)
+                           """)
 
         form.addParam('recSubtractedBodies', params.BooleanParam, default=True,
                       condition='not doContinue',

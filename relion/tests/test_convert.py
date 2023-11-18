@@ -854,7 +854,6 @@ class TestRelionOpticsGroups(BaseTest):
         for colName in ['rlnMtfFileName', 'rlnOpticsGroupName']:
             self.assertTrue(og.hasColumn(colName))
 
-        # acq = first.getAcquisition()
         self.assertEqual(fog.rlnMtfFileName, 'mtf_k2_200kV.star')
         self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')
         self.assertEqual(og['opticsGroup1'], fog)
@@ -863,7 +862,6 @@ class TestRelionOpticsGroups(BaseTest):
         og = OpticsGroups.create(rlnMtfFileName='mtf_k2_200kV.star')
         fog = og.first()
 
-        # acq = first.getAcquisition()
         self.assertEqual(fog.rlnMtfFileName, 'mtf_k2_200kV.star')
         self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')
         self.assertEqual(og['opticsGroup1'], fog)
@@ -874,7 +872,6 @@ class TestRelionOpticsGroups(BaseTest):
         og.update('opticsGroup1', rlnImageSize=512)
 
         fog = og.first()
-        # acq = first.getAcquisition()
         self.assertEqual(fog.rlnMtfFileName, 'new_mtf_k2.star')
         self.assertEqual(fog.rlnImageSize, 512)
         self.assertEqual(fog.rlnOpticsGroupName, 'opticsGroup1')

@@ -266,7 +266,6 @@ class ProtRelionCtfRefinement(ProtParticles, ProtRelionBase):
         outImgsFn = self._getFileName("output_star")
         imgSet.setAlignmentProj()
 
-        # self._optics = convert.getOpticsDict(outImgsFn)
         mdIter = convert.Table.iterRows('particles@' + outImgsFn,
                                         key='rlnImageId', types=convert.LABELS_DICT)
         outImgSet.copyItems(imgSet,

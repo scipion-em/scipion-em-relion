@@ -82,8 +82,8 @@ class RelionLocalResViewer(LocalResolutionViewer):
                                                      "along %s-axis."
                                                      % self._getAxis())
         for i in range(4):
-            slice = self._getSlice(i + 1, imgData)
-            a = xplotter.createSubPlot("Slice %s" % slice, '', '')
+            sliceN = self._getSlice(i + 1, imgData)
+            a = xplotter.createSubPlot("Slice %s" % sliceN, '', '')
             matrix = self._getSliceImage(imgData, i + 1, self._getAxis())
             plot = xplotter.plotMatrix(a, matrix, self.lowest.get(), self.highest.get(),
                                        cmap=self._getColorName(),
@@ -125,11 +125,11 @@ class RelionLocalResViewer(LocalResolutionViewer):
         return int((index + 3) * volumeData.shape[0] / 9)
 
     def _getSliceImage(self, volumeData, index, dataAxis):
-        slice = self._getSlice(index, volumeData)
+        sliceN = self._getSlice(index, volumeData)
         if dataAxis == 'y':
-            imgSlice = volumeData[:, slice, :]
+            imgSlice = volumeData[:, sliceN, :]
         elif dataAxis == 'x':
-            imgSlice = volumeData[:, :, slice]
+            imgSlice = volumeData[:, :, sliceN]
         else:
-            imgSlice = volumeData[slice, :, :]
+            imgSlice = volumeData[sliceN, :, :]
         return imgSlice

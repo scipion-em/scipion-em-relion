@@ -33,8 +33,8 @@ volume = "415",
 number = "2",
 pages = "406 - 418",
 year = "2012",
-doi = "http://dx.doi.org/10.1016/j.jmb.2011.11.010",
-url = "http://www.sciencedirect.com/science/article/pii/S0022283611012290",
+doi = "https://dx.doi.org/10.1016/j.jmb.2011.11.010",
+url = "https://www.sciencedirect.com/science/article/pii/S0022283611012290",
 author = "Scheres, Sjors H.W.",
 }
 
@@ -45,8 +45,8 @@ volume = "180",
 number = "3",
 pages = "519 - 530",
 year = "2012",
-doi = "http://dx.doi.org/10.1016/j.jsb.2012.09.006",
-url = "http://www.sciencedirect.com/science/article/pii/S1047847712002481",
+doi = "https://dx.doi.org/10.1016/j.jsb.2012.09.006",
+url = "https://www.sciencedirect.com/science/article/pii/S1047847712002481",
 author = "Scheres, Sjors H.W.",
 }
 
@@ -56,7 +56,7 @@ journal = "eLife",
 volume = "5",
 pages = "e18722",
 year = "2016",
-doi = "http://dx.doi.org/10.7554/eLife.18722",
+doi = "https://dx.doi.org/10.7554/eLife.18722",
 author = "Kimanius, Dari and Forsberg, Björn O. and Scheres, Sjors H.W. and Lindahl, Erik",
 }
 
@@ -67,7 +67,7 @@ volume = "189",
 issue = "2",
 pages = "114-122",
 year = "2015",
-doi = "http://dx.doi.org/10.1016/j.jsb.2014.11.010",
+doi = "https://dx.doi.org/10.1016/j.jsb.2014.11.010",
 author = "Scheres, Sjors H.W.",
 }
 
@@ -78,7 +78,7 @@ volume = "9",
 number = "3",
 pages = "853 - 854",
 year = "2012",
-doi = "http://dx.doi.org/10.1038/nmeth.2115",
+doi = "https://dx.doi.org/10.1038/nmeth.2115",
 author = "Chen, Shaoxia and Scheres, Sjors H.W.",
 }
 
@@ -89,7 +89,7 @@ volume = "135",
 number = "3",
 pages = "24-35",
 year = "2013",
-doi = "http://dx.doi.org/10.1016/j.ultramic.2013.06.004",
+doi = "https://dx.doi.org/10.1016/j.ultramic.2013.06.004",
 author = "Chen, Shaoxia and McMullan, Greg and Faruqi, Abdul R. and Murshudov, Garib N. and Short, Judith M. and Scheres, Sjors H.W. and Henderson, Richard",
 }
 
@@ -99,7 +99,7 @@ journal = "eLife",
 volume = "7",
 pages = "e42166",
 year = "2018",
-doi = "http://dx.doi.org/10.7554/eLife.42166",
+doi = "https://dx.doi.org/10.7554/eLife.42166",
 author = "Zivanov, Jasenko and Nakane, Takanori and Forsberg, Björn O and Kimanius, Dari and Hagen, Wim JH and Lindahl, Erik and Scheres, Sjors H.W.",
 }
 
@@ -109,7 +109,7 @@ journal = "eLife",
 volume = "7",
 pages = "e36861",
 year = "2018",
-doi = "http://dx.doi.org/10.7554/eLife.36861",
+doi = "https://dx.doi.org/10.7554/eLife.36861",
 author = "Nakane, Takanori and Kimanius, Dari and Lindahl, Erik and Scheres, Sjors H.W.",
 }
 
@@ -121,7 +121,7 @@ year = "2019",
 volume = "6",
 number = "1",
 pages = "5-17",
-doi = {http://dx.doi.org/10.1107/S205225251801463X},
+doi = {https://dx.doi.org/10.1107/S205225251801463X},
 }
 
 @article{Kimanius2021,
@@ -133,7 +133,7 @@ doi = {http://dx.doi.org/10.1107/S205225251801463X},
     pages = {4169-4185},
     year = {2021},
     month = {12},
-    doi = {http://dx.doi.org/10.1042/BCJ20210708},
+    doi = {https://dx.doi.org/10.1042/BCJ20210708},
 }
 
 @article{Amunts2014,
@@ -144,7 +144,7 @@ volume = {343},
 number = {6178},
 pages = {1485-1489},
 year = {2014},
-doi = {http://dx.doi.org/10.1126/science.1249410}
+doi = {https://dx.doi.org/10.1126/science.1249410}
 }
 
 """

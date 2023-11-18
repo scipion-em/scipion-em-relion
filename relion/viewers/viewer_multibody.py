@@ -100,9 +100,8 @@ class MultibodyViewer(RelionViewer):
         volumes = self._getVolumeNames()
         for volFn in volumes:
             if not os.path.exists(volFn):
-                raise Exception("Missing volume file: %s\n Please select "
-                                "a valid class or iteration number."
-                                % volFn)
+                raise FileNotFoundError(f"Missing volume file: {volFn}\n Please select "
+                                        "a valid class or iteration number.")
             logger.debug(f"Adding vol: {volFn}")
             if not volFn.endswith(":mrc"):
                 files.append(volFn + ":mrc")
@@ -124,9 +123,8 @@ class MultibodyViewer(RelionViewer):
                         volFn = volFn.replace(":mrc", "")
                         vols.append(volFn)
                     else:
-                        raise Exception("Volume %s does not exists. \n"
-                                        "Please select a valid iteration "
-                                        "number." % volFn)
+                        raise FileNotFoundError(f"Volume {volFn} does not exists.\n"
+                                                "Please select a valid iteration number.")
         return vols
 
     @protected_show
@@ -134,12 +132,12 @@ class MultibodyViewer(RelionViewer):
         """ Create a chimera script to visualize animation. """
         prot = self.protocol
         if prot.getStatus() != STATUS_FINISHED:
-            raise Exception("Protocol has not finished yet, results are not ready!")
+            raise ValueError("Protocol has not finished yet, results are not ready!")
 
         compToShow = self.component.get()
         totalComp = prot.numberOfEigenvectors.get()
         if compToShow > totalComp:
-            raise Exception("You only have %d components!" % totalComp)
+            raise ValueError("You only have %d components!" % totalComp)
 
         vols = "analyse_component%03d_bin*.mrc" % compToShow
         cmdFile = prot._getExtraPath('chimera_animation_comp%d.cxc' % compToShow)
