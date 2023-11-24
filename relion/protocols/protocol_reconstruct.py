@@ -94,6 +94,40 @@ class ProtRelionReconstruct(ProtReconstruct3D, ProtRelionBase):
         form.addParam('ctfIntactFirstPeak', BooleanParam, default=False,
                       condition='doCTF',
                       label='Leave CTFs intact until first peak?')
+
+        form.addSection('Ewald sphere')
+        form.addParam('doEwald', BooleanParam, default=False,
+                      label="Correct for Ewald-sphere curvature?")
+        form.addParam('skipMask', BooleanParam, default=False,
+                      expertLevel=LEVEL_ADVANCED,
+                      label="Skip masking?",
+                      help="Do not apply real space mask during Ewald "
+                           "sphere correction.")
+        form.addParam('maskDiameterA', IntParam, default=-1,
+                      condition='not skipMask',
+                      label='Mask diameter (A)',
+                      help='Diameter (in A) of mask for Ewald-sphere '
+                           'curvature correction')
+        form.addParam('edge', IntParam, default=3,
+                      condition='not skipMask',
+                      label='Add a soft-edge (px)',
+                      help='Width (in pixels) of the soft edge on the mask.')
+        form.addParam('reverseCurvature', BooleanParam, default=False,
+                      label="Reverse curvature?")
+        form.addParam('newBoxSize', IntParam, default=-1,
+                      expertLevel=LEVEL_ADVANCED,
+                      label="New box size (px)",
+                      help="Box size of reconstruction after Ewald "
+                           "sphere correction.")
+        form.addParam('numSectors', IntParam, default=2,
+                      expertLevel=LEVEL_ADVANCED,
+                      label="Number of sectors",
+                      help="Number of sectors for Ewald sphere correction.")
+        form.addParam('skipWeight', BooleanParam, default=False,
+                      expertLevel=LEVEL_ADVANCED,
+                      label="Skip weighting?",
+                      help="Do not apply weighting during during Ewald "
+                           "sphere correction.")
         
         form.addParallelSection(threads=0, mpi=1)
 
@@ -128,6 +162,20 @@ class ProtRelionReconstruct(ProtReconstruct3D, ProtRelionBase):
 
         if self.extraParams.hasValue():
             params += " " + self.extraParams.get()
+
+        if self.doEwald:
+            params += " --ewald --sectors %d --newbox %d" % (self.numSectors,
+                                                             self.newBoxSize)
+            if self.skipMask:
+                params += " --skip_mask"
+            else:
+                params += " --mask_diameter %d --width_mask_edge %d" % (
+                    self.maskDiameterA, self.edge
+                )
+            if self.skipWeight:
+                params += " --skip_weighting"
+            if self.reverseCurvature:
+                params += " --reverse_curvature"
 
         self._insertFunctionStep('reconstructStep', params)
 
