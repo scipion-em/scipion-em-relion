@@ -138,9 +138,8 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
         if not self.doRescale and not self.doResize:
             errors.append("You have to select at least one option!")
 
-        if self.doResize:
-            if not self.resizeSize.get() % 2 == 0:
-                errors.append("Only even box sizes are allowed!")
+        if self.doResize and not (self.resizeSize.get() % 2 == 0):
+            errors.append("Only even box sizes are allowed!")
 
         return errors
 

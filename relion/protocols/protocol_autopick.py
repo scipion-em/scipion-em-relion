@@ -119,7 +119,7 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
     def __getMicListPrefix(self, micList):
         n = len(micList)
         if n == 0:
-            raise Exception("Empty micrographs list!")
+            raise ValueError("Empty micrographs list!")
         micsPrefix = 'mic_%06d' % micList[0].getObjId()
         if n > 1:
             micsPrefix += "-%06d" % micList[-1].getObjId()

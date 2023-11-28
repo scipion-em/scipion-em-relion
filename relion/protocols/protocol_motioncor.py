@@ -362,7 +362,7 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
         if self.doComputeMicThumbnail or self.doComputePSD:
             try:
                 from pwem import Domain
-                eman2 = Domain.importFromPlugin('eman2', doRaise=True)
+                _ = Domain.importFromPlugin('eman2', doRaise=True)
             except:
                 errors.append("EMAN2 plugin not found!\nComputing thumbnails "
                               "or PSD requires EMAN2 plugin and binaries installed.")
@@ -553,14 +553,14 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
         elif self._createOutputWeightedMicrographs():
             output = self.outputMicrographsDoseWeighted
         else:
-            raise Exception("It does not seem like any output is produced!")
+            raise RuntimeError("It does not seem like any output is produced!")
 
         inputSize = len(self.listOfMovies)
         outputSize = output.getSize()
 
         if outputSize == 0 and inputSize != 0:
-            raise Exception("All movies failed, didn't create outputMicrographs."
-                            "Please review movie processing steps above.")
+            raise RuntimeError("All movies failed, didn't create outputMicrographs."
+                               "Please review movie processing steps above.")
 
         if outputSize < inputSize:
             self.warning(pwutils.yellowStr("WARNING - Failed to align %d movies."

@@ -193,7 +193,7 @@ class ProtRelionCalculateFSC(ProtAnalysis3D, ProtRelionBase):
 
         from pwem import Domain
         try:
-            eman2 = Domain.importFromPlugin('eman2', doRaise=True)
+            _ = Domain.importFromPlugin('eman2', doRaise=True)
         except:
             errors.append("EMAN2 is required to convert pdb to mrc map")
         return errors

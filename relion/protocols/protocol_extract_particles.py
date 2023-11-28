@@ -365,7 +365,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                     # scale the coordinates according to particles dimension.
                     coord.scale(self.getBoxScale())
                     p.copyObjId(coord)
-                    idx, fn = relionToLocation(part.rlnImageName)
+                    idx, _ = relionToLocation(part.rlnImageName)
                     p.setLocation(idx, endStackFile)
                     p.setCoordinate(coord)
                     p.setMicId(mic.getObjId())

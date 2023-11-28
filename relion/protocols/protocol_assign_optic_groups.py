@@ -182,7 +182,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
             outputName = 'outputParticles'
             getMicName = lambda item: item.getCoordinate().getMicName()
         else:
-            raise Exception("Invalid input of type %s, expecting:\n"
+            raise TypeError("Invalid input of type %s, expecting:\n"
                             "SetOfMovies, SetOfMicrographs or SetOfParticles"
                             % inputSet.getClassName())
 
@@ -287,7 +287,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
         if self.gainRot.get() or self.gainFlip.get():
             try:
                 from pwem import Domain
-                eman2 = Domain.importFromPlugin('eman2', doRaise=True)
+                _ = Domain.importFromPlugin('eman2', doRaise=True)
             except:
                 validateMsgs.append("EMAN2 plugin not found!\nTransforming gain image "
                                     "requires EMAN2 plugin and binaries installed.")

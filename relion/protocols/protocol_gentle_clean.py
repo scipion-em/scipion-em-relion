@@ -126,7 +126,7 @@ class ProtRelionCleanJobs(Protocol):
                     self.debug(files)
                     result = None
                     if files:
-                        s = re.search("_?t(\d{3})_", files[-1])
+                        s = re.search(r"_?t(\d{3})_", files[-1])
                         if s:
                             # group 1 is 3 digits iteration number
                             result = "relion_[ic]t%03d_" % int(s.group(1))

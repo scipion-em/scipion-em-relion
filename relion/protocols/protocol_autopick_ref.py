@@ -36,7 +36,7 @@ from pyworkflow.constants import PROD
 
 from relion import Plugin
 import relion.convert
-from ..constants import *
+from ..constants import REF_AVERAGES, REF_VOLUME, ANGULAR_SAMPLING_LIST
 from .protocol_autopick import ProtRelionAutopickBase
 
 
@@ -521,7 +521,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
     def __getMicListPrefix(self, micList):
         n = len(micList)
         if n == 0:
-            raise Exception("Empty micrographs list!")
+            raise ValueError("Empty micrographs list!")
         micsPrefix = 'mic_%06d' % micList[0].getObjId()
         if n > 1:
             micsPrefix += "-%06d" % micList[-1].getObjId()

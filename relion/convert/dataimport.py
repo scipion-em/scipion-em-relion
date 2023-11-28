@@ -38,7 +38,6 @@ import pyworkflow.utils as pwutils
 
 from .convert31 import OpticsGroups
 from .convert_utils import relionToLocation
-from ..constants import LABELS_DICT
 
 
 class FileTransform:
@@ -209,8 +208,8 @@ class RelionImport:
         acqRow = row = table[0]
 
         if row is None:
-            raise Exception("Cannot import from empty metadata: %s"
-                            % self._starFile)
+            raise ValueError("Cannot import from empty metadata: %s"
+                             % self._starFile)
 
         if not row.get('rlnOpticsGroup', False):
             self.version30 = True
@@ -222,15 +221,15 @@ class RelionImport:
             row = table[0]
 
         if not row.get(label, False):
-            raise Exception("Label *%s* is missing in metadata: %s"
-                            % (label, self._starFile))
+            raise ValueError("Label *%s* is missing in metadata: %s"
+                             % (label, self._starFile))
 
-        index, fn = relionToLocation(row.get(label))
+        _, fn = relionToLocation(row.get(label))
         # Relion does not allow abs paths
         if fn.startswith("/"):
-            raise Exception("ERROR: %s cannot be an absolute path: %s\n"
-                            "Please create a symlink to an abs path instead."
-                            % (label, fn))
+            raise ValueError("ERROR: %s cannot be an absolute path: %s\n"
+                             "Please create a symlink to an abs path instead."
+                             % (label, fn))
         self._imgPath = pwutils.findRootFrom(self._starFile, fn)
 
         if warnings and self._imgPath is None:
@@ -399,7 +398,7 @@ class RelionImport:
         acquisitionDict = OrderedDict()
 
         try:
-            _, modelRow, acqRow = self._findImagesPath('rlnImageName', warnings=False)
+            _, _, acqRow = self._findImagesPath('rlnImageName', warnings=False)
 
             if acqRow.get('rlnVoltage', False):
                 acquisitionDict['voltage'] = acqRow.rlnVoltage

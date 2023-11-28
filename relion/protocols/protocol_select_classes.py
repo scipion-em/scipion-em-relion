@@ -149,8 +149,8 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
             self._defineSourceRelation(inputClasses, outputClasses)
             self._defineSourceRelation(inputParticles, outputParticles)
         else:
-            self.summaryVar.set(f"No classes were selected.\n"
-                                f"Try with a lower threshold.")
+            self.summaryVar.set("No classes were selected.\n"
+                                "Try with a lower threshold.")
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
