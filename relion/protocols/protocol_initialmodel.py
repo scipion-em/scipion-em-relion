@@ -60,10 +60,6 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
     CHANGE_LABELS = ['rlnChangesOptimalOrientations',
                      'rlnChangesOptimalOffsets']
 
-    @classmethod
-    def isDisabled(cls):
-        return not Plugin.IS_GT31()
-
     def __init__(self, **args):
         ProtRelionBase.__init__(self, **args)
 

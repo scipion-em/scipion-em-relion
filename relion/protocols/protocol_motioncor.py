@@ -105,14 +105,13 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
                            'suggests summing power spectra every '
                            '4.0 e/A2 gives optimal Thon rings.')
 
-        if Plugin.IS_GT31():
-            form.addParam('saveFloat16', params.BooleanParam, default=False,
-                          label="Write output in float16?",
-                          expertLevel=params.LEVEL_ADVANCED,
-                          lavel="Write output in float16?",
-                          help="Relion can write output images in float16 "
-                               "MRC (mode 12) format to save disk space. "
-                               "By default, float32 format is used.")
+        form.addParam('saveFloat16', params.BooleanParam, default=False,
+                      label="Write output in float16?",
+                      expertLevel=params.LEVEL_ADVANCED,
+                      lavel="Write output in float16?",
+                      help="Relion can write output images in float16 "
+                           "MRC (mode 12) format to save disk space. "
+                           "By default, float32 format is used.")
 
         form.addParam('doComputePSD', params.BooleanParam, default=False,
                       label="Compute PSD?",
@@ -281,7 +280,7 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
             args += "--eer_grouping %d " % self.eerGroup
             args += "--eer_upsampling %d " % (self.eerSampling.get() + 1)
 
-        if Plugin.IS_GT31() and self.saveFloat16:
+        if self.saveFloat16:
             args += "--float16 "
 
         if self.extraParams.hasValue():

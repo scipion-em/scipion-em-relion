@@ -343,16 +343,6 @@ class ProtRelionBase(EMProtocol):
                            'intrinsically implements the optimal linear, or '
                            'Wiener filter. Note that input particles should '
                            'contains CTF parameters.')
-        if not Plugin.IS_GT31():
-            form.addParam('hasReferenceCTFCorrected', BooleanParam, default=False,
-                          condition='not is2D and not doContinue',
-                          label='Has reference been CTF-corrected?',
-                          help='Set this option to Yes if the reference map '
-                               'represents CTF-unaffected density, e.g. it was '
-                               'created using Wiener filtering inside RELION or '
-                               'from a PDB. If set to No, then in the first '
-                               'iteration, the Fourier transforms of the reference '
-                               'projections are not multiplied by the CTFs.')
         form.addParam('haveDataBeenPhaseFlipped', LabelParam,
                       condition='not doContinue',
                       label='Have data been phase-flipped?      '
@@ -426,7 +416,7 @@ class ProtRelionBase(EMProtocol):
                                'structures; too high values result in '
                                'over-estimated resolutions and overfitting.')
 
-            if Plugin.IS_GT31() and self.IS_2D:  # relion4 2D cls case
+            if self.IS_2D:  # 2D cls case
                 form.addParam('useGradientAlg', BooleanParam, default=True,
                               condition='not doContinue',
                               label='Use VDAM algorithm?',
@@ -467,22 +457,7 @@ class ProtRelionBase(EMProtocol):
                                    'param is set 25, the final iteration of the '
                                    'protocol will be the 28th.')
 
-            else:
-                form.addParam('numberOfIterations', IntParam, default=25,
-                              label='Number of iterations',
-                              help='Number of iterations to be performed. Note '
-                                   'that the current implementation does NOT '
-                                   'comprise a convergence criterium. Therefore, '
-                                   'the calculations will need to be stopped '
-                                   'by the user if further iterations do not yield '
-                                   'improvements in resolution or classes. '
-                                   'If continue option is True, you going to do '
-                                   'this number of new iterations (e.g. if '
-                                   '*Continue from iteration* is set 3 and this '
-                                   'param is set 25, the final iteration of the '
-                                   'protocol will be the 28th.')
-
-            if (Plugin.IS_GT31() and self.IS_3D) or not Plugin.IS_GT31():
+            if self.IS_3D:
                 form.addParam('useFastSubsets', BooleanParam, default=False,
                               condition='not doContinue',
                               label='Use fast subsets (for large data sets)?',
@@ -725,17 +700,6 @@ class ProtRelionBase(EMProtocol):
                            'access, is a problem. It has a modest cost of '
                            'increased RAM usage.')
         if self.IS_3D:
-            if not (Plugin.IS_GT31() and self.IS_3D_INIT):
-                form.addParam('skipPadding', BooleanParam, default=self.IS_3D_MB,
-                              label='Skip padding',
-                              help='If set to Yes, the calculations will not use '
-                                   'padding in Fourier space for better '
-                                   'interpolation in the references. Otherwise, '
-                                   'references are padded 2x before Fourier '
-                                   'transforms are calculated. Skipping padding '
-                                   '(i.e. use --pad 1) gives nearly as good results '
-                                   'as using --pad 2, but some artifacts may appear '
-                                   'in the corners from signal that is folded back.')
             form.addHidden('skipGridding', BooleanParam, default=True)  # removed from relion-4.0-stable
 
         form.addParam('allParticlesRam', BooleanParam, default=False,
@@ -1021,7 +985,7 @@ class ProtRelionBase(EMProtocol):
             args['--K'] = self.numberOfClasses.get()
             if self.limitResolEStep > 0:
                 args['--strict_highres_exp'] = self.limitResolEStep.get()
-            if self.IS_2D and Plugin.IS_GT31():
+            if self.IS_2D:
                 if self.useGradientAlg:
                     args['--grad'] = ''
                     args['--grad_write_iter'] = 10
@@ -1109,13 +1073,8 @@ class ProtRelionBase(EMProtocol):
         pass
 
     def _setCTFArgs(self, args):
-        # CTF stuff
         if self.doCTF:
             args['--ctf'] = ''
-
-            # this only can be true if is 3D
-            if not Plugin.IS_GT31() and self.hasReferenceCTFCorrected:
-                args['--ctf_corrected_ref'] = ''
 
             if self._getInputParticles().isPhaseFlipped():
                 args['--ctf_phase_flipped'] = ''
@@ -1245,7 +1204,7 @@ class ProtRelionBase(EMProtocol):
         return continueIter
 
     def _getnumberOfIters(self):
-        if Plugin.IS_GT31() and self.IS_2D and self.useGradientAlg:
+        if self.IS_2D and self.useGradientAlg:
             return self._getContinueIter() + self.numberOfVDAMBatches.get()
         else:
             return self._getContinueIter() + self.numberOfIterations.get()

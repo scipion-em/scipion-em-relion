@@ -72,13 +72,12 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                       help='Final size in pixels of the extracted particles. '
                            'The provided value should be an even number. ')
 
-        if relion.Plugin.IS_GT31():
-            form.addParam('saveFloat16', params.BooleanParam, default=False,
-                          expertLevel=params.LEVEL_ADVANCED,
-                          label="Write output in float16?",
-                          help="Relion can write output images in float16 "
-                               "MRC (mode 12) format to save disk space. "
-                               "By default, float32 format is used.")
+        form.addParam('saveFloat16', params.BooleanParam, default=False,
+                      expertLevel=params.LEVEL_ADVANCED,
+                      label="Write output in float16?",
+                      help="Relion can write output images in float16 "
+                           "MRC (mode 12) format to save disk space. "
+                           "By default, float32 format is used.")
 
         form.addSection(label='Preprocess')
 
@@ -289,7 +288,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         params += ' --part_dir "." --extract '
         params += ' --extract_size %d' % self.boxSize
 
-        if Plugin.IS_GT31() and self.saveFloat16:
+        if self.saveFloat16:
             params += " --float16 "
 
         if self.backDiameter <= 0:

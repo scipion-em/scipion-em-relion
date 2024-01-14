@@ -33,7 +33,7 @@ import pwem
 from .constants import *
 
 
-__version__ = '4.0.18'
+__version__ = '5.0.0a1'
 _logo = "relion_logo.jpg"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016',
                'Zivanov2018', 'Kimanius2021']
@@ -42,15 +42,15 @@ _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016',
 class Plugin(pwem.Plugin):
     _homeVar = RELION_HOME
     _pathVars = [RELION_HOME]
-    _supportedVersions = [V3_1, V4_0]
+    _supportedVersions = [V4_0, V5_0]
     _url = "https://github.com/scipion-em/scipion-em-relion"
 
     @classmethod
     def _defineVariables(cls):
-        cls._defineEmVar(RELION_HOME, 'relion-%s' % V4_0)
+        cls._defineEmVar(RELION_HOME, 'relion-%s' % V5_0)
         cls._defineVar(RELION_CUDA_LIB, pwem.Config.CUDA_LIB)
         cls._defineVar(RELION_CUDA_BIN, pwem.Config.CUDA_BIN)
-        cls._defineVar(RELION_ENV_ACTIVATION, DEFAULT_ACTIVATION_CMD)
+        cls._defineVar(RELION_ENV_ACTIVATION, DEFAULT_ACTIVATION_CMD % V5_0)
         cls._defineVar(RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE,
                        os.getenv(RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE, None))
 
@@ -100,8 +100,8 @@ class Plugin(pwem.Plugin):
         return environ
 
     @classmethod
-    def IS_GT31(cls):
-        return cls.getActiveVersion().startswith('4')
+    def IS_GT50(cls):
+        return cls.getActiveVersion().startswith('5')
 
     @classmethod
     def getDependencies(cls):
@@ -130,7 +130,7 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def defineBinaries(cls, env):
-        for ver in [V4_0]:
+        for ver in cls._supportedVersions:
             installCmd = [(f'cd .. && rmdir relion-{ver} && '
                            f'git clone https://github.com/3dem/relion.git relion-{ver} && '
                            f'cd relion-{ver} && git checkout ver{ver} && '
@@ -143,7 +143,7 @@ class Plugin(pwem.Plugin):
                            commands=installCmd,
                            neededProgs=['git', 'gcc', 'cmake', 'make'],
                            updateCuda=True,
-                           default=True)
+                           default=ver == V5_0)
 
             env.addPackage('relion_python', version=ver,
                            tar='void.tgz',
@@ -151,4 +151,4 @@ class Plugin(pwem.Plugin):
                                       'touch installed' %
                                       cls.getCondaActivationCmd(), ['installed'])],
                            neededProgs=cls.getDependencies(),
-                           default=True)
+                           default=ver == V5_0)

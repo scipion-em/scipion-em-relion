@@ -124,13 +124,12 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
                            "That is: *the mask should INCLUDE the part of the "
                            "volume that you wish to KEEP.*")
 
-        if Plugin.IS_GT31():
-            form.addParam('saveFloat16', BooleanParam, default=False,
-                          expertLevel=LEVEL_ADVANCED,
-                          label="Write output in float16?",
-                          help="Relion can write output images in float16 "
-                               "MRC (mode 12) format to save disk space. "
-                               "By default, float32 format is used.")
+        form.addParam('saveFloat16', BooleanParam, default=False,
+                      expertLevel=LEVEL_ADVANCED,
+                      label="Write output in float16?",
+                      help="Relion can write output images in float16 "
+                           "MRC (mode 12) format to save disk space. "
+                           "By default, float32 format is used.")
 
         form.addSection('Centering')
         form.addParam('help1', LabelParam,
@@ -262,7 +261,7 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
             params += " --center_x %d --center_y %d --center_z %d" % (
                 self.cX, self.cY, self.cZ)
 
-        if Plugin.IS_GT31() and self.saveFloat16:
+        if self.saveFloat16:
             params += " --float16"
 
         params += self._convertMask()

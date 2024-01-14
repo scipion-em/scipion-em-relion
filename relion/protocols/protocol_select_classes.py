@@ -51,10 +51,6 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
     _devStatus = PROD
     _possibleOutputs = outputs
 
-    @classmethod
-    def isDisabled(cls):
-        return not Plugin.IS_GT31()
-
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')

@@ -90,7 +90,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
     # --------------------------- INFO functions ------------------------------
     def _validateNormal(self):
         errors = []
-        if Plugin.IS_GT31() and self.useGradientAlg and self.numberOfMpi > 1:
+        if self.useGradientAlg and self.numberOfMpi > 1:
             errors.append("Gradient refinement (running the VDAM algorithm) "
                           "is not supported together with MPI")
 
