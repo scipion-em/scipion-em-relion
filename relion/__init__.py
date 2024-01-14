@@ -47,12 +47,13 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def _defineVariables(cls):
-        cls._defineEmVar(RELION_HOME, 'relion-%s' % V5_0)
+        cls._defineEmVar(RELION_HOME, f'relion-{V5_0}')
         cls._defineVar(RELION_CUDA_LIB, pwem.Config.CUDA_LIB)
         cls._defineVar(RELION_CUDA_BIN, pwem.Config.CUDA_BIN)
         cls._defineVar(RELION_ENV_ACTIVATION, DEFAULT_ACTIVATION_CMD % V5_0)
         cls._defineVar(RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE,
                        os.getenv(RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE, None))
+        cls._defineEmVar(TORCH_HOME_VAR, 'modelangelomodels-1.0')  # FIXME: is this ok?
 
     @classmethod
     def getEnviron(cls):
@@ -108,7 +109,7 @@ class Plugin(pwem.Plugin):
         """ Return a list of dependencies. Include conda if
                 activation command was not found. """
         condaActivationCmd = cls.getCondaActivationCmd()
-        neededProgs = []
+        neededProgs = ['git', 'gcc', 'cmake', 'make']
         if not condaActivationCmd:
             neededProgs.append('conda')
 
@@ -131,24 +132,31 @@ class Plugin(pwem.Plugin):
     @classmethod
     def defineBinaries(cls, env):
         for ver in cls._supportedVersions:
-            installCmd = [(f'cd .. && rmdir relion-{ver} && '
-                           f'git clone https://github.com/3dem/relion.git relion-{ver} && '
-                           f'cd relion-{ver} && git checkout ver{ver} && '
-                           'cmake -DCMAKE_INSTALL_PREFIX=./ .', []),
-                          (f'make -j {env.getProcessors()}',
-                           ['bin/relion_refine'])]
+            torchHome = cls.getVar(TORCH_HOME_VAR)
+            os.makedirs(torchHome, exist_ok=True)
+
+            if ver == V4_0:
+                envCmd = f"conda create -y -n relion-python -c pytorch python=3.9 pytorch=1.10.0 numpy=1.20 &&"
+            else:
+                envCmd = "conda env create -y -f environment.yml &&"
+
+            cmd = [
+                f'cd .. && rmdir relion-{ver} &&',
+                f'git clone https://github.com/3dem/relion.git relion-{ver} &&',
+                f'cd relion-{ver} && git checkout ver{ver} &&',
+                cls.getCondaActivationCmd(),
+                envCmd,
+                f'cmake -DCMAKE_INSTALL_PREFIX=./ -DTORCH_HOME_PATH={torchHome} .'
+            ]
+
+            installCmds = [
+                (" ".join(cmd), []),
+                (f'make -j {env.getProcessors()}', ['bin/relion_refine'])
+            ]
 
             env.addPackage('relion', version=ver,
                            tar='void.tgz',
-                           commands=installCmd,
-                           neededProgs=['git', 'gcc', 'cmake', 'make'],
-                           updateCuda=True,
-                           default=ver == V5_0)
-
-            env.addPackage('relion_python', version=ver,
-                           tar='void.tgz',
-                           commands=[('%s conda create -y -n relion-python -c pytorch python=3.9 pytorch=1.10.0 numpy=1.20 &&'
-                                      'touch installed' %
-                                      cls.getCondaActivationCmd(), ['installed'])],
+                           commands=installCmds,
                            neededProgs=cls.getDependencies(),
+                           updateCuda=True,
                            default=ver == V5_0)
