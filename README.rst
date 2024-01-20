@@ -60,6 +60,7 @@ b) Developer's version
 - If you need to use CUDA different from the one used during Scipion installation (defined by *CUDA_LIB*), you can add *RELION_CUDA_LIB* variable to the config file. Optionally, you can also specify *RELION_CUDA_BIN* path for nvcc.
 - If you have to use a MPI for Relion different from Scipion MPI, you can set *RELION_MPI_BIN* and *RELION_MPI_LIB* variables in the config file.
 - To add support for Python modules (e.g. Blush, ModelAngelo and DynaMight) you will have to setup a Python environment with dependencies. You need to set *RELION_ENV_ACTIVATION* that points to a conda environment. Default = ``conda activate relion-5.0``
+- You might want to set *TORCH_HOME* pointing to the path with downloaded models. Default = ``software/em/modelangelomodels-1.0`` (shared with ModelAngelo plugin).
 - If you want to use SIDESPLITTER, you need the `sidesplitter <https://github.com/scipion-em/scipion-em-sidesplitter>`_ plugin installed and *SIDESPLITTER_HOME* set properly. After that, you only need to add *--external_reconstruct* into Additional arguments field of a 3D auto-refine or multi-body job.
 
 To check the installation, simply run one of the tests. A complete list of tests can be displayed by executing ``scipion test --show --grep relion``

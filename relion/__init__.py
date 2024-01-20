@@ -53,7 +53,7 @@ class Plugin(pwem.Plugin):
         cls._defineVar(RELION_ENV_ACTIVATION, DEFAULT_ACTIVATION_CMD % V5_0)
         cls._defineVar(RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE,
                        os.getenv(RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE, None))
-        cls._defineEmVar(TORCH_HOME_VAR, 'modelangelomodels-1.0')  # FIXME: is this ok?
+        cls._defineEmVar(TORCH_HOME_VAR, 'modelangelomodels-1.0')
 
     @classmethod
     def getEnviron(cls):

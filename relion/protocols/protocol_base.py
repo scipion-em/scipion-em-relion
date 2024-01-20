@@ -469,6 +469,13 @@ class ProtRelionBase(EMProtocol):
                                    'ones with all data. This was inspired by '
                                    'a cisTEM implementation by Niko Grigorieff'
                                    ' et al.')
+                if Plugin.IS_GT50():
+                    form.addParam('useBlush', BooleanParam, default=False,
+                                  label='Use Blush regularisation?',
+                                  help='If set to Yes, relion_refine will use a neural '
+                                       'network to perform regularisation by denoising '
+                                       'at every iteration, instead of the standard '
+                                       'smoothness regularisation.')
 
             form.addParam('limitResolEStep', FloatParam, default=-1,
                           label='Limit resolution E-step to (A)',
@@ -623,6 +630,13 @@ class ProtRelionBase(EMProtocol):
                                    'faster, but has not been tested for '
                                    'many cases for potential loss in '
                                    'reconstruction quality upon convergence.')
+                if Plugin.IS_GT50():
+                    form.addParam('useBlush', BooleanParam, default=False,
+                                  label='Use Blush regularisation?',
+                                  help='If set to Yes, relion_refine will use a neural '
+                                       'network to perform regularisation by denoising '
+                                       'at every iteration, instead of the standard '
+                                       'smoothness regularisation.')
 
         if self.IS_CLASSIFY:
             form.addParam('allowCoarserSampling', BooleanParam,
@@ -1001,6 +1015,9 @@ class ProtRelionBase(EMProtocol):
             # We use the same pixel size as input particles, since
             # we convert anyway the input volume to match same size
             args['--ref_angpix'] = ps
+
+            if Plugin.IS_GT50() and self.useBlush:
+                args['--blush'] = ''
 
         refArg = self._getRefArg()
         if refArg:
