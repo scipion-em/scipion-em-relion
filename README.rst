@@ -90,6 +90,7 @@ Protocols
 * create 3d mask
 * crop / resize volumes
 * ctf refinement
+* DynaMight flexibility
 * estimate gain to compress
 * expand symmetry
 * export coordinates

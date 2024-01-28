@@ -393,7 +393,6 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
 
         self.runJob(program, params, cwd=cwd)
 
-    # -------------------------- STEPS functions -------------------------------
     def createOutputStep(self):
         micSet = self.getInputMicrographs()
         outputCoordinatesName = 'outputCoordinates'

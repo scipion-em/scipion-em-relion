@@ -33,7 +33,7 @@ import pwem
 from .constants import *
 
 
-__version__ = '5.0.0a1'
+__version__ = '5.0.0b1'
 _logo = "relion_logo.jpg"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016',
                'Zivanov2018', 'Kimanius2021']
@@ -62,7 +62,6 @@ class Plugin(pwem.Plugin):
         binPath = os.pathsep.join([cls.getHome('bin'),
                                    pwem.Config.MPI_BINDIR])
         libPath = os.pathsep.join([cls.getHome('lib'),
-                                   cls.getHome('lib64'),
                                    pwem.Config.MPI_LIBDIR])
 
         if binPath not in environ['PATH']:

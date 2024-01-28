@@ -471,6 +471,7 @@ class ProtRelionBase(EMProtocol):
                                    ' et al.')
                 if Plugin.IS_GT50():
                     form.addParam('useBlush', BooleanParam, default=False,
+                                  condition='not doContinue',
                                   label='Use Blush regularisation?',
                                   help='If set to Yes, relion_refine will use a neural '
                                        'network to perform regularisation by denoising '
@@ -713,9 +714,6 @@ class ProtRelionBase(EMProtocol):
                            'particularly metadata handling of disk '
                            'access, is a problem. It has a modest cost of '
                            'increased RAM usage.')
-        if self.IS_3D:
-            form.addHidden('skipGridding', BooleanParam, default=True)  # removed from relion-4.0-stable
-
         form.addParam('allParticlesRam', BooleanParam, default=False,
                       label='Pre-read all particles into RAM?',
                       help='If set to Yes, all particle images will be '
