@@ -23,17 +23,16 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+from typing import List
 
-import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 from pyworkflow.constants import NEW
-from pwem.objects import Volume, SetOfParticles
 from pwem.protocols import ProtAnalysis3D
 from pwem.constants import ALIGN_PROJ
 
 from relion import Plugin
 import relion.convert as convert
-from .protocol_base import ProtRelionBase
+from relion.protocols.protocol_base import ProtRelionBase
 
 
 class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
@@ -56,13 +55,10 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
 
     def _initialize(self):
         """ This function is meant to be called after the
-        working dir for the protocol have been set. (maybe after recovery from mapper)
+        working dir for the protocol have been set.
+        (maybe after recovery from mapper)
         """
         self._createFilenameTemplates()
-        self._createIterTemplates()
-
-    def _getInputPath(self, *paths):
-        return self._getPath('input', *paths)
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
@@ -84,22 +80,17 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                       condition='doContinue', allowsNull=True,
                       label='Select previous run',
                       help='Select a previous run to analyse.')
-        form.addParam('continueIter', params.StringParam, default='last',
-                      condition='doContinue',
-                      label='Analyse epoch #',
-                      help='Select the epoch to use for '
-                           'visualization, inverse deformation estimation '
-                           'or deformed backprojection. If left empty, '
-                           'the last available epoch will be used.')
 
         form.addParam('inputParticles', params.PointerParam,
-                      pointerClass='SetOfParticles', important=True,
+                      allowsNull=True,
+                      pointerClass='SetOfParticles',
                       pointerCondition='hasAlignmentProj',
                       condition='not doContinue',
                       label="Input particles",
                       help='Select the input images from the project.')
-        form.addParam('referenceVolume', params.PointerParam, pointerClass='Volume',
-                      label="Input consensus map", important=True,
+        form.addParam('referenceVolume', params.PointerParam,
+                      pointerClass='Volume', allowsNull=True,
+                      label="Input consensus map",
                       condition='not doContinue',
                       help='You might want to provide input half maps manually, '
                            'in case you did not use 3D auto-refine or '
@@ -172,13 +163,6 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                             "You can monitor the convergence of the loss "
                             "function to assess how many are necessary. "
                             "Often 200 are enough")
-        group.addParam('storeInRam', params.BooleanParam, default=False,
-                       condition='doContinue and doDeformEstimate',
-                       label="Store deformations in RAM?",
-                       help="If set to Yes, dynamight will store deformations "
-                            "in the GPU memory, which will speed up the "
-                            "calculations, but you need to have enough GPU "
-                            "memory to do this...")
 
         group = form.addGroup('Backprojection')
         group.addParam('doDeformBackProj', params.BooleanParam, default=False,
@@ -214,8 +198,13 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
     # -------------------------- STEPS functions ------------------------------
     def _createFilenameTemplates(self):
         """ Centralize how files are called for iterations and references. """
+        deform_path = "forward_deformations/checkpoints"
         myDict = {
-            'input_particles': self._getTmpPath('input_particles.star'),
+            'input_particles': self._getExtraPath('input_particles.star'),
+            'checkpoint_iter': self._getExtraPath(deform_path,
+                                                  '%(iter)03d.pth'),
+            'checkpoint_final': self._getExtraPath(deform_path,
+                                                   'checkpoint_final.pth'),
             }
         self._updateFilenamesDict(myDict)
 
@@ -228,7 +217,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
 
         # Pass stack file as None to avoid write the images files
         convert.writeSetOfParticles(imgSet, imgStar,
-                                    outputDir=self._getTmpPath(),
+                                    outputDir=self._getExtraPath(),
                                     alignType=ALIGN_PROJ)
         self._convertRef()
 
@@ -242,23 +231,73 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
             f"--initial-threshold {self.threshold}",
             f"--regularization-factor {self.regularizeFactor}",
             f"--n-threads {self.numberOfThreads}",
-            f"--gpu-id {self.gpuList.get()}"
+            f"--gpu-id {self.gpuList.get()}",
+            "--preload-images" if self.allParticlesRam else ""
         ]
 
-        if self.allParticlesRam:
-            params.append("--preload-images")
-
-        self.runJob("%s && relion_python_dynamight" % Plugin.getActivationCmd(),
-                    " ".join(params))
+        self.runProgram(params)
 
     def runTasksStep(self):
-        pass
+        inputProt = self.continueRun.get()
+        inputProt._createFilenameTemplates()
+        checkpoint_file = inputProt._getFileName('checkpoint_final')
+
+        if self.doVisualize:
+            params = [
+                "explore-latent-space",
+                self._getExtraPath(),
+                f"--half-set {self.halfSet.get()}",
+                f"--checkpoint-file {checkpoint_file}",
+                f"--gpu-id {self.gpuList.get()}"
+            ]
+        elif self.doDeformEstimate:
+            params = [
+                "optimize-inverse-deformations",
+                self._getExtraPath(),
+                f"--n-epochs {self.numEpochs.get()}",
+                f"--checkpoint-file {checkpoint_file}",
+                f"--gpu-id {self.gpuList.get()}",
+                "--preload-images" if self.allParticlesRam else ""
+            ]
+
+        elif self.doDeformBackProj:
+            params = [
+                "deformable-backprojection",
+                self._getExtraPath(),
+                f"--batch-size {self.batchSize.get()}",
+                f"--checkpoint-file {checkpoint_file}",
+                f"--gpu-id {self.gpuList.get()}",
+                "--preload-images"
+            ]
+        else:
+            raise ValueError("Unrecognized task")
+
+        self.runProgram(params)
 
     # --------------------------- INFO functions ------------------------------
+    def _summary(self):
+        return []
+
+    def _validate(self):
+        errors = []
+        tasks = [self.doVisualize.get(),
+                 self.doDeformEstimate.get(),
+                 self.doDeformBackProj.get()]
+
+        if tasks.count(True) > 1:
+            errors.append("You cannot select multiple tasks")
+
+        return errors
+
     def _citations(self):
         return ['Schwab2023']
 
     # -------------------------- UTILS functions ------------------------------
+    def runProgram(self, params: List[str]) -> None:
+        program = "relion_python_dynamight"
+        self.runJob(f"{Plugin.getActivationCmd()} && {program}",
+                    " ".join(params))
+
     def _getEnviron(self):
         env = Plugin.getEnviron()
         if 'LD_LIBRARY_PATH' in env:
