@@ -58,3 +58,4 @@ from .protocol_subtract import ProtRelionSubtract
 from .protocol_symmetrize_volume import ProtRelionSymmetrizeVolume
 
 from .protocol_copy_scratch import ProtParticlesToScratch
+from .protocol_compress_movies_tasks import ProtRelionCompressMoviesTasks
