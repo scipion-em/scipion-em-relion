@@ -1,3 +1,4 @@
+4.0.19: fix adding more coords to the output of import coords protocol
 4.0.18: add ewald params to the reconstruct protocol
 4.0.17: add missing CUDA_BIN env var
 4.0.16: Remove direct pointer from class3d protocol
