@@ -134,7 +134,7 @@ class ProtRelionBase(EMProtocol):
         self._iterTemplate = self._getFileName('data', iter=0).replace('000', '???')
         # Iterations will be identify by _itXXX_ where XXX is the iteration number
         # and is restricted to only 3 digits.
-        self._iterRegex = re.compile('_it(\d{3})_')
+        self._iterRegex = re.compile(r'_it(\d{3})_')
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineConstants(self):
@@ -1261,7 +1261,7 @@ class ProtRelionBase(EMProtocol):
         elif isinstance(inputObj, SetOfVolumes):
             return [vol.clone() for vol in inputObj]
         else:
-            raise Exception("Invalid input reference of class: %s"
+            raise TypeError("Invalid input reference of class: %s"
                             % inputObj.getClassName())
 
     def _getRefArg(self):

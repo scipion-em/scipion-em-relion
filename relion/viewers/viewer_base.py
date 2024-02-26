@@ -327,9 +327,8 @@ Examples:
         for it in self._iterations:
             fn = self.protocol._getIterData(it, alignType=ALIGN_PROJ)
             if not os.path.exists(fn):
-                raise Exception("Missing data star file '%s'. \n"
-                                "Plese select a valid iteration. "
-                                % fn)
+                raise FileNotFoundError(f"Missing data star file '{fn}'.\n"
+                                        "Please select a valid iteration.")
             v = self.createScipionPartView(fn)
             views.append(v)
 
@@ -342,9 +341,8 @@ Examples:
         for it in self._iterations:
             optimiserFile = self.protocol._getFileName('optimiser', iter=it)
             if not os.path.exists(optimiserFile):
-                raise Exception("Missing optimiser file '%s'. \n"
-                                "Plese select a valid iteration. "
-                                % optimiserFile)
+                raise FileNotFoundError(f"Missing optimiser file '{optimiserFile}'.\n"
+                                        "Please select a valid iteration. ")
             v = self.createDataView(optimiserFile)
             views.append(v)
         return views
@@ -515,9 +513,8 @@ Examples:
         volumes = self._getVolumeNames()
         for volFn in volumes:
             if not os.path.exists(volFn):
-                raise Exception("Missing volume file: %s\n Please select "
-                                "a valid class or iteration number."
-                                % volFn)
+                raise FileNotFoundError(f"Missing volume file: {volFn}\n Please select "
+                                        "a valid class or iteration number.")
             logger.debug(f"Adding vol: {volFn}")
             if not volFn.endswith(":mrc"):
                 files.append(volFn + ":mrc")
@@ -572,7 +569,7 @@ Examples:
         ref3d = self._refsList[0]
         volFn = self._getVolumeNames()[0]
         if not os.path.exists(volFn):
-            raise Exception("This class is empty. Please try with another class")
+            raise FileNotFoundError("This class is empty. Please try with another class")
 
         for prefix in prefixes:
             sqliteFn = self.protocol._getFileName('projections',
@@ -867,9 +864,8 @@ Examples:
                         volFn = volFn.replace(":mrc", "")
                         vols.append(volFn)
                     else:
-                        raise Exception("Volume %s does not exists. \n"
-                                        "Please select a valid iteration "
-                                        "number. " % volFn)
+                        raise FileNotFoundError(f"Volume {volFn} does not exists.\n"
+                                                "Please select a valid iteration number.")
         return vols
 
     def _getMdOut(self, it, prefix, ref3d):
@@ -917,8 +913,8 @@ Examples:
 
 class RelionSelectClassesViewer(Viewer):
     _targets = [ProtRelionSelectClasses2D]
+
     def _visualize(self, obj, **kwargs):
-        order = '_rlnPredictedClassScore'
         labels = 'enabled id _size _representative._filename '
         labels += '_rlnClassDistribution _rlnPredictedClassScore '
         labels += '_rlnEstimatedResolution '

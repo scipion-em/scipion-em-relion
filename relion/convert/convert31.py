@@ -617,12 +617,12 @@ class Reader(ReaderBase):
             coordsReader = Table.Reader(starFile, tableName='particles', types=LABELS_DICT)
 
         if not coordsReader.hasAllColumns(self.COORD_LABELS[:3]):
-            raise Exception("STAR file should include columns: ", self.COORD_LABELS[:3])
+            raise RuntimeError("STAR file should include columns: ", self.COORD_LABELS[:3])
 
         coordsReader = sorted(coordsReader, key=lambda r: getattr(r, 'rlnMicrographName'))
         coordsReader = [row for row in coordsReader if pwutils.removeExt(os.path.basename(row.rlnMicrographName)) in micList]
         if not len(coordsReader):
-            raise Exception("Could not match micNames between micrographs and star file!")
+            raise RuntimeError("Could not match micNames between micrographs and star file!")
 
         firstRow = coordsReader[0]
         hasMicId = hasattr(firstRow, 'rlnMicrographId')
