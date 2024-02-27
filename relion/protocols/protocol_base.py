@@ -1174,7 +1174,7 @@ class ProtRelionBase(EMProtocol):
 
         if not os.path.exists(data_classes):
             clsSet = self.OUTPUT_TYPE(filename=data_classes)
-            clsSet.setImages(self.inputParticles.get())
+            clsSet.setImages(self.inputParticles)
             self._fillClassesFromIter(clsSet, it)
             clsSet.write()
             clsSet.close()

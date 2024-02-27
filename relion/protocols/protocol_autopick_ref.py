@@ -394,14 +394,13 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         self.runJob(program, params, cwd=cwd)
 
     def createOutputStep(self):
-        micSet = self.getInputMicrographs()
+        micSet = self.getInputMicrographsPointer()
         outputCoordinatesName = 'outputCoordinates'
         coordSet = self._createSetOfCoordinates(micSet)
-        self.readCoordsFromMics(None, micSet, coordSet)
+        self.readCoordsFromMics(None, micSet.get(), coordSet)
 
         self._defineOutputs(**{outputCoordinatesName: coordSet})
-        self._defineSourceRelation(self.getInputMicrographsPointer(),
-                                   coordSet)
+        self._defineSourceRelation(micSet, coordSet)
 
     # -------------------------- INFO functions --------------------------------
     def _validate(self):
