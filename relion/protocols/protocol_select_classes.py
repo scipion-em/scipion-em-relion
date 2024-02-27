@@ -92,6 +92,9 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
         params += " --fn_root rank --do_granularity_features"
         params += " --auto_select"
 
+        if not Plugin.IS_GT50():
+            params += " --python $CONDA_PREFIX/bin/python"
+
         if self.minParts != -1:
             params += " --select_min_nr_particles %d" % self.minParts
         if self.minCls != -1:
