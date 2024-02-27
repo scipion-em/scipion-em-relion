@@ -105,10 +105,8 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
                            'suggests summing power spectra every '
                            '4.0 e/A2 gives optimal Thon rings.')
 
-        form.addParam('saveFloat16', params.BooleanParam, default=False,
+        form.addParam('saveFloat16', params.BooleanParam, default=True,
                       label="Write output in float16?",
-                      expertLevel=params.LEVEL_ADVANCED,
-                      lavel="Write output in float16?",
                       help="Relion can write output images in float16 "
                            "MRC (mode 12) format to save disk space. "
                            "By default, float32 format is used.")
@@ -218,7 +216,7 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
                            "recommended by Relion. See "
                            "https://relion.readthedocs.io/en/latest/Reference/MovieCompression.html")
 
-        form.addParallelSection(threads=4, mpi=1)
+        form.addParallelSection(threads=4, mpi=0)
 
     # --------------------------- STEPS functions -------------------------------
     def _convertInputStep(self):
@@ -244,7 +242,7 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
         # The program will run in the movie folder, so let's put
         # the input files relative to that
         args = "--i %s --o output/ " % os.path.basename(inputStar)
-        args += "--use_own "
+        args += "--use_own --skip_logfile "
         args += "--first_frame_sum %d --last_frame_sum %d " % (self._getFrameRange())
         args += "--bin_factor %f --bfactor %d " % (self.binFactor, self.bfactor)
         args += "--angpix %0.5f " % (movie.getSamplingRate())
@@ -365,10 +363,6 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
             except:
                 errors.append("EMAN2 plugin not found!\nComputing thumbnails "
                               "or PSD requires EMAN2 plugin and binaries installed.")
-
-        if self.hasAttribute('saveFloat16') and self.saveFloat16:
-            errors.append("MRC float16 format is not yet supported by XMIPP, "
-                          "so you cannot use this option.")
 
         return errors
 

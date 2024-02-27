@@ -124,10 +124,8 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
                       label="Re-scaled size (px)",
                       help="The re-scaled value needs to be an even number.")
 
-        form.addParam('saveFloat16', params.BooleanParam, default=False,
+        form.addParam('saveFloat16', params.BooleanParam, default=True,
                       label="Write output in float16?",
-                      expertLevel=params.LEVEL_ADVANCED,
-                      lavel="Write output in float16?",
                       help="Relion can write output images in float16 "
                            "MRC (mode 12) format to save disk space. "
                            "By default, float32 format is used.")
@@ -433,10 +431,6 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
 
         if self.operation == self.OP_TRAIN and self.numberOfMpi > 1:
             errors.append("MPI is not supported for parameters estimation.")
-
-        if self.hasAttribute('saveFloat16') and self.saveFloat16:
-            errors.append("MRC float16 format is not yet supported by XMIPP, "
-                          "so you cannot use this option.")
 
         return errors
 

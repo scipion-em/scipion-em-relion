@@ -72,8 +72,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                       help='Final size in pixels of the extracted particles. '
                            'The provided value should be an even number. ')
 
-        form.addParam('saveFloat16', params.BooleanParam, default=False,
-                      expertLevel=params.LEVEL_ADVANCED,
+        form.addParam('saveFloat16', params.BooleanParam, default=True,
                       label="Write output in float16?",
                       help="Relion can write output images in float16 "
                            "MRC (mode 12) format to save disk space. "
@@ -206,10 +205,6 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         if self.doRescale and self.rescaledSize.get() % 2 == 1:
             errors.append("Only re-scaling to even-sized images is allowed "
                           "in RELION.")
-
-        if self.hasAttribute('saveFloat16') and self.saveFloat16:
-            errors.append("MRC float16 format is not yet supported by XMIPP, "
-                          "so you cannot use this option.")
 
         return errors
 

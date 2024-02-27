@@ -124,8 +124,7 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
                            "That is: *the mask should INCLUDE the part of the "
                            "volume that you wish to KEEP.*")
 
-        form.addParam('saveFloat16', BooleanParam, default=False,
-                      expertLevel=LEVEL_ADVANCED,
+        form.addParam('saveFloat16', BooleanParam, default=True,
                       label="Write output in float16?",
                       help="Relion can write output images in float16 "
                            "MRC (mode 12) format to save disk space. "
@@ -297,9 +296,7 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
         if self.numberOfMpi > 1 and (not self.relionInput.get()):
             errors.append("Use of several CPUs when input is not relion "
                           "protocol is not supported")
-        if self.hasAttribute('saveFloat16') and self.saveFloat16:
-            errors.append("MRC float16 format is not yet supported by XMIPP, "
-                          "so you cannot use this option.")
+
         return errors
     
     def _summary(self):
