@@ -149,7 +149,7 @@ class Plugin(pwem.Plugin):
             ]
 
             installCmds = [
-                (" ".join(cmd), []),
+                (" ".join(cmd), ['Makefile']),
                 (f'make -j {env.getProcessors()}', ['bin/relion_refine'])
             ]
 
