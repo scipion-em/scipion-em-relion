@@ -26,7 +26,7 @@
 
 from enum import Enum
 
-from pwem.protocols import EMProtocol
+from pwem.protocols import ProtParticlePicking
 from pwem.objects import SetOfCoordinates
 from pyworkflow.constants import PROD
 import pyworkflow.protocol.params as params
@@ -39,7 +39,7 @@ class outputs(Enum):
     outputCoordinates = SetOfCoordinates
 
 
-class ProtRelionImportCoords(EMProtocol):
+class ProtRelionImportCoords(ProtParticlePicking):
     """
     Import coordinates from a particles star file.
     """
@@ -75,9 +75,9 @@ class ProtRelionImportCoords(EMProtocol):
 
     # --------------------------- STEPS functions -----------------------------
     def createOutputStep(self, coordStar):
-        inputMics = self.getMicrographList()
+        inputMics = self.getInputMicrographs()
         micList = [pwutils.removeExt(mic.getMicName()) for mic in inputMics]
-        coordsSet = self._createSetOfCoordinates(inputMics)
+        coordsSet = self._createSetOfCoordinates(self.getInputMicrographsPointer())
         coordsSet.setBoxSize(self.boxSize.get())
 
         reader = convert.createReader()
@@ -86,7 +86,7 @@ class ProtRelionImportCoords(EMProtocol):
             postprocessCoordRow=self._postprocessCoordRow)
 
         self._defineOutputs(**{outputs.outputCoordinates.name: coordsSet})
-        self._defineSourceRelation(self.inputMicrographs, coordsSet)
+        self._defineSourceRelation(self.getInputMicrographsPointer(), coordsSet)
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
@@ -123,8 +123,5 @@ class ProtRelionImportCoords(EMProtocol):
         coord.setX(x)
         coord.setY(y)
 
-    def getMicrographList(self):
-        return self.inputMicrographs.get()
-
     def getMicDim(self):
-        return self.getMicrographList().getDimensions()
+        return self.getInputMicrographs().getDimensions()
