@@ -456,6 +456,20 @@ class ProtRelionBase(EMProtocol):
                                    '*Continue from iteration* is set 3 and this '
                                    'param is set 25, the final iteration of the '
                                    'protocol will be the 28th.')
+            else:
+                form.addParam('numberOfIterations', IntParam, default=25,
+                              label='Number of iterations',
+                              help='Number of iterations to be performed. Note '
+                                   'that the current implementation does NOT '
+                                   'comprise a convergence criterium. Therefore, '
+                                   'the calculations will need to be stopped '
+                                   'by the user if further iterations do not yield '
+                                   'improvements in resolution or classes. '
+                                   'If continue option is True, you going to do '
+                                   'this number of new iterations (e.g. if '
+                                   '*Continue from iteration* is set 3 and this '
+                                   'param is set 25, the final iteration of the '
+                                   'protocol will be the 28th.')
 
             if self.IS_3D:
                 form.addParam('useFastSubsets', BooleanParam, default=False,
@@ -714,6 +728,18 @@ class ProtRelionBase(EMProtocol):
                            'particularly metadata handling of disk '
                            'access, is a problem. It has a modest cost of '
                            'increased RAM usage.')
+        if self.IS_3D and not self.IS_3D_INIT:
+            form.addParam('skipPadding', BooleanParam, default=False,
+                          label='Skip padding',
+                          help='If set to Yes, the calculations will not use '
+                               'padding in Fourier space for better '
+                               'interpolation in the references. Otherwise, '
+                               'references are padded 2x before Fourier '
+                               'transforms are calculated. Skipping padding '
+                               '(i.e. use --pad 1) gives nearly as good results '
+                               'as using --pad 2, but some artifacts may appear '
+                               'in the corners from signal that is folded back.')
+
         form.addParam('allParticlesRam', BooleanParam, default=False,
                       label='Pre-read all particles into RAM?',
                       help='If set to Yes, all particle images will be '
@@ -1313,14 +1339,10 @@ class ProtRelionBase(EMProtocol):
         return self.getAttributeValue('useFastSubsets', False)
 
     def _getGpuStr(self):
-        gpuStr = self.getAttributeValue('gpusToUse', '').strip()
-        if gpuStr:
-            if not gpuStr.startswith('"'):
-                gpuStr = '"' + gpuStr
-            if not gpuStr.endswith('"'):
-                gpuStr += '"'
+        gpuStr = self.getAttributeValue('gpusToUse', '')
+        gpuStr = gpuStr.strip().strip('"')
 
-        return gpuStr
+        return f'"{gpuStr}"'
 
     def usesGpu(self):
         """ Return True if the protocol has gpu option and
