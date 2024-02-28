@@ -397,8 +397,8 @@ Examples:
         labels = ["rlnClassDistribution", "rlnAccuracyRotations",
                   "rlnAccuracyTranslationsAngst"]
 
-        iterations = range(self.firstIter, self.lastIter + 1)
         classInfo = {}
+        iterations = self._getAllIters()
 
         for it in iterations:
             modelStar = self.protocol._getFileName('model', iter=it)
@@ -821,7 +821,7 @@ Examples:
         elif n == 2:
             gridsize = [2, 1]
         else:
-            gridsize = [(n + 1) / 2, 2]
+            gridsize = [(n + 1) // 2, 2]
 
         return gridsize
 

@@ -24,6 +24,7 @@
 # *
 # ******************************************************************************
 
+import numpy as np
 from pyworkflow.viewer import ProtocolViewer, Viewer
 
 from .viewer_base import *
@@ -188,12 +189,13 @@ class PostprocessViewer(ProtocolViewer):
 
     def _plotGuinier(self, a, model, label):
         table = Table(fileName=model, tableName='guinier')
-        resolSqInv = table.getColumnValues('rlnResolutionSquared')
-        logAmp = table.getColumnValues(label)
+        resolSqInv = np.array(table.getColumnValues('rlnResolutionSquared'))
+        logAmp = np.array(table.getColumnValues(label))
 
-        self.maxfsc = max(logAmp)
-        self.minInv = min(resolSqInv)
-        self.maxInv = max(resolSqInv)
+        # remove values < -99.0
+        mask = logAmp > -99.0
+        logAmp = logAmp[mask]
+        resolSqInv = resolSqInv[mask]
 
         a.plot(resolSqInv, logAmp)
         a.xaxis.set_major_formatter(self._plotFormatter)
