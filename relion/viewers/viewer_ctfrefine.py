@@ -112,7 +112,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
                            "values")
 
     def _getVisualizeDict(self):
-        return{
+        return {
             'displayAnisoMag': self._displayAnisoMag,
             'displayDefocus': self._displayDefocus,
             'displayBeamTilt': self._displayBeamTilt,

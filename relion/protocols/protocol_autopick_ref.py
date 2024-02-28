@@ -34,7 +34,6 @@ from pyworkflow.utils.properties import Message
 import pyworkflow.utils as pwutils
 from pyworkflow.constants import PROD
 
-from relion import Plugin
 import relion.convert
 from ..constants import REF_AVERAGES, REF_VOLUME, ANGULAR_SAMPLING_LIST
 from .protocol_autopick import ProtRelionAutopickBase
@@ -407,8 +406,8 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         errors = []
 
         if self.useInputReferences() and self.getInputReferences().isOddX():
-                errors.append("Relion only works with even values for the "
-                              "average dimensions!")
+            errors.append("Relion only works with even values for the "
+                          "average dimensions!")
 
         if self.ctfRelations.get() is None and self.refsCtfCorrected:
             errors.append("References CTF corrected parameter must be set to "

@@ -29,13 +29,12 @@ from enum import Enum
 from pyworkflow.object import String, Integer
 from pyworkflow.constants import PROD
 from pyworkflow.protocol.params import (PointerParam, BooleanParam,
-                                        IntParam, LabelParam, LEVEL_ADVANCED)
+                                        IntParam, LabelParam)
 from pwem.constants import ALIGN_PROJ
 from pwem.protocols import ProtOperateParticles
 from pwem.objects import SetOfParticles
 
 import relion.convert as convert
-from relion import Plugin
 from .protocol_base import ProtRelionBase
 
 

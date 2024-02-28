@@ -154,7 +154,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         self.info("Relion version:")
         self.runJob("relion_refine --version", "", numberOfMpi=1)
         self.info("Detected version from config: %s"
-                  % relion.Plugin.getActiveVersion())
+                  % Plugin.getActiveVersion())
 
     def _convertCoordinates(self, mic, coordList):
         relion.convert.writeMicCoordinates(

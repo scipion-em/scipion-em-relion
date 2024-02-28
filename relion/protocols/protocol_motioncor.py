@@ -222,7 +222,7 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
     def _convertInputStep(self):
         self.info("Relion version:")
         self.runJob("relion_run_motioncorr --version", "", numberOfMpi=1)
-        self.info("Detected version from config: %s" % relion.Plugin.getActiveVersion())
+        self.info("Detected version from config: %s" % Plugin.getActiveVersion())
 
         ProtAlignMovies._convertInputStep(self)
 

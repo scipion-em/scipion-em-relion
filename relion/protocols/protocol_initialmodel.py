@@ -36,7 +36,6 @@ from pyworkflow.protocol.params import (PointerParam, FloatParam,
                                         StringParam, BooleanParam)
 
 import relion.convert as convert
-from relion import Plugin
 from .protocol_base import ProtRelionBase
 
 

@@ -39,7 +39,6 @@ import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ
 from pwem.objects import SetOfParticles
 
-from relion import Plugin
 import relion.convert as convert
 from .protocol_base import ProtRelionBase
 

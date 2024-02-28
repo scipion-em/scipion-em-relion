@@ -53,6 +53,10 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
     _possibleOutputs = {}
     IS_CLASSIFY = False
 
+    @classmethod
+    def isDisabled(cls):
+        return not Plugin.IS_GT50()
+
     def _initialize(self):
         """ This function is meant to be called after the
         working dir for the protocol have been set.
@@ -91,11 +95,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
         form.addParam('referenceVolume', params.PointerParam,
                       pointerClass='Volume', allowsNull=True,
                       label="Input consensus map",
-                      condition='not doContinue',
-                      help='You might want to provide input half maps manually, '
-                           'in case you did not use 3D auto-refine or '
-                           'multi-body protocol that generates them '
-                           'automatically.')
+                      condition='not doContinue')
 
         form.addParam('numberOfGaussians', params.IntParam, default=10000,
                       condition='not doContinue',
