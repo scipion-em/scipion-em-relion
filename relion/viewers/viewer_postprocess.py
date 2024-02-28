@@ -64,11 +64,8 @@ class PostprocessViewer(ProtocolViewer):
                        label='Display masked volume with',
                        help='*slices*: display masked volume as 2D slices along z axis.\n'
                             '*chimera*: display masked volume as surface with Chimera.')
-        group.addParam('figure', params.EnumParam, default=0,
-                       choices=['new', 'active'],
-                       label='Figure',
-                       display=params.EnumParam.DISPLAY_HLIST,
-                       help="Plot in a new window vs the last opened one")
+        group.addHidden('figure', params.EnumParam, default=0,
+                        choices=['new', 'active'])
         group.addParam('resolutionPlotsFSC', params.EnumParam,
                        choices=['Corrected', 'Unmasked Maps', 'Masked Maps',
                                 'Phase Randomized Masked Maps', 'all'],
@@ -135,16 +132,13 @@ class PostprocessViewer(ProtocolViewer):
     # =========================================================================
     # plotFSC
     # =========================================================================
-    def _getFigure(self):
-        return None if self.figure == 0 else 'active'
-
     def _showFSC(self, paramName=None):
         threshold = self.resolutionThresholdFSC.get()
 
         fscViewer = FscViewer(project=self.protocol.getProject(),
                               threshold=threshold,
                               protocol=self.protocol,
-                              figure=self._getFigure(),
+                              figure=None,
                               addButton=True)
         fscSet = self.protocol._createSetOfFSCs()
 
@@ -270,6 +264,7 @@ class ProtFSCViewer(Viewer):
         thr = 0.143 if self.protocol._getFSCType() == 0 else 0.5
         viewer = FscViewer(
             project=self.getProject(),
+            figure=None,
             protocol=self.protocol,
             threshold=thr)
 
