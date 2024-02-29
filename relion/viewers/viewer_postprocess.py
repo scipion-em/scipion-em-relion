@@ -148,8 +148,8 @@ class PostprocessViewer(ProtocolViewer):
                 legend = self._getLegend(label)
                 fsc = self._plotFSC(None, modelStar, label, legend)
                 fscSet.append(fsc)
+
         fscViewer.visualize(fscSet)
-        return [fscViewer]
 
     # ROB this function is duplicated
     def _plotFSC(self, a, model_star, label, legend=None):

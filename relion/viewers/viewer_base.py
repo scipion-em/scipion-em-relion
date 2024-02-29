@@ -685,8 +685,8 @@ Examples:
             if os.path.exists(model_star):
                 fsc = self._plotFSC(None, model_star, 'iter %d' % it)
                 fscSet.append(fsc)
+
         fscViewer.visualize(fscSet)
-        return [fscViewer]
 
     def _plotFSC(self, a, model_star, label, legend=None):
         if legend is None:
