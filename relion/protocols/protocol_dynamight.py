@@ -23,6 +23,7 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+import os.path
 from typing import List
 
 import pyworkflow.protocol.params as params
@@ -131,6 +132,9 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                            "enough RAM to do so.")
 
         form.addSection(label='Tasks', condition='doContinue')
+        form.addParam('continueMsg', params.LabelParam,
+                      condition='not doContinue',
+                      label='Tasks are not available outside of continue mode')
 
         group = form.addGroup('Visualize')
         group.addParam('doVisualize', params.BooleanParam, default=False,
@@ -286,6 +290,13 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
 
         if tasks.count(True) > 1:
             errors.append("You cannot select multiple tasks")
+
+        if self.doContinue:
+            inputProt = self.continueRun.get()
+            inputProt._createFilenameTemplates()
+            checkpoint_file = inputProt._getFileName('checkpoint_final')
+            if not os.path.exists(checkpoint_file):
+                errors.append(f"Cannot continue, {checkpoint_file} not found")
 
         return errors
 
