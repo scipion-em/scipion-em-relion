@@ -125,15 +125,15 @@ doi = {https://dx.doi.org/10.1107/S205225251801463X},
 }
 
 @article{Kimanius2021,
-    author = {Kimanius, Dari and Dong, Liyi and Sharov, Grigory and Nakane, Takanori and Scheres, Sjors H. W.},
-    title = "{New tools for automated cryo-EM single-particle analysis in RELION-4.0}",
-    journal = {Biochemical Journal},
-    volume = {478},
-    number = {24},
-    pages = {4169-4185},
-    year = {2021},
-    month = {12},
-    doi = {https://dx.doi.org/10.1042/BCJ20210708},
+author = {Kimanius, Dari and Dong, Liyi and Sharov, Grigory and Nakane, Takanori and Scheres, Sjors H. W.},
+title = "{New tools for automated cryo-EM single-particle analysis in RELION-4.0}",
+journal = {Biochemical Journal},
+volume = {478},
+number = {24},
+pages = {4169-4185},
+year = {2021},
+month = {12},
+doi = {https://dx.doi.org/10.1042/BCJ20210708},
 }
 
 @article{Amunts2014,
@@ -146,5 +146,15 @@ pages = {1485-1489},
 year = {2014},
 doi = {https://dx.doi.org/10.1126/science.1249410}
 }
+
+@article {Schwab2023,
+author = {Johannes Schwab and Dari Kimanius and Alister Burt and Tom Dendooven and Sjors H.W. Scheres},
+title = {DynaMight: estimating molecular motions with improved reconstruction from cryo-EM images},
+year = {2023},
+doi = {https://dx.doi.org/10.1101/2023.10.18.562877},
+publisher = {Cold Spring Harbor Laboratory},
+journal = {bioRxiv}
+}
+
 
 """

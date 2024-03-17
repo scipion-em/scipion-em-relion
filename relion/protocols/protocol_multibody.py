@@ -35,6 +35,7 @@ from pwem.objects import Volume, Float, SetOfVolumes, SetOfParticles
 from pwem.protocols import ProtAnalysis3D
 from pwem.constants import ALIGN_PROJ
 
+from relion import Plugin
 import relion.convert as convert
 from ..constants import ANGULAR_SAMPLING_LIST, LABELS_DICT, PARTICLE_EXTRA_LABELS
 from .protocol_base import ProtRelionBase
@@ -135,6 +136,13 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
                            'subtracted ones are still used for alignment). '
                            'This will result in fuzzy densities for bodies '
                            'outside the one used for refinement.')
+        if Plugin.IS_GT50():
+            form.addParam('useBlush', params.BooleanParam, default=False,
+                          label='Use Blush regularisation?',
+                          help='If set to Yes, relion_refine will use a neural '
+                               'network to perform regularisation by denoising '
+                               'at every iteration, instead of the standard '
+                               'smoothness regularisation.')
         form.addParam('continueRun', params.PointerParam,
                       pointerClass='ProtRelionMultiBody',
                       condition='doContinue', allowsNull=True,
@@ -430,6 +438,9 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
 
             if self.recSubtractedBodies:
                 args['--reconstruct_subtracted_bodies'] = ''
+
+            if Plugin.IS_GT50() and self.useBlush:
+                args['--blush'] = ''
 
             # Due to Relion bug we create a fake mask from previous refinement protocol
             # it's not used by multi-body

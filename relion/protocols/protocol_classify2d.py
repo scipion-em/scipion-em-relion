@@ -32,7 +32,6 @@ from pwem.objects import SetOfClasses2D
 from pwem.protocols import ProtClassify2D
 
 import relion.convert as convert
-from relion import Plugin
 from .protocol_base import ProtRelionBase
 
 
@@ -90,7 +89,7 @@ class ProtRelionClassify2D(ProtRelionBase, ProtClassify2D):
     # --------------------------- INFO functions ------------------------------
     def _validateNormal(self):
         errors = []
-        if Plugin.IS_GT31() and self.useGradientAlg and self.numberOfMpi > 1:
+        if self.useGradientAlg and self.numberOfMpi > 1:
             errors.append("Gradient refinement (running the VDAM algorithm) "
                           "is not supported together with MPI")
 
