@@ -1,6 +1,5 @@
 5.0.0:
     - add Relion 5.0 support, removed 3.x support
-    - new DynaMight flexibility protocol
     - fix gpu param value
     - float16=True by default
     - several fixes in the viewers
