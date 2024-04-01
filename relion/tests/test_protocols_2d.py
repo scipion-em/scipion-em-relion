@@ -180,10 +180,7 @@ class TestRelionClassify2D(TestRelionBase):
                                       doCTF=False, maskDiameterA=340,
                                       numberOfMpi=1, numberOfThreads=8)
             prot2D.numberOfClasses.set(4)
-            if Plugin.IS_GT31():
-                prot2D.numberOfVDAMBatches.set(100)
-            else:
-                prot2D.numberOfIterations.set(3)
+            prot2D.numberOfVDAMBatches.set(100)
             prot2D.inputParticles.set(self.protNormalize.outputParticles)
             prot2D.setObjLabel(label)
             prot2D.doGpu.set(doGpu)
