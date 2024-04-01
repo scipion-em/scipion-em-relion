@@ -92,7 +92,7 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
                            'the choice, CTF refinement job is always done on '
                            'dose-weighted particles.')
 
-        form.addParam('savePSsum', params.BooleanParam, default=False,
+        form.addParam('savePSsum', params.BooleanParam, default=True,
                       label='Save sum of power spectra?',
                       help='Sum of non-dose weighted power spectra '
                            'provides better signal for CTF estimation. '

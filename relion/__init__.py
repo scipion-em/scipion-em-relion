@@ -135,7 +135,7 @@ class Plugin(pwem.Plugin):
             os.makedirs(torchHome, exist_ok=True)
 
             if ver == V4_0:
-                envCmd = f"conda create -y -n relion-python -c pytorch python=3.9 pytorch=1.10.0 numpy=1.20 &&"
+                envCmd = f"conda create -y -n relion-4.0 -c pytorch python=3.9 pytorch=1.10.0 numpy=1.20 &&"
             else:
                 envCmd = "conda env create -y -f environment.yml &&"
 
