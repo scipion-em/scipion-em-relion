@@ -51,10 +51,6 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
     _devStatus = PROD
     _possibleOutputs = outputs
 
-    @classmethod
-    def isDisabled(cls):
-        return not Plugin.IS_GT31()
-
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')
@@ -99,7 +95,9 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
         params += " --fn_sel_classavgs class_averages.star"
         params += " --fn_root rank --do_granularity_features"
         params += " --auto_select"
-        params += " --python $CONDA_PREFIX/bin/python"
+
+        if not Plugin.IS_GT50():
+            params += " --python $CONDA_PREFIX/bin/python"
 
         if self.minParts != -1:
             params += " --select_min_nr_particles %d" % self.minParts

@@ -24,6 +24,8 @@
 # *
 # **************************************************************************
 
+from relion import Plugin
+
 from .protocol_assign_optic_groups import ProtRelionAssignOpticsGroup
 from .protocol_autopick_log import ProtRelionAutopickLoG
 from .protocol_autopick_ref import ProtRelion2Autopick
@@ -57,5 +59,9 @@ from .protocol_select_classes import ProtRelionSelectClasses2D
 from .protocol_subtract import ProtRelionSubtract
 from .protocol_symmetrize_volume import ProtRelionSymmetrizeVolume
 
+if Plugin.IS_GT50():
+    from .protocol_dynamight import ProtRelionDynaMight
+
+# jmrt-devel
 from .protocol_copy_scratch import ProtParticlesToScratch
 from .protocol_compress_movies_tasks import ProtRelionCompressMoviesTasks

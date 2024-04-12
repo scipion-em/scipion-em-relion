@@ -72,13 +72,11 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                       help='Final size in pixels of the extracted particles. '
                            'The provided value should be an even number. ')
 
-        if relion.Plugin.IS_GT31():
-            form.addParam('saveFloat16', params.BooleanParam, default=False,
-                          expertLevel=params.LEVEL_ADVANCED,
-                          label="Write output in float16?",
-                          help="Relion can write output images in float16 "
-                               "MRC (mode 12) format to save disk space. "
-                               "By default, float32 format is used.")
+        form.addParam('saveFloat16', params.BooleanParam, default=True,
+                      label="Write output in float16?",
+                      help="Relion can write output images in float16 "
+                           "MRC (mode 12) format to save disk space. "
+                           "By default, float32 format is used.")
 
         form.addSection(label='Preprocess')
 
@@ -156,7 +154,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         self.info("Relion version:")
         self.runJob("relion_refine --version", "", numberOfMpi=1)
         self.info("Detected version from config: %s"
-                  % relion.Plugin.getActiveVersion())
+                  % Plugin.getActiveVersion())
 
     def _convertCoordinates(self, mic, coordList):
         relion.convert.writeMicCoordinates(
@@ -207,10 +205,6 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         if self.doRescale and self.rescaledSize.get() % 2 == 1:
             errors.append("Only re-scaling to even-sized images is allowed "
                           "in RELION.")
-
-        if self.hasAttribute('saveFloat16') and self.saveFloat16:
-            errors.append("MRC float16 format is not yet supported by XMIPP, "
-                          "so you cannot use this option.")
 
         return errors
 
@@ -289,7 +283,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         params += ' --part_dir "." --extract '
         params += ' --extract_size %d' % self.boxSize
 
-        if Plugin.IS_GT31() and self.saveFloat16:
+        if self.saveFloat16:
             params += " --float16 "
 
         if self.backDiameter <= 0:

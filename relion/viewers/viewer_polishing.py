@@ -92,7 +92,6 @@ class RelionPolishViewer(ProtocolViewer):
             a.grid(True)
             a.set_xlabel('Movie frame number')
             a.set_ylabel(label)
-            a.invert_yaxis()
             a.plot(frame, list(bfactor))
             a.set_title(title)
             plotter.tightLayout()

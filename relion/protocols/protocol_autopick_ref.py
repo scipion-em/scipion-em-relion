@@ -34,7 +34,6 @@ from pyworkflow.utils.properties import Message
 import pyworkflow.utils as pwutils
 from pyworkflow.constants import PROD
 
-from relion import Plugin
 import relion.convert
 from ..constants import REF_AVERAGES, REF_VOLUME, ANGULAR_SAMPLING_LIST
 from .protocol_autopick import ProtRelionAutopickBase
@@ -127,14 +126,6 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
                            "but for highly symmetrical objects one may need to "
                            "go finer to adequately sample the asymmetric part of "
                            "the sphere.")
-
-        if not Plugin.IS_GT31():
-            form.addParam('particleDiameter', params.IntParam, default=-1,
-                          label='Mask diameter (A)',
-                          help='Diameter of the circular mask that will be applied '
-                               'around the templates in Angstroms. When set to a '
-                               'negative value, this value is estimated '
-                               'automatically from the templates themselves.')
 
         form.addParam('lowpassFilterRefs', params.IntParam, default=20,
                       label='Lowpass filter references (A)',
@@ -342,9 +333,6 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         params += ' --angpix %0.5f' % self.getInputMicrographs().getSamplingRate()
         params += ' --shrink %0.3f' % self.shrinkFactor
 
-        if not Plugin.IS_GT31():
-            params += ' --particle_diameter %d' % self.particleDiameter
-
         if self.doGpu:
             params += ' --gpu "%s"' % self.gpusToUse
 
@@ -404,33 +392,22 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
 
         self.runJob(program, params, cwd=cwd)
 
-    # -------------------------- STEPS functions -------------------------------
     def createOutputStep(self):
-        micSet = self.getInputMicrographs()
+        micSet = self.getInputMicrographsPointer()
         outputCoordinatesName = 'outputCoordinates'
         coordSet = self._createSetOfCoordinates(micSet)
-        self.readCoordsFromMics(None, micSet, coordSet)
+        self.readCoordsFromMics(None, micSet.get(), coordSet)
 
         self._defineOutputs(**{outputCoordinatesName: coordSet})
-        self._defineSourceRelation(self.getInputMicrographsPointer(),
-                                   coordSet)
+        self._defineSourceRelation(micSet, coordSet)
 
     # -------------------------- INFO functions --------------------------------
     def _validate(self):
         errors = []
 
-        if self.useInputReferences():
-            if not Plugin.IS_GT31() and (self.particleDiameter > self.getInputDimA()):
-                errors.append('Particle diameter (%d) can not be greater than '
-                              'size (%d)' % (self.particleDiameter,
-                                             self.getInputDimA()))
-            if self.getInputReferences().isOddX():
-                errors.append("Relion only works with even values for the "
-                              "average dimensions!")
-        else:
-            if not Plugin.IS_GT31() and (self.particleDiameter <= 0):
-                errors.append('When using Gaussian blobs, you need to specify '
-                              'the particles diameter manually. ')
+        if self.useInputReferences() and self.getInputReferences().isOddX():
+            errors.append("Relion only works with even values for the "
+                          "average dimensions!")
 
         if self.ctfRelations.get() is None and self.refsCtfCorrected:
             errors.append("References CTF corrected parameter must be set to "
@@ -488,10 +465,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         micsSampling = inputMics.getSamplingRate()
 
         if inputRefs is None:
-            if Plugin.IS_GT31():
-                boxSize = 128
-            else:
-                boxSize = int(self.particleDiameter.get() * 1.25 / micsSampling)
+            boxSize = 128
         else:
             # Scale boxsize if the pixel size of the references is not the same
             # of the micrographs

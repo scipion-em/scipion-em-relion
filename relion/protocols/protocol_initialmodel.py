@@ -36,7 +36,6 @@ from pyworkflow.protocol.params import (PointerParam, FloatParam,
                                         StringParam, BooleanParam)
 
 import relion.convert as convert
-from relion import Plugin
 from .protocol_base import ProtRelionBase
 
 
@@ -59,10 +58,6 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
     IS_2D = False
     CHANGE_LABELS = ['rlnChangesOptimalOrientations',
                      'rlnChangesOptimalOffsets']
-
-    @classmethod
-    def isDisabled(cls):
-        return not Plugin.IS_GT31()
 
     def __init__(self, **args):
         ProtRelionBase.__init__(self, **args)
