@@ -343,16 +343,6 @@ class ProtRelionBase(EMProtocol):
                            'intrinsically implements the optimal linear, or '
                            'Wiener filter. Note that input particles should '
                            'contains CTF parameters.')
-        if not Plugin.IS_GT31():
-            form.addParam('hasReferenceCTFCorrected', BooleanParam, default=False,
-                          condition='not is2D and not doContinue',
-                          label='Has reference been CTF-corrected?',
-                          help='Set this option to Yes if the reference map '
-                               'represents CTF-unaffected density, e.g. it was '
-                               'created using Wiener filtering inside RELION or '
-                               'from a PDB. If set to No, then in the first '
-                               'iteration, the Fourier transforms of the reference '
-                               'projections are not multiplied by the CTFs.')
         form.addParam('haveDataBeenPhaseFlipped', LabelParam,
                       condition='not doContinue',
                       label='Have data been phase-flipped?      '
@@ -426,7 +416,7 @@ class ProtRelionBase(EMProtocol):
                                'structures; too high values result in '
                                'over-estimated resolutions and overfitting.')
 
-            if Plugin.IS_GT31() and self.IS_2D:  # relion4 2D cls case
+            if self.IS_2D:  # 2D cls case
                 form.addParam('useGradientAlg', BooleanParam, default=True,
                               condition='not doContinue',
                               label='Use VDAM algorithm?',
@@ -466,7 +456,6 @@ class ProtRelionBase(EMProtocol):
                                    '*Continue from iteration* is set 3 and this '
                                    'param is set 25, the final iteration of the '
                                    'protocol will be the 28th.')
-
             else:
                 form.addParam('numberOfIterations', IntParam, default=25,
                               label='Number of iterations',
@@ -482,7 +471,7 @@ class ProtRelionBase(EMProtocol):
                                    'param is set 25, the final iteration of the '
                                    'protocol will be the 28th.')
 
-            if (Plugin.IS_GT31() and self.IS_3D) or not Plugin.IS_GT31():
+            if self.IS_3D:
                 form.addParam('useFastSubsets', BooleanParam, default=False,
                               condition='not doContinue',
                               label='Use fast subsets (for large data sets)?',
@@ -494,6 +483,14 @@ class ProtRelionBase(EMProtocol):
                                    'ones with all data. This was inspired by '
                                    'a cisTEM implementation by Niko Grigorieff'
                                    ' et al.')
+                if Plugin.IS_GT50():
+                    form.addParam('useBlush', BooleanParam, default=False,
+                                  condition='not doContinue',
+                                  label='Use Blush regularisation?',
+                                  help='If set to Yes, relion_refine will use a neural '
+                                       'network to perform regularisation by denoising '
+                                       'at every iteration, instead of the standard '
+                                       'smoothness regularisation.')
 
             form.addParam('limitResolEStep', FloatParam, default=-1,
                           label='Limit resolution E-step to (A)',
@@ -648,6 +645,13 @@ class ProtRelionBase(EMProtocol):
                                    'faster, but has not been tested for '
                                    'many cases for potential loss in '
                                    'reconstruction quality upon convergence.')
+                if Plugin.IS_GT50():
+                    form.addParam('useBlush', BooleanParam, default=False,
+                                  label='Use Blush regularisation?',
+                                  help='If set to Yes, relion_refine will use a neural '
+                                       'network to perform regularisation by denoising '
+                                       'at every iteration, instead of the standard '
+                                       'smoothness regularisation.')
 
         if self.IS_CLASSIFY:
             form.addParam('allowCoarserSampling', BooleanParam,
@@ -724,19 +728,17 @@ class ProtRelionBase(EMProtocol):
                            'particularly metadata handling of disk '
                            'access, is a problem. It has a modest cost of '
                            'increased RAM usage.')
-        if self.IS_3D:
-            if not (Plugin.IS_GT31() and self.IS_3D_INIT):
-                form.addParam('skipPadding', BooleanParam, default=self.IS_3D_MB,
-                              label='Skip padding',
-                              help='If set to Yes, the calculations will not use '
-                                   'padding in Fourier space for better '
-                                   'interpolation in the references. Otherwise, '
-                                   'references are padded 2x before Fourier '
-                                   'transforms are calculated. Skipping padding '
-                                   '(i.e. use --pad 1) gives nearly as good results '
-                                   'as using --pad 2, but some artifacts may appear '
-                                   'in the corners from signal that is folded back.')
-            form.addHidden('skipGridding', BooleanParam, default=True)  # removed from relion-4.0-stable
+        if self.IS_3D and not self.IS_3D_INIT:
+            form.addParam('skipPadding', BooleanParam, default=False,
+                          label='Skip padding',
+                          help='If set to Yes, the calculations will not use '
+                               'padding in Fourier space for better '
+                               'interpolation in the references. Otherwise, '
+                               'references are padded 2x before Fourier '
+                               'transforms are calculated. Skipping padding '
+                               '(i.e. use --pad 1) gives nearly as good results '
+                               'as using --pad 2, but some artifacts may appear '
+                               'in the corners from signal that is folded back.')
 
         form.addParam('allParticlesRam', BooleanParam, default=False,
                       label='Pre-read all particles into RAM?',
@@ -1021,7 +1023,7 @@ class ProtRelionBase(EMProtocol):
             args['--K'] = self.numberOfClasses.get()
             if self.limitResolEStep > 0:
                 args['--strict_highres_exp'] = self.limitResolEStep.get()
-            if self.IS_2D and Plugin.IS_GT31():
+            if self.IS_2D:
                 if self.useGradientAlg:
                     args['--grad'] = ''
                     args['--grad_write_iter'] = 10
@@ -1037,6 +1039,9 @@ class ProtRelionBase(EMProtocol):
             # We use the same pixel size as input particles, since
             # we convert anyway the input volume to match same size
             args['--ref_angpix'] = ps
+
+            if Plugin.IS_GT50() and self.useBlush:
+                args['--blush'] = ''
 
         refArg = self._getRefArg()
         if refArg:
@@ -1109,13 +1114,8 @@ class ProtRelionBase(EMProtocol):
         pass
 
     def _setCTFArgs(self, args):
-        # CTF stuff
         if self.doCTF:
             args['--ctf'] = ''
-
-            # this only can be true if is 3D
-            if not Plugin.IS_GT31() and self.hasReferenceCTFCorrected:
-                args['--ctf_corrected_ref'] = ''
 
             if self._getInputParticles().isPhaseFlipped():
                 args['--ctf_phase_flipped'] = ''
@@ -1200,7 +1200,7 @@ class ProtRelionBase(EMProtocol):
 
         if not os.path.exists(data_classes):
             clsSet = self.OUTPUT_TYPE(filename=data_classes)
-            clsSet.setImages(self.inputParticles.get())
+            clsSet.setImages(self.inputParticles)
             self._fillClassesFromIter(clsSet, it)
             clsSet.write()
             clsSet.close()
@@ -1245,7 +1245,7 @@ class ProtRelionBase(EMProtocol):
         return continueIter
 
     def _getnumberOfIters(self):
-        if Plugin.IS_GT31() and self.IS_2D and self.useGradientAlg:
+        if self.IS_2D and self.useGradientAlg:
             return self._getContinueIter() + self.numberOfVDAMBatches.get()
         else:
             return self._getContinueIter() + self.numberOfIterations.get()
@@ -1339,14 +1339,10 @@ class ProtRelionBase(EMProtocol):
         return self.getAttributeValue('useFastSubsets', False)
 
     def _getGpuStr(self):
-        gpuStr = self.getAttributeValue('gpusToUse', '').strip()
-        if gpuStr:
-            if not gpuStr.startswith('"'):
-                gpuStr = '"' + gpuStr
-            if not gpuStr.endswith('"'):
-                gpuStr += '"'
+        gpuStr = self.getAttributeValue('gpusToUse', '')
+        gpuStr = gpuStr.strip().strip('"')
 
-        return gpuStr
+        return f'"{gpuStr}"'
 
     def usesGpu(self):
         """ Return True if the protocol has gpu option and

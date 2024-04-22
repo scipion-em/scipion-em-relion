@@ -200,10 +200,8 @@ Examples:
                                 'to 0.75 * xVolDim')
 
             group = form.addGroup('Resolution')
-            group.addParam('figure', params.EnumParam, default=0,
-                           choices=['new', 'active'],
-                           label='Figure',
-                           display=params.EnumParam.DISPLAY_HLIST)
+            group.addHidden('figure', params.EnumParam, default=0,
+                            choices=['new', 'active'])
             group.addParam('resolutionPlotsSSNR', params.LabelParam,
                            default=True,
                            label='Display SSNR plots',
@@ -397,8 +395,8 @@ Examples:
         labels = ["rlnClassDistribution", "rlnAccuracyRotations",
                   "rlnAccuracyTranslationsAngst"]
 
-        iterations = range(self.firstIter, self.lastIter + 1)
         classInfo = {}
+        iterations = self._getAllIters()
 
         for it in iterations:
             modelStar = self.protocol._getFileName('model', iter=it)
@@ -631,17 +629,12 @@ Examples:
     # =============================================================================
     # plotSSNR
     # =============================================================================
-
-    def _getFigure(self):
-        return None if self.figure == 0 else 'active'
-
     def _showSSNR(self, paramName=None):
         prefixes = self._getPrefixes()
         nrefs = len(self._refsList)
         n = nrefs * len(prefixes)
         gridsize = self._getGridSize(n)
-        xplotter = RelionPlotter(x=gridsize[0], y=gridsize[1],
-                                 figure=self._getFigure())
+        xplotter = RelionPlotter(x=gridsize[0], y=gridsize[1])
 
         for prefix in prefixes:
             for ref3d in self._refsList:
@@ -683,8 +676,8 @@ Examples:
 
         fscViewer = FscViewer(project=self.protocol.getProject(),
                               threshold=threshold,
+                              figure=None,
                               protocol=self.protocol,
-                              figure=self._getFigure(),
                               addButton=True)
         fscSet = self.protocol._createSetOfFSCs()
         for it in self._iterations:
@@ -821,7 +814,7 @@ Examples:
         elif n == 2:
             gridsize = [2, 1]
         else:
-            gridsize = [(n + 1) / 2, 2]
+            gridsize = [(n + 1) // 2, 2]
 
         return gridsize
 
