@@ -59,5 +59,5 @@ from .protocol_select_classes import ProtRelionSelectClasses2D
 from .protocol_subtract import ProtRelionSubtract
 from .protocol_symmetrize_volume import ProtRelionSymmetrizeVolume
 
-#if Plugin.IS_GT50():
-#    from .protocol_dynamight import ProtRelionDynaMight
+if Plugin.IS_GT50():
+    from .protocol_dynamight import ProtRelionDynaMight
