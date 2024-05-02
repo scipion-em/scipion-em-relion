@@ -24,12 +24,15 @@
 # *
 # **************************************************************************
 import os.path
+from glob import glob
 from typing import List
 
 import pyworkflow.protocol.params as params
 from pyworkflow.constants import NEW
+import pyworkflow.utils as pwutils
 from pwem.protocols import ProtAnalysis3D
 from pwem.constants import ALIGN_PROJ
+from pwem.objects import SetOfVolumes, Volume
 
 from relion import Plugin
 import relion.convert as convert
@@ -51,7 +54,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
     """
     _label = 'DynaMight flexibility'
     _devStatus = NEW
-    _possibleOutputs = {}
+    _possibleOutputs = {"Volumes": SetOfVolumes}
     IS_CLASSIFY = False
 
     @classmethod
@@ -134,7 +137,8 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
         form.addSection(label='Tasks', condition='doContinue')
         form.addParam('continueMsg', params.LabelParam,
                       condition='not doContinue',
-                      label='Tasks are not available outside of continue mode')
+                      label='Tasks are not available outside of continue mode. '
+                            'Choose a previous run to analyze.')
 
         group = form.addGroup('Visualize')
         group.addParam('doVisualize', params.BooleanParam, default=False,
@@ -153,31 +157,23 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                             "you an estimate of the errors in the deformations.")
 
         group = form.addGroup('Deformations')
-        group.addParam('doDeformEstimate', params.BooleanParam, default=False,
+        group.addParam('doDeform', params.BooleanParam, default=False,
                        condition='doContinue',
-                       label="Do inverse-deformation estimation?",
+                       label="Estimate inverse deformation and backproject?",
                        help="If set to Yes, dynamight will be run to estimate "
-                            "inverse-deformations. These are necessary if one "
-                            "want to perform deformed backprojection to calculate "
+                            "inverse-deformations first. These are necessary "
+                            "to perform deformed backprojection to calculate "
                             "an improved consensus model.")
         group.addParam('numEpochs', params.IntParam, default=200,
-                       condition='doContinue and doDeformEstimate',
+                       condition='doContinue and doDeform',
                        label="Number of epochs to perform",
                        help="Number of epochs to perform inverse deformations. "
                             "You can monitor the convergence of the loss "
                             "function to assess how many are necessary. "
-                            "Often 200 are enough")
+                            "Often 200 are enough.")
 
-        group = form.addGroup('Backprojection')
-        group.addParam('doDeformBackProj', params.BooleanParam, default=False,
-                       condition='doContinue',
-                       label="Do deformed backprojection?",
-                       help="If set to Yes, dynamight will be run to perform "
-                            "a deformed backprojection, using "
-                            "inverse-deformations from a previous task, to "
-                            "get an improved consensus reconstruction.")
         group.addParam('batchSize', params.IntParam, default=10,
-                       condition='doContinue and doDeformBackProj',
+                       condition='doContinue and doDeform',
                        label="Backprojection batchsize",
                        help="Number of images to process in parallel. "
                             "This will speed up the calculation, but will "
@@ -196,8 +192,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
             self._insertFunctionStep(self.runDynamightStep)
         else:
             self._insertFunctionStep(self.runTasksStep)
-
-        #self._insertFunctionStep(self.createOutputStep)
+            self._insertFunctionStep(self.createOutputStep)
 
     # -------------------------- STEPS functions ------------------------------
     def _createFilenameTemplates(self):
@@ -208,7 +203,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
             'checkpoint_iter': self._getExtraPath(deform_path,
                                                   '%(iter)03d.pth'),
             'checkpoint_final': self._getExtraPath(deform_path,
-                                                   'checkpoint_final.pth'),
+                                                   'checkpoint_final.pth')
             }
         self._updateFilenamesDict(myDict)
 
@@ -243,8 +238,9 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
 
     def runTasksStep(self):
         inputProt = self.continueRun.get()
-        inputProt._createFilenameTemplates()
-        checkpoint_file = inputProt._getFileName('checkpoint_final')
+        pwutils.createLink(inputProt._getExtraPath("forward_deformations"),
+                           self._getExtraPath("forward_deformations"))
+        checkpoint_file = self._getFileName('checkpoint_final')
 
         if self.doVisualize:
             params = [
@@ -254,7 +250,10 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                 f"--checkpoint-file {checkpoint_file}",
                 f"--gpu-id {self.gpuList.get()}"
             ]
-        elif self.doDeformEstimate:
+            self.runProgram(params)
+
+        elif self.doDeform:
+            # Estimate inverse deformations
             params = [
                 "optimize-inverse-deformations",
                 self._getExtraPath(),
@@ -263,8 +262,9 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                 f"--gpu-id {self.gpuList.get()}",
                 "--preload-images" if self.allParticlesRam else ""
             ]
+            self.runProgram(params)
 
-        elif self.doDeformBackProj:
+            # Backproject
             params = [
                 "deformable-backprojection",
                 self._getExtraPath(),
@@ -273,10 +273,27 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                 f"--gpu-id {self.gpuList.get()}",
                 "--preload-images"
             ]
-        else:
-            raise ValueError("Unrecognized task")
+            self.runProgram(params)
 
-        self.runProgram(params)
+    def createOutputStep(self):
+        parts = self._getInputParticles()
+        if self.doVisualize:
+            output = self._getExtraPath("maps", "map???_half?.mrc")
+        elif self.doDeform:
+            output = self._getExtraPath("backprojection", "map_half?.mrc")
+
+        files = sorted(glob(output))
+        if files:
+            volumes = self._createSetOfVolumes()
+            volumes.setSamplingRate(parts.getSamplingRate())
+
+            for volFn in files:
+                vol = Volume()
+                vol.setFileName(volFn)
+                volumes.append(vol)
+
+            self._defineOutputs(Volumes=volumes)
+            self._defineSourceRelation(parts, volumes)
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
@@ -284,9 +301,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
 
     def _validate(self):
         errors = []
-        tasks = [self.doVisualize.get(),
-                 self.doDeformEstimate.get(),
-                 self.doDeformBackProj.get()]
+        tasks = [self.doVisualize.get(), self.doDeform.get()]
 
         if tasks.count(True) > 1:
             errors.append("You cannot select multiple tasks")

@@ -36,8 +36,9 @@ from pwem.objects import Micrograph
 import pwem.emlib.metadata as md
 import pyworkflow.utils as pwutils
 
-from .convert31 import OpticsGroups
-from .convert_utils import relionToLocation
+from relion import convert
+from relion.convert.convert31 import OpticsGroups
+from relion.convert.convert_utils import relionToLocation
 
 
 class FileTransform:
@@ -417,8 +418,33 @@ class RelionImport:
 
         return acquisitionDict
 
-    def importCoordinates(self, fileName, addCoordinate):
-        from .convert_deprecated import rowToCoordinate
-        for row in md.iterRows(fileName):
-            coord = rowToCoordinate(row)
-            addCoordinate(coord)
+    def importCoordinates(self):
+        prot = self.protocol  # shortcut
+        inputMics = prot.inputMicrographs
+        micList = [pwutils.removeExt(mic.getMicName()) for mic in inputMics.get()]
+        coordsSet = prot._createSetOfCoordinates(inputMics)
+
+        if len(prot.getMatchFiles()) == 1:  # particles.star file
+            for coordFile, _ in prot.iterFiles():
+                reader = convert.createReader()
+                reader.readSetOfCoordinates(
+                    coordFile, coordsSet, micList,
+                    postprocessCoordRow=self._postprocessCoordRow)
+                break
+        else:  # multiple star files with coords
+            from .convert_deprecated import rowToCoordinate
+            for coordFile, fileId in prot.iterFiles():
+                mic = prot.getMatchingMic(coordFile, fileId)
+                if mic is not None:
+                    # Parse the coordinates in the given format for this micrograph
+                    for row in md.iterRows(coordFile):
+                        coord = rowToCoordinate(row)
+                        coord.setMicrograph(mic)
+                        self._postprocessCoordRow(coord, row)
+                        coordsSet.append(coord)
+
+        return coordsSet
+
+    # -------------------------- UTILS functions ------------------------------
+    def _postprocessCoordRow(self, coord, row):
+        self.protocol.correctCoordinatePosition(coord)
