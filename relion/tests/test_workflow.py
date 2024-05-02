@@ -128,6 +128,14 @@ class TestWorkflowRelionBetagal(TestWorkflow):
 
         return protGctf
 
+    def _runCtffind(self, protMc):
+        """ Run CTFFind protocol. """
+        CistemProtCTFFind = Domain.importFromPlugin('cistem.protocols', 'CistemProtCTFFind')
+        protCTF = self.newProtocol(CistemProtCTFFind)
+        protCTF.inputMicrographs.set(protMc.outputMicrographsDoseWeighted)
+        self.launchProtocol(protCTF)
+        return protCTF
+
     def _runRelionExtract(self, protPicking, protCtf):
         print(magentaStr("\n==> Testing relion - extract particles:"))
         protRelionExtract = self.newProtocol(
@@ -181,9 +189,10 @@ class TestWorkflowRelionBetagal(TestWorkflow):
     def test_workflow(self):
         protImport = self._importMovies()
         protRelionMc = self._runRelionMc(protImport)
-        protGctf = self._runGctf(protRelionMc)
+        # protCtf = self._runGctf(protRelionMc)
+        protCtf = self._runCtffind(protRelionMc)
         protRelionLog = self._runRelionLog(protRelionMc)
-        protRelionExtract = self._runRelionExtract(protRelionLog, protGctf)
+        protRelionExtract = self._runRelionExtract(protRelionLog, protCtf)
         protRelion2D = self._runRelion2D(protRelionExtract)
         protInitModel = self._runInitModel(protRelionExtract)
         self.assertIsNotNone(protRelion2D.outputClasses, protRelion2D.getErrorMessage())
