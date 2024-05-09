@@ -245,8 +245,8 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
     def subtractStepRelion(self):
         inputProt = self.inputProtocol.get()
         inputProt._initialize()
-        fnOptimiser = inputProt._getFileName('optimiser',
-                                             iter=inputProt._lastIter())
+
+        fnOptimiser = inputProt._getOptimiserFile()
         params = " --i %s --o %s --new_box %s" % (fnOptimiser,
                                                   self._getExtraPath(),
                                                   self.newBoxSize.get())

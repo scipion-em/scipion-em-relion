@@ -82,8 +82,7 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
     def runSelectStep(self):
         inputProt = self.inputProtocol.get()
         inputProt._initialize()
-        fnOptimiser = inputProt._getFileName('optimiser',
-                                             iter=inputProt._lastIter())
+        fnOptimiser = inputProt._getOptimiserFile()
         params = " --opt %s --o %s --min_score %s" % (fnOptimiser,
                                                       self._getExtraPath(),
                                                       self.minThreshold.get())

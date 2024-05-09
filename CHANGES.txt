@@ -4,6 +4,7 @@
     - float16=True by default
     - several fixes in the viewers
     - import coordinates protocol moved to the pwem core pligin
+    - bugfix for finding optimiser file after gentle project cleaning
 4.0.20: fix FSC viewer: Do not show empty figure when closing.
 4.0.19: fix adding more coords to the output of import coords protocol
 4.0.18: add ewald params to the reconstruct protocol
