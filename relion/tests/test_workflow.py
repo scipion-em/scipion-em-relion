@@ -88,7 +88,7 @@ class TestWorkflowRelionBetagal(TestWorkflow):
             ProtRelionMotioncor,
             objLabel='relion - motioncor',
             patchX=1, patchY=1,
-            numberOfThreads=CPUS//2)
+            numberOfThreads=CPUS)
 
         protRelionMc.inputMovies.set(protImport.outputMovies)
         protRelionMc = self.launchProtocol(protRelionMc)
@@ -103,7 +103,8 @@ class TestWorkflowRelionBetagal(TestWorkflow):
             boxSize=100,
             minDiameter=150, maxDiameter=180,
             threshold2=5.0,
-            numberOfMpi=CPUS//2)
+            streamingBatchSize=0,
+            numberOfMpi=1)
 
         protRelionLog.inputMicrographs.set(protRelionMc.outputMicrographsDoseWeighted)
         protRelionLog = self.launchProtocol(protRelionLog)
