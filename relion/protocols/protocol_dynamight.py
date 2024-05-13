@@ -287,9 +287,11 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
             volumes = self._createSetOfVolumes()
             volumes.setSamplingRate(parts.getSamplingRate())
 
-            for volFn in files:
+            for i, volFn in enumerate(files):
                 vol = Volume()
                 vol.setFileName(volFn)
+                if self.doDeform:
+                    vol.setObjLabel(f"half-map {i+1}")
                 volumes.append(vol)
 
             self._defineOutputs(Volumes=volumes)
