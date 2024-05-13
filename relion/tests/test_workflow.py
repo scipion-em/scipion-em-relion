@@ -117,9 +117,11 @@ class TestWorkflowRelionBetagal(TestWorkflow):
         protCtf = self.newProtocol(
             ProtCtfFind,
             objLabel='ctffind',
-            lowRes=0.04, highRes=0.21,
+            lowRes=20, highRes=3,
             astigmatism=100,
-            windowSize=512
+            windowSize=512,
+            usePowerSpectra=True,
+            streamingBatchSize=0
         )
 
         protCtf.inputMicrographs.set(protMc.outputMicrographsDoseWeighted)
@@ -136,6 +138,7 @@ class TestWorkflowRelionBetagal(TestWorkflow):
             doInvert=True, doNormalize=True,
             backDiameter=200,
             numberOfMpi=CPUS,
+            streamingBatchSize=0,
             downsamplingType=0  # Micrographs same as picking
         )
 
