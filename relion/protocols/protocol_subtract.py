@@ -190,7 +190,7 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
                            'results. Therefore, this option is not generally '
                            'recommended.')
 
-        form.addParallelSection(threads=0, mpi=1)
+        form.addParallelSection(threads=0, mpi=2)
     
     # -------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self):
