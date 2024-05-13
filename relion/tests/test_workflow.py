@@ -110,23 +110,22 @@ class TestWorkflowRelionBetagal(TestWorkflow):
 
         return protRelionLog
 
-    def _runGctf(self, protMc):
-        print(magentaStr("\n==> Testing gctf - estimate ctf:"))
-        ProtGctf = Domain.importFromPlugin('gctf.protocols', 'ProtGctf')
+    def _runCtffind(self, protMc):
+        print(magentaStr("\n==> Testing ctffind - estimate ctf:"))
+        ProtCtfFind = Domain.importFromPlugin('cistem.protocols', 'CistemProtCTFFind')
 
-        protGctf = self.newProtocol(
-            ProtGctf,
-            objLabel='gctf',
+        protCtf = self.newProtocol(
+            ProtCtfFind,
+            objLabel='ctffind',
             lowRes=0.04, highRes=0.21,
             astigmatism=100,
-            windowSize=512,
-            gpuList="0"
+            windowSize=512
         )
 
-        protGctf.inputMicrographs.set(protMc.outputMicrographsDoseWeighted)
-        protGctf = self.launchProtocol(protGctf)
+        protCtf.inputMicrographs.set(protMc.outputMicrographsDoseWeighted)
+        protCtf = self.launchProtocol(protCtf)
 
-        return protGctf
+        return protCtf
 
     def _runRelionExtract(self, protPicking, protCtf):
         print(magentaStr("\n==> Testing relion - extract particles:"))
@@ -181,9 +180,9 @@ class TestWorkflowRelionBetagal(TestWorkflow):
     def test_workflow(self):
         protImport = self._importMovies()
         protRelionMc = self._runRelionMc(protImport)
-        protGctf = self._runGctf(protRelionMc)
+        protCtfFind = self._runCtffind(protRelionMc)
         protRelionLog = self._runRelionLog(protRelionMc)
-        protRelionExtract = self._runRelionExtract(protRelionLog, protGctf)
+        protRelionExtract = self._runRelionExtract(protRelionLog, protCtfFind)
         protRelion2D = self._runRelion2D(protRelionExtract)
         protInitModel = self._runInitModel(protRelionExtract)
         self.assertIsNotNone(protRelion2D.outputClasses, protRelion2D.getErrorMessage())
