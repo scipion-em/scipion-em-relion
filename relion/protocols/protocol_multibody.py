@@ -423,8 +423,7 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
                 args['--reconstruct_subtracted_bodies'] = ''
 
         else:
-            fnOptimiser = protRefine._getFileName('optimiser',
-                                                  iter=protRefine._lastIter())
+            fnOptimiser = protRefine._getOptimiserFile()
             args.update({
                 '--multibody_masks': self._getExtraPath('input_body.star'),
                 '--solvent_correct_fsc': '',

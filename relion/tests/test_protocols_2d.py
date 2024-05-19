@@ -34,7 +34,8 @@ from pyworkflow.tests import setupTestProject, DataSet
 from pyworkflow.plugin import Domain
 from pyworkflow.utils import magentaStr
 from pwem.objects import SetOfMovies
-from pwem.protocols import ProtImportAverages, ProtImportCTF, ProtImportParticles
+from pwem.protocols import (ProtImportAverages, ProtImportCTF,
+                            ProtImportParticles, ProtImportCoordinates)
 
 from ..protocols import *
 from ..convert import *
@@ -593,13 +594,16 @@ class TestRelionImportCoords(TestRelionBase):
         cls.ds = DataSet.getDataSet('relion31_tutorial_precalculated')
         cls.mics = cls.ds.getFile('MotionCorr/job002/Movies/*frameImage.mrc')
         cls.parts = cls.ds.getFile('Refine3D/job029/run_it018_data.star')
+        cls.coords = cls.ds.getFile('AutoPick/job006/Movies')
         cls.protImportMics = cls.runImportMics(cls.mics, 0.885)
 
     def testImportCoords(self):
-        """ Run an Import coords protocol. """
-        print(magentaStr("\n==> Importing coordinates (from star file):"))
-        self.protImport = self.newProtocol(ProtRelionImportCoords,
-                                           filePath=self.parts,
+        """ Run an Import coords protocol from a particle star file. """
+        print(magentaStr("\n==> Importing coordinates (from particles star file):"))
+        self.protImport = self.newProtocol(ProtImportCoordinates,
+                                           objLabel="from particles star file",
+                                           importFrom=2,  # RELION
+                                           filesPath=self.parts,
                                            boxSize=128)
         self.protImport.inputMicrographs.set(self.protImportMics.outputMicrographs)
         self.launchProtocol(self.protImport)
@@ -607,6 +611,22 @@ class TestRelionImportCoords(TestRelionBase):
                              "SetOfCoordinates has not been produced.")
         self.assertEqual(self.protImport.outputCoordinates.getSize(),
                          4501, "Output size is not 4501!")
+
+    def testImportCoords2(self):
+        """ Run an Import coords protocol. """
+        print(magentaStr("\n==> Importing coordinates (from coordinates star file):"))
+        self.protImport = self.newProtocol(ProtImportCoordinates,
+                                           objLabel="from coordinates star file",
+                                           importFrom=2,  # RELION
+                                           filesPath=self.coords,
+                                           filesPattern="*autopick.star",
+                                           boxSize=128)
+        self.protImport.inputMicrographs.set(self.protImportMics.outputMicrographs)
+        self.launchProtocol(self.protImport)
+        self.assertIsNotNone(self.protImport.outputCoordinates,
+                             "SetOfCoordinates has not been produced.")
+        self.assertEqual(self.protImport.outputCoordinates.getSize(),
+                         1158, "Output size is not 1158!")
 
 
 class TestRelionImportParticles(TestRelionBase):

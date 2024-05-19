@@ -96,8 +96,7 @@ Protocols
 * export coordinates
 * export ctf                
 * export particles
-* import coordinates
-* local resolution          
+* local resolution
 * motion correction
 * particles extraction
 * post-processing           

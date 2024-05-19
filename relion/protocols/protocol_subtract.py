@@ -190,7 +190,7 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
                            'results. Therefore, this option is not generally '
                            'recommended.')
 
-        form.addParallelSection(threads=0, mpi=1)
+        form.addParallelSection(threads=0, mpi=2)
     
     # -------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self):
@@ -245,8 +245,8 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
     def subtractStepRelion(self):
         inputProt = self.inputProtocol.get()
         inputProt._initialize()
-        fnOptimiser = inputProt._getFileName('optimiser',
-                                             iter=inputProt._lastIter())
+
+        fnOptimiser = inputProt._getOptimiserFile()
         params = " --i %s --o %s --new_box %s" % (fnOptimiser,
                                                   self._getExtraPath(),
                                                   self.newBoxSize.get())

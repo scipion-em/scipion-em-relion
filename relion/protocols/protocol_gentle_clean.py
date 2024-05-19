@@ -55,9 +55,9 @@ class ProtRelionCleanJobs(Protocol):
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
-        self._insertFunctionStep("findRelionProtsStep")
-        self._insertFunctionStep("runCleanStep")
-        self._insertFunctionStep('createOutputStep')
+        self._insertFunctionStep(self.findRelionProtsStep)
+        self._insertFunctionStep(self.runCleanStep)
+        self._insertFunctionStep(self.createOutputStep)
 
     # --------------------------- STEPS functions -----------------------------
     def findRelionProtsStep(self):
@@ -90,17 +90,19 @@ class ProtRelionCleanJobs(Protocol):
             return
 
         fnsTemplate = {
-            'ProtRelionExtractParticles': ['../micrographs_*.star'],
-            'ProtRelionPostProcess': ['*masked.mrc'],
-            'ProtRelionMotionCor': ['*corrected_micrographs.star',
+            'ProtRelionExtractParticles': ['micrographs_*.star'],
+            'ProtRelionPostprocess': ['*.eps'],
+            'ProtRelionMotioncor': ['*corrected_micrographs.star',
                                     '*.log',
                                     '*.TXT'],
             'ProtRelionBayesianPolishing': ['*_FCC_cc.mrc',
                                             '*_FCC_w0.mrc',
-                                            '*_FCC_w1.mrc'],
+                                            '*_FCC_w1.mrc',
+                                            '*.eps',
+                                            '*_shiny.star',
+                                            '*_tracks.star'],
             'ProtRelionCtfRefinement': ['*_wAcc_optics-group*.mrc',
                                         '*_xyAcc_optics-group*.mrc',
-                                        '*_aberr-Axx_optics-group_*.mrc',
                                         '*_aberr-Axx_optics-group_*.mrc',
                                         '*_aberr-Axy_optics-group_*.mrc',
                                         '*_aberr-Ayy_optics-group_*.mrc',
@@ -130,7 +132,7 @@ class ProtRelionCleanJobs(Protocol):
                         if s:
                             # group 1 is 3 digits iteration number
                             result = "relion_[ic]t%03d_" % int(s.group(1))
-                            self.info("I'll keep files: %s from %s" % (result, protDir))
+                            self.info(f"I'll keep files: {os.path.join(protDir, result)}*")
                     if result:
                         for f in files:
                             match = re.search(result, f)
