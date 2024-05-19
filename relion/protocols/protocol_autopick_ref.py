@@ -316,12 +316,14 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
     def convertInputStep(self, micsId, refsId):
         pwutils.makePath(self._getExtraPath('DONE'))  # Required to report finished
 
+        ih = ImageHandler()
         inputRefs = self.getInputReferences()
         if self.useInputReferences():
-            relion.convert.writeReferences(
-                inputRefs, self._getPath('reference_2d'), useBasename=True)
+            for i, avg in enumerate(inputRefs):
+                newAvgLoc = (i + 1, self._getPath('references_2d.mrcs'))
+                ih.convert(avg, newAvgLoc)
         else:
-            ImageHandler().convert(inputRefs, self._getPath('reference_3d.mrc'))
+            ih.convert(inputRefs, self._getPath('reference_3d.mrc'))
 
     def getAutopickParams(self):
         # Return the autopicking parameters except for the interactive ones:
@@ -337,7 +339,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
             params += ' --gpu "%s"' % self.gpusToUse
 
         if self.useInputReferences():
-            params += ' --ref %s' % abspath(self._getPath('reference_2d.stk'))
+            params += ' --ref %s' % abspath(self._getPath('references_2d.mrcs'))
         else:  # 3D reference
             params += ' --ref %s' % abspath(self._getPath('reference_3d.mrc'))
             params += ' --sym %s' % self.symmetryGroup
