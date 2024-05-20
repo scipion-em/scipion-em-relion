@@ -143,7 +143,7 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                       "not in streaming...changed value to 0 (extract all).")
             self.streamingBatchSize.set(0)
 
-        return [self._insertFunctionStep('convertInputStep',
+        return [self._insertFunctionStep(self.convertInputStep,
                                          self.getInputMicrographs().getObjId())]
 
     def _doNothing(self, *args):

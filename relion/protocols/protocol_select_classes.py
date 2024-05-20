@@ -75,8 +75,8 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
-        self._insertFunctionStep('runSelectStep')
-        self._insertFunctionStep('createOutputStep')
+        self._insertFunctionStep(self.runSelectStep)
+        self._insertFunctionStep(self.createOutputStep)
 
     # --------------------------- STEPS functions -----------------------------
     def runSelectStep(self):

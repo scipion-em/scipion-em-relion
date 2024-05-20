@@ -267,13 +267,13 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
             self.micDict = {}
             self.micDict, _ = self._loadInputList()
 
-            self._insertFunctionStep('convertInputStep',
+            self._insertFunctionStep(self.convertInputStep,
                                      self.getInputMicrographs().strId(),
                                      self.getInputReferences().strId())
             nameList = [mic.getMicName() for mic in self.getInputMicrographs()]
-            self._insertFunctionStep('pickMicrographListStep', nameList,
+            self._insertFunctionStep(self.pickMicrographListStep, nameList,
                                      *self._getPickArgs())
-            self._insertFunctionStep('createOutputStep')
+            self._insertFunctionStep(self.createOutputStep)
 
             # Disable streaming functions:
             self._insertFinalSteps = self._doNothing
@@ -283,7 +283,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         # Convert the input micrographs and references to
         # the required Relion star files
         inputRefs = self.getInputReferences()
-        convertId = self._insertFunctionStep('convertInputStep',
+        convertId = self._insertFunctionStep(self.convertInputStep,
                                              self.getInputMicrographs().strId(),
                                              inputRefs.strId())
         return [convertId]
