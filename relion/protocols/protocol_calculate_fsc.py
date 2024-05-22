@@ -109,9 +109,9 @@ class ProtRelionCalculateFSC(ProtAnalysis3D, ProtRelionBase):
     # -------------------------- INSERT steps functions ------------------------
     def _insertAllSteps(self):
         self._createFilenameTemplates()
-        self._insertFunctionStep('convertInputStep')
-        self._insertFunctionStep('calculateFSCStep')
-        self._insertFunctionStep('createOutputStep')
+        self._insertFunctionStep(self.convertInputStep)
+        self._insertFunctionStep(self.calculateFSCStep)
+        self._insertFunctionStep(self.createOutputStep)
 
     # -------------------------- STEPS functions -------------------------------
     def convertInputStep(self, *args):

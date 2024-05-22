@@ -100,9 +100,10 @@ class ProtRelionCompressEstimateGain(ProtProcessMovies):
     # --------------------------- STEPS functions -------------------------------
     def _insertAllSteps(self):
         self._createFilenameTemplates()
-        self._insertFunctionStep('convertInputStep',
+        self._insertFunctionStep(self.convertInputStep,
                                  self.inputMovies.getObjId())
-        self._insertFunctionStep('estimateGainStep')
+        self._insertFunctionStep(self.estimateGainStep)
+        self._insertFunctionStep(self.createOutputStep)
 
     def convertInputStep(self, moviesId):
         self.info("Relion version:")
