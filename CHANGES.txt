@@ -6,6 +6,7 @@
     - import coordinates protocol moved to the pwem core pligin
     - bugfix for finding optimiser file after gentle project cleaning
     - new protocol: DynaMight flexibility
+    - gain estimation protocol refactored, test added
     - close #391, #396
 4.0.20: fix FSC viewer: Do not show empty figure when closing.
 4.0.19: fix adding more coords to the output of import coords protocol
