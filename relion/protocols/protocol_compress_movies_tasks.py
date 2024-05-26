@@ -57,7 +57,8 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
     def _getConvertExtension(self, filename):
         """ Check whether it is needed to convert to .mrc or not """
         ext = pwutils.getExt(filename).lower()
-        return None if ext in ['.mrc', '.mrcs', '.tiff', '.tif', '.eer'] else 'mrc'
+        return None if ext in ['.mrc', '.mrcs', '.tiff',
+                               '.tif', '.eer', '.gain'] else 'mrc'
 
     # -------------------------- DEFINE param functions -----------------------
     def _defineParams(self, form):
@@ -83,16 +84,14 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
         form.addParam('eerGroup', params.IntParam, default=32,
                       label='EER fractionation',
                       help="The number of hardware frames to group into one "
-                           "fraction. This option is relevant only for Falcon4 "
-                           "movies in the EER format. Falcon 4 operates at "
-                           "248 frames/s.\nFractionate such that each fraction "
-                           "has about 0.5 to 1.25 e/A2.")
+                           "fraction. This option is relevant only for Falcon "
+                           "movies in the EER format. Fractionate such "
+                           "that each fraction has about 0.5 to 1.25 e/A2.")
         form.addParam('eerSampling', params.EnumParam, default=0,
-                      choices=['1', '2'],
+                      choices=['1x', '2x'],
                       display=params.EnumParam.DISPLAY_HLIST,
                       label='EER upsampling',
-                      help="EER upsampling (1 = 4K or 2 = 8K). 8K rendering is not "
-                           "recommended by Relion. See "
+                      help="EER upsampling (1 = 4K or 2 = 8K). See "
                            "https://relion.readthedocs.io/en/latest/Reference/MovieCompression.html")
 
         form.addParallelSection(threads=4, mpi=0)
@@ -119,13 +118,23 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
         inputGain = None
 
         if self.inputGainProt.get():
-            gain = "gain_estimate.bin"  # TODO: Check this is working
             inputGainProt = self.inputGainProt.get()
             inputGainProt._createFilenameTemplates()
-            gainFile = self._getPath(gain)
-            inputGain = inputGainProt._getFileName("output_gain")
-            #pwutils.createAbsLink(os.path.abspath(inputGainProt._getFileName("output_gain_extra")),
-            #                      tmpGain.replace('.bin', '_reliablity.bin'))
+            inputGainBin = inputGainProt._getFileName("output_gain")
+            inputGainMrc = inputGainProt._getFileName("output_gain_mrc")
+            inputDefects = inputGainProt._getFileName("output_gain_extra")
+
+            if os.path.exists(inputGainMrc):
+                inputGain = inputGainMrc
+                gainBase = os.path.basename(inputGain)
+                gainFile = self._getPath(gainBase)
+            elif os.path.exists(inputGainBin):  # .bin gain files
+                inputGain = inputGainBin
+                gainBase = os.path.basename(inputGain)
+                gainFile = self._getPath(gainBase)
+                pwutils.createLink(inputDefects,
+                                   gainFile.replace('.bin', '_reliablity.bin'))
+
         elif gainFn := self.inputMovies.get().getGain():
             inputGain = gainFn
             gainBase = os.path.basename(gainFn)
@@ -315,5 +324,5 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
         return cmd
 
     def _runProgram(self, cmd, **kwargs):
-        # We are using Scipion parallelization in batches, so no using MPI here
+        # We are using Scipion parallelization in batches, so not using MPI here
         self.runJob('relion_convert_to_tiff', cmd, numberOfMpi=1, **kwargs)

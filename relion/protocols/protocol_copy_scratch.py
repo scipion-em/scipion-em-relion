@@ -59,7 +59,7 @@ class ProtParticlesToScratch(EMProtocol):
 
     # -------------------------- STEPS functions ------------------------------
     def _insertAllSteps(self):
-        self._insertFunctionStep('createOutputStep')
+        self._insertFunctionStep(self.createOutputStep)
 
     def createOutputStep(self):
         projName = self.getProject().shortName
@@ -84,7 +84,7 @@ class ProtParticlesToScratch(EMProtocol):
 
         outImgSet = self._createSetOfParticles()
         outImgSet.copyInfo(imgSet)
-        imgSet.setAlignmentProj()
+        imgSet.setAlignment(imgSet.getAlignment())
         outImgSet.copyItems(imgSet, updateItemCallback=_updatePath)
         self._defineOutputs(**{outputs.outputParticles.name: outImgSet})
         self._defineTransformRelation(self.inputParticles, outImgSet)
@@ -102,4 +102,3 @@ class ProtParticlesToScratch(EMProtocol):
     def _validate(self):
         errors = []
         return errors
-
