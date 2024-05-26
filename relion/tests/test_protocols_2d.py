@@ -891,3 +891,47 @@ class TestRelionRemovePrefViews(TestRelionBase):
                              "There was a problem with remove preferential views protocol.")
         outSize = prot.outputParticles.getSize()
         self.assertEqual(outSize, 4080, "Output size is not 4080!")
+
+
+class TestRelionEstimateGain(TestRelionBase):
+    @classmethod
+    def setUpClass(cls):
+        setupTestProject(cls)
+        cls.ds1 = DataSet.getDataSet('movies')
+        cls.ds2 = DataSet.getDataSet('relion30_tutorial')
+
+        cls.protImport1 = cls.runImportMovies(
+            filesPath=cls.ds1.getPath(),
+            filesPattern='Falcon*.mrcs',
+            samplingRate=1.1,
+            voltage=300,
+            sphericalAberration=2.7,
+            dose=1.2
+        )
+
+        cls.protImport2 = cls.runImportMovies(
+            filesPath=cls.ds1.getPath(),
+            filesPattern='FoilHole*.eer',
+            samplingRate=1.2,
+            voltage=300,
+            sphericalAberration=2.7,
+            dose=0.07,
+        )
+
+        cls.protImport3 = cls.runImportMovies(
+            filesPath=cls.ds2.getFile('Movies/'),
+            filesPattern='*.tiff',
+            samplingRate=0.885,
+            voltage=200,
+            sphericalAberration=1.4,
+            dose=1.277
+        )
+
+    def test_estimateGain(self):
+        print(magentaStr("\n==> Testing relion - estimate gain:"))
+        for movies in [self.protImport1, self.protImport2, self.protImport3]:
+            prot = self.newProtocol(ProtRelionCompressEstimateGain)
+            prot.inputMovies.set(movies.outputMovies)
+            self.launchProtocol(prot)
+            outputGain = glob(prot._getPath("gain_estimate.*"))
+            self.assertEqual(len(outputGain), 1, "Gain estimation failed.")

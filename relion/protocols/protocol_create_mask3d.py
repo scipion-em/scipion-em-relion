@@ -119,9 +119,9 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         self.maskFile = self._getExtraPath('mask.mrc')
-        self._insertFunctionStep('convertInputStep', self.inputVolume.get().getObjId())
-        self._insertFunctionStep('createMaskStep')
-        self._insertFunctionStep('createOutputStep')
+        self._insertFunctionStep(self.convertInputStep, self.inputVolume.get().getObjId())
+        self._insertFunctionStep(self.createMaskStep)
+        self._insertFunctionStep(self.createOutputStep)
     
     # --------------------------- STEPS functions -----------------------------
     def convertInputStep(self, volId):
