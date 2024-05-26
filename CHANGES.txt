@@ -8,6 +8,7 @@
     - new protocol: DynaMight flexibility
     - gain estimation protocol refactored, test added
     - close #391, #396
+    - postprocess protocol accepts a volume with associated half-maps
 4.0.20: fix FSC viewer: Do not show empty figure when closing.
 4.0.19: fix adding more coords to the output of import coords protocol
 4.0.18: add ewald params to the reconstruct protocol
