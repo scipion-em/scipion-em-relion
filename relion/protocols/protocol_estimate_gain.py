@@ -59,7 +59,8 @@ class ProtRelionCompressEstimateGain(ProtProcessMovies):
         """ Centralize how files are called. """
         myDict = {'input_star': self._getTmpPath('input_movies.star'),
                   'output_gain': self._getPath('gain_estimate.bin'),
-                  'output_gain_extra': self._getPath('gain_estimate_reliablity.bin')
+                  'output_gain_extra': self._getPath('gain_estimate_reliablity.bin'),
+                  'output_gain_mrc': self._getPath('gain_estimate.mrc'),
                   }
         self._updateFilenamesDict(myDict)
 
@@ -103,7 +104,6 @@ class ProtRelionCompressEstimateGain(ProtProcessMovies):
         self._insertFunctionStep(self.convertInputStep,
                                  self.inputMovies.getObjId())
         self._insertFunctionStep(self.estimateGainStep)
-        self._insertFunctionStep(self.createOutputStep)
 
     def convertInputStep(self, moviesId):
         self.info("Relion version:")
