@@ -59,3 +59,7 @@ from .protocol_symmetrize_volume import ProtRelionSymmetrizeVolume
 
 if Plugin.IS_GT50():
     from .protocol_dynamight import ProtRelionDynaMight
+
+# jmrt-devel
+from .protocol_copy_scratch import ProtParticlesToScratch
+from .protocol_compress_movies_tasks import ProtRelionCompressMoviesTasks
