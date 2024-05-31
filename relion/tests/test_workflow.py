@@ -35,7 +35,7 @@ from pwem.protocols import ProtImportMovies
 from ..protocols import *
 
 
-CPUS = os.environ.get('SCIPION_TEST_CPUS', 4)
+CPUS = os.environ.get('SCIPION_TEST_CPUS', 8)
 GPUS = os.environ.get('SCIPION_TEST_GPUS', 2)
 
 
@@ -88,7 +88,8 @@ class TestWorkflowRelionBetagal(TestWorkflow):
             ProtRelionMotioncor,
             objLabel='relion - motioncor',
             patchX=1, patchY=1,
-            numberOfThreads=CPUS)
+            saveFloat16=False,
+            numberOfMpi=CPUS//2)
 
         protRelionMc.inputMovies.set(protImport.outputMovies)
         protRelionMc = self.launchProtocol(protRelionMc)
@@ -130,14 +131,22 @@ class TestWorkflowRelionBetagal(TestWorkflow):
 
         return protCtf
 
+    def _runCtffind(self, protMc):
+        """ Run CTFFind protocol. """
+        CistemProtCTFFind = Domain.importFromPlugin('cistem.protocols', 'CistemProtCTFFind')
+        protCTF = self.newProtocol(CistemProtCTFFind)
+        protCTF.inputMicrographs.set(protMc.outputMicrographsDoseWeighted)
+        self.launchProtocol(protCTF)
+        return protCTF
+
     def _runRelionExtract(self, protPicking, protCtf):
         print(magentaStr("\n==> Testing relion - extract particles:"))
         protRelionExtract = self.newProtocol(
             ProtRelionExtractParticles,
             objLabel='relion - extract',
-            boxSize=256, doRescale=True, rescaledSize=64,
+            boxSize=320, doRescale=True, rescaledSize=128,
             doInvert=True, doNormalize=True,
-            backDiameter=200,
+            backDiameter=220,
             numberOfMpi=CPUS,
             streamingBatchSize=0,
             downsamplingType=0  # Micrographs same as picking
@@ -155,7 +164,7 @@ class TestWorkflowRelionBetagal(TestWorkflow):
             ProtRelionClassify2D,
             objLabel='relion - 2d',
             inplaneAngularSamplingDeg=11,
-            maskDiameterA=200,
+            maskDiameterA=220,
             numberOfClasses=20,
             extraParams='--maxsig 25',
             pooledParticles=30,
@@ -168,17 +177,54 @@ class TestWorkflowRelionBetagal(TestWorkflow):
         protRelion2D.inputParticles.set(protExtract.outputParticles)
         return self.launchProtocol(protRelion2D)
 
+    def _runRelion2DSelection(self, prot2D):
+        print(magentaStr("\n==> Testing relion - 2D class selection:"))
+        prot2DSelect = self.newProtocol(
+            ProtRelionSelectClasses2D,
+            objLabel='relion - select 2d',
+            minThreshold=0.1
+        )
+        prot2DSelect.inputProtocol.set(prot2D)
+        return self.launchProtocol(prot2DSelect)
+
     def _runInitModel(self, protExtract):
         print(magentaStr("\n==> Testing relion - initial model:"))
-        relionIniModel = self.newProtocol(ProtRelionInitialModel,
-                                          doCTF=True, doGpu=True,
-                                          maskDiameterA=200,
-                                          numberOfIter=50,
-                                          symmetryGroup='D2',
-                                          pooledParticles=30,
-                                          numberOfThreads=CPUS)
+        relionIniModel = self.newProtocol(
+            ProtRelionInitialModel,
+            doCTF=True, doGpu=True,
+            maskDiameterA=220,
+            numberOfIter=100,
+            symmetryGroup='C1',
+            allParticlesRam=True,
+            pooledParticles=30,
+            numberOfThreads=CPUS)
         relionIniModel.inputParticles.set(protExtract.outputParticles)
-        protInitModel = self.launchProtocol(relionIniModel)
+        return self.launchProtocol(relionIniModel)
+
+    def _runRelionSymmetrize(self, inputVol):
+        print(magentaStr("\n==> Testing relion - symmetrize 3D:"))
+        relionSym = self.newProtocol(
+            ProtRelionSymmetrizeVolume,
+            symmetryGroup='D2')
+        relionSym.inputVolume.set(inputVol)
+        return self.launchProtocol(relionSym)
+
+    def _runRelion3D(self, inputVol, inputPts):
+        print(magentaStr("\n==> Testing relion - auto-refine 3D:"))
+        protRelion3D = self.newProtocol(
+            ProtRelionRefine3D,
+            doGpu=True,
+            maskDiameterA=220,
+            symmetryGroup='D2',
+            initialLowPassFilterA=30,
+            pooledParticles=30,
+            allParticlesRam=True,
+            numberOfMpi=3,
+            numberOfThreads=4)
+
+        protRelion3D.inputParticles.set(inputPts)
+        protRelion3D.referenceVolume.set(inputVol)
+        protInitModel = self.launchProtocol(protRelion3D)
         return protInitModel
 
     def test_workflow(self):
@@ -188,6 +234,10 @@ class TestWorkflowRelionBetagal(TestWorkflow):
         protRelionLog = self._runRelionLog(protRelionMc)
         protRelionExtract = self._runRelionExtract(protRelionLog, protCtfFind)
         protRelion2D = self._runRelion2D(protRelionExtract)
+        protRelion2DSel = self._runRelion2DSelection(protRelion2D)
         protInitModel = self._runInitModel(protRelionExtract)
+        protSym = self._runRelionSymmetrize(protInitModel.outputVolume)
+        protRelion3D = self._runRelion3D(protSym.outputVolumeAligned,
+                                         protInitModel.outputParticles)
         self.assertIsNotNone(protRelion2D.outputClasses, protRelion2D.getErrorMessage())
         self.assertIsNotNone(protInitModel.outputVolume, protInitModel.getErrorMessage())
