@@ -137,7 +137,7 @@ class Plugin(pwem.Plugin):
             if ver == V4_0:
                 envCmd = f"conda create -y -n relion-4.0 -c pytorch python=3.9 pytorch=1.10.0 numpy=1.20 &&"
             else:
-                envCmd = "conda env create -f environment.yml &&"
+                envCmd = "conda env create -f environment.yml -y &&"
 
             cmd = [
                 f'cd .. && rmdir relion-{ver} &&',
