@@ -105,6 +105,7 @@ class ProtRelionBase(EMProtocol):
             'selected_volumes': self._getPath('selected_volumes_xmipp.xmd'),
             'dataFinal': self._getExtraPath("relion_data.star"),
             'modelFinal': self._getExtraPath("relion_model.star"),
+            'optimiserFinal': self._getExtraPath("relion_optimiser.star"),
             'finalvolume': self._getExtraPath("relion_class%(ref3d)03d.mrc"),
             'final_half1_volume': self._getExtraPath("relion_half1_class%(ref3d)03d_unfil.mrc"),
             'final_half2_volume': self._getExtraPath("relion_half2_class%(ref3d)03d_unfil.mrc"),
@@ -1249,6 +1250,15 @@ class ProtRelionBase(EMProtocol):
             return self._getContinueIter() + self.numberOfVDAMBatches.get()
         else:
             return self._getContinueIter() + self.numberOfIterations.get()
+
+    def _getOptimiserFile(self):
+        lastIter = self._lastIter()
+        if lastIter is not None:
+            fnOptimiser = self._getFileName('optimiser', iter=lastIter)
+        else:
+            fnOptimiser = self._getFileName('optimiserFinal')
+
+        return fnOptimiser
 
     def _getReferenceVolumes(self):
         """ Return a list with all input references.

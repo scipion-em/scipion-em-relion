@@ -104,30 +104,32 @@ class TestWorkflowRelionBetagal(TestWorkflow):
             boxSize=100,
             minDiameter=150, maxDiameter=180,
             threshold2=5.0,
-            numberOfMpi=CPUS//2)
+            streamingBatchSize=0,
+            numberOfMpi=1)
 
         protRelionLog.inputMicrographs.set(protRelionMc.outputMicrographsDoseWeighted)
         protRelionLog = self.launchProtocol(protRelionLog)
 
         return protRelionLog
 
-    def _runGctf(self, protMc):
-        print(magentaStr("\n==> Testing gctf - estimate ctf:"))
-        ProtGctf = Domain.importFromPlugin('gctf.protocols', 'ProtGctf')
+    def _runCtffind(self, protMc):
+        print(magentaStr("\n==> Testing ctffind - estimate ctf:"))
+        ProtCtfFind = Domain.importFromPlugin('cistem.protocols', 'CistemProtCTFFind')
 
-        protGctf = self.newProtocol(
-            ProtGctf,
-            objLabel='gctf',
-            lowRes=0.04, highRes=0.21,
+        protCtf = self.newProtocol(
+            ProtCtfFind,
+            objLabel='ctffind',
+            lowRes=20, highRes=3,
             astigmatism=100,
             windowSize=512,
-            gpuList="0"
+            usePowerSpectra=True,
+            streamingBatchSize=0
         )
 
-        protGctf.inputMicrographs.set(protMc.outputMicrographsDoseWeighted)
-        protGctf = self.launchProtocol(protGctf)
+        protCtf.inputMicrographs.set(protMc.outputMicrographsDoseWeighted)
+        protCtf = self.launchProtocol(protCtf)
 
-        return protGctf
+        return protCtf
 
     def _runCtffind(self, protMc):
         """ Run CTFFind protocol. """
@@ -146,6 +148,7 @@ class TestWorkflowRelionBetagal(TestWorkflow):
             doInvert=True, doNormalize=True,
             backDiameter=220,
             numberOfMpi=CPUS,
+            streamingBatchSize=0,
             downsamplingType=0  # Micrographs same as picking
         )
 
@@ -227,10 +230,9 @@ class TestWorkflowRelionBetagal(TestWorkflow):
     def test_workflow(self):
         protImport = self._importMovies()
         protRelionMc = self._runRelionMc(protImport)
-        # protCtf = self._runGctf(protRelionMc)
-        protCtf = self._runCtffind(protRelionMc)
+        protCtfFind = self._runCtffind(protRelionMc)
         protRelionLog = self._runRelionLog(protRelionMc)
-        protRelionExtract = self._runRelionExtract(protRelionLog, protCtf)
+        protRelionExtract = self._runRelionExtract(protRelionLog, protCtfFind)
         protRelion2D = self._runRelion2D(protRelionExtract)
         protRelion2DSel = self._runRelion2DSelection(protRelion2D)
         protInitModel = self._runInitModel(protRelionExtract)
