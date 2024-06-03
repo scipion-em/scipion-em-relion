@@ -97,6 +97,9 @@ class Plugin(pwem.Plugin):
                                      'sidesplitter_wrapper.sh')
                 })
 
+        if TORCH_HOME_VAR not in environ:
+            environ.set(TORCH_HOME_VAR, Plugin.getVar(TORCH_HOME_VAR))
+
         return environ
 
     @classmethod
