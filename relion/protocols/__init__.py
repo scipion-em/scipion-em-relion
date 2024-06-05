@@ -35,7 +35,6 @@ from .protocol_center_averages import ProtRelionCenterAverages
 from .protocol_classify2d import ProtRelionClassify2D
 from .protocol_classify3d import ProtRelionClassify3D
 from .protocol_estimate_gain import ProtRelionCompressEstimateGain
-from .protocol_compress_movies import ProtRelionCompressMovies
 from .protocol_create_mask3d import ProtRelionCreateMask3D
 from .protocol_crop_resize import ProtRelionResizeVolume
 from .protocol_ctf_refinement import ProtRelionCtfRefinement
@@ -60,3 +59,7 @@ from .protocol_symmetrize_volume import ProtRelionSymmetrizeVolume
 
 if Plugin.IS_GT50():
     from .protocol_dynamight import ProtRelionDynaMight
+
+# jmrt-devel
+from .protocol_copy_scratch import ProtParticlesToScratch
+from .protocol_compress_movies_tasks import ProtRelionCompressMoviesTasks

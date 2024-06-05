@@ -73,21 +73,32 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
         form.addSection(label='Input')
         form.addParam('relionInput', params.BooleanParam,
                       default=True,
-                      expertLevel=params.LEVEL_ADVANCED,
                       label="Start from Relion refinement?",
                       help="Set to Yes if you wish to use as input "
                            "a Relion protocol. Otherwise set it to No")
-        form.addParam('inputHalf1', params.PointerParam, pointerClass='Volume',
+        form.addParam('inputType', params.EnumParam, default=0,
+                      display=params.EnumParam.DISPLAY_HLIST,
+                      choices=['Volume with half-maps',
+                               'Individual half-maps'],
+                      label='Input type:',
+                      condition='not relionInput')
+        form.addParam('inputVolume', params.PointerParam,
+                      pointerClass='Volume',
+                      label="Input volume with half-maps",
+                      allowsNull=True,
+                      condition="not relionInput and inputType==0")
+        form.addParam('inputHalf1', params.PointerParam,
+                      pointerClass='Volume',
                       label="Input half map 1",
                       important=True, allowsNull=True,
-                      condition="not relionInput",
+                      condition="not relionInput and inputType==1",
                       help='You might want to provide input half maps manually, '
                            'in case you did not use 3D auto-refine or multi-body protocol '
                            'that generates them automatically.')
         form.addParam('inputHalf2', params.PointerParam, pointerClass='Volume',
                       label="Input half map 2",
                       important=True, allowsNull=True,
-                      condition="not relionInput",
+                      condition="not relionInput and inputType==1",
                       help='You might want to provide input half maps manually, '
                            'in case you did not use 3D auto-refine or multi-body protocol '
                            'that generates them automatically.')
@@ -212,13 +223,16 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
         if self.relionInput:
             objsId = [self.protRefine.get().getObjId()]
         else:
-            objsId = [self.inputHalf1.get().getObjId(),
-                      self.inputHalf2.get().getObjId()]
+            if self.inputType.get() == 0:  # volume with half-maps
+                objsId = [self.inputVolume.get().getObjId()]
+            else:
+                objsId = [self.inputHalf1.get().getObjId(),
+                          self.inputHalf2.get().getObjId()]
         self._createFilenameTemplates()
         self._defineParamDict()
-        self._insertFunctionStep('convertInputStep', objsId)
-        self._insertFunctionStep('postProcessStep', self.paramDict)
-        self._insertFunctionStep('createOutputStep')
+        self._insertFunctionStep(self.convertInputStep, objsId)
+        self._insertFunctionStep(self.postProcessStep, self.paramDict)
+        self._insertFunctionStep(self.createOutputStep)
 
     # -------------------------- STEPS functions -------------------------------
     def convertInputStep(self, objsId):
@@ -239,18 +253,25 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
 
             newDim = outVol.getXDim()
             newPix = outVol.getSamplingRate()
-            vols = outVol.getHalfMaps().split(',')
+            vols = outVol.getHalfMaps(asList=True)
 
             for vol, key in zip(vols, ['half1', 'half2']):
                 ih.convert(vol, self._getFileName(key))
         else:
-            half1 = self.inputHalf1.get()
-            half2 = self.inputHalf2.get()
-            newDim = half1.getXDim()
-            newPix = half1.getSamplingRate()
+            if self.inputType.get() == 0:  # volume with half-maps
+                [half1, half2] = self.inputVolume.get().getHalfMaps(asList=True)
+                newDim = self.inputVolume.get().getXDim()
+                newPix = self.inputVolume.get().getSamplingRate()
+            else:
+                half1 = self.inputHalf1.get()
+                half2 = self.inputHalf2.get()
+                newDim = half1.getXDim()
+                newPix = half1.getSamplingRate()
+                half1 = half1.getFileName()
+                half2 = half2.getFileName()
 
-            ih.convert(half1.getFileName(), self._getFileName('half1'))
-            ih.convert(half2.getFileName(), self._getFileName('half2'))
+            ih.convert(half1, self._getFileName('half1'))
+            ih.convert(half2, self._getFileName('half2'))
 
         convert.convertMask(self.solventMask.get(),
                             self._getFileName('mask'), newPix, newDim)
@@ -264,7 +285,10 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
         volume = Volume()
         volume.setFileName(self._getFileName('outputVolume'))
         if not self.relionInput:
-            vol = self.inputHalf1
+            if self.inputType.get() == 0:
+                vol = self.inputVolume
+            else:
+                vol = self.inputHalf1
         elif self._isInputMbody():
             vol = self.protRefine.get().outputVolumes
         else:
@@ -281,6 +305,11 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
 
         if mtfFile and not os.path.exists(mtfFile):
             errors.append("Missing MTF-file '%s'" % mtfFile)
+
+        if (self.inputType.get() == 0 and
+                self.inputVolume.hasValue() and
+                not self.inputVolume.get().hasHalfMaps()):
+            errors.append("Input volume is missing half-maps")
 
         return errors
 
@@ -341,7 +370,10 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
         """ Return the output pixel size, using the calibrated
         pixel size if non zero, or the input one. """
         if not self.relionInput:
-            volume = self.inputHalf1.get()
+            if self.inputType.get() == 0:
+                volume = self.inputVolume.get()
+            else:
+                volume = self.inputHalf1.get()
         elif self._isInputMbody():
             volume = self.protRefine.get().outputVolumes
         else:

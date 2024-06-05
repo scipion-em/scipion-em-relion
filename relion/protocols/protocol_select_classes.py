@@ -62,6 +62,10 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
                       label='Min. threshold for auto-selection',
                       help='Only classes with a predicted threshold '
                            'above this value will be selected.')
+        form.addParam('minResolution', params.FloatParam, default=25,
+                      label='Min. resolution',
+                      help='Only classes with a estimated resolution '
+                           'better than this value will be selected.')
         form.addParam('minParts', params.IntParam, default=-1,
                       label='Select at least this many particles',
                       help='Even if they have scores below the minimum '
@@ -75,8 +79,8 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
-        self._insertFunctionStep('runSelectStep')
-        self._insertFunctionStep('createOutputStep')
+        self._insertFunctionStep(self.runSelectStep)
+        self._insertFunctionStep(self.createOutputStep)
 
     # --------------------------- STEPS functions -----------------------------
     def runSelectStep(self):
@@ -119,7 +123,11 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
 
             def _getClassRow(cls2d):
                 idx, fn = cls2d.getRepresentative().getLocation()
-                return clsDict.get(locationToRelion(idx, fn), None)
+                row = clsDict.get(locationToRelion(idx, fn), None)
+                if row and row.rlnEstimatedResolution < self.minResolution:
+                    return row
+
+                return None
 
             def _updateClass(cls2d):
                 row = _getClassRow(cls2d)

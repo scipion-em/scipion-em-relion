@@ -83,39 +83,6 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
     def getInputMicrographs(self):
         return self.getInputMicrographsPointer().get()
 
-    def getMicrographList(self):
-        """ Return the list of micrographs
-        that will be used for optimizing the parameters or the picking.
-        """
-        return self.getInputMicrographs()
-
-    def getCoordsDir(self):
-        return self._getTmpPath('xmipp_coordinates')
-
-    def _writeXmippCoords(self, coordSet):
-        micSet = self.getInputMicrographs()
-        coordPath = self._getTmpPath('xmipp_coordinates')
-        pwutils.cleanPath(coordPath)
-        pwutils.makePath(coordPath)
-        micPath = micSet.getFileName()
-        convert.writeSetOfCoordinatesXmipp(coordPath, coordSet, ismanual=False)
-        return micPath, coordPath
-
-    def writeXmippOutputCoords(self):
-        return self._writeXmippCoords(self.outputCoordinates)
-
-    def writeXmippCoords(self):
-        """ Write the SetOfCoordinates as expected by Xmipp
-        to be displayed with its GUI.
-        """
-        micSet = self.getInputMicrographs()
-        coordSet = self._createSetOfCoordinates(micSet)
-        coordSet.setBoxSize(self.getBoxSize())
-        starFiles = [self._getExtraPath(pwutils.removeBaseExt(mic.getFileName())
-                                        + '_autopick.star') for mic in micSet]
-        convert.readSetOfCoordinates(coordSet, starFiles)
-        return self._writeXmippCoords(coordSet)
-
     def __getMicListPrefix(self, micList):
         n = len(micList)
         if n == 0:
@@ -124,9 +91,6 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
         if n > 1:
             micsPrefix += "-%06d" % micList[-1].getObjId()
         return micsPrefix
-
-    def _getMicStarFile(self, micList):
-        return self._getTmpPath(self.__getMicListPrefix(micList) + '.star')
 
     def _createTmpMicsDir(self, micList):
         """ Create a temporary path to work with a list of micrographs. """

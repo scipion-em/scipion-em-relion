@@ -198,10 +198,10 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
         self._initialize()
 
         if not self.useAll or not self.isRelionInput:
-            self._insertFunctionStep('convertInputStep')
+            self._insertFunctionStep(self.convertInputStep)
 
-        self._insertFunctionStep('subtractStep')
-        self._insertFunctionStep('createOutputStep')
+        self._insertFunctionStep(self.subtractStep)
+        self._insertFunctionStep(self.createOutputStep)
     
     # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self):

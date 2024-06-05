@@ -33,7 +33,7 @@ import pwem
 from .constants import *
 
 
-__version__ = '5.0.0b4'
+__version__ = '5.0.0b5'
 _logo = "relion_logo.jpg"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016',
                'Zivanov2018', 'Kimanius2021']
@@ -97,6 +97,9 @@ class Plugin(pwem.Plugin):
                                      'sidesplitter_wrapper.sh')
                 })
 
+        if TORCH_HOME_VAR not in environ:
+            environ.set(TORCH_HOME_VAR, Plugin.getVar(TORCH_HOME_VAR))
+
         return environ
 
     @classmethod
@@ -137,7 +140,7 @@ class Plugin(pwem.Plugin):
             if ver == V4_0:
                 envCmd = f"conda create -y -n relion-4.0 -c pytorch python=3.9 pytorch=1.10.0 numpy=1.20 &&"
             else:
-                envCmd = "conda env create -f environment.yml &&"
+                envCmd = "conda env create -f environment.yml -y &&"
 
             cmd = [
                 f'cd .. && rmdir relion-{ver} &&',

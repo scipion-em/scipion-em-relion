@@ -513,53 +513,6 @@ def writeSetOfVolumes(volSet, filename, blockName='Volumes', **kwargs):
     writeSetOfImages(volSet, filename, volumeToRow, blockName, **kwargs)
 
 
-def writeReferences(inputSet, outputRoot, useBasename=False, **kwargs):
-    """
-    Write references star and stack files from SetOfAverages or SetOfClasses2D/3D.
-    Params:
-        inputSet: the input SetOfParticles to be converted
-        outputRoot: where to write the output files.
-        basename: If True, use the basename of the stack for setting path.
-    """
-    refsMd = md.MetaData()
-    stackFile = outputRoot + '.stk'
-    stackName = basename(stackFile) if useBasename else stackFile
-    starFile = outputRoot + '.star'
-    ih = ImageHandler()
-    row = md.Row()
-
-    def _convert(item, i, convertFunc):
-        index = i + 1
-        ih.convert(item, (index, stackFile))
-        item.setLocation(index, stackName)
-        convertFunc(item, row, **kwargs)
-        row.writeToMd(refsMd, refsMd.addObject())
-
-    if isinstance(inputSet, pwobj.SetOfAverages):
-        for i, img in enumerate(inputSet):
-            _convert(img, i, particleToRow)
-
-    elif isinstance(inputSet, pwobj.SetOfClasses2D):
-        for i, rep in enumerate(inputSet.iterRepresentatives()):
-            _convert(rep, i, particleToRow)
-
-    elif isinstance(inputSet, pwobj.SetOfClasses3D):
-        for i, rep in enumerate(inputSet.iterRepresentatives()):
-            _convert(rep, i, imageToRow)
-
-    elif isinstance(inputSet, pwobj.SetOfVolumes):
-        for i, vol in enumerate(inputSet):
-            _convert(vol, i, imageToRow)
-
-    elif isinstance(inputSet, pwobj.Volume):
-        _convert(inputSet, 0, imageToRow)
-
-    else:
-        raise Exception('Invalid object type: %s' % type(inputSet))
-
-    refsMd.write(starFile)
-
-
 def copyOrLinkFileName(imgRow, prefixDir, outputDir, copyFiles=False):
     index, imgPath = relionToLocation(imgRow.get(md.RLN_IMAGE_NAME))
     baseName = os.path.basename(imgPath)

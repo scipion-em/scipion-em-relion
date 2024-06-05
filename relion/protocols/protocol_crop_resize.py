@@ -75,9 +75,9 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         self._createFilenameTemplates()
-        self._insertFunctionStep('convertInputStep')
-        self._insertFunctionStep('resizeVolumesStep')
-        self._insertFunctionStep('createOutputStep')
+        self._insertFunctionStep(self.convertInputStep)
+        self._insertFunctionStep(self.resizeVolumesStep)
+        self._insertFunctionStep(self.createOutputStep)
 
     # --------------------------- STEPS functions -----------------------------
     def convertInputStep(self):

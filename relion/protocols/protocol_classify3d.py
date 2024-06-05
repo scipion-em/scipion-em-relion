@@ -174,4 +174,3 @@ class ProtRelionClassify3D(ProtClassify3D, ProtRelionBase):
         """ Create the SetOfClasses3D from a given iteration. """
         classLoader = convert.ClassesLoader(self, ALIGN_PROJ)
         classLoader.fillClassesFromIter(clsSet, iteration)
-

@@ -47,7 +47,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
 
     The wrapper implementation does not read/write any FOM maps compared to Relion
     """
-    _label = 'auto-picking'
+    _label = 'auto-picking (reference-based)'
     _devStatus = PROD
 
     # -------------------------- DEFINE param functions ------------------------
@@ -267,13 +267,13 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
             self.micDict = {}
             self.micDict, _ = self._loadInputList()
 
-            self._insertFunctionStep('convertInputStep',
+            self._insertFunctionStep(self.convertInputStep,
                                      self.getInputMicrographs().strId(),
                                      self.getInputReferences().strId())
-            nameList = [mic.getMicName() for mic in self.getMicrographList()]
-            self._insertFunctionStep('pickMicrographListStep', nameList,
+            nameList = [mic.getMicName() for mic in self.getInputMicrographs()]
+            self._insertFunctionStep(self.pickMicrographListStep, nameList,
                                      *self._getPickArgs())
-            self._insertFunctionStep('createOutputStep')
+            self._insertFunctionStep(self.createOutputStep)
 
             # Disable streaming functions:
             self._insertFinalSteps = self._doNothing
@@ -283,7 +283,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         # Convert the input micrographs and references to
         # the required Relion star files
         inputRefs = self.getInputReferences()
-        convertId = self._insertFunctionStep('convertInputStep',
+        convertId = self._insertFunctionStep(self.convertInputStep,
                                              self.getInputMicrographs().strId(),
                                              inputRefs.strId())
         return [convertId]
@@ -316,12 +316,14 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
     def convertInputStep(self, micsId, refsId):
         pwutils.makePath(self._getExtraPath('DONE'))  # Required to report finished
 
+        ih = ImageHandler()
         inputRefs = self.getInputReferences()
         if self.useInputReferences():
-            relion.convert.writeReferences(
-                inputRefs, self._getPath('reference_2d'), useBasename=True)
+            for i, avg in enumerate(inputRefs):
+                newAvgLoc = (i + 1, self._getPath('references_2d.mrcs'))
+                ih.convert(avg, newAvgLoc)
         else:
-            ImageHandler().convert(inputRefs, self._getPath('reference_3d.mrc'))
+            ih.convert(inputRefs, self._getPath('reference_3d.mrc'))
 
     def getAutopickParams(self):
         # Return the autopicking parameters except for the interactive ones:
@@ -337,7 +339,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
             params += ' --gpu "%s"' % self.gpusToUse
 
         if self.useInputReferences():
-            params += ' --ref %s' % abspath(self._getPath('reference_2d.stk'))
+            params += ' --ref %s' % abspath(self._getPath('references_2d.mrcs'))
         else:  # 3D reference
             params += ' --ref %s' % abspath(self._getPath('reference_3d.mrc'))
             params += ' --sym %s' % self.symmetryGroup
@@ -450,14 +452,6 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
     def useInputReferences(self):
         return self.referencesType == REF_AVERAGES
 
-    def getInputDimA(self):
-        """ Return the dimension of input references in A. """
-        inputRefs = self.getInputReferences()
-        if inputRefs is None:
-            return None
-        else:
-            return inputRefs.getXDim() * inputRefs.getSamplingRate()
-
     def getBoxSize(self):
         """ Return a reasonable box-size in pixels. """
         inputRefs = self.getInputReferences()
@@ -482,30 +476,3 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
             return self.inputReferences.get()
         else:
             return self.inputReferences3D.get()
-
-    def getMicrographList(self):
-        """ Return the list of micrographs (either a subset or the full set)
-        that will be used for optimizing the parameters or the picking.
-        """
-        # Use all micrographs only when going for the full picking
-        inputMics = self.getInputMicrographs()
-
-        return inputMics
-
-    def __getMicListPrefix(self, micList):
-        n = len(micList)
-        if n == 0:
-            raise ValueError("Empty micrographs list!")
-        micsPrefix = 'mic_%06d' % micList[0].getObjId()
-        if n > 1:
-            micsPrefix += "-%06d" % micList[-1].getObjId()
-        return micsPrefix
-
-    def _getMicStarFile(self, micList):
-        return self._getTmpPath(self.__getMicListPrefix(micList) + '.star')
-
-    def _createTmpMicsDir(self, micList):
-        """ Create a temporary path to work with a list of micrographs. """
-        micsDir = self._getTmpPath(self.__getMicListPrefix(micList))
-        pwutils.makePath(micsDir)
-        return micsDir

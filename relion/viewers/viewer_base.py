@@ -597,6 +597,7 @@ Examples:
         nrefs = len(self._refsList)
         n = nrefs * len(prefixes)
         gridsize = self._getGridSize(n)
+        
         if prefixes[0] == "final":
             title = "Final"
         else:
