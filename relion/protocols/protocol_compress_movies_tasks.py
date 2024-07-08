@@ -26,7 +26,8 @@
 
 import os
 
-from emtools.utils import Timer, Pipeline, Pretty
+from emtools.utils import Timer, Pretty
+from emtools.jobs import Pipeline
 from emtools.pwx import SetMonitor, BatchManager
 from emtools.metadata import StarFile, Table
 
