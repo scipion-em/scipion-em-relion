@@ -388,4 +388,5 @@ class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
                          itemDataIterator=mdIter)
 
     def _createItemMatrix(self, item, row):
+        item.setClassId(row.rlnClassNumber)
         self.reader.setParticleTransform(item, row)

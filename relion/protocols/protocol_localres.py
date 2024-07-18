@@ -26,6 +26,8 @@
 # *
 # **************************************************************************
 
+import os
+
 from pwem.emlib.image import ImageHandler
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
@@ -138,8 +140,6 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
 
         form.addParallelSection(threads=0, mpi=1)
     
-    # -------------------------- INSERT steps functions -----------------------
-
     # ------------------------- STEPS functions -------------------------------
     def convertInputStep(self, protId):
         pwutils.makePath(self._getInputPath())
@@ -159,6 +159,15 @@ class ProtRelionLocalRes(ProtRelionPostprocess):
                                        newPix, newDim)
 
     # -------------------------- INFO functions -------------------------------
+    def _validate(self):
+        errors = []
+        mtfFile = self.mtf.get()
+
+        if mtfFile and not os.path.exists(mtfFile):
+            errors.append("Missing MTF-file '%s'" % mtfFile)
+
+        return errors
+
     def _summary(self):
         summary = []
         if not hasattr(self, 'outputVolume'):

@@ -33,7 +33,7 @@ import pwem
 from .constants import *
 
 
-__version__ = '5.0.0b5'
+__version__ = '5.0.0b8'
 _logo = "relion_logo.jpg"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016',
                'Zivanov2018', 'Kimanius2021']
@@ -96,6 +96,9 @@ class Plugin(pwem.Plugin):
                         os.path.join(cls.getVar(SIDESPLITTER_HOME),
                                      'sidesplitter_wrapper.sh')
                 })
+
+        if TORCH_HOME_VAR not in environ:
+            environ.set(TORCH_HOME_VAR, Plugin.getVar(TORCH_HOME_VAR))
 
         return environ
 
