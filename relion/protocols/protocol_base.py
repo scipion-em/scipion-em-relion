@@ -1056,6 +1056,9 @@ class ProtRelionBase(EMProtocol):
 
         self._setBasicArgs(args)
 
+        if Plugin.IS_GT50() and continueRun.useBlush:
+            args['--blush'] = ''
+
         continueIter = self._getContinueIter()
         args['--continue'] = continueRun._getFileName('optimiser',
                                                       iter=continueIter)
