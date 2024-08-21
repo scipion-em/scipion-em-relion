@@ -661,7 +661,7 @@ class Reader(ReaderBase):
         """ Create a Coordinate from the row. """
         coord.setPosition(row.rlnCoordinateX,
                           row.rlnCoordinateY)
-        coord.setMicName(pwutils.removeExt(os.path.basename(row.rlnMicrographName)))
+        coord.setMicName(os.path.basename(row.rlnMicrographName))
 
     @staticmethod
     def rowToCtf(row, ctf):

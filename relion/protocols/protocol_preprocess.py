@@ -134,11 +134,11 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
         args = self._getArgs()
 
         for stack in sorted(stackFiles):
-            allIds.append(self._insertFunctionStep('processStep', objId,
+            allIds.append(self._insertFunctionStep(self.processStep, objId,
                                                    stack, args,
                                                    prerequisites=[]))
 
-        self._insertFunctionStep('createOutputStep', prerequisites=allIds)
+        self._insertFunctionStep(self.createOutputStep, prerequisites=allIds)
 
     # --------------------------- STEPS functions -----------------------------
     def _getArgs(self):

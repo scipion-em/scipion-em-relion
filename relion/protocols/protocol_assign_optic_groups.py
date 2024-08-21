@@ -162,7 +162,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
-        self._insertFunctionStep('createOutputStep',
+        self._insertFunctionStep(self.createOutputStep,
                                  self.inputSet.get().getObjId())
 
     # --------------------------- STEPS functions -----------------------------

@@ -105,6 +105,7 @@ class ProtRelionBase(EMProtocol):
             'selected_volumes': self._getPath('selected_volumes_xmipp.xmd'),
             'dataFinal': self._getExtraPath("relion_data.star"),
             'modelFinal': self._getExtraPath("relion_model.star"),
+            'optimiserFinal': self._getExtraPath("relion_optimiser.star"),
             'finalvolume': self._getExtraPath("relion_class%(ref3d)03d.mrc"),
             'final_half1_volume': self._getExtraPath("relion_half1_class%(ref3d)03d_unfil.mrc"),
             'final_half2_volume': self._getExtraPath("relion_half2_class%(ref3d)03d_unfil.mrc"),
@@ -811,11 +812,11 @@ class ProtRelionBase(EMProtocol):
     # -------------------------- INSERT steps functions ------------------------
     def _insertAllSteps(self):
         self._initialize()
-        self._insertFunctionStep('convertInputStep',
+        self._insertFunctionStep(self.convertInputStep,
                                  self._getInputParticles().getObjId(),
                                  bool(self.copyAlignment))
         self._insertRelionStep()
-        self._insertFunctionStep('createOutputStep')
+        self._insertFunctionStep(self.createOutputStep)
 
     def _insertRelionStep(self):
         """ Prepare the command line arguments before calling Relion. """
@@ -834,7 +835,7 @@ class ProtRelionBase(EMProtocol):
         if self.extraParams.hasValue():
             params += ' ' + self.extraParams.get()
 
-        self._insertFunctionStep('runRelionStep', params)
+        self._insertFunctionStep(self.runRelionStep, params)
 
     # -------------------------- STEPS functions -------------------------------
     def convertInputStep(self, particlesId, copyAlignment):
@@ -1055,6 +1056,9 @@ class ProtRelionBase(EMProtocol):
 
         self._setBasicArgs(args)
 
+        if Plugin.IS_GT50() and continueRun.useBlush:
+            args['--blush'] = ''
+
         continueIter = self._getContinueIter()
         args['--continue'] = continueRun._getFileName('optimiser',
                                                       iter=continueIter)
@@ -1249,6 +1253,15 @@ class ProtRelionBase(EMProtocol):
             return self._getContinueIter() + self.numberOfVDAMBatches.get()
         else:
             return self._getContinueIter() + self.numberOfIterations.get()
+
+    def _getOptimiserFile(self):
+        lastIter = self._lastIter()
+        if lastIter is not None:
+            fnOptimiser = self._getFileName('optimiser', iter=lastIter)
+        else:
+            fnOptimiser = self._getFileName('optimiserFinal')
+
+        return fnOptimiser
 
     def _getReferenceVolumes(self):
         """ Return a list with all input references.

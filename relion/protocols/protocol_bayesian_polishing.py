@@ -192,13 +192,13 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
     # -------------------------- STEPS functions -------------------------------
     def _insertAllSteps(self):
         self._createFilenameTemplates()
-        self._insertFunctionStep('convertInputStep',
+        self._insertFunctionStep(self.convertInputStep,
                                  self.inputMovies.get().getObjId(),
                                  self.inputParticles.get().getObjId(),
                                  self.inputPostprocess.get().getObjId())
-        self._insertFunctionStep('trainOrPolishStep', self.operation.get())
+        self._insertFunctionStep(self.trainOrPolishStep, self.operation.get())
         if self.operation == self.OP_POLISH:
-            self._insertFunctionStep('createOutputStep', 3)
+            self._insertFunctionStep(self.createOutputStep, 3)
 
     def convertInputStep(self, movId, partId, postId):
         inputMovies = self.inputMovies.get()

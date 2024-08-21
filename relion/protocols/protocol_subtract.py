@@ -190,7 +190,7 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
                            'results. Therefore, this option is not generally '
                            'recommended.')
 
-        form.addParallelSection(threads=0, mpi=1)
+        form.addParallelSection(threads=0, mpi=2)
     
     # -------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self):
@@ -198,10 +198,10 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
         self._initialize()
 
         if not self.useAll or not self.isRelionInput:
-            self._insertFunctionStep('convertInputStep')
+            self._insertFunctionStep(self.convertInputStep)
 
-        self._insertFunctionStep('subtractStep')
-        self._insertFunctionStep('createOutputStep')
+        self._insertFunctionStep(self.subtractStep)
+        self._insertFunctionStep(self.createOutputStep)
     
     # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self):
@@ -245,8 +245,8 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
     def subtractStepRelion(self):
         inputProt = self.inputProtocol.get()
         inputProt._initialize()
-        fnOptimiser = inputProt._getFileName('optimiser',
-                                             iter=inputProt._lastIter())
+
+        fnOptimiser = inputProt._getOptimiserFile()
         params = " --i %s --o %s --new_box %s" % (fnOptimiser,
                                                   self._getExtraPath(),
                                                   self.newBoxSize.get())

@@ -133,6 +133,9 @@ leads to objective and high-quality results.
             errors.append('When using solvent-corrected FSCs, '
                           'please provide a reference mask.')
 
+        if self.numberOfMpi < 3:
+            errors.append("3D auto-refine needs at least 3 MPI processes.")
+
         return errors
     
     def _validateContinue(self):
@@ -147,7 +150,10 @@ leads to objective and high-quality results.
             continueIter = int(self.continueIter.get())
         
         if continueIter > lastIter:
-            errors += ["You can continue only from the iteration %01d or less" % lastIter]
+            errors.append("You can continue only from the iteration %01d or less" % lastIter)
+
+        if self.numberOfMpi < 3:
+            errors.append("3D auto-refine needs at least 3 MPI processes.")
         
         return errors
     

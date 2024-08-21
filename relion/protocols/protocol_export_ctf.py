@@ -73,7 +73,7 @@ class ProtRelionExportCtf(EMProtocol):
     # -------------------------- INSERT steps functions -----------------------
 
     def _insertAllSteps(self):
-        self._insertFunctionStep('writeCtfStarStep')
+        self._insertFunctionStep(self.writeCtfStarStep)
         
     def writeCtfStarStep(self):
         pwutils.cleanPath(self._getExportPath())
