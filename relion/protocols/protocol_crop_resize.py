@@ -46,7 +46,9 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
         """ Centralize how the protocol files are called. """
         myDict = {
             'input_vol': self._getTmpPath('volume_%(volId)03d.mrc'),
-            'output_vol': self._getExtraPath('volume_rescaled_%(volId)03d.mrc')
+            'output_vol': self._getExtraPath('volume_rescaled_%(volId)03d.mrc'),
+            'output_half1': self._getExtraPath('half1_rescaled_%(volId)03d.mrc'),
+            'output_half2': self._getExtraPath('half2_rescaled_%(volId)03d.mrc')
         }
         self._updateFilenamesDict(myDict)
 
@@ -62,7 +64,7 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
         form.addParam('rescaleSamplingRate', params.FloatParam,
                       default=1.0,
                       condition='doRescale',
-                      label='New sampling rate (Å/px)')
+                      label='New sampling rate (A/px)')
         form.addParam('doResize', params.BooleanParam, default=False,
                       label='Resize volumes to a new box?')
         form.addParam('resizeSize', params.IntParam, default=0,
@@ -93,7 +95,8 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
                 self.convertedVols.append(fn)
 
     def resizeVolumesStep(self):
-        argDict = {' --angpix': self.inputVolumes.get().getSamplingRate()}
+        inputData = self.inputVolumes.get()
+        argDict = {' --angpix': inputData.getSamplingRate()}
 
         if self.doRescale:
             argDict[' --rescale_angpix'] = self.rescaleSamplingRate.get()
@@ -101,9 +104,24 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
         if self.doResize:
             argDict[' --new_box'] = self.resizeSize.get()
 
-        for i, fn in enumerate(self.convertedVols):
+        if isinstance(inputData, Volume):
+            self.runResizeCmd(self.convertedVols, argDict)
+            if inputData.hasHalfMaps():
+                halves = inputData.getHalfMaps().split(',')
+                self.convertedVols = []
+                self.convertedVols.append(halves[0])
+                self.runResizeCmd(self.convertedVols, argDict, keyVol='output_half1')
+
+                self.convertedVols = []
+                self.convertedVols.append(halves[1])
+                self.runResizeCmd(self.convertedVols, argDict, keyVol='output_half2')
+        else:
+            self.runResizeCmd(self.convertedVols, argDict)
+
+    def runResizeCmd(self, convertedVols, argDict, keyVol='output_vol'):
+        for i, fn in enumerate(convertedVols):
             argDict[' --i'] = fn
-            argDict[' --o'] = self._getFileName('output_vol', volId=i+1)
+            argDict[' --o'] = self._getFileName(keyVol, volId=i+1)
             args = ' '.join(['%s %s' % (k, v) for k, v in argDict.items()])
             self.runJob("relion_image_handler", "".join(args))
 
@@ -115,6 +133,9 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
             volClass = volInput.getClass()
             vol = volClass()
             vol.copyInfo(volInput)
+            if volInput.hasHalfMaps():
+                halves = [self._getFileName('output_half1', volId=1), self._getFileName('output_half2', volId=1)]
+                vol.setHalfMaps(halves)
             vol.setLocation(self._getFileName('output_vol', volId=1))
             vol.setSamplingRate(self._getNewSampling())
             self._defineOutputs(outputVol=vol)
@@ -162,13 +183,16 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
 
     # -------------------------- UTILS functions ------------------------------
     def _convertVol(self, vol, index):
-        ih = ImageHandler()
         fn = vol.getFileName()
+        self._convertFnVol(fn, index)
+        return fn
+
+    def _convertFnVol(self, fn, index):
+        ih = ImageHandler()
         if not fn.endswith('.mrc'):
             newFn = self._getFileName('input_vol', volId=index)
             ih.convert(fn, newFn)
             return newFn
-        return fn
 
     def _getNewSampling(self):
         if self.doRescale:
@@ -179,3 +203,4 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
             return sampling
         else:
             return self.inputVolumes.get().getSamplingRate()
+
