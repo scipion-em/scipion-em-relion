@@ -64,7 +64,7 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
         form.addParam('rescaleSamplingRate', params.FloatParam,
                       default=1.0,
                       condition='doRescale',
-                      label='New sampling rate (?/px)')
+                      label='New sampling rate (A/px)')
         form.addParam('doResize', params.BooleanParam, default=False,
                       label='Resize volumes to a new box?')
         form.addParam('resizeSize', params.IntParam, default=0,
