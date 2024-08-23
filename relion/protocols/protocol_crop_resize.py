@@ -64,7 +64,7 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
         form.addParam('rescaleSamplingRate', params.FloatParam,
                       default=1.0,
                       condition='doRescale',
-                      label='New sampling rate (A/px)')
+                      label='New sampling rate (?/px)')
         form.addParam('doResize', params.BooleanParam, default=False,
                       label='Resize volumes to a new box?')
         form.addParam('resizeSize', params.IntParam, default=0,
@@ -109,7 +109,6 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
             if inputData.hasHalfMaps():
                 halves = inputData.getHalfMaps().split(',')
                 self.convertedVols = []
-                print(halves)
                 self.convertedVols.append(halves[0])
                 self.runResizeCmd(self.convertedVols, argDict, keyVol='output_half1')
 
