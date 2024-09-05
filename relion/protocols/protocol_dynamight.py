@@ -272,7 +272,6 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                 f"--checkpoint-file {checkpoint_file}",
                 f"--gpu-id {self.gpuList.get()}",
                 "--preload-images" if self.allParticlesRam else ""
-                # ROB "--preload-images"
             ]
             self._insertFunctionStep(self.runTaskStep, params)
 
