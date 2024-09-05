@@ -32,8 +32,7 @@ logger = logging.getLogger(__name__)
 
 from pyworkflow.object import Float
 from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_NONE
-from pwem.objects import Micrograph
-import pwem.emlib.metadata as md
+from pwem.objects import Micrograph, Coordinate
 import pyworkflow.utils as pwutils
 
 from relion import convert
@@ -106,15 +105,15 @@ class RelionImport:
         # Read the micrographs from the 'self._starFile' metadata
         # but fixing the filenames with new ones (linked or copy to extraDir)
 
+        from relion.convert import readSetOfParticles
         if self.version30:
-            from .convert_deprecated import readSetOfParticles
             readSetOfParticles(
                 self._starFile, partSet,
                 preprocessImageRow=self._preprocessImageRow30,
                 postprocessImageRow=self._postprocessImageRow30,
-                readAcquisition=False, alignType=self.alignType)
+                readAcquisition=False, alignType=self.alignType,
+                pixelSize=self._pixelSize, format="30")
         else:
-            from relion.convert import readSetOfParticles
             readSetOfParticles(
                 self._starFile, partSet,
                 preprocessImageRow=None,
@@ -432,13 +431,15 @@ class RelionImport:
                     postprocessCoordRow=self._postprocessCoordRow)
                 break
         else:  # multiple star files with coords
-            from .convert_deprecated import rowToCoordinate
             for coordFile, fileId in prot.iterFiles():
                 mic = prot.getMatchingMic(coordFile, fileId)
                 if mic is not None:
                     # Parse the coordinates in the given format for this micrograph
-                    for row in md.iterRows(coordFile):
-                        coord = rowToCoordinate(row)
+                    coord = Coordinate()
+                    for row in Table(fileName=coordFile):
+                        coord.setObjId(None)
+                        coord.setPosition(row.rlnCoordinateX,
+                                          row.rlnCoordinateY)
                         coord.setMicrograph(mic)
                         self._postprocessCoordRow(coord, row)
                         coordsSet.append(coord)

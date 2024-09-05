@@ -24,12 +24,12 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Logs**
-Attach run.stderr log file from the failing protocol.
+Attach run.stdout and run.stderr log files from the failing protocol.
 
 **Desktop (please complete the following information):**
- - Scipion version: [e.g. 2.0.0]
- - Relion plugin version [e.g. 1.0.6] or branch [devel]
- - Relion binary version [e.g. 3.1.0]
+ - Scipion version: paste output of the `scipion3 version`
+ - Relion plugin version [e.g. 5.0.0b4] or branch [devel]
+ - Relion binary version [e.g. 5.0]
 
 **Additional context**
 Add any other context about the problem here.
