@@ -271,7 +271,8 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                 f"--batch-size {self.batchSize.get()}",
                 f"--checkpoint-file {checkpoint_file}",
                 f"--gpu-id {self.gpuList.get()}",
-                "--preload-images"
+                "--preload-images" if self.allParticlesRam else ""
+                # ROB "--preload-images"
             ]
             self.runProgram(params)
 
