@@ -336,7 +336,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
         return errors
 
     def _citations(self):
-        return ['Schwab2023']
+        return ['Schwab2024']
 
     # -------------------------- UTILS functions ------------------------------
     def runProgram(self, params: List[str]) -> None:
