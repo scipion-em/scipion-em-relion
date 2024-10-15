@@ -227,7 +227,7 @@ class ProtRelionCtfRefinement(ProtParticles, ProtRelionBase):
         inputProt = self.inputPostprocess.get()
         postStar = inputProt._getExtraPath('postprocess.star')
         args += "--f %s " % postStar
-        args += "--angpix_ref %0.5f " % inputProt.solventMask.get().getSamplingRate()
+        args += "--angpix_ref %0.5f " % inputProt.getInputVolPixelSize()
         minRes = '%0.3f' % self.minResolution
 
         if self.estimateAnisoMag:

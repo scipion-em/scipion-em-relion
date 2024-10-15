@@ -366,9 +366,8 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
     def _isInputMbody(self):
         return self.protRefine.get().getClassName() == "ProtRelionMultiBody"
 
-    def _getOutputPixelSize(self):
-        """ Return the output pixel size, using the calibrated
-        pixel size if non zero, or the input one. """
+    def getInputVolPixelSize(self):
+        """ Return the pixel size of input volume. """
         if not self.relionInput:
             if self.inputType.get() == 0:
                 volume = self.inputVolume.get()
@@ -378,5 +377,10 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
             volume = self.protRefine.get().outputVolumes
         else:
             volume = self.protRefine.get().outputVolume
+        return volume.getSamplingRate()
+
+    def _getOutputPixelSize(self):
+        """ Return the output pixel size, using the calibrated
+        pixel size if non zero, or the input one. """
         cps = self.calibratedPixelSize.get()
-        return cps if cps > 0 else volume.getSamplingRate()
+        return cps if cps > 0 else self.getInputVolPixelSize()
