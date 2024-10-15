@@ -49,6 +49,10 @@ V5_0 = '5.0'
 MASK_FILL_ZERO = 0
 MASK_FILL_NOISE = 1
 
+SCRATCH_DISABLED = 0
+USE_SCIPION_SCRATCH = 1
+USE_CUSTOM_SCRATCH = 2
+
 ANGULAR_SAMPLING_LIST = ['30', '15', '7.5', '3.7', '1.8', '0.9', '0.5',
                          '0.2', '0.1', '0.06', '0.03', '0.01', '0.007', '0.004']
 
