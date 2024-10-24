@@ -30,6 +30,7 @@ from glob import glob
 from collections import OrderedDict
 from emtable import Table
 
+from pyworkflow import Config
 import pyworkflow.utils as pwutils
 from pyworkflow.protocol.params import (BooleanParam, PointerParam, FloatParam,
                                         IntParam, EnumParam, StringParam,
@@ -43,7 +44,8 @@ from pwem.protocols import EMProtocol
 
 from relion import Plugin
 import relion.convert
-from ..constants import ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO
+from ..constants import (ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO, 
+                         USE_SCIPION_SCRATCH, USE_CUSTOM_SCRATCH)
 
 
 class ProtRelionBase(EMProtocol):
@@ -763,22 +765,30 @@ class ProtRelionBase(EMProtocol):
                            'sends those particles through the network to '
                            'the MPI slaves during the refinement '
                            'iterations.')
-        form.addParam('scratchDir', PathParam,
+        
+        form.addParam('useScratch', EnumParam,
                       condition='not allParticlesRam',
-                      label='Copy particles to scratch directory: ',
+                      label='Copy particles to scratch directory',
+                      choices=['No',
+                               'Use Scipion\'s scratch directory',
+                               'Custom scratch directory'],
+                      default=0,
+                      help='When enabled, the program will copy all input '
+                           'particles into a large stack inside this '
+                           'directory. Provided it is located on a fast '
+                           'local drive (e.g. an SSD drive), processing in '
+                           'all the iterations will be faster.')
+        
+        form.addParam('scratchDir', PathParam,
+                      condition='useScratch==2',
+                      label='Custom scratch directory',
                       help='If a directory is provided here, then the job '
                            'will create a sub-directory in it called '
                            'relion_volatile. If that relion_volatile '
                            'directory already exists, it will be wiped. '
-                           'Then, the program will copy all input '
-                           'particles into a large stack inside the '
-                           'relion_volatile subdirectory. Provided this '
-                           'directory is on a fast local drive (e.g. an '
-                           'SSD drive), processing in all the iterations '
-                           'will be faster. If the job finishes '
-                           'correctly, the relion_volatile directory will '
-                           'be wiped. If the job crashes, you may want to '
-                           'remove it yourself.')
+                           'If the job finishes correctly, the relion_volatile '
+                           'directory will be wiped. If the job crashes, you '
+                           'may want to remove it yourself.')
         form.addParam('combineItersDisc', BooleanParam, default=False,
                       label='Combine iterations through disc?',
                       help='If set to Yes, at the end of every iteration '
@@ -945,6 +955,13 @@ class ProtRelionBase(EMProtocol):
                 errors.append('When only doing classification (no alignment) '
                               " option *Consider alignment as priors* cannot"
                               " be enabled.")
+                
+        if self.useScratch == USE_SCIPION_SCRATCH:
+            if not Config.SCIPION_SCRATCH:
+                errors.append('Using Scipion\'s scratch directory was '
+                              'requested but this option was not configured '
+                              'in Scipion. Please, define the SCIPION_SCRATCH '
+                              'variable in your configuration file')
 
         return errors
 
@@ -1067,8 +1084,13 @@ class ProtRelionBase(EMProtocol):
         """ Returns the scratch dir value without spaces.
          If none, the empty string will be returned.
         """
-        scratchDir = self.scratchDir.get() or ''
-        return scratchDir.strip()
+        scratchDir = ''
+        if self.useScratch == USE_SCIPION_SCRATCH:
+            scratchDir = self._getTmpPath()
+        elif self.useScratch == USE_CUSTOM_SCRATCH:
+            scratchDir = self.scratchDir.get() or ''
+            scratchDir = scratchDir.strip()
+        return scratchDir
 
     def _setComputeArgs(self, args):
         if not self.combineItersDisc:

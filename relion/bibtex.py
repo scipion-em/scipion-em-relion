@@ -147,13 +147,15 @@ year = {2014},
 doi = {https://dx.doi.org/10.1126/science.1249410}
 }
 
-@article {Schwab2023,
-author = {Johannes Schwab and Dari Kimanius and Alister Burt and Tom Dendooven and Sjors H.W. Scheres},
-title = {DynaMight: estimating molecular motions with improved reconstruction from cryo-EM images},
-year = {2023},
-doi = {https://dx.doi.org/10.1101/2023.10.18.562877},
-publisher = {Cold Spring Harbor Laboratory},
-journal = {bioRxiv}
+@article{Schwab2024,
+  title = {DynaMight: estimating molecular motions with improved reconstruction from cryo-EM images},
+  ISSN = {1548-7105},
+  DOI = {http://dx.doi.org/10.1038/s41592-024-02377-5},
+  journal = {Nature Methods},
+  publisher = {Springer Science and Business Media LLC},
+  author = {Schwab,  Johannes and Kimanius,  Dari and Burt,  Alister and Dendooven,  Tom and Scheres,  Sjors H. W.},
+  year = {2024},
+  month = aug
 }
 
 

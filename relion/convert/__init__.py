@@ -144,7 +144,7 @@ class ClassesLoader:
 
     def _updateClass(self, item):
         classId = item.getObjId()
-        if classId in self._classesInfo:
+        if classId in self._classesInfo and classId != 0:
             index, fn, row = self._classesInfo[classId]
             item.setAlignment(self._alignType)
             if self._alignType == ALIGN_PROJ:

@@ -171,6 +171,12 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                             "You can monitor the convergence of the loss "
                             "function to assess how many are necessary. "
                             "Often 200 are enough.")
+        group.addParam('storeDeforms', params.BooleanParam, default=False,
+                       label="Store deformations in RAM?",
+                       help="If set to Yes, dynamight will store deformations "
+                            "in the GPU memory, which will speed up the "
+                            "calculations, but you need to have enough GPU "
+                            "memory to do this.")
 
         group.addParam('batchSize', params.IntParam, default=10,
                        condition='doContinue and doDeform',
@@ -260,7 +266,8 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                 f"--n-epochs {self.numEpochs.get()}",
                 f"--checkpoint-file {checkpoint_file}",
                 f"--gpu-id {self.gpuList.get()}",
-                "--preload-images" if self.allParticlesRam else ""
+                "--preload-images" if self.allParticlesRam else "",
+                "--save-deformations" if self.storeDeforms else ""
             ]
             self._insertFunctionStep(self.runTaskStep, params)
 
@@ -271,7 +278,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                 f"--batch-size {self.batchSize.get()}",
                 f"--checkpoint-file {checkpoint_file}",
                 f"--gpu-id {self.gpuList.get()}",
-                "--preload-images"
+                "--preload-images" if self.allParticlesRam else ""
             ]
             self._insertFunctionStep(self.runTaskStep, params)
 
@@ -329,7 +336,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
         return errors
 
     def _citations(self):
-        return ['Schwab2023']
+        return ['Schwab2024']
 
     # -------------------------- UTILS functions ------------------------------
     def runProgram(self, params: List[str]) -> None:

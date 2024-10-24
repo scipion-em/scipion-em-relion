@@ -62,6 +62,7 @@ b) Developer's version
 - To add support for Python modules (e.g. Blush, ModelAngelo and DynaMight) you will have to setup a Python environment with dependencies. You need to set *RELION_ENV_ACTIVATION* that points to a conda environment. Default = ``conda activate relion-5.0``
 - You might want to set *TORCH_HOME* pointing to the path with downloaded models. Default = ``software/em/modelangelomodels-1.0`` (shared with ModelAngelo plugin).
 - If you want to use SIDESPLITTER, you need the `sidesplitter <https://github.com/scipion-em/scipion-em-sidesplitter>`_ plugin installed and *SIDESPLITTER_HOME* set properly. After that, you only need to add *--external_reconstruct* into Additional arguments field of a 3D auto-refine or multi-body job.
+- To use a scratch folder (i.e. on SSD), you can either input a custom path (e.g. /ssd) or variable name (e.g. $RELION_SCRATCH_DIR) or use Scipion's scratch directory defined by *SCIPION_SCRATCH* in the ``scipion.conf``.
 
 To check the installation, simply run one of the tests. A complete list of tests can be displayed by executing ``scipion test --show --grep relion``
 
