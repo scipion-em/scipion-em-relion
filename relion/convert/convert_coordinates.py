@@ -41,19 +41,22 @@ from pwem.constants import NO_INDEX
 
 def openStar(fn, extraLabels=False):
     # We are going to write metadata directly to file to do it faster
-    f = open(fn, 'w')
-    s = """
+    if not os.path.exists(fn):
+        f = open(fn, 'w')
+        s = """
 data_
 
 loop_
 _rlnCoordinateX
 _rlnCoordinateY
 """
-    if extraLabels:
-        s += "_rlnClassNumber\n"
-        s += "_rlnAutopickFigureOfMerit\n"
-        s += "_rlnAnglePsi\n"
-    f.write(s)
+        if extraLabels:
+            s += "_rlnClassNumber\n"
+            s += "_rlnAutopickFigureOfMerit\n"
+            s += "_rlnAnglePsi\n"
+        f.write(s)
+    else:
+        f = open(fn, "a+")
     return f
 
 

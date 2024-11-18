@@ -135,7 +135,7 @@ class RelionImport:
             if fn.endswith('.mrc'):  # FIXME
                 fn += ':mrc'  # Specify that are volumes to read them properly in xmipp
             item.getRepresentative().setLocation(index, fn)
-            item._rlnclassDistribution = Float(row.get('rlnClassDistribution'))
+            item._rlnClassDistribution = Float(row.get('rlnClassDistribution'))
             item._rlnAccuracyRotations = Float(row.get('rlnAccuracyRotations'))
             if self.version30:
                 accInAngst = row.get('rlnAccuracyTranslations') * self._pixelSize
