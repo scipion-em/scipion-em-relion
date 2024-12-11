@@ -24,14 +24,15 @@
 import os
 import glob
 from tempfile import NamedTemporaryFile
-import time
 import pwem.convert as emconv
 
-from pwem.protocols import ProtImportParticles, ProtImportVolumes, ProtImportMask
+from pwem.protocols import (ProtImportParticles,
+                            ProtImportVolumes)
 from pyworkflow.tests import BaseTest, setupTestProject
 import numpy as np
 from relion.protocols import ProtRelionReconstruct
 from relion.protocols import ProtRelionDynaMight
+
 
 class TestDynamight(BaseTest):
     @classmethod
@@ -41,19 +42,15 @@ class TestDynamight(BaseTest):
         cls.cryoSparcAvailable = True
         cls.sampling = 1.35
         cls.size = 128
-        cls.gpuList = '0'
+        cls.gpuList = '1'  # 0
 
         from pwem import Domain
         try:
             cls.xmipp3 = \
                 Domain.importFromPlugin('xmipp3', doRaise=True)
-        except:
+        except Exception as e:
+            print("xmipp3 not available, cancel test", e)
             cls.xmippAvailable = False
-        # try:
-        #     cls.cryosparc2 = \
-        #         Domain.importFromPlugin('cryosparc2', doRaise=True)
-        # except:
-        #     cls.cryoSparcAvailable = False
 
     def __runXmippProgram(self, program, args):
         """ Internal shortcut function to launch a Xmipp program.
@@ -65,7 +62,7 @@ class TestDynamight(BaseTest):
         except ImportError:
             return False
         return True
-    
+
     @classmethod
     def runCreateMask(cls, pattern, thr):
         """ Create a volume mask. """
@@ -89,13 +86,13 @@ class TestDynamight(BaseTest):
 
     @classmethod
     def runImportVolume(cls, pattern, samplingRate,
-                         importFrom=ProtImportParticles.IMPORT_FROM_FILES):
+                        importFrom=ProtImportParticles.IMPORT_FROM_FILES):
         """ Run an Import volumes protocol. """
         protImportVol = cls.newProtocol(ProtImportVolumes,
-                                         filesPath=pattern,
-                                         samplingRate=samplingRate,
-                                         copyFiles=True
-                                         )
+                                        filesPath=pattern,
+                                        samplingRate=samplingRate,
+                                        copyFiles=True
+                                        )
         cls.launchProtocol(protImportVol)
         return protImportVol
 
@@ -132,32 +129,41 @@ class TestDynamight(BaseTest):
 
     def getAtomStructFile(self, atomStructID):
         aSH = emconv.AtomicStructHandler()
-        atomStructPath = aSH.readFromPDBDatabase(atomStructID, dir="/tmp/", type='pdb')
-        print("atomStructPath", atomStructPath)
-        os.system(f"cat {atomStructPath} | grep -v HETATM > /tmp/kk; mv /tmp/kk {atomStructPath}")
+        atomStructPath = aSH.readFromPDBDatabase(
+            atomStructID, dir="/tmp/", type='pdb')
+
+        os.system(
+            f"cat {atomStructPath} |"
+            f" grep -v HETATM > /tmp/kk; mv /tmp/kk {atomStructPath}")
         return atomStructPath
-    
+
     def createVolume(self, atomStructPath, volMapName):
         # create volume
-        volumeName = f"{volMapName}" 
+        volumeName = f"{volMapName}"
         self.__runXmippProgram('xmipp_volume_from_pdb', f'-i {atomStructPath}'
                                f' -o {volumeName} --size {self.size}'
                                f' --centerPDB --sampling {self.sampling}')
         return volumeName + '.vol'
 
     def shiftFirstChain(
-            self, 
+            self,
             atomStructPath,
-            translation_vector = [0.0, 0.0, 0.0],
+            translation_vector=[0.0, 0.0, 0.0],
             nTimes=1):
-        from Bio.PDB import PDBParser, PDBIO, Select
+        # impoer PDB needs new version of Biopython
+        # orrecent version of pwem
+        # leave the import here so it is not executed
+        # during the test detection
+        from Bio.PDB import PDBParser, PDBIO
+
         def translate_structure(structure, translation_vector):
             """
             Translate the structure by a given vector.
 
             Args:
                 structure: Biopython structure object.
-                translation_vector: List or tuple of (x, y, z) translation values.
+                translation_vector: List or tuple of (x, y, z)
+                                    translation values.
             """
             translation_vector = translation_vector * nTimes
             for model in structure:
@@ -178,7 +184,7 @@ class TestDynamight(BaseTest):
         io.save(output_path)
         return output_path
 
-    def createProjections(self, volumeNames, angular_sampling_rate=15):  ####
+    def createProjections(self, volumeNames, angular_sampling_rate=15):
         projStackNames = []
         for vol in volumeNames:
             print("Creating projections for volume:",  vol)
@@ -194,7 +200,7 @@ class TestDynamight(BaseTest):
 
     def createCTFdata(self):
         ctfFile = NamedTemporaryFile(delete=False, suffix=".ctfdata")
-        command = f"""# XMIPP_STAR_1 * 
+        command = f"""# XMIPP_STAR_1 *
 #  SamplingRate should be the same that the one used in the micrographs
 data_fullMicrograph
  _ctfSamplingRate {self.sampling}
@@ -204,15 +210,14 @@ data_fullMicrograph
  _ctfDefocusAngle -140.258
  _ctfSphericalAberration 2
  _ctfQ0 0.1
- """        
+"""
         ctfFile.write(command.encode('utf8'))
         ctfFile.close()
         return ctfFile.name
 
     def unionSets(self, xmdProjNames):
-        # xmipp_metadata_utilities -i /tmp/tmpa68n575v_0__ctf.xmd --set union /tmp/tmpcprctz7w_1__ctf.xmd -o /tmp/tmpa68n575v_0__ctf.xmd
 
-        for i in range(1,len(xmdProjNames)):
+        for i in range(1, len(xmdProjNames)):
             args = " -i %s" % xmdProjNames[0]
             args += " --set union %s" % xmdProjNames[i]
             args += " -o %s" % xmdProjNames[0]
@@ -234,7 +239,6 @@ data_fullMicrograph
             xmdProjNames.append(projDocName.replace(".doc", "ctf.xmd"))
         xmdProjName = self.unionSets(xmdProjNames)
         return xmdProjName
-        # xmipp_phantom_simulate_microscope -i kk.doc -o kk_ctf.mrcs --ctf /home/roberto/scipion/data
 
     def importData(self, xmdProjName, volName):
         # import particles
@@ -251,21 +255,20 @@ data_fullMicrograph
             volName,
             self.sampling)
         return protImportProj, protImportVolume
-    
+
     def delete_files_with_extension(self, directory, extension):
         """
         Deletes all files with the specified extension in the given directory.
-        
+
         Args:
             directory (str): The directory to search for files.
             extension (str): The file extension to delete (e.g., "pdb").
-            
         Returns:
             None
         """
         # Find all files with the given extension
         files_to_delete = glob.glob(os.path.join(directory, f"*{extension}"))
-        
+
         for file_path in files_to_delete:
             try:
                 os.remove(file_path)
@@ -297,7 +300,7 @@ data_fullMicrograph
             doDeform=False)
         self.launchProtocol(protDynaMight)
         return protDynaMight
-    
+
     def protDynaMightShow(self, protDynaMight):
         protDynaMight = self.newProtocol(
             ProtRelionDynaMight,
@@ -306,12 +309,12 @@ data_fullMicrograph
             doVisualize=True,
             gpuList=self.gpuList,
             halSet=0)
-        # since this is an interactive protocol 
+        # since this is an interactive protocol
         # do not run it, just save it
         # the user may execute it latter
         self.saveProtocol(protDynaMight)
         return protDynaMight
-    
+
     def testDynamightSystem(self):
         if not self.xmippAvailable:
             # if xmipp is not available, just
@@ -321,10 +324,14 @@ data_fullMicrograph
         nVolumes = 2  # realistic value 5
         self.angular_sampling_rate = 30  # realistic value 3
         self.delete_files_with_extension("/tmp",  "tmp*.ctfdata")
-        self.delete_files_with_extension("/tmp",  f"pdf{atomStructID}.ent")
-        self.delete_files_with_extension("/tmp",  f"pdb{atomStructID}_shifted_?.pdb")
-        self.delete_files_with_extension("/tmp",  f"pdb{atomStructID}_shifted_?.vol")
-        self.delete_files_with_extension("/tmp", f"{atomStructID}_shifted_*.mrcs") 
+        self.delete_files_with_extension(
+            "/tmp",  f"pdf{atomStructID}.ent")
+        self.delete_files_with_extension(
+            "/tmp",  f"pdb{atomStructID}_shifted_?.pdb")
+        self.delete_files_with_extension(
+            "/tmp",  f"pdb{atomStructID}_shifted_?.vol")
+        self.delete_files_with_extension(
+            "/tmp", f"{atomStructID}_shifted_*.mrcs")
         volMapName = f'/tmp/{atomStructID}_shifted_%d'
         atomStructPath = self.getAtomStructFile(atomStructID)
         translation_vector = np.array([0.5, 0.0, -0.25])
@@ -332,24 +339,25 @@ data_fullMicrograph
 
         for i in range(nVolumes):
             shiftChain = self.shiftFirstChain(
-                atomStructPath=atomStructPath, 
+                atomStructPath=atomStructPath,
                 translation_vector=translation_vector,
-                nTimes=i )
+                nTimes=i)
             volumeName = self.createVolume(
                 atomStructPath=shiftChain,
-                volMapName=volMapName%i)
+                volMapName=volMapName % i)
             volumeNames.append(volumeName)
-        projDocNames = self.createProjections(volumeNames, self.angular_sampling_rate)
+        projDocNames = self.createProjections(
+            volumeNames, self.angular_sampling_rate)
         xmdProjFile = self.addNoiseAndCTF(projDocNames)
         volName = volumeNames[0]
         protImportProj, protImportVolume =\
-             self.importData(xmdProjName=xmdProjFile, volName=volName)
-        protCreateMask = self.runCreateMask(
+            self.importData(xmdProjName=xmdProjFile, volName=volName)
+        _ = self.runCreateMask(
             pattern=protImportVolume.outputVolume,
             thr=0.1)
-        protRelionReconstruct = self.protRelionReconstruct(protImportProj.outputParticles)
+        protRelionReconstruct = \
+            self.protRelionReconstruct(protImportProj.outputParticles)
         protDynaMight = self.protDynaMight(
             protRelionReconstruct.outputVolume,
             protImportProj.outputParticles)
-        protDynaMightShow = self.protDynaMightShow(protDynaMight)
-
+        _ = self.protDynaMightShow(protDynaMight)
