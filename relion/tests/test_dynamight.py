@@ -84,6 +84,17 @@ class TestDynamight(BaseTest):
         cls.launchProtocol(cls.msk)
         return cls.msk
 
+    def runApplyMask(cls, volume, mask):
+        """ Apply a mask to a volume. """
+        from xmipp3.protocols import XmippProtMaskVolumes
+
+        protApplyMask = cls.newProtocol(XmippProtMaskVolumes,
+                                        inputVolumes=volume,
+                                        source=1,  # SOURCE_VOLUME
+                                        inputMask=mask
+                                        )
+        cls.launchProtocol(protApplyMask)
+        return protApplyMask
     @classmethod
     def runImportVolume(cls, pattern, samplingRate,
                         importFrom=ProtImportParticles.IMPORT_FROM_FILES):
@@ -352,12 +363,16 @@ data_fullMicrograph
         volName = volumeNames[0]
         protImportProj, protImportVolume =\
             self.importData(xmdProjName=xmdProjFile, volName=volName)
-        _ = self.runCreateMask(
+        protCreateMask = self.runCreateMask(
             pattern=protImportVolume.outputVolume,
             thr=0.1)
         protRelionReconstruct = \
             self.protRelionReconstruct(protImportProj.outputParticles)
-        protDynaMight = self.protDynaMight(
+        protApplyMask = self.runApplyMask(
             protRelionReconstruct.outputVolume,
+            protCreateMask.outputMask)
+        # mask reconstruction
+        protDynaMight = self.protDynaMight(
+            protApplyMask.outputVol,
             protImportProj.outputParticles)
         _ = self.protDynaMightShow(protDynaMight)
