@@ -42,7 +42,7 @@ class TestDynamight(BaseTest):
         cls.cryoSparcAvailable = True
         cls.sampling = 1.35
         cls.size = 128
-        cls.gpuList = '1'  # 0
+        cls.gpuList = '0'
 
         from pwem import Domain
         try:
