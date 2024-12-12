@@ -32,7 +32,7 @@ from pyworkflow.tests import BaseTest, setupTestProject
 import numpy as np
 from relion.protocols import ProtRelionReconstruct
 from relion.protocols import ProtRelionDynaMight
-
+import tempfile
 
 class TestDynamight(BaseTest):
     @classmethod
@@ -51,6 +51,8 @@ class TestDynamight(BaseTest):
         except Exception as e:
             print("xmipp3 not available, cancel test", e)
             cls.xmippAvailable = False
+        cls.absTmpPath = os.path.join(
+            cls.getOutputPath(), cls.proj.getTmpPath())
 
     def __runXmippProgram(self, program, args):
         """ Internal shortcut function to launch a Xmipp program.
@@ -141,11 +143,12 @@ class TestDynamight(BaseTest):
     def getAtomStructFile(self, atomStructID):
         aSH = emconv.AtomicStructHandler()
         atomStructPath = aSH.readFromPDBDatabase(
-            atomStructID, dir="/tmp/", type='pdb')
-
+            atomStructID, dir=self.absTmpPath, type='pdb')
+        # filter out HETATM
+        tempFile  = os.path.join(self.absTmpPath, "kk")
         os.system(
             f"cat {atomStructPath} |"
-            f" grep -v HETATM > /tmp/kk; mv /tmp/kk {atomStructPath}")
+            f" grep -v HETATM > {tempfile}; mv {tempfile} {atomStructPath}")
         return atomStructPath
 
     def createVolume(self, atomStructPath, volMapName):
@@ -334,16 +337,8 @@ data_fullMicrograph
         atomStructID = '3wtg'
         nVolumes = 2  # realistic value 5
         self.angular_sampling_rate = 30  # realistic value 3
-        self.delete_files_with_extension("/tmp",  "tmp*.ctfdata")
-        self.delete_files_with_extension(
-            "/tmp",  f"pdf{atomStructID}.ent")
-        self.delete_files_with_extension(
-            "/tmp",  f"pdb{atomStructID}_shifted_?.pdb")
-        self.delete_files_with_extension(
-            "/tmp",  f"pdb{atomStructID}_shifted_?.vol")
-        self.delete_files_with_extension(
-            "/tmp", f"{atomStructID}_shifted_*.mrcs")
-        volMapName = f'/tmp/{atomStructID}_shifted_%d'
+        volMapName = os.path.join(
+            self.absTmpPath, f'{atomStructID}_shifted_%d')
         atomStructPath = self.getAtomStructFile(atomStructID)
         translation_vector = np.array([0.5, 0.0, -0.25])
         volumeNames = []
