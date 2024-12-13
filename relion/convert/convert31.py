@@ -35,6 +35,7 @@ from collections import OrderedDict
 from emtable import Table
 
 import pyworkflow.utils as pwutils
+from pyworkflow.object import Integer
 from pwem.constants import ALIGN_NONE, ALIGN_PROJ, ALIGN_2D, ALIGN_3D
 from pwem.objects import (Micrograph, SetOfMicrographsBase, SetOfMovies,
                           Particle, CTFModel, Acquisition, Transform, Coordinate)
@@ -520,6 +521,8 @@ class Reader(ReaderBase):
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
         self._optics = OpticsGroups.fromStar(starFile)
+        if len(self._optics) == 1:
+            self._optics.update(1, rlnOpticsGroup=1)
 
         self._pixelSize = getattr(self._optics.first(),
                                   'rlnImagePixelSize', 1.0)
@@ -533,6 +536,7 @@ class Reader(ReaderBase):
         self._setCtf = partsReader.hasAllColumns(self.CTF_LABELS[:3])
         self._setCoord = partsReader.hasAllColumns(self.COORD_LABELS[:3])
         particle = Particle()
+        particle._rlnOpticsGroup = Integer()
 
         if self._setCtf:
             particle.setCTF(CTFModel())
@@ -588,6 +592,8 @@ class Reader(ReaderBase):
 
         self.setParticleTransform(particle, row)
         self.setExtraLabels(particle, row)
+
+        particle._rlnOpticsGroup.set(row.getAttributeValue('_rlnOpticsGroup', 1))
 
         # TODO: coord extra labels, partId, micId,
         if self._setCoord:
