@@ -69,10 +69,13 @@ class OpticsGroups:
         # Also allow indexing by name
         self._dictName = OrderedDict()
         # Map optics rows both by name and by number
+        renumber = len(opticsTable) == 1
         for og in opticsTable:
-            self.__store(og)
+            self.__store(og, renumber)
 
-    def __store(self, og):
+    def __store(self, og, renumber=False):
+        if renumber:
+            og = og._replace(rlnOpticsGroup=1)
         self._dict[og.rlnOpticsGroup] = og
         groupName = og.rlnOpticsGroupName if hasattr(og, 'rlnOpticsGroupName') else 'optics_group_%s' % og.rlnOpticsGroup
         self._dictName[groupName] = og
@@ -521,9 +524,6 @@ class Reader(ReaderBase):
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
         self._optics = OpticsGroups.fromStar(starFile)
-        if len(self._optics) == 1:
-            self._optics.update(1, rlnOpticsGroup=1)
-
         self._pixelSize = getattr(self._optics.first(),
                                   'rlnImagePixelSize', 1.0)
         self._invPixelSize = 1. / self._pixelSize
@@ -536,7 +536,6 @@ class Reader(ReaderBase):
         self._setCtf = partsReader.hasAllColumns(self.CTF_LABELS[:3])
         self._setCoord = partsReader.hasAllColumns(self.COORD_LABELS[:3])
         particle = Particle()
-        particle._rlnOpticsGroup = Integer()
 
         if self._setCtf:
             particle.setCTF(CTFModel())
@@ -592,8 +591,6 @@ class Reader(ReaderBase):
 
         self.setParticleTransform(particle, row)
         self.setExtraLabels(particle, row)
-
-        particle._rlnOpticsGroup.set(row.getAttributeValue('_rlnOpticsGroup', 1))
 
         # TODO: coord extra labels, partId, micId,
         if self._setCoord:
