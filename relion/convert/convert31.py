@@ -35,7 +35,6 @@ from collections import OrderedDict
 from emtable import Table
 
 import pyworkflow.utils as pwutils
-from pyworkflow.object import Integer
 from pwem.constants import ALIGN_NONE, ALIGN_PROJ, ALIGN_2D, ALIGN_3D
 from pwem.objects import (Micrograph, SetOfMicrographsBase, SetOfMovies,
                           Particle, CTFModel, Acquisition, Transform, Coordinate)
