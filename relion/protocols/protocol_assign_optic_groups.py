@@ -25,6 +25,7 @@
 # **************************************************************************
 
 import os
+import re
 import emtable
 
 from pyworkflow.object import Integer
@@ -231,6 +232,12 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
             micDict = {row.rlnMicrographName: row.rlnOpticsGroup
                        for row in micTable}
 
+            for g in og.getColumnValues("rlnOpticsGroupName"):
+                if not self._checkGroupName(g):
+                    raise ValueError(f"Invalid name: {g}"
+                                     "The optics group name may contain only numbers, "
+                                     "alphabets and hyphen(-).")
+
             # check if MTF file exists
             if og.hasColumn('rlnMtfFileName'):
                 for i in og:
@@ -277,6 +284,12 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
     # --------------------------- INFO functions ------------------------------
     def _validate(self):
         validateMsgs = []
+
+        ogName = self.opticsGroupName.get()
+        if not self._checkGroupName(ogName):
+            validateMsgs.append("The optics group name may contain only numbers, "
+                                "alphabets and hyphen(-).")
+
 
         if self.mtfFile.hasValue() and not os.path.exists(self.mtfFile.get()):
             validateMsgs.append("MTF file %s does not exist!" % self.mtfFile.get())
@@ -348,3 +361,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
             outputGain = self._getPath(os.path.basename(gainFn))
             pwutils.createAbsLink(gainFn, outputGain)
             return outputGain
+
+    @staticmethod
+    def _checkGroupName(ogName):
+        return bool(re.match(r'^[a-zA-Z0-9\-]+$', ogName))

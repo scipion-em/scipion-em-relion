@@ -68,13 +68,10 @@ class OpticsGroups:
         # Also allow indexing by name
         self._dictName = OrderedDict()
         # Map optics rows both by name and by number
-        renumber = len(opticsTable) == 1
         for og in opticsTable:
-            self.__store(og, renumber)
+            self.__store(og)
 
-    def __store(self, og, renumber=False):
-        if renumber:
-            og = og._replace(rlnOpticsGroup=1)
+    def __store(self, og):
         self._dict[og.rlnOpticsGroup] = og
         groupName = og.rlnOpticsGroupName if hasattr(og, 'rlnOpticsGroupName') else 'optics_group_%s' % og.rlnOpticsGroup
         self._dictName[groupName] = og
@@ -519,11 +516,25 @@ class Reader(ReaderBase):
         """
         self._preprocessImageRow = kwargs.get('preprocessImageRow', None)
         self._alignType = kwargs.get('alignType', ALIGN_NONE)
-
         self._postprocessImageRow = kwargs.get('postprocessImageRow', None)
 
-        self._optics = OpticsGroups.fromStar(starFile)
-        self._pixelSize = getattr(self._optics.first(),
+        # do not create OpticsGroups yet, because we need to modify the table
+        opticsTable = Table(fileName=starFile, tableName='optics')
+        doRenumber = min(og.rlnOpticsGroup for og in opticsTable) != 1
+        if doRenumber:
+            print("Renumbering optics groups")
+            newOptics = Table(columns=opticsTable.getColumnNames())
+
+            for id, oldRow in enumerate(opticsTable, start=1):
+                values = oldRow._asdict()
+                values.update(rlnOpticsGroup=id)
+                newOptics.addRow(**values)
+
+            opticsTable = newOptics
+
+        self._optics = OpticsGroups(opticsTable)
+        firstOg = self._optics.first()
+        self._pixelSize = getattr(firstOg,
                                   'rlnImagePixelSize', 1.0)
         self._invPixelSize = 1. / self._pixelSize
 
@@ -542,7 +553,7 @@ class Reader(ReaderBase):
         self._setAcq = kwargs.get("readAcquisition", True)
         if self._setAcq:
             acq = Acquisition()
-            self.rowToAcquisition(self._optics.first(), acq)
+            self.rowToAcquisition(firstOg, acq)
             acq.setMagnification(kwargs.get('magnification', 10000))
             partSet.setAcquisition(acq)
         else:
