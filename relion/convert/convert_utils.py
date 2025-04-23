@@ -48,7 +48,7 @@ def locationToRelion(index, filename):
     to a string with @ as expected in Relion.
     """
     if index != NO_INDEX:
-        return "%06d@%s" % (index, filename)
+        return "%08d@%s" % (index, filename)
 
     return filename
 
