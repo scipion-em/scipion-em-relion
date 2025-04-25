@@ -88,6 +88,15 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                       condition='doContinue', allowsNull=True,
                       label='Select previous run',
                       help='Select a previous run to analyse.')
+        
+        group.addParam('batchSize', params.IntParam, default=10,
+                       label="Backprojection batchsize",
+                       help="Number of images to process in parallel. "
+                            "This will speed up the calculation, but will "
+                            "cost GPU memory. Try how high you can go on "
+                            "your GPU, given your box size and size of the "
+                            "neural network. If you get errors regarding "
+                            "the size of the tensors, try 120. ")
 
         form.addParam('inputParticles', params.PointerParam,
                       allowsNull=True,
@@ -177,15 +186,6 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                             "in the GPU memory, which will speed up the "
                             "calculations, but you need to have enough GPU "
                             "memory to do this.")
-
-        group.addParam('batchSize', params.IntParam, default=10,
-                       label="Backprojection batchsize",
-                       help="Number of images to process in parallel. "
-                            "This will speed up the calculation, but will "
-                            "cost GPU memory. Try how high you can go on "
-                            "your GPU, given your box size and size of the "
-                            "neural network. If you get errors regarding "
-                            "the size of the tensors, try 120. ")
 
         form.addParallelSection(threads=4, mpi=0)
 
