@@ -89,7 +89,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                       label='Select previous run',
                       help='Select a previous run to analyse.')
         
-        group.addParam('batchSize', params.IntParam, default=10,
+        form.addParam('batchSize', params.IntParam, default=10,
                        label="Backprojection batchsize",
                        help="Number of images to process in parallel. "
                             "This will speed up the calculation, but will "
