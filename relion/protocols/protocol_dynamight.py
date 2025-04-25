@@ -237,6 +237,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
             f"--regularization-factor {self.regularizeFactor}",
             f"--n-threads {self.numberOfThreads}",
             f"--gpu-id {self.gpuList.get()}",
+            f"--batch-size {self.batchSize.get()}",
             "--preload-images" if self.allParticlesRam else ""
         ]
 
@@ -275,7 +276,6 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
             params = [
                 "deformable-backprojection",
                 self._getExtraPath(),
-                f"--batch-size {self.batchSize.get()}",
                 f"--checkpoint-file {checkpoint_file}",
                 f"--gpu-id {self.gpuList.get()}",
                 "--preload-images" if self.allParticlesRam else ""
