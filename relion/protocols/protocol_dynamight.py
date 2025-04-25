@@ -179,13 +179,13 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                             "memory to do this.")
 
         group.addParam('batchSize', params.IntParam, default=10,
-                       condition='doContinue and doDeform',
                        label="Backprojection batchsize",
                        help="Number of images to process in parallel. "
                             "This will speed up the calculation, but will "
                             "cost GPU memory. Try how high you can go on "
                             "your GPU, given your box size and size of the "
-                            "neural network.")
+                            "neural network. If you get errors regarding "
+                            "the size of the tensors, try 120. ")
 
         form.addParallelSection(threads=4, mpi=0)
 
