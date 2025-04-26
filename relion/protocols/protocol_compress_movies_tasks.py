@@ -47,13 +47,13 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
     """
     _label = 'compress movies (tasks)'
     _devStatus = BETA
+    # We don't need parallelization at the steps level
+    # we will use Pipeline/Tasks
+    stepsExecutionMode = STEPS_SERIAL
 
     def __init__(self, **kwargs):
         ProtProcessMovies.__init__(self, **kwargs)
         self.isEER = False
-        # We don't need parallelization at the steps level
-        # we will use Pipeline/Tasks
-        self.stepsExecutionMode = STEPS_SERIAL
 
     def _getConvertExtension(self, filename):
         """ Check whether it is needed to convert to .mrc or not """

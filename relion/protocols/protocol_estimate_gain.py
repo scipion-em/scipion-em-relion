@@ -42,12 +42,12 @@ class ProtRelionCompressEstimateGain(ProtProcessMovies):
     """
     _label = 'estimate gain reference'
     _devStatus = PROD
+    stepsExecutionMode = STEPS_SERIAL
 
     def __init__(self, **kwargs):
         ProtProcessMovies.__init__(self, **kwargs)
         self.isFloat32 = False
         self.isEER = False
-        self.stepsExecutionMode = STEPS_SERIAL
 
     def _getConvertExtension(self, filename):
         """ Check whether it is needed to convert to .mrc or not """

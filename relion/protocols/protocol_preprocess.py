@@ -51,11 +51,11 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
     _label = 'preprocess particles'
     _devStatus = PROD
     _possibleOutputs = outputs
+    stepsExecutionMode = STEPS_PARALLEL
     
     def __init__(self, **args):
         ProtProcessParticles.__init__(self, **args)
-        self.stepsExecutionMode = STEPS_PARALLEL
-    
+
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')
