@@ -824,9 +824,9 @@ class ProtRelionBase(EMProtocol):
         self._initialize()
         self._insertFunctionStep(self.convertInputStep,
                                  self._getInputParticles().getObjId(),
-                                 bool(self.copyAlignment))
+                                 bool(self.copyAlignment), needsGPU=False)
         self._insertRelionStep()
-        self._insertFunctionStep(self.createOutputStep)
+        self._insertFunctionStep(self.createOutputStep, needsGPU=False)
 
     def _insertRelionStep(self):
         """ Prepare the command line arguments before calling Relion. """
@@ -845,7 +845,8 @@ class ProtRelionBase(EMProtocol):
         if self.extraParams.hasValue():
             params += ' ' + self.extraParams.get()
 
-        self._insertFunctionStep(self.runRelionStep, params)
+        self._insertFunctionStep(self.runRelionStep, params,
+                                 needsGPU=self.usesGpu())
 
     # -------------------------- STEPS functions -------------------------------
     def convertInputStep(self, particlesId, copyAlignment):

@@ -63,9 +63,9 @@ class ProtRelionExpandSymmetry(ProtProcessParticles):
     # -------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self):
         imgsFn = self._getPath('input_particles.star')
-        self._insertFunctionStep(self.convertInputStep, imgsFn)
-        self._insertFunctionStep(self.expandSymmetryStep, imgsFn)
-        self._insertFunctionStep(self.createOutputStep)
+        self._insertFunctionStep(self.convertInputStep, imgsFn, needsGPU=False)
+        self._insertFunctionStep(self.expandSymmetryStep, imgsFn, needsGPU=False)
+        self._insertFunctionStep(self.createOutputStep, needsGPU=False)
 
     # -------------------------- STEPS functions ------------------------------
 

@@ -230,9 +230,11 @@ class ProtRelionPostprocess(ProtAnalysis3D, ProtRelionBase):
                           self.inputHalf2.get().getObjId()]
         self._createFilenameTemplates()
         self._defineParamDict()
-        self._insertFunctionStep(self.convertInputStep, objsId)
-        self._insertFunctionStep(self.postProcessStep, self.paramDict)
-        self._insertFunctionStep(self.createOutputStep)
+        self._insertFunctionStep(self.convertInputStep, objsId,
+                                 needsGPU=False)
+        self._insertFunctionStep(self.postProcessStep, self.paramDict,
+                                 needsGPU=False)
+        self._insertFunctionStep(self.createOutputStep, needsGPU=False)
 
     # -------------------------- STEPS functions -------------------------------
     def convertInputStep(self, objsId):

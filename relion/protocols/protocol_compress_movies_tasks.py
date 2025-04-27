@@ -112,7 +112,7 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
 
     def _insertAllSteps(self):
         self.samplingRate = self.inputMovies.get().getSamplingRate()
-        self._insertFunctionStep(self._processAllMoviesStep)
+        self._insertFunctionStep(self._processAllMoviesStep, needsGPU=False)
 
     def _linkGain(self):
         gainFile = None

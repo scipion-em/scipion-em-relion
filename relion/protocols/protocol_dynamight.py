@@ -194,11 +194,11 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
         self._createFilenameTemplates()
 
         if not self.doContinue:
-            self._insertFunctionStep(self.convertInputStep)
-            self._insertFunctionStep(self.runDynamightStep)
+            self._insertFunctionStep(self.convertInputStep, needsGPU=False)
+            self._insertFunctionStep(self.runDynamightStep, needsGPU=True)
         else:
             self.runTasks()
-            self._insertFunctionStep(self.createOutputStep)
+            self._insertFunctionStep(self.createOutputStep, needsGPU=False)
 
     # -------------------------- STEPS functions ------------------------------
     def _createFilenameTemplates(self):
@@ -256,7 +256,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                 f"--checkpoint-file {checkpoint_file}",
                 f"--gpu-id {self.gpuList.get()}"
             ]
-            self._insertFunctionStep(self.runTaskStep, params)
+            self._insertFunctionStep(self.runTaskStep, params, needsGPU=True)
 
         elif self.doDeform:
             # Estimate inverse deformations
@@ -269,7 +269,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                 "--preload-images" if self.allParticlesRam else "",
                 "--save-deformations" if self.storeDeforms else ""
             ]
-            self._insertFunctionStep(self.runTaskStep, params)
+            self._insertFunctionStep(self.runTaskStep, params, needsGPU=True)
 
             # Backproject
             params = [
@@ -280,7 +280,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                 f"--gpu-id {self.gpuList.get()}",
                 "--preload-images" if self.allParticlesRam else ""
             ]
-            self._insertFunctionStep(self.runTaskStep, params)
+            self._insertFunctionStep(self.runTaskStep, params, needsGPU=True)
 
     def runTaskStep(self, params: List[str]):
         """ Run the actual job. """

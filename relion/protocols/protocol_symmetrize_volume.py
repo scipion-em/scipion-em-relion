@@ -60,7 +60,8 @@ class ProtRelionSymmetrizeVolume(ProtAlignVolume):
     # --------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self):
         self._insertFunctionStep(self.createOutputStep,
-                                 self.inputVolume.getObjId())
+                                 self.inputVolume.getObjId(),
+                                 needsGPU=False)
 
     # --------------------------- STEPS functions ------------------------------
     def createOutputStep(self, volId):

@@ -202,12 +202,12 @@ class ProtRelionCtfRefinement(ProtParticles, ProtRelionBase):
     # -------------------------- STEPS functions ------------------------------
     def _insertAllSteps(self):
         self._initialize()
-        self._insertFunctionStep(self.convertInputStep)
-        self._insertFunctionStep(self.refineCtfStep)
-        self._insertFunctionStep(self.createOutputStep)
+        self._insertFunctionStep(self.convertInputStep, needsGPU=False)
+        self._insertFunctionStep(self.refineCtfStep, needsGPU=False)
+        self._insertFunctionStep(self.createOutputStep, needsGPU=False)
 
         if self.doCtfFitting:
-            self._insertFunctionStep(self.createGlobalInfoStep)
+            self._insertFunctionStep(self.createGlobalInfoStep, needsGPU=False)
 
     def convertInputStep(self):
         inputParts = self.inputParticles.get()

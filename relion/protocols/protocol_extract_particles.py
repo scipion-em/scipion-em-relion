@@ -144,7 +144,8 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
             self.streamingBatchSize.set(0)
 
         return [self._insertFunctionStep(self.convertInputStep,
-                                         self.getInputMicrographs().getObjId())]
+                                         self.getInputMicrographs().getObjId(),
+                                         needsGPU=False)]
 
     def _doNothing(self, *args):
         pass  # used to avoid some streaming functions
