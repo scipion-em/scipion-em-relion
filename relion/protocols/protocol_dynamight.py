@@ -1,6 +1,7 @@
 # **************************************************************************
 # *
 # * Authors:     Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk) [1]
+# *              David Herreros (dherreros@cnb.csic.es)     [2]
 # *
 # * [1] MRC Laboratory of Molecular Biology, MRC-LMB
 # *
@@ -26,20 +27,24 @@
 import os.path
 from glob import glob
 from typing import List
+import numpy as np
 
 import pyworkflow.protocol.params as params
+from joblib.testing import param
 from pyworkflow.constants import NEW
 import pyworkflow.utils as pwutils
-from pwem.protocols import ProtAnalysis3D
+from pwem.protocols import ProtAnalysis3D, ProtFlexBase
 from pwem.constants import ALIGN_PROJ
-from pwem.objects import SetOfVolumes, Volume
+from pwem.objects import SetOfVolumes, Volume, ParticleFlex
 
+import relion
 from relion import Plugin
 import relion.convert as convert
 from relion.protocols.protocol_base import ProtRelionBase
+from relion.constants import DYNAMIGHT
 
 
-class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
+class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
     """
     Relion protocol for continuous flexibility analysis.
 
@@ -133,6 +138,10 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                            "and for deformed backprojection. This will speed up "
                            "the calculations, but you need to make sure you have "
                            "enough RAM to do so.")
+        form.addParam('trainingEpochs', params.IntParam, default=150,
+                      label="Number of training epochs")
+        form.addParam('trainingBatchSize', params.IntParam, default=128,
+                      label="Training batch size")
 
         form.addSection(label='Tasks', condition='doContinue')
         form.addParam('continueMsg', params.LabelParam,
@@ -196,6 +205,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
         if not self.doContinue:
             self._insertFunctionStep(self.convertInputStep, needsGPU=False)
             self._insertFunctionStep(self.runDynamightStep, needsGPU=True)
+            self._insertFunctionStep(self.createOutputTrainingStep, needsGPU=False)
         else:
             self.runTasks()
             self._insertFunctionStep(self.createOutputStep, needsGPU=False)
@@ -237,10 +247,21 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
             f"--regularization-factor {self.regularizeFactor}",
             f"--n-threads {self.numberOfThreads}",
             f"--gpu-id {self.gpuList.get()}",
-            "--preload-images" if self.allParticlesRam else ""
+            "--preload-images" if self.allParticlesRam else "",
+            f"--n-epochs {self.trainingEpochs.get()}",
+            f"--batch-size {self.trainingBatchSize.get()}",
         ]
 
         self.runProgram(params)
+
+        # Predict latent space
+        script_dynamight_encode = os.path.join(os.path.dirname(relion.__file__), "dynamight", "dynamight_encode_latent_vectors.py")
+        params = [
+            f"--output_directory {self._getExtraPath()}",
+            f"--checkpoint_file {self._getFileName('checkpoint_final')}",
+            f"--gpu_id {self.gpuList.get()}",
+        ]
+        self.runPythonScript(script_dynamight_encode, params)
 
     def runTasks(self):
         inputProt = self.continueRun.get()
@@ -308,6 +329,33 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
             self._defineOutputs(Volumes=volumes)
             self._defineSourceRelation(parts, volumes)
 
+    def createOutputTrainingStep(self):
+        parts = self._getInputParticles()
+
+        partSet = self._createSetOfParticlesFlex(progName=DYNAMIGHT)
+
+        partSet.copyInfo(parts)
+        partSet.setHasCTF(parts.hasCTF())
+        partSet.setAlignmentProj()
+
+        # Load encoded latent vectors
+        latent_vectors = np.load(self._getExtraPath("latent_vectors.npy"))
+
+        idx = 0
+        for particle in parts.iterItems():
+            outParticle = ParticleFlex(progName=DYNAMIGHT)
+            outParticle.copyInfo(particle)
+
+            outParticle.setZFlex(latent_vectors[idx])
+            outParticle.getFlexInfo().setAttr("checkpoint_file", self._getFileName('checkpoint_final'))
+
+            partSet.append(outParticle)
+
+            idx += 1
+
+        self._defineOutputs(Particles=partSet)
+        self._defineSourceRelation(parts, partSet)
+
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
         summary = []
@@ -342,6 +390,11 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
     def runProgram(self, params: List[str]) -> None:
         program = "relion_python_dynamight"
         self.runJob(f"{Plugin.getActivationCmd()} && {program}",
+                    " ".join(params))
+
+    def runPythonScript(self, script: str, params: List[str]) -> None:
+        program = "python"
+        self.runJob(f"{Plugin.getActivationCmd()} && {program} {script}",
                     " ".join(params))
 
     def _getEnviron(self):
