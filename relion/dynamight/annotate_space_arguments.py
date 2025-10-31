@@ -25,9 +25,14 @@
 # **************************************************************************
 
 
+import os
+import relion
+
+
 def getAnnotateSpaceArguments(particles, gpu_id=None):
     server_functions_path = os.path.join(os.path.dirname(relion.__file__), "dynamight", "annotate_space_server.py")
-    args = f"--checkpoint_file {particles.getFlexInfo().getAttr('checkpoint_file')} --server_functions_path {server_functions_path}"
+    args = (f"--checkpoint_file {particles.getFlexInfo().getAttr('checkpoint_file')} --server_functions_path {server_functions_path} "
+            f"--env_name {relion.Plugin.getRelionEnvActivation().split(' ')[-1]}")
 
     if gpu_id is not None:
         args += f" --gpu_id {gpu_id}"

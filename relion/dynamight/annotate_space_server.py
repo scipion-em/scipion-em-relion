@@ -48,7 +48,7 @@ class HeterogeneityProgramInterface:
         gpu_id = kwargs.pop("gpu_id", None)
         checkpoint_file = kwargs.pop("checkpoint_file", None)
 
-        self.device = "cpu" if gpu_id is None else 'cuda:' + str(gpu_id)
+        self.device = "cpu" if gpu_id is None else 'cuda:' + str(int(gpu_id))
         if checkpoint_file is None:
             checkpoint_file = output_directory / \
                               'forward_deformations/checkpoints/checkpoint_final.pth'
@@ -87,7 +87,7 @@ class HeterogeneityProgramInterface:
 
         '''Computing indices for the second half set'''
         self.indices_h1 = cp['indices_half1'].cpu().numpy()
-        self.indices_h2 = np.asarray(list(set(range(len(dataset))) - set(list(indices_h1))))
+        self.indices_h2 = np.asarray(list(set(range(len(dataset))) - set(list(self.indices_h1))))
 
         decoder_h1.p2i.device = self.device
         decoder_h1.projector.device = self.device
@@ -106,16 +106,15 @@ class HeterogeneityProgramInterface:
         return [decoder_h1, decoder_h2]
 
     def decode_state_from_latent(self, latent: np.array) -> None:
-        latent = torch.from_numpy(latent).to(self.device)
+        latent = torch.from_numpy(latent.astype(np.float32)).to(self.device)
         r = torch.zeros([2, 3]).to(self.device)
         t = torch.zeros([2, 2]).to(self.device)
-        vol = self.decoder.generate_volume(latent, r, t).float().cpu().numpy()
-
-        if vol.ndim == 3:
-            vol = [None, ...]
-
         idx = 1
-        for single_vol in vol:
+        for l in latent:
+            l = l[None, ...]
+            vol_h1 = self.model[0].generate_volume(l, r, t).detach().float().cpu().numpy()
+            vol_h2 = self.model[1].generate_volume(l, r, t).detach().float().cpu().numpy()
+            vol = 0.5 * (vol_h1 + vol_h2)
             with mrcfile.new(self.path_template.format(idx)) as mrc:
-                mrc.set_data(single_vol)
+                mrc.set_data(vol)
             idx += 1

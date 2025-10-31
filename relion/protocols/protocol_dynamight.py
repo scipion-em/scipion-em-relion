@@ -337,6 +337,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
         partSet.copyInfo(parts)
         partSet.setHasCTF(parts.hasCTF())
         partSet.setAlignmentProj()
+        partSet.getFlexInfo().setAttr("checkpoint_file", self._getFileName('checkpoint_final'))
 
         # Load encoded latent vectors
         latent_vectors = np.load(self._getExtraPath("latent_vectors.npy"))
