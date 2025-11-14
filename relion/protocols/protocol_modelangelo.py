@@ -37,20 +37,11 @@ from relion import Plugin
 
 class ProtRelionModelAngelo(EMProtocol):
     """
-    Relion protocol for continuous flexibility analysis.
-
-    As of release 5.0, Relion comes with a machine-learning approach for
-    the analysis of molecular motions and flexibility called DynaMight.
-    DynaMight will fit molecular motions for each experimental particle image
-    as a 3D deformation field, which is learnt using a variational auto-encoder.
-    It also implements functionality to calculate a pseudo-inverse 3D deformation
-    field that can then be used in a deformed weighted backprojection algorithm
-    to obtain an improved 3D reconstruction of the consensus structure.
-
-    """
-    """
-    ModelAngelo is an automatic atomic model building program for cryo-EM maps.
-    With or without providing a sequence.
+   ModelAngelo is a tool for automated atomic model building from 
+   cryo‑EM density maps. It uses a combination of machine learning methods
+   to predict residue positions and chain connectivity. 
+   The program can incorporate sequence information when available 
+   and produces atomic models for further refinement.
     """
     _label = 'modelangelo'
 
