@@ -29,10 +29,13 @@ from .test_protocols_2d import *
 from .test_protocols_3d import *
 from .test_workflow import *
 from .test_projection_subtraction_no_relion import *
-from .tests_model_angelo import TestModelAngelo
 
 try:
     from .test_dynamight import TestWorkflowRelionDynamight
+except ImportError:
+    pass
+try:
+    from .tests_model_angelo import TestModelAngelo
 except ImportError:
     pass
 
