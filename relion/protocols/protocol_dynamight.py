@@ -108,12 +108,6 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                       label="Input consensus volume",
                       condition='not doContinue')
 
-        form.addParam('referenceMask', params.PointerParam,
-                      pointerClass='VolumeMask', allowsNull=True,
-                      label="Input consensus mask",
-                      expertLevel=params.LEVEL_ADVANCED,
-                      condition='not doContinue')
-
         form.addSection(label='Tasks')
         group = form.addGroup('Deformations', condition='not doContinue')
         group.addParam('numberOfGaussians', params.IntParam, default=5000,
@@ -295,7 +289,6 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
             f"--output-directory {self._getExtraPath()}",
             f"--initial-model {self._getRefArg()}",
             f"--initial-threshold {self.threshold.get()}",
-            f"--mask-file {self.referenceMask.get()}" if self.referenceMask else ""
             f"--n-gaussians {self.numberOfGaussians.get()}",
             f"--n-latent-dimensions {self.latentDim.get()}",
             f"--weight-decay {self.weightDecay.get()}",
@@ -322,7 +315,6 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                 self._getExtraPath(),
                 f"--checkpoint-file {checkpoint_file}",
                 f"--half-set {self.halfSet.get()}",
-                f"--mask-file {inputProt.referenceMask.get()}" if inputProt.referenceMask else "",
                 f"--batch-size {inputProt.batchSizeD.get()}",
                 f"--gpu-id {self.gpuList.get()}",
                 f"--n-workers {inputProt.numWorkers.get()}",
@@ -348,7 +340,6 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
             params = [
                 "deformable-backprojection_correction",
                 self._getExtraPath(),
-                f"--mask-file {inputProt.referenceMask.get()}" if inputProt.referenceMask else "",
                 f"--gpu-id {self.gpuList.get()}",
                 f"--batch-size {self.batchSizeI.get()}",
                 "--preload-images" if self.allParticlesRam else "",
