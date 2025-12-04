@@ -111,6 +111,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
         form.addParam('referenceMask', params.PointerParam,
                       pointerClass='VolumeMask', allowsNull=True,
                       label="Input consensus mask",
+                      expertLevel=params.LEVEL_ADVANCED,
                       condition='not doContinue')
 
         form.addSection(label='Tasks')
