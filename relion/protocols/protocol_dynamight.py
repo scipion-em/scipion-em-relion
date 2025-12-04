@@ -156,7 +156,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                        label="Deformations batch size",
                        help="Batch size for processing images.")
 
-        group.addParam('numEpochs', params.IntParam, default=100,
+        group.addParam('numEpochsD', params.IntParam, default=100,
                        condition='not doContinue',
                        label="Number of epochs",
                        help="Number of epochs for training network.")
@@ -213,7 +213,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                             "to perform deformed backprojection to calculate "
                             "an improved consensus model.")
 
-        group.addParam('numEpochs', params.IntParam, default=200,
+        group.addParam('numEpochsI', params.IntParam, default=200,
                        condition='doContinue and doDeform',
                        label="Number of epochs to perform",
                        help="Number of epochs to perform inverse deformations. "
@@ -296,7 +296,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
             f"--regularization-factor {self.regularizeFactor.get()}",
             f"--batch-size {self.batchSizeD.get()}",
             f"--gpu-id {self.gpuList.get()}",
-            f"--n-epochs {self.numEpochs.get()}",
+            f"--n-epochs {self.numEpochsD.get()}",
             f"--n-threads {self.numberOfThreads.get()}",
             "--preload-images" if self.allParticlesRam else "",
             f"--n-workers {self.numWorkers.get()}"
@@ -331,7 +331,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                 self._getExtraPath(),
                 f"--checkpoint-file {checkpoint_file}",
                 f"--batch-size {self.batchSizeI.get()}",
-                f"--n-epochs {self.numEpochs.get()}",
+                f"--n-epochs {self.numEpochsI.get()}",
                 f"--gpu-id {self.gpuList.get()}",
                 "--preload-images" if self.allParticlesRam else "",
                 f"--data-loader-threads {self.numberOfThreads.get()}",
