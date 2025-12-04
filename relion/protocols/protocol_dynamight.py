@@ -38,6 +38,10 @@ from relion import Plugin
 import relion.convert as convert
 from relion.protocols.protocol_base import ProtRelionBase
 
+TSNE = 0
+UMAP = 1
+PCA = 2
+ICA = 3
 
 class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
     """
@@ -77,12 +81,14 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                             "if you do not know what we are talking about. "
                             "First core index is 0, second 1 and so on. "
                             "*DynaMight can use only one GPU*.")
+
         form.addSection(label='Input')
         form.addParam('doContinue', params.BooleanParam, default=False,
                       label='Analyse a previous run?',
                       help='If you set to *Yes*, you should select a previous '
                            'DynaMight protocol and most of the input parameters '
                            'will be taken from it.')
+
         form.addParam('continueRun', params.PointerParam,
                       pointerClass='ProtRelionDynaMight',
                       condition='doContinue', allowsNull=True,
@@ -96,12 +102,15 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                       condition='not doContinue',
                       label="Input particles",
                       help='Select the input images from the project.')
-        form.addParam('referenceVolume', params.PointerParam,
-                      pointerClass='Volume', allowsNull=True,
-                      label="Input consensus map",
+
+        form.addParam('referenceMask', params.PointerParam,
+                      pointerClass='VolumeMask', allowsNull=True,
+                      label="Input consensus mask",
                       condition='not doContinue')
 
-        form.addParam('numberOfGaussians', params.IntParam, default=10000,
+        form.addSection(label='Tasks')
+        group = form.addGroup('Deformations', condition='not doContinue')
+        group.addParam('numberOfGaussians', params.IntParam, default=5000,
                       condition='not doContinue',
                       label="Number of Gaussians",
                       help="Number of Gaussians to describe the consensus "
@@ -112,35 +121,61 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                            "your complex. But note that running DynaMight with "
                            "more than 30,000 Gaussians may be problematic on "
                            "GPUs with a memory of 24 GB.")
-        form.addParam('threshold', params.FloatParam, default=-1,
-                      condition='not doContinue',
-                      label="Initial map threshold (optional)",
-                      help="If provided, this threshold will be used to position "
-                           "initial Gaussians in the consensus map. If left "
-                           "default (-1), an automated procedure will be used to "
-                           "estimate the appropriate threshold.")
-        form.addParam('regularizeFactor', params.IntParam, default=1,
-                      condition='not doContinue',
-                      label="Regularization factor",
-                      help="This regularization factor defines the relative "
-                           "weights between the data over the restraints. "
-                           "Values higher than one will put more weights on the "
-                           "restraints.")
-        form.addParam('allParticlesRam', params.BooleanParam, default=False,
-                      label='Pre-read all particles into RAM?',
-                      help="If set to Yes, dynamight will preload images into "
-                           "memory for learning the forward or inverse deformations "
-                           "and for deformed backprojection. This will speed up "
-                           "the calculations, but you need to make sure you have "
-                           "enough RAM to do so.")
 
-        form.addSection(label='Tasks', condition='doContinue')
-        form.addParam('continueMsg', params.LabelParam,
-                      condition='not doContinue',
-                      label='Tasks are not available outside of continue mode. '
-                            'Choose a previous run to analyze.')
+        group.addParam('threshold', params.FloatParam, default=-1,
+                       condition='not doContinue',
+                       label="Initial map threshold (optional)",
+                       help="If provided, this threshold will be used to position "
+                            "initial Gaussians in the consensus map. If left "
+                            "default (-1), an automated procedure will be used to "
+                            "estimate the appropriate threshold.")
 
-        group = form.addGroup('Visualize')
+        group.addParam('regularizeFactor', params.IntParam, default=1,
+                       condition='not doContinue',
+                       label="Regularization factor",
+                       expertLevel=params.LEVEL_ADVANCED,
+                       help="This regularization factor defines the relative "
+                            "weights between the data over the restraints. "
+                            "Values higher than one will put more weights on the "
+                            "restraints.")
+
+        group.addParam('latentDim', params.IntParam, default=8,
+                       condition='not doContinue',
+                       label="Latent dimension",
+                       expertLevel=params.LEVEL_ADVANCED,
+                       help="Number of latent dimension in encoded deformed latent space.")
+
+        group.addParam('weightDecay', params.FloatParam, default=0.0,
+                       condition='not doContinue',
+                       label="Weight Decay",
+                       expertLevel=params.LEVEL_ADVANCED,
+                       help="Weight decay for Adam optimizer.")
+
+        group.addParam('batchSizeD', params.IntParam, default=128,
+                       condition='not doContinue',
+                       label="Deformations batch size",
+                       help="Batch size for processing images.")
+
+        group.addParam('numEpochs', params.IntParam, default=100,
+                       condition='not doContinue',
+                       label="Number of epochs",
+                       help="Number of epochs for training network.")
+
+        group.addParam('numWorkers', params.IntParam, default=8,
+                       condition='not doContinue',
+                       label="Number of workers in CPU",
+                       help="Number of workers for multiple processes and loading in CPU.")
+
+        group.addParam('allParticlesRam', params.BooleanParam, default=False,
+                       label='Pre-read all particles into RAM?',
+                       expertLevel=params.LEVEL_ADVANCED,
+                       help="If set to Yes, dynamight will preload images into "
+                            "memory for learning the forward or inverse deformations "
+                            "and for deformed backprojection. This will speed up "
+                            "the calculations, but you need to make sure you have "
+                            "enough RAM to do so.")
+
+        group = form.addGroup('Latent Space', condition='doContinue')
         group.addParam('doVisualize', params.BooleanParam, default=False,
                        condition='doContinue',
                        label="Do visualization?",
@@ -148,6 +183,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                             "the latent space and deformed models. One can also "
                             "save series of maps to make movies in Chimera, or "
                             "STAR files of particle subsets within this task.")
+
         group.addParam('halfSet', params.IntParam, default=0,
                        condition='doContinue and doVisualize',
                        label="Half-set to visualize",
@@ -156,7 +192,19 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                             "validation set is being visualised, which will give "
                             "you an estimate of the errors in the deformations.")
 
-        group = form.addGroup('Deformations')
+        group.addParam('dimRed', params.EnumParam, default=PCA,
+                       choices=['TSNE', 'UMAP', 'PCA', 'ICA'],
+                       condition='doContinue and doVisualize',
+                       label='Dimensionality reduction method',
+                       help='Type of DimRed method to use when computing the corresponding latent space.')
+
+        group.addParam('clusterize', params.BooleanParam, default=False,
+                       condition='doContinue and doVisualize',
+                       label='Clusterize latent space?',
+                       expertLevel=params.LEVEL_ADVANCED,
+                       help='Condition to clusterize latent space with KMEANS to distinguish in the visualization.')
+
+        group = form.addGroup('Inverse Deformations', condition='doContinue')
         group.addParam('doDeform', params.BooleanParam, default=False,
                        condition='doContinue',
                        label="Estimate inverse deformation and backproject?",
@@ -164,6 +212,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                             "inverse-deformations first. These are necessary "
                             "to perform deformed backprojection to calculate "
                             "an improved consensus model.")
+
         group.addParam('numEpochs', params.IntParam, default=200,
                        condition='doContinue and doDeform',
                        label="Number of epochs to perform",
@@ -171,21 +220,30 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                             "You can monitor the convergence of the loss "
                             "function to assess how many are necessary. "
                             "Often 200 are enough.")
+
         group.addParam('storeDeforms', params.BooleanParam, default=False,
+                       condition='doContinue and doDeform',
                        label="Store deformations in RAM?",
+                       expertLevel=params.LEVEL_ADVANCED,
                        help="If set to Yes, dynamight will store deformations "
                             "in the GPU memory, which will speed up the "
                             "calculations, but you need to have enough GPU "
                             "memory to do this.")
 
-        group.addParam('batchSize', params.IntParam, default=10,
+        group.addParam('batchSizeI', params.IntParam, default=10,
                        condition='doContinue and doDeform',
-                       label="Backprojection batchsize",
+                       label="Backprojection batch size",
                        help="Number of images to process in parallel. "
                             "This will speed up the calculation, but will "
                             "cost GPU memory. Try how high you can go on "
                             "your GPU, given your box size and size of the "
                             "neural network.")
+
+        group.addParam('downFactor', params.IntParam, default=2,
+                       condition='doContinue and doDeform',
+                       label='Downsampling factor for IT',
+                       help='Downsampling factor to decrease IT computation to a smaller box. It is then upsampled'
+                            ' to its original size.')
 
         form.addParallelSection(threads=4, mpi=0)
 
@@ -206,10 +264,8 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
         deform_path = "forward_deformations/checkpoints"
         myDict = {
             'input_particles': self._getExtraPath('input_particles.star'),
-            'checkpoint_iter': self._getExtraPath(deform_path,
-                                                  '%(iter)03d.pth'),
-            'checkpoint_final': self._getExtraPath(deform_path,
-                                                   'checkpoint_final.pth')
+            'checkpoint_iter': self._getExtraPath(deform_path, '%(iter)03d.pth'),
+            'checkpoint_final': self._getExtraPath(deform_path, 'checkpoint_final.pth')
             }
         self._updateFilenamesDict(myDict)
 
@@ -232,12 +288,18 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
             f"--refinement-star-file {self._getFileName('input_particles')}",
             f"--output-directory {self._getExtraPath()}",
             f"--initial-model {self._getRefArg()}",
-            f"--n-gaussians {self.numberOfGaussians}",
-            f"--initial-threshold {self.threshold}",
-            f"--regularization-factor {self.regularizeFactor}",
-            f"--n-threads {self.numberOfThreads}",
+            f"--initial-threshold {self.threshold.get()}",
+            f"--mask-file {self.referenceMask.get()}" if self.referenceMask else ""
+            f"--n-gaussians {self.numberOfGaussians.get()}",
+            f"--n-latent-dimensions {self.latentDim.get()}",
+            f"--weight-decay {self.weightDecay.get()}",
+            f"--regularization-factor {self.regularizeFactor.get()}",
+            f"--batch-size {self.batchSizeD.get()}",
             f"--gpu-id {self.gpuList.get()}",
-            "--preload-images" if self.allParticlesRam else ""
+            f"--n-epochs {self.numEpochs.get()}",
+            f"--n-threads {self.numberOfThreads.get()}",
+            "--preload-images" if self.allParticlesRam else "",
+            f"--n-workers {self.numWorkers.get()}"
         ]
 
         self.runProgram(params)
@@ -252,33 +314,40 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
             params = [
                 "explore-latent-space",
                 self._getExtraPath(),
-                f"--half-set {self.halfSet.get()}",
                 f"--checkpoint-file {checkpoint_file}",
-                f"--gpu-id {self.gpuList.get()}"
+                f"--half-set {self.halfSet.get()}",
+                f"--mask-file {inputProt.referenceMask.get()}" if inputProt.referenceMask else "",
+                f"--batch-size {inputProt.batchSizeD.get()}",
+                f"--gpu-id {self.gpuList.get()}",
+                f"--n-workers {inputProt.numWorkers.get()}",
+                f"--dimensionality-reduction-method {self.dimRed.get()}",
+                f"--cluster" if self.clusterize else ""
             ]
             self._insertFunctionStep(self.runTaskStep, params, needsGPU=True)
 
         elif self.doDeform:
-            # Estimate inverse deformations
             params = [
                 "optimize-inverse-deformations",
                 self._getExtraPath(),
-                f"--n-epochs {self.numEpochs.get()}",
                 f"--checkpoint-file {checkpoint_file}",
+                f"--batch-size {self.batchSizeI.get()}",
+                f"--n-epochs {self.numEpochs.get()}",
                 f"--gpu-id {self.gpuList.get()}",
                 "--preload-images" if self.allParticlesRam else "",
+                f"--data-loader-threads {self.numberOfThreads.get()}",
                 "--save-deformations" if self.storeDeforms else ""
             ]
             self._insertFunctionStep(self.runTaskStep, params, needsGPU=True)
 
-            # Backproject
             params = [
-                "deformable-backprojection",
+                "deformable-backprojection_correction",
                 self._getExtraPath(),
-                f"--batch-size {self.batchSize.get()}",
-                f"--checkpoint-file {checkpoint_file}",
+                f"--mask-file {inputProt.referenceMask.get()}" if inputProt.referenceMask else "",
                 f"--gpu-id {self.gpuList.get()}",
-                "--preload-images" if self.allParticlesRam else ""
+                f"--batch-size {self.batchSizeI.get()}",
+                "--preload-images" if self.allParticlesRam else "",
+                f"--data-loader-threads {self.numberOfThreads.get()}",
+                f"--downsample {self.downFactor.get()}"
             ]
             self._insertFunctionStep(self.runTaskStep, params, needsGPU=True)
 
