@@ -1,8 +1,10 @@
 # **************************************************************************
 # *
 # * Authors:     Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk) [1]
+# *              Eduardo García Delgado (eduardo.garcia@cnb.csic.es) [2]
 # *
 # * [1] MRC Laboratory of Molecular Biology, MRC-LMB
+# * [2] Unidad de  Biocomputacion, Centro Nacional de Biotecnologia, CSIC (CNB-CSIC)
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -173,15 +175,6 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                        label="Number of workers in CPU",
                        help="Number of workers for multiple processes and loading in CPU.")
 
-        group.addParam('allParticlesRam', params.BooleanParam, default=False,
-                       label='Pre-read all particles into RAM?',
-                       expertLevel=params.LEVEL_ADVANCED,
-                       help="If set to Yes, dynamight will preload images into "
-                            "memory for learning the forward or inverse deformations "
-                            "and for deformed backprojection. This will speed up "
-                            "the calculations, but you need to make sure you have "
-                            "enough RAM to do so.")
-
         group = form.addGroup('Latent Space', condition='doContinue')
         group.addParam('doVisualize', params.BooleanParam, default=False,
                        condition='doContinue',
@@ -204,12 +197,6 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                        condition='doContinue and doVisualize',
                        label='Dimensionality reduction method',
                        help='Type of DimRed method to use when computing the corresponding latent space.')
-
-        group.addParam('clusterize', params.BooleanParam, default=False,
-                       condition='doContinue and doVisualize',
-                       label='Clusterize latent space?',
-                       expertLevel=params.LEVEL_ADVANCED,
-                       help='Condition to clusterize latent space with KMEANS to distinguish in the visualization.')
 
         group = form.addGroup('Inverse Deformations', condition='doContinue')
         group.addParam('doDeform', params.BooleanParam, default=False,
@@ -251,6 +238,15 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                        label='Downsampling factor for IT',
                        help='Downsampling factor to decrease IT computation to a smaller box. It is then upsampled'
                             ' to its original size.')
+
+        form.addParam('allParticlesRam', params.BooleanParam, default=False,
+                       label='Pre-read all particles into RAM?',
+                       expertLevel=params.LEVEL_ADVANCED,
+                       help="If set to Yes, dynamight will preload images into "
+                            "memory for learning the forward or inverse deformations "
+                            "and for deformed backprojection. This will speed up "
+                            "the calculations, but you need to make sure you have "
+                            "enough RAM to do so.")
 
         form.addParallelSection(threads=4, mpi=0)
 
@@ -324,7 +320,17 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                            self._getExtraPath("forward_deformations"))
         checkpoint_file = self._getFileName('checkpoint_final')
 
+        if inputProt.referenceMask:
+            maskFilename = self._getFileName('input_mask')
+            inMask = inputProt.referenceMask.get().getFileName()
+            shutil.copy(inMask, maskFilename)
+
         if self.doVisualize:
+            if self.dimRed.get() == 0: dimRed = 'TSNE'
+            if self.dimRed.get() == 1: dimRed = 'UMAP'
+            if self.dimRed.get() == 2: dimRed = 'PCA'
+            if self.dimRed.get() == 3: dimRed = 'ICA'
+
             params = [
                 "explore-latent-space",
                 self._getExtraPath(),
@@ -334,8 +340,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                 f"--batch-size {inputProt.batchSizeD.get()}",
                 f"--gpu-id {self.gpuList.get()}",
                 f"--n-workers {inputProt.numWorkers.get()}",
-                f"--dimensionality-reduction-method {self.dimRed.get()}",
-                f"--cluster" if self.clusterize else ""
+                f"--dimensionality-reduction-method {dimRed}"
             ]
             self._insertFunctionStep(self.runTaskStep, params, needsGPU=True)
 
@@ -354,11 +359,11 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
             self._insertFunctionStep(self.runTaskStep, params, needsGPU=True)
 
             params = [
-                "deformable-backprojection_correction",
+                "deformable-backprojection",
                 self._getExtraPath(),
                 f"--mask-file {self._getFileName('input_mask')}" if inputProt.referenceMask else "",
                 f"--gpu-id {self.gpuList.get()}",
-                f"--batch-size {self.batchSizeI.get()}",
+                f"--backprojection-batch-size {self.batchSizeI.get()}",
                 "--preload-images" if self.allParticlesRam else "",
                 f"--data-loader-threads {self.numberOfThreads.get()}",
                 f"--downsample {self.downFactor.get()}"
