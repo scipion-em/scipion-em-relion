@@ -199,7 +199,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                        help='Type of DimRed method to use when computing the corresponding latent space.')
 
         group = form.addGroup('Inverse Deformations', condition='doContinue')
-        doInverse = 'doContinue and doReform'
+        doInverse = 'doContinue and doDeform'
         group.addParam('doDeform', params.BooleanParam, default=False,
                        condition='doContinue',
                        label="Estimate inverse deformation and backproject?",
