@@ -199,6 +199,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                        help='Type of DimRed method to use when computing the corresponding latent space.')
 
         group = form.addGroup('Inverse Deformations', condition='doContinue')
+        doInverse = 'doContinue and doReform'
         group.addParam('doDeform', params.BooleanParam, default=False,
                        condition='doContinue',
                        label="Estimate inverse deformation and backproject?",
@@ -208,7 +209,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                             "an improved consensus model.")
 
         group.addParam('numEpochsI', params.IntParam, default=200,
-                       condition='doContinue and doDeform',
+                       condition=doInverse,
                        label="Number of epochs to perform",
                        help="Number of epochs to perform inverse deformations. "
                             "You can monitor the convergence of the loss "
@@ -216,7 +217,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                             "Often 200 are enough.")
 
         group.addParam('storeDeforms', params.BooleanParam, default=False,
-                       condition='doContinue and doDeform',
+                       condition=doInverse,
                        label="Store deformations in RAM?",
                        expertLevel=params.LEVEL_ADVANCED,
                        help="If set to Yes, dynamight will store deformations "
@@ -225,7 +226,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                             "memory to do this.")
 
         group.addParam('batchSizeI', params.IntParam, default=10,
-                       condition='doContinue and doDeform',
+                       condition=doInverse,
                        label="Backprojection batch size",
                        help="Number of images to process in parallel. "
                             "This will speed up the calculation, but will "
@@ -234,7 +235,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                             "neural network.")
 
         group.addParam('downFactor', params.IntParam, default=2,
-                       condition='doContinue and doDeform',
+                       condition=doInverse,
                        label='Downsampling factor for IT',
                        help='Downsampling factor to decrease IT computation to a smaller box. It is then upsampled'
                             ' to its original size.')
@@ -326,10 +327,8 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
             shutil.copy(inMask, maskFilename)
 
         if self.doVisualize:
-            if self.dimRed.get() == 0: dimRed = 'TSNE'
-            if self.dimRed.get() == 1: dimRed = 'UMAP'
-            if self.dimRed.get() == 2: dimRed = 'PCA'
-            if self.dimRed.get() == 3: dimRed = 'ICA'
+            dimRed = ['TSNE', 'UMAP', 'PCA', 'ICA']
+            dimRed = dimRed[self.dimRed.get()]
 
             params = [
                 "explore-latent-space",
