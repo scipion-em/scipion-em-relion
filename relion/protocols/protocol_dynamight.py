@@ -99,12 +99,11 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                       help='Select a previous run to analyse.')
 
         form.addParam('inputParticles', params.PointerParam,
-                      allowsNull=True,
                       pointerClass='SetOfParticles',
                       pointerCondition='hasAlignmentProj',
                       condition='not doContinue',
                       label="Input particles",
-                      help='Select the input images from the project.')
+                      help='Input particles to run with.')
 
         form.addParam('referenceVolume', params.PointerParam,
                       pointerClass='Volume',
@@ -165,7 +164,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                        label="Deformations batch size",
                        help="Batch size for processing images.")
 
-        group.addParam('numEpochsD', params.IntParam, default=100,
+        group.addParam('numEpochsD', params.IntParam, default=200,
                        condition='not doContinue',
                        label="Number of epochs",
                        help="Number of epochs for training network.")
@@ -219,7 +218,6 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
         group.addParam('storeDeforms', params.BooleanParam, default=False,
                        condition=doInverse,
                        label="Store deformations in RAM?",
-                       expertLevel=params.LEVEL_ADVANCED,
                        help="If set to Yes, dynamight will store deformations "
                             "in the GPU memory, which will speed up the "
                             "calculations, but you need to have enough GPU "
@@ -242,7 +240,6 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
 
         form.addParam('allParticlesRam', params.BooleanParam, default=False,
                        label='Pre-read all particles into RAM?',
-                       expertLevel=params.LEVEL_ADVANCED,
                        help="If set to Yes, dynamight will preload images into "
                             "memory for learning the forward or inverse deformations "
                             "and for deformed backprojection. This will speed up "
