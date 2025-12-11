@@ -285,10 +285,13 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
 
         self._convertRef()
 
-        if self.referenceMask:
+        if self.referenceMask.get() is not None:
+            print("Mask was provided, loading mask...")
             maskFilename = self._getFileName('input_mask')
             inMask = self.referenceMask.get().getFileName()
             shutil.copy(inMask, maskFilename)
+        else:
+            print("No mask provided, continuing without mask...")
 
     def runDynamightStep(self):
         params = [
