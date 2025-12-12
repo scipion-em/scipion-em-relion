@@ -113,7 +113,6 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
         form.addParam('referenceMask', params.PointerParam,
                       pointerClass='VolumeMask', allowsNull=True,
                       label="Input consensus mask",
-                      expertLevel=params.LEVEL_ADVANCED,
                       condition='not doContinue')
 
         form.addSection(label='Tasks')
@@ -285,7 +284,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
 
         self._convertRef()
 
-        if self.referenceMask:
+        if self.referenceMask.get() is not None:
             maskFilename = self._getFileName('input_mask')
             inMask = self.referenceMask.get().getFileName()
             shutil.copy(inMask, maskFilename)
@@ -317,8 +316,9 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
         pwutils.createLink(inputProt._getExtraPath("forward_deformations"),
                            self._getExtraPath("forward_deformations"))
         checkpoint_file = self._getFileName('checkpoint_final')
+        hasMask = inputProt.referenceMask.get() is not None
 
-        if inputProt.referenceMask:
+        if hasMask:
             maskFilename = self._getFileName('input_mask')
             inMask = inputProt.referenceMask.get().getFileName()
             shutil.copy(inMask, maskFilename)
@@ -332,7 +332,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
                 self._getExtraPath(),
                 f"--checkpoint-file {checkpoint_file}",
                 f"--half-set {self.halfSet.get()}",
-                f"--mask-file {self._getFileName('input_mask')}" if inputProt.referenceMask else "",
+                f"--mask-file {self._getFileName('input_mask')}" if hasMask else "",
                 f"--batch-size {inputProt.batchSizeD.get()}",
                 f"--gpu-id {self.gpuList.get()}",
                 f"--n-workers {inputProt.numWorkers.get()}",
@@ -357,7 +357,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
             params = [
                 "deformable-backprojection",
                 self._getExtraPath(),
-                f"--mask-file {self._getFileName('input_mask')}" if inputProt.referenceMask else "",
+                f"--mask-file {self._getFileName('input_mask')}" if hasMask else "",
                 f"--gpu-id {self.gpuList.get()}",
                 f"--backprojection-batch-size {self.batchSizeI.get()}",
                 "--preload-images" if self.allParticlesRam else "",
