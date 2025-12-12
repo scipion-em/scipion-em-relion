@@ -294,13 +294,14 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
             print("No mask provided, continuing without mask...")
 
     def runDynamightStep(self):
+        hasMask = self.referenceMask.get() is not None
         params = [
             "optimize-deformations",
             f"--refinement-star-file {self._getFileName('input_particles')}",
             f"--output-directory {self._getExtraPath()}",
             f"--initial-model {self._getRefArg()}",
             f"--initial-threshold {self.threshold.get()}",
-            f"--mask-file {self._getFileName('input_mask')}" if self.referenceMask else ""
+            f"--mask-file {self._getFileName('input_mask')}" if hasMask else ""
             f"--n-gaussians {self.numberOfGaussians.get()}",
             f"--n-latent-dimensions {self.latentDim.get()}",
             f"--weight-decay {self.weightDecay.get()}",
