@@ -294,7 +294,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
 
         self._convertRef()
 
-        if self.referenceMask:
+        if self.referenceMask.get() is not None:
             maskFilename = self._getFileName('input_mask')
             inMask = self.referenceMask.get().getFileName()
             shutil.copy(inMask, maskFilename)
@@ -306,7 +306,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
             f"--output-directory {self._getExtraPath()}",
             f"--initial-model {self._getRefArg()}",
             f"--initial-threshold {self.threshold.get()}",
-            f"--mask-file {self._getFileName('input_mask')}" if self.referenceMask else ""
+            f"--mask-file {self._getFileName('input_mask')}" if self.referenceMask.get() is not None else ""
             f"--n-gaussians {self.numberOfGaussians.get()}",
             f"--n-latent-dimensions {self.latentDim.get()}",
             f"--weight-decay {self.weightDecay.get()}",
