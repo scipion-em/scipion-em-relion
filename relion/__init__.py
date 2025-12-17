@@ -27,7 +27,7 @@
 import os
 
 import pyworkflow.utils as pwutils
-from pyworkflow import Config
+from pyworkflow import Config, SPA, TOMO
 import pwem
 
 from .constants import *
@@ -44,6 +44,7 @@ class Plugin(pwem.Plugin):
     _pathVars = [RELION_HOME]
     _supportedVersions = [V4_0, V5_0]
     _url = "https://github.com/scipion-em/scipion-em-relion"
+    _processingField = [SPA, TOMO]
 
     @classmethod
     def _defineVariables(cls):
