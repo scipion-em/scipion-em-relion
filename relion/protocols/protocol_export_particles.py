@@ -79,9 +79,10 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
                            "reflected in the star file")
 
         form.addParam('useAbsPaths', params.BooleanParam, default=False,
-                      label='Use absolute paths?',
-                      help='If *Yes* the absolute paths will be used in the '
-                           'star file.')
+                      condition='stackType==STACK_ONE',
+                      label='Use absolute path?',
+                      help='If *Yes* the absolute path will be used in the '
+                           'star file. This is only used for single stack export.')
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
@@ -107,9 +108,12 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
 
         particlesFolderName = "Particles" + self.suffix.get().strip()
 
+        abspath = False # Default is relative paths
+
         if self._stackType == STACK_ONE:
             outputStack = self._getExportPath(particlesFolderName + '/particles.mrcs')
             pwutils.makePath(self._getExportPath(particlesFolderName))
+            abspath = self.useAbsPaths.get() # Use absolute paths for single stack if requested
 
         elif self._stackType == STACK_MULT:
             postprocessImageRow = self._postprocessImageRow
@@ -125,8 +129,8 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
             postprocessImageRow=postprocessImageRow,
             fillMagnification=True,
             forceConvert=True,
-            useAbsPath=self.useAbsPaths.get())
-        # useAbsPath passed to convert module to override default behaviour of relative paths
+            useAbsPath=abspath)
+        # useAbsPath passed to convert31 to override relative paths for single stacks
 
     # --------------------------- INFO functions ------------------------------
     def _validate(self):
