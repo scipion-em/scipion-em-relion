@@ -330,9 +330,9 @@ class TestRelionExportParticles(TestRelionBase):
         alignments = [True, False]
         suffixes = ['', '_test']
         abspaths = [True, False]
-        combinations = [(s, a, '', False) for s in stackTypes[:2] for a in alignments]
-        combinations.extend([(2, a, x, p) for a in alignments # single stack 
-                             for x in suffixes for p in abspaths])
+        combinations = [(0, a, '', False) for a in alignments]
+        combinations.extend([(s, a, x, p) for a in alignments 
+                             for s in stackTypes[1:] for x in suffixes for p in abspaths])
 
         for s, a, x, p in combinations:
             label = 'export %s (stack: %s - align: %s - suffix: %s - abs: %s)' % (name, stackNames[s], a, x, p)
