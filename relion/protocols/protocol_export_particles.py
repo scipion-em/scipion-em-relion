@@ -73,6 +73,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
                            " several stacks (one per micrograph). ")
 
         form.addParam('suffix', params.StringParam, default='',
+                      condition='stackType!=%d' % 0, # Only if stacks are written
                       label='Particles folder suffix?',
                       help="By default, the export has a folder Particles. "
                            "You can now add a suffix to the name that will be "
