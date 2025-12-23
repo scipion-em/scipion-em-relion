@@ -78,6 +78,11 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
                            "You can now add a suffix to the name that will be "
                            "reflected in the star file")
 
+        form.addParam('useAbsPaths', params.BooleanParam, default=False,
+                      label='Use absolute paths?',
+                      help='If *Yes* the absolute paths will be used in the '
+                           'star file.')
+
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         objId = self.inputParticles.get().getObjId()
@@ -109,6 +114,9 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
         elif self._stackType == STACK_MULT:
             postprocessImageRow = self._postprocessImageRow
             outputDir = self._getExportPath(particlesFolderName)
+
+        if self.useAbsPaths.get():
+            outputDir = os.path.abspath(outputDir)
 
         # Create links to binary files and write the relion .star file
         convert.writeSetOfParticles(
