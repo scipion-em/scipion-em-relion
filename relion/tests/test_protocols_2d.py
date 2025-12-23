@@ -314,7 +314,7 @@ class TestRelionExportParticles(TestRelionBase):
         print(magentaStr("\n==> Testing relion - export particles:"))
 
         def _checkProt(prot, stackType):
-            stackFiles = glob(prot._getExportPath('Particles', '*mrcs'))
+            stackFiles = glob(prot._getExportPath('Particles' + prot.suffix.get(), '*mrcs'))
             print("stackFiles: ", stackFiles)
 
             n = len(stackFiles)
