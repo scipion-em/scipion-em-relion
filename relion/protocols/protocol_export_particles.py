@@ -114,9 +114,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
         elif self._stackType == STACK_MULT:
             postprocessImageRow = self._postprocessImageRow
             outputDir = self._getExportPath(particlesFolderName)
-
-        if self.useAbsPaths.get():
-            outputDir = os.path.abspath(outputDir)
+            # outputDir triggers creation of multiple stacks in convert module
 
         # Create links to binary files and write the relion .star file
         convert.writeSetOfParticles(
@@ -126,7 +124,9 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
             alignType=alignType,
             postprocessImageRow=postprocessImageRow,
             fillMagnification=True,
-            forceConvert=True)
+            forceConvert=True,
+            useAbsPath=self.useAbsPaths.get())
+        # useAbsPath passed to convert module to override default behaviour of relative paths
 
     # --------------------------- INFO functions ------------------------------
     def _validate(self):

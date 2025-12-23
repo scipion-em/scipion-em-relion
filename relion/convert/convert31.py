@@ -387,8 +387,14 @@ class Writer(WriterBase):
 
         # Convert binaries if required
         if self.outputStack:
-            self._relOutputStack = os.path.relpath(self.outputStack,
-                                                   os.path.dirname(starFile))
+            if not kwargs.get('useAbsPath', False):
+                # Default: Make output stack relative to star file location as usual
+                self._relOutputStack = os.path.relpath(self.outputStack,
+                                                       os.path.dirname(starFile))
+            else:
+                # Use absolute path for output stack as requested
+                self._relOutputStack = os.path.abspath(self.outputStack)
+
         if self.outputDir is not None:
             forceConvert = kwargs.get('forceConvert', False)
             incompatibleExtensions = kwargs.get('incompatibleExtensions', None)
