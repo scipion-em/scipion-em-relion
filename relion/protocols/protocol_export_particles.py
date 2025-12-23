@@ -79,7 +79,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
                            "reflected in the star file")
 
         form.addParam('useAbsPaths', params.BooleanParam, default=False,
-                      condition='stackType==STACK_ONE',
+                      condition='stackType==%d' % STACK_ONE,
                       label='Use absolute path?',
                       help='If *Yes* the absolute path will be used in the '
                            'star file. This is only used for single stack export.')
