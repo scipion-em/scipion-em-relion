@@ -301,7 +301,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase):
             f"--output-directory {self._getExtraPath()}",
             f"--initial-model {self._getRefArg()}",
             f"--initial-threshold {self.threshold.get()}",
-            f"--mask-file {self._getFileName('input_mask')}" if hasMask else ""
+            f"--mask-file {self._getFileName('input_mask')}" if hasMask else "",
             f"--n-gaussians {self.numberOfGaussians.get()}",
             f"--n-latent-dimensions {self.latentDim.get()}",
             f"--weight-decay {self.weightDecay.get()}",
