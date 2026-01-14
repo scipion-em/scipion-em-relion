@@ -357,8 +357,9 @@ class Writer(WriterBase):
         else:
             if self.outputDir is not None:
                 fn = self._filesDict.get(fn, fn)
-                if self.useAbsPath:
-                    fn = os.path.abspath(fn)
+
+        if self.useAbsPath:
+            fn = os.path.abspath(fn)
 
         row['rlnImageName'] = locationToRelion(index, fn)
 

@@ -80,7 +80,6 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
                            "reflected in the star file")
 
         form.addParam('useAbsPath', params.BooleanParam, default=False,
-                      condition='stackType!=%d' % 0, # Only if stacks are written
                       label='Use absolute path?',
                       help='If *Yes* the absolute path will be used in the '
                            'star file. This is only used for single stack export.')
@@ -127,7 +126,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
             fillMagnification=True,
             forceConvert=True,
             useAbsPath=self.useAbsPath.get())
-        # useAbsPath overrides default of relative paths for single and multi stacks, not used for no stacks
+        # useAbsPath overrides default of relative paths
 
     # --------------------------- INFO functions ------------------------------
     def _validate(self):
