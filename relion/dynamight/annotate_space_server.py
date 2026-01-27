@@ -55,9 +55,7 @@ class HeterogeneityProgramInterface:
         cp = torch.load(checkpoint_file, map_location=self.device , weights_only=False)
 
         refinement_star_file = cp['refinement_directory']
-        if refinement_star_file.suffix == '.star':
-            pass
-        else:
+        if refinement_star_file.suffix != '.star':
             refinement_star_file = refinement_star_file / 'run_data.star'
 
         encoder_h1 = cp['encoder_half1']
