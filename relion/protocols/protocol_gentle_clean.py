@@ -55,9 +55,9 @@ class ProtRelionCleanJobs(Protocol):
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
-        self._insertFunctionStep(self.findRelionProtsStep)
-        self._insertFunctionStep(self.runCleanStep)
-        self._insertFunctionStep(self.createOutputStep)
+        self._insertFunctionStep(self.findRelionProtsStep, needsGPU=False)
+        self._insertFunctionStep(self.runCleanStep, needsGPU=False)
+        self._insertFunctionStep(self.createOutputStep, needsGPU=False)
 
     # --------------------------- STEPS functions -----------------------------
     def findRelionProtsStep(self):

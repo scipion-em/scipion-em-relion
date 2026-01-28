@@ -60,8 +60,9 @@ class ProtRelionCenterAverages(ProtProcessParticles, ProtRelionBase):
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         self._insertFunctionStep(self.centerAveragesStep,
-                                 self.inputAverages.get().getObjId())
-        self._insertFunctionStep(self.createOutputStep)
+                                 self.inputAverages.get().getObjId(),
+                                 needsGPU=False)
+        self._insertFunctionStep(self.createOutputStep, needsGPU=False)
 
     # --------------------------- STEPS functions -----------------------------
     def centerAveragesStep(self, averagesId):

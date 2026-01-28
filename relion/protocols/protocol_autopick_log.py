@@ -42,10 +42,10 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
     """
     _label = 'auto-picking LoG'
     _devStatus = PROD
+    stepsExecutionMode = STEPS_SERIAL
 
     def __init__(self, **kwargs):
         ProtParticlePickingAuto.__init__(self, **kwargs)
-        self.stepsExecutionMode = STEPS_SERIAL
 
     # -------------------------- DEFINE param functions ------------------------
     def _defineParams(self, form):

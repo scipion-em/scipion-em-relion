@@ -252,13 +252,15 @@ Also note that larger bodies should be above smaller bodies in the STAR file. Fo
             objId = self.continueRun.get().getObjId()
         else:
             objId = self.protRefine.get().getObjId()
-        self._insertFunctionStep(self.convertInputStep, objId)
+        self._insertFunctionStep(self.convertInputStep, objId, needsGPU=False)
         self._insertFunctionStep(self.multibodyRefineStep,
-                                 self._getRefineArgs())
+                                 self._getRefineArgs(),
+                                 needsGPU=self.usesGpu())
         if self.runFlexAnalysis:
             self._insertFunctionStep(self.flexAnalysisStep,
-                                     self._getAnalyseArgs())
-        self._insertFunctionStep(self.createOutputStep)
+                                     self._getAnalyseArgs(),
+                                     needsGPU=False)
+        self._insertFunctionStep(self.createOutputStep, needsGPU=False)
     
     # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self, protId):

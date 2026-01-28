@@ -52,7 +52,7 @@ class ProtRelionExportCoordinates(ProtRelionBase):
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         objId = self.inputCoordinates.get().getObjId()
-        self._insertFunctionStep(self.exportCoordsStep, objId)
+        self._insertFunctionStep(self.exportCoordsStep, objId, needsGPU=False)
 
     # --------------------------- STEPS functions -----------------------------
     def exportCoordsStep(self, coordsId):

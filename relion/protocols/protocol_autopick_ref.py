@@ -269,11 +269,12 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
 
             self._insertFunctionStep(self.convertInputStep,
                                      self.getInputMicrographs().strId(),
-                                     self.getInputReferences().strId())
+                                     self.getInputReferences().strId(),
+                                     needsGPU=False)
             nameList = [mic.getMicName() for mic in self.getInputMicrographs()]
             self._insertFunctionStep(self.pickMicrographListStep, nameList,
-                                     *self._getPickArgs())
-            self._insertFunctionStep(self.createOutputStep)
+                                     *self._getPickArgs(), needsGPU=self.usesGpu())
+            self._insertFunctionStep(self.createOutputStep, needsGPU=False)
 
             # Disable streaming functions:
             self._insertFinalSteps = self._doNothing
@@ -285,7 +286,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         inputRefs = self.getInputReferences()
         convertId = self._insertFunctionStep(self.convertInputStep,
                                              self.getInputMicrographs().strId(),
-                                             inputRefs.strId())
+                                             inputRefs.strId(), needsGPU=False)
         return [convertId]
 
     def _doNothing(self, *args):

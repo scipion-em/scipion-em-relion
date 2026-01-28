@@ -51,11 +51,11 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
     _label = 'preprocess particles'
     _devStatus = PROD
     _possibleOutputs = outputs
+    stepsExecutionMode = STEPS_PARALLEL
     
     def __init__(self, **args):
         ProtProcessParticles.__init__(self, **args)
-        self.stepsExecutionMode = STEPS_PARALLEL
-    
+
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')
@@ -136,9 +136,11 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
         for stack in sorted(stackFiles):
             allIds.append(self._insertFunctionStep(self.processStep, objId,
                                                    stack, args,
-                                                   prerequisites=[]))
+                                                   prerequisites=[],
+                                                   needsGPU=False))
 
-        self._insertFunctionStep(self.createOutputStep, prerequisites=allIds)
+        self._insertFunctionStep(self.createOutputStep, prerequisites=allIds,
+                                 needsGPU=False)
 
     # --------------------------- STEPS functions -----------------------------
     def _getArgs(self):

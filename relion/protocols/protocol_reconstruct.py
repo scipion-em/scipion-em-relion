@@ -134,9 +134,9 @@ class ProtRelionReconstruct(ProtReconstruct3D, ProtRelionBase):
     # -------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self):
         self._createFilenameTemplates()
-        self._insertFunctionStep(self.convertInputStep)
+        self._insertFunctionStep(self.convertInputStep, needsGPU=False)
         self._insertReconstructStep()
-        self._insertFunctionStep(self.createOutputStep)
+        self._insertFunctionStep(self.createOutputStep, needsGPU=False)
 
     def _insertReconstructStep(self):
         imgSet = self.inputParticles.get()
@@ -177,7 +177,7 @@ class ProtRelionReconstruct(ProtReconstruct3D, ProtRelionBase):
             if self.reverseCurvature:
                 params += " --reverse_curvature"
 
-        self._insertFunctionStep(self.reconstructStep, params)
+        self._insertFunctionStep(self.reconstructStep, params, needsGPU=False)
 
     # -------------------------- STEPS functions ------------------------------
     def reconstructStep(self, params):

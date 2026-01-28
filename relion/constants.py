@@ -127,6 +127,8 @@ FSC_TYPE_OVERALL = 0
 FSC_TYPE_MODEL_MAP = 1
 FSC_TYPE_WORK_FREE = 2
 
+DYNAMIGHT = "Dynamight"
+
 # This dictionary will be used to map
 # between CTFModel properties and Xmipp labels
 

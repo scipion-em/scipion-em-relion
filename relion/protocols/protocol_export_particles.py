@@ -75,7 +75,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         objId = self.inputParticles.get().getObjId()
-        self._insertFunctionStep(self.exportParticlesStep, objId)
+        self._insertFunctionStep(self.exportParticlesStep, objId, needsGPU=False)
 
     # --------------------------- STEPS functions -----------------------------
     def exportParticlesStep(self, particlesId):

@@ -90,9 +90,9 @@ class ProtRelionRemovePrefViews(ProtParticles):
 
     # -------------------------- STEPS functions ------------------------------
     def _insertAllSteps(self):
-        self._insertFunctionStep(self.convertInputStep)
-        self._insertFunctionStep(self.processAnglesStep)
-        self._insertFunctionStep(self.createOutputStep)
+        self._insertFunctionStep(self.convertInputStep, needsGPU=False)
+        self._insertFunctionStep(self.processAnglesStep, needsGPU=False)
+        self._insertFunctionStep(self.createOutputStep, needsGPU=False)
 
     def convertInputStep(self):
         inputParts = self.inputParticles.get()

@@ -53,10 +53,10 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
 
     _label = 'motion correction'
     _devStatus = PROD
+    stepsExecutionMode = STEPS_SERIAL
 
     def __init__(self, **kwargs):
         ProtAlignMovies.__init__(self, **kwargs)
-        self.stepsExecutionMode = STEPS_SERIAL
         self.updatedSets = []
         self.isEER = False
 

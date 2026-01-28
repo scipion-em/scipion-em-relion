@@ -195,10 +195,12 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
         self._insertFunctionStep(self.convertInputStep,
                                  self.inputMovies.get().getObjId(),
                                  self.inputParticles.get().getObjId(),
-                                 self.inputPostprocess.get().getObjId())
-        self._insertFunctionStep(self.trainOrPolishStep, self.operation.get())
+                                 self.inputPostprocess.get().getObjId(),
+                                 needsGPU=False)
+        self._insertFunctionStep(self.trainOrPolishStep, self.operation.get(),
+                                 needsGPU=False)
         if self.operation == self.OP_POLISH:
-            self._insertFunctionStep(self.createOutputStep, 3)
+            self._insertFunctionStep(self.createOutputStep, 3, needsGPU=False)
 
     def convertInputStep(self, movId, partId, postId):
         inputMovies = self.inputMovies.get()

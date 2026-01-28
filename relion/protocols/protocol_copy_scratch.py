@@ -59,7 +59,7 @@ class ProtParticlesToScratch(EMProtocol):
 
     # -------------------------- STEPS functions ------------------------------
     def _insertAllSteps(self):
-        self._insertFunctionStep(self.createOutputStep)
+        self._insertFunctionStep(self.createOutputStep, needsGPU=False)
 
     def createOutputStep(self):
         projName = self.getProject().shortName
