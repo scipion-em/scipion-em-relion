@@ -268,6 +268,7 @@ data_fullMicrograph
             doShow=False,
             gpuList=self.gpuList,
             numberOfGaussians=10000,
+            numEpochsD=10,
             numberOfThreads=4,
             doDeform=False)
 
