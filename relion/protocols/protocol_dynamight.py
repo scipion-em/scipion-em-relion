@@ -336,7 +336,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
                            self._getExtraPath("forward_deformations"))
         checkpoint_file = self._getFileName('checkpoint_final')
 
-        if inputProt.referenceMask:
+        if inputProt.referenceMask.get() is not None:
             maskFilename = self._getFileName('input_mask')
             inMask = inputProt.referenceMask.get().getFileName()
             shutil.copy(inMask, maskFilename)
@@ -350,7 +350,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
                 self._getExtraPath(),
                 f"--checkpoint-file {checkpoint_file}",
                 f"--half-set {self.halfSet.get()}",
-                f"--mask-file {self._getFileName('input_mask')}" if inputProt.referenceMask else "",
+                f"--mask-file {self._getFileName('input_mask')}" if inputProt.referenceMask.get() is not None else "",
                 f"--batch-size {inputProt.batchSizeD.get()}",
                 f"--gpu-id {self.gpuList.get()}",
                 f"--n-workers {inputProt.numWorkers.get()}",
