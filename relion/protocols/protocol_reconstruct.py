@@ -89,7 +89,7 @@ class ProtRelionReconstruct(ProtReconstruct3D, ProtRelionBase):
                       help='Extra parameters to *relion_reconstruct* program. '
                            'Address to Relion to see full list of options.')
         form.addSection('CTF')
-        form.addParam('doCTF', BooleanParam, default=False,
+        form.addParam('doCTF', BooleanParam, default=True,
                       label='Apply CTF correction?')
         form.addParam('ctfIntactFirstPeak', BooleanParam, default=False,
                       condition='doCTF',
