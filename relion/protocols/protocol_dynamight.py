@@ -375,7 +375,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
             params = [
                 "deformable-backprojection",
                 self._getExtraPath(),
-                f"--mask-file {self._getFileName('input_mask')}" if inputProt.referenceMask else "",
+                f"--mask-file {self._getFileName('input_mask')}" if inputProt.referenceMask.get() is not None else "",
                 f"--gpu-id {self.gpuList.get()}",
                 f"--backprojection-batch-size {self.batchSizeI.get()}",
                 "--preload-images" if self.allParticlesRam else "",
