@@ -288,7 +288,7 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
     def _validate(self):
         errors = []
         if not self.useAll:
-            self._validateDim(self.inputParticles(),
+            self._validateDim(self.inputParticles.get(),
                               self._getInputParticles().getXDim(),
                               errors, 'Input particles subset',
                               'Input particles from 3D protocol')
