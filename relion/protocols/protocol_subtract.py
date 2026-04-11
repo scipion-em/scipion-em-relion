@@ -197,7 +197,7 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
         self.isRelionInput = self.relionInput.get()
         self._initialize()
 
-        if not self.useAll or not self.isRelionInput:
+        if not self.useAll or not self._isRelionInput():
             self._insertFunctionStep(self.convertInputStep, needsGPU=False)
 
         self._insertFunctionStep(self.subtractStep, needsGPU=False)
@@ -206,7 +206,7 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
     # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self):
         """ Write the input images as a Relion star file. """
-        if self.isRelionInput:
+        if self._isRelionInput():
             imgSet = self.inputParticles.get()
         else:
             imgSet = self.inputParticlesAll.get()
@@ -216,7 +216,7 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
             outputDir=self._getExtraPath(), alignType=ALIGN_PROJ)
 
     def subtractStep(self):
-        if self.isRelionInput:
+        if self._isRelionInput():
             self.subtractStepRelion()
         else:
             self.subtractStepNoRelion()
@@ -310,7 +310,7 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
     
     # -------------------------- UTILS functions ------------------------------
     def _updateItem(self, particle, row):
-        if self.isRelionInput:
+        if self._isRelionInput():
             # FIXME: check if other attrs need saving
             particle._rlnRandomSubset = Integer(row.rlnRandomSubset)
             self.reader.setParticleTransform(particle, row)
@@ -320,11 +320,14 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
         particle.setLocation(newLoc)
 
     def _getInputParticles(self):
-        if self.isRelionInput:
+        if self.relionInput.get():
             inputProt = self.inputProtocol.get()
             return inputProt.outputParticles
         else:
             return self.inputParticlesAll.get()
+
+    def _isRelionInput(self):
+        return getattr(self, "isRelionInput", self.relionInput.get())
 
     def _convertMask(self, invert=False, resize=True):
         tmp = self._getTmpPath()
