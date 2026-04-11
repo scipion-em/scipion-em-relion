@@ -211,9 +211,11 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
         else:
             imgSet = self.inputParticlesAll.get()
 
+        extraLabels = ['rlnClassNumber'] if self._isRelionInput() else []
         convert.writeSetOfParticles(
             imgSet, self._getFileName('input_star'),
-            outputDir=self._getExtraPath(), alignType=ALIGN_PROJ)
+            outputDir=self._getExtraPath(), alignType=ALIGN_PROJ,
+            extraLabels=extraLabels)
 
     def subtractStep(self):
         if self._isRelionInput():
