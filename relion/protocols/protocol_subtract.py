@@ -53,9 +53,6 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
     _devStatus = PROD
     _possibleOutputs = outputs
 
-    def _initialize(self):
-        self._createFilenameTemplates()
-    
     def _createFilenameTemplates(self):
         """ Centralize how files are called. """
         myDict = {
@@ -208,14 +205,17 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
         """ Write the input images as a Relion star file. """
         if self._isRelionInput():
             imgSet = self.inputParticles.get()
+            rowCallback = self._postprocessSubsetRow
         else:
             imgSet = self.inputParticlesAll.get()
+            rowCallback = None
 
-        extraLabels = ['rlnClassNumber'] if self._isRelionInput() else []
+        extraLabels = ['rlnClassNumber', 'rlnRandomSubset'] if self._isRelionInput() else []
         convert.writeSetOfParticles(
             imgSet, self._getFileName('input_star'),
             outputDir=self._getExtraPath(), alignType=ALIGN_PROJ,
-            extraLabels=extraLabels)
+            extraLabels=extraLabels,
+            postprocessImageRow=rowCallback)
 
     def subtractStep(self):
         if self._isRelionInput():
@@ -328,8 +328,33 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
         else:
             return self.inputParticlesAll.get()
 
+    def _postprocessSubsetRow(self, particle, row):
+        """Restore RELION labels required by particle subtraction.
+
+        Some subset generators may drop custom metadata (e.g. when using
+        ``pwem -split sets``), while RELION subtraction still requires these
+        labels in ``--data`` STAR files.
+        """
+        fullSetPart = self._subsetLabelsById.get(particle.getObjId())
+        if fullSetPart is None:
+            return
+
+        row['rlnClassNumber'] = fullSetPart[0]
+        row['rlnRandomSubset'] = fullSetPart[1]
+
     def _isRelionInput(self):
         return getattr(self, "isRelionInput", self.relionInput.get())
+
+    def _initialize(self):
+        self._createFilenameTemplates()
+        self._subsetLabelsById = {}
+        if self._isRelionInput() and not self.useAll.get():
+            for p in self._getInputParticles().iterItems():
+                classNo = p.getAttributeValue('_rlnClassNumber', p.getClassId())
+                randomSubset = p.getAttributeValue('_rlnRandomSubset', None)
+                if classNo is None or randomSubset is None:
+                    continue
+                self._subsetLabelsById[p.getObjId()] = (int(classNo), int(randomSubset))
 
     def _convertMask(self, invert=False, resize=True):
         tmp = self._getTmpPath()
