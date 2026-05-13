@@ -59,6 +59,195 @@ class ProtRelionMultiBody(ProtAnalysis3D, ProtRelionBase):
     Moreover, using PCA on the relative orientations of the bodies
     over all particle images in the data set, we generate movies that describe
     the most important motions in the data.
+
+    AI Generated:
+
+    Multi-Body Refinement (ProtRelionMultiBody) — User Manual
+        Overview
+
+        The Multi-Body Refinement protocol is designed to analyze structural
+        flexibility in cryo-EM reconstructions by dividing a macromolecular
+        complex into several rigid regions, referred to as bodies, that can
+        move independently relative to one another. This strategy is especially
+        useful for large assemblies, molecular machines, or complexes that
+        contain flexible domains whose motion cannot be adequately represented
+        by a single rigid reconstruction.
+
+        In biological practice, many complexes exhibit continuous conformational
+        variability rather than existing in only a few discrete states. Standard
+        consensus refinement often averages these motions together, leading to
+        blurred densities and reduced local resolution. Multi-body refinement
+        addresses this limitation by refining the orientations and positions of
+        independently defined bodies while preserving their internal structure.
+        The result is improved local reconstructions together with a quantitative
+        description of relative body motions.
+
+        Inputs and Biological Context
+
+        The protocol starts from a previously refined cryo-EM reconstruction and
+        its associated particle set. This consensus refinement provides the
+        global orientation framework from which flexible motion is analyzed.
+        The user must additionally define a set of body masks describing the
+        regions that should move independently.
+
+        Each body mask should correspond to a structurally meaningful region of
+        the complex. Typical examples include mobile domains, rotating subunits,
+        flexible heads, peripheral arms, or independently moving membrane and
+        cytosolic regions. The masks should overlap smoothly and avoid abrupt
+        edges because poorly designed masks may introduce instability or
+        artificial discontinuities in the refinement.
+
+        From a biological perspective, the definition of bodies is the most
+        important conceptual step in the workflow. Bodies should represent
+        coherent structural units that are expected to behave approximately as
+        rigid objects. Excessively small bodies may become unstable during
+        refinement, whereas overly large bodies may fail to capture the relevant
+        flexibility.
+
+        Body Definition and STAR File Organization
+
+        The protocol uses a STAR file describing all bodies involved in the
+        refinement. Each entry specifies the mask associated with a body together
+        with information about relative motion priors and optional initial
+        references.
+
+        The ordering of bodies is biologically meaningful because larger and
+        structurally dominant regions are generally expected to appear before
+        smaller flexible regions. Relative rotation definitions establish how
+        motions are interpreted with respect to neighboring bodies. Gaussian
+        priors on rotational and translational variability help stabilize the
+        refinement by restricting unrealistic motions.
+
+        In practice, conservative priors are often appropriate for relatively
+        rigid complexes, while broader priors may be beneficial when large-scale
+        conformational changes are expected. However, excessively permissive
+        priors may lead to unstable or biologically implausible motions.
+
+        Focused Refinement and Signal Subtraction
+
+        During refinement, the protocol iteratively improves the reconstruction
+        of each body using focused alignment strategies and partial signal
+        subtraction. This allows the refinement of a selected body while reducing
+        interference from the remaining regions of the complex.
+
+        Biologically, this is particularly valuable when small or flexible
+        regions are poorly resolved in the consensus map. By concentrating the
+        alignment on the body of interest, the protocol often recovers secondary
+        structure elements or conformational details that were previously hidden
+        by averaging.
+
+        The protocol also provides the option to reconstruct bodies either from
+        signal-subtracted particles or from the original particle images.
+        Reconstructions based on subtracted particles may better isolate the
+        body of interest and help evaluate subtraction quality, whereas using
+        the original particles preserves the global molecular context but may
+        introduce blurred densities outside the refined region.
+
+        Sampling and Refinement Strategy
+
+        Multi-body refinement relies on adaptive angular and translational
+        searches to optimize body orientations throughout the refinement process.
+        Initial angular sampling determines the coarseness of the orientation
+        search during the early stages, while offset ranges and translational
+        steps control the exploration of positional variability.
+
+        In most biological workflows, moderate initial sampling values provide
+        a good balance between robustness and computational efficiency. Complexes
+        exhibiting large conformational variability may require broader searches,
+        whereas systems already close to convergence can benefit from finer
+        refinement parameters.
+
+        The protocol progressively refines the sampling strategy during
+        iterations, improving precision as convergence is approached. This
+        adaptive behavior is especially useful for heterogeneous systems where
+        the initial relative orientations between bodies may not be accurately
+        known.
+
+        Flexibility Analysis and Principal Component Motions
+
+        One of the major strengths of the protocol is its ability to analyze
+        continuous conformational variability after refinement. The protocol
+        performs principal component analysis on the relative orientations of
+        all bodies across the particle dataset in order to identify dominant
+        collective motions.
+
+        The resulting eigenvectors describe the principal modes of structural
+        variability within the sample. For each selected eigenvector, the
+        protocol generates a series of reconstructed maps that can be visualized
+        sequentially as movies. These animations provide an intuitive
+        representation of biologically relevant motions such as domain opening,
+        rotational rearrangements, hinge bending, or coordinated subunit
+        movements.
+
+        From a biological interpretation standpoint, the principal motions often
+        correspond to functional transitions associated with ligand binding,
+        catalytic cycles, transport mechanisms, or allosteric regulation.
+        However, users should remember that principal components represent the
+        dominant variance in the dataset and may combine multiple underlying
+        physical processes.
+
+        Particle Selection Based on Flexibility
+
+        The protocol also supports selection of particle subsets according to
+        eigenvalue ranges associated with specific principal motions. This
+        capability allows users to isolate particles corresponding to particular
+        conformational regions along a motion trajectory.
+
+        In practical cryo-EM analysis, this feature can be useful for separating
+        extreme conformations, studying transition intermediates, or generating
+        focused reconstructions representing distinct states along a continuous
+        motion landscape.
+
+        Outputs and Interpretation
+
+        The protocol produces one refined volume for each defined body together
+        with updated particle information and motion-related metadata. Each body
+        reconstruction reflects the improved local alignment achieved through
+        focused refinement.
+
+        Additionally, the flexibility analysis generates principal component
+        trajectories and eigenvector-associated map series suitable for
+        visualization in molecular graphics software. These outputs provide both
+        structural and dynamical insight into the conformational organization of
+        the complex.
+
+        Resolution estimates associated with the refined bodies help assess the
+        quality of local refinement. In many cases, flexible regions that were
+        poorly resolved in the consensus map become significantly clearer after
+        multi-body analysis.
+
+        Practical Recommendations
+
+        Successful multi-body refinement depends strongly on biologically
+        meaningful body definitions. It is generally advisable to begin with a
+        small number of large, clearly identifiable bodies before attempting
+        more detailed decompositions. Over-partitioning the complex often leads
+        to unstable refinement and difficult interpretation.
+
+        Smooth masks with limited overlap usually provide the most robust
+        behavior. Visual inspection of the masks before refinement is highly
+        recommended to ensure that flexible regions are represented properly
+        without introducing disconnected fragments.
+
+        The protocol is particularly effective for ribosomes, spliceosomes,
+        membrane transporters, chaperones, viral assemblies, and other large
+        complexes with coordinated domain movements. For relatively rigid
+        particles with limited conformational variability, standard consensus
+        refinement may remain sufficient.
+
+        Final Perspective
+
+        Multi-body refinement transforms cryo-EM analysis from a purely static
+        reconstruction problem into a framework for studying structural dynamics.
+        By combining focused refinement with quantitative motion analysis, the
+        protocol enables biological interpretation of flexibility directly from
+        experimental particle images.
+
+        For many modern cryo-EM studies, understanding conformational landscapes
+        is as important as achieving high nominal resolution. Careful body
+        definition, thoughtful interpretation of principal motions, and
+        validation against known biochemical behavior are essential for obtaining
+        biologically meaningful insights from multi-body refinement.
     """
     _label = '3D multi-body'
     _devStatus = PROD

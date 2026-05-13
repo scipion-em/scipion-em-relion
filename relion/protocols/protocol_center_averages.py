@@ -40,13 +40,114 @@ class outputs(Enum):
 
 class ProtRelionCenterAverages(ProtProcessParticles, ProtRelionBase):
     """
-    Align class averages by their center of mass using *relion_image_handler*.
-     (With *--shift_com* option)
+    Aligns two-dimensional class averages by centering them according to
+    their center of mass. This procedure is commonly used in cryo-EM image
+    processing workflows to improve the visual consistency and positional
+    normalization of class averages before downstream analysis, refinement,
+    visualization, or comparison. By repositioning the particle signal to a
+    common central location, the protocol facilitates more reliable
+    interpretation of structural features and helps reduce variability caused
+    by translational offsets.
+
+    AI Generated:
+
+    Center Averages (ProtRelionCenterAverages) - User Manual
+        Overview
+
+        The Center Averages protocol recenters a set of two-dimensional class
+        averages using the center-of-mass alignment strategy implemented in
+        Relion image processing tools. The main objective is to place the
+        dominant particle density at the center of each image so that all
+        averages share a more consistent spatial reference frame.
+
+        In practical cryo-EM workflows, class averages are often generated
+        after several rounds of particle alignment and classification.
+        Although these averages usually represent coherent structural views,
+        they may still contain small translational displacements caused by
+        image variability, alignment uncertainty, or heterogeneity in the
+        dataset. Centering the averages improves visual uniformity and makes
+        subsequent interpretation more straightforward.
+
+        Biological Motivation
+
+        From a biological perspective, centered class averages are easier to
+        inspect and compare. Structural motifs, domains, and conformational
+        features become more visually consistent across the dataset when the
+        particle occupies a stable position within the image frame. This is
+        particularly useful during exploratory analysis, quality assessment,
+        and preparation of publication-quality figures.
+
+        In many workflows, centered averages are also beneficial before
+        downstream computational steps such as template generation, initial
+        model estimation, classification refinement, or particle selection.
+        Ensuring that averages share a common positional reference can improve
+        the robustness of later alignment stages.
+
+        Inputs and Expected Data
+
+        The protocol requires a set of two-dimensional class averages as
+        input. These averages are typically generated from previous
+        classification procedures and should already represent meaningful
+        particle views. The protocol is intended for averaged particle images
+        rather than raw micrographs or individual particles.
+
+        The quality of the input averages strongly influences the usefulness
+        of the centering operation. Well-defined averages with compact signal
+        regions are generally centered reliably, whereas highly noisy or
+        heterogeneous averages may produce less meaningful repositioning.
+
+        General Workflow
+
+        During execution, each average is analyzed to determine the spatial
+        distribution of its intensity. The protocol estimates the center of
+        mass of the particle signal and shifts the image so that the detected
+        center is relocated toward the middle of the image frame.
+
+        The procedure is designed to preserve the identity and appearance of
+        each average while improving positional consistency across the entire
+        dataset. No classification, averaging, or structural modification is
+        introduced during this process.
+
+        Outputs and Interpretation
+
+        The protocol produces a new set of centered class averages that retain
+        the same structural information as the input set but with improved
+        spatial alignment. The resulting averages can be used directly for
+        visualization, further refinement, template creation, or downstream
+        cryo-EM processing tasks.
+
+        Biologically, the centered averages should not be interpreted as new
+        structural states or altered reconstructions. The operation only
+        standardizes image positioning and does not modify the underlying
+        particle information.
+
+        Practical Considerations
+
+        In most biological applications, centering class averages is a simple
+        but valuable preprocessing step that improves dataset consistency and
+        interpretability. It is particularly useful when averages appear
+        displaced within the image box or when multiple averages need to be
+        visually compared side by side.
+
+        Users should nevertheless inspect the outputs visually, especially in
+        datasets containing elongated, asymmetric, flexible, or fragmented
+        particles. In such situations, the estimated center of mass may not
+        always correspond to the biologically most informative alignment
+        position.
+
+        Final Perspective
+
+        For cryo-EM practitioners, centering class averages is often a small
+        but important refinement step that improves the clarity and coherence
+        of downstream analyses. By placing particle projections into a common
+        positional frame, the protocol contributes to cleaner visualization,
+        more reliable comparison between classes, and smoother integration
+        into broader single-particle analysis workflows.
     """
     _label = 'center averages'
     _devStatus = PROD
     _possibleOutputs = outputs
-    
+
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')
@@ -54,9 +155,9 @@ class ProtRelionCenterAverages(ProtProcessParticles, ProtRelionBase):
                       pointerClass='SetOfAverages',
                       label="Input averages", important=True,
                       help='Select the input averages to be centered.')
-        
+
         form.addParallelSection(threads=0, mpi=0)
-    
+
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         self._insertFunctionStep(self.centerAveragesStep,

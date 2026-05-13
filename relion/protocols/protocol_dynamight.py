@@ -55,14 +55,201 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
     """
     Relion protocol for continuous flexibility analysis.
 
-    As of release 5.0, Relion comes with a machine-learning approach for
-    the analysis of molecular motions and flexibility called DynaMight.
-    DynaMight will fit molecular motions for each experimental particle image
-    as a 3D deformation field, which is learnt using a variational auto-encoder.
-    It also implements functionality to calculate a pseudo-inverse 3D deformation
-    field that can then be used in a deformed weighted backprojection algorithm
-    to obtain an improved 3D reconstruction of the consensus structure.
+    AI Generated:
 
+    DynaMight Flexibility Analysis (ProtRelionDynaMight) - User Manual
+        Overview
+
+        The DynaMight protocol performs continuous flexibility analysis
+        of cryo-EM particle datasets using machine learning methods
+        integrated within Relion. Its primary goal is to describe
+        structural heterogeneity as continuous molecular motions rather
+        than as a limited number of discrete conformational states.
+        This approach is especially valuable for flexible proteins,
+        molecular machines, membrane complexes, and assemblies that
+        undergo coordinated structural rearrangements.
+
+        The protocol models conformational variability by learning
+        deformation fields directly from experimental particle images.
+        These deformations are represented in a low-dimensional latent
+        space that captures the principal modes of motion present in
+        the dataset. From a biological perspective, this enables the
+        exploration of continuous transitions between structural states,
+        helping researchers visualize flexibility pathways and identify
+        functionally relevant motions.
+
+        In addition to deformation analysis, the protocol also supports
+        inverse deformation estimation and deformable backprojection.
+        These operations can improve consensus reconstructions by
+        compensating for conformational variability during map
+        reconstruction, potentially increasing structural quality in
+        flexible regions.
+
+        Inputs and Biological Context
+
+        The protocol requires a set of aligned particles together with
+        a consensus reference volume. The reference volume defines the
+        structural framework from which deformations are learned. In
+        practice, this reference is usually a consensus reconstruction
+        obtained after standard cryo-EM refinement workflows.
+
+        Optionally, a consensus mask may be provided. From a biological
+        perspective, masking is highly important because it determines
+        which regions contribute most strongly to the flexibility
+        analysis. Applying an appropriate mask is particularly useful
+        for excluding solvent regions, detergent micelles, disordered
+        density, or highly noisy peripheral domains that could obscure
+        meaningful motions.
+
+        The quality of the consensus volume strongly influences the
+        interpretability of the results. Poorly resolved references or
+        highly heterogeneous reconstructions may lead to unstable
+        deformation models or biologically ambiguous latent spaces.
+        Therefore, it is generally advisable to begin with the best
+        available refinement and a carefully inspected consensus map.
+
+        Learning Molecular Motions
+
+        DynaMight represents the structure using a collection of
+        Gaussian components distributed throughout the molecular volume.
+        The number of Gaussians determines the complexity and spatial
+        detail of the deformation model. Smaller and simpler complexes
+        generally require fewer components, whereas large ribosomes,
+        spliceosomes, viral assemblies, or highly detailed maps may
+        require substantially more.
+
+        From a biological perspective, increasing the number of
+        Gaussians improves the ability to capture localized motions and
+        subtle conformational changes. However, larger models also
+        increase computational cost and GPU memory requirements.
+        Selecting an excessively large number of components may lead to
+        unstable training or impractical execution times on limited
+        hardware.
+
+        The protocol also includes regularization controls that balance
+        fidelity to experimental data against smoothness and physical
+        plausibility of the deformations. Stronger regularization tends
+        to suppress noisy or unrealistic motions, while weaker
+        regularization allows more flexibility but may overfit noise.
+        In practice, moderate regularization is usually preferred for
+        biological interpretation.
+
+        Latent Space Representation
+
+        One of the central outputs of the protocol is the latent space,
+        which provides a compact numerical representation of molecular
+        conformations. Each particle is associated with coordinates in
+        this latent space, allowing the visualization and exploration
+        of continuous structural variability.
+
+        The latent dimensionality controls how many independent modes
+        of motion can be represented. Lower-dimensional spaces are
+        easier to interpret and often sufficient for systems dominated
+        by a few large motions. More complex systems may require higher
+        dimensionality to capture coupled or independent rearrangements.
+
+        For biological users, latent space exploration can reveal
+        trajectories between conformations, identify clusters of
+        structural states, and provide insight into functional dynamics.
+        This is particularly useful when studying ligand binding,
+        allosteric regulation, domain breathing, gating transitions, or
+        assembly maturation processes.
+
+        The protocol supports dimensionality reduction methods such as
+        PCA, ICA, UMAP, and t-SNE for visualization. These approaches
+        provide different perspectives on the organization of the
+        conformational landscape. PCA is often a good starting point
+        for general interpretation, while nonlinear methods such as
+        UMAP or t-SNE may better separate complex conformational
+        relationships.
+
+        Visualization and Deformation Analysis
+
+        The visualization stage allows users to inspect maps generated
+        along deformation trajectories. These trajectories provide an
+        intuitive view of how the structure changes across the latent
+        space and may reveal biologically meaningful motions that are
+        difficult to detect using discrete classification approaches.
+
+        From a biological perspective, interpreting these trajectories
+        requires caution. Continuous transitions inferred from latent
+        representations are mathematical approximations of the observed
+        variability and should be evaluated alongside biochemical,
+        structural, or functional evidence. Flexible regions with weak
+        signal may produce motions that are visually plausible but not
+        necessarily biologically relevant.
+
+        Visualization is particularly powerful for identifying domain
+        movements, hinge motions, flexible loops, opening and closing
+        transitions, or coordinated rearrangements within large
+        assemblies. Generating movies from deformation trajectories can
+        significantly improve qualitative interpretation and
+        communication of structural dynamics.
+
+        Inverse Deformations and Backprojection
+
+        The protocol can also estimate inverse deformation fields and
+        perform deformable backprojection. This advanced workflow aims
+        to reconstruct improved consensus maps by accounting for
+        conformational variability during reconstruction.
+
+        Biologically, this is especially valuable when flexibility
+        limits local resolution in standard refinements. By compensating
+        for particle-specific deformations, the protocol may recover
+        structural detail that would otherwise be blurred in highly
+        dynamic regions.
+
+        The inverse deformation process is computationally demanding
+        and typically benefits from modern GPUs with sufficient memory.
+        Batch sizes, image preloading, and memory optimization settings
+        can strongly influence performance. Users working with very
+        large datasets should carefully balance computational efficiency
+        against available hardware resources.
+
+        Practical Recommendations
+
+        For most cryo-EM studies, it is advisable to begin with a
+        moderate latent dimensionality and a conservative number of
+        Gaussian components. Initial exploratory analyses can then be
+        refined based on the observed flexibility patterns and training
+        stability.
+
+        Applying an appropriate mask often produces the largest
+        improvement in biological interpretability, particularly for
+        complexes with flexible appendages or poorly resolved solvent
+        regions. Careful inspection of deformation trajectories is
+        essential to distinguish meaningful conformational changes from
+        noise-driven artifacts.
+
+        GPU memory considerations are especially important for large
+        structures and high-resolution analyses. Increasing model
+        complexity, batch size, or deformation storage may accelerate
+        calculations but can rapidly exceed available hardware
+        capacity.
+
+        When interpreting latent spaces, users should avoid assigning
+        direct biological meaning to every observed axis or trajectory.
+        Instead, latent coordinates should be considered as simplified
+        representations of conformational variability that require
+        validation through complementary structural or biochemical
+        evidence.
+
+        Final Perspective
+
+        Continuous flexibility analysis represents an important advance
+        in cryo-EM structural biology because many biological systems
+        do not exist as a small number of rigid states. DynaMight
+        provides a framework for studying molecular dynamics directly
+        from experimental particle images, enabling a richer
+        interpretation of conformational landscapes and functional
+        mechanisms.
+
+        For biological users, the protocol is most effective when
+        combined with careful consensus refinement, thoughtful masking,
+        realistic computational settings, and cautious interpretation
+        of deformation trajectories. When used appropriately, it can
+        reveal dynamic structural relationships that remain hidden in
+        conventional discrete classification workflows.
     """
     _label = 'DynaMight flexibility'
     _devStatus = NEW

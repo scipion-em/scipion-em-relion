@@ -49,21 +49,184 @@ class outputs(Enum):
 
 class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
     """
-    Wrapper protocol for the Relion's Bayesian Polishing.
+    Performs Bayesian polishing of cryo-EM particle images using Relion in
+    order to correct beam-induced particle motion at the individual particle
+    level. The protocol improves particle alignment quality and enhances the
+    high-resolution signal of reconstructed maps by estimating smooth and
+    spatially coherent motion trajectories across movie frames.
 
-    As of release 3.0, Relion also implements a new Bayesian approach to beam
-    induced motion correction. This approach aims to optimise a regularised
-    likelihood, which allows us to associate with each hypothetical set of
-    particle trajectories a prior likelihood that favors spatially coherent
-    and temporally smooth motion without imposing any hard constraints.
-    The smoothness prior term requires three parameters that describe the
-    statistics of the observed motion. To estimate the prior that yields the
-    best motion tracks for this particular dataset, we can first run the
-    program in 'training mode'. Once the estimates have been obtained, one
-    can then run the program again to fit tracks for the motion of all
-    particles in the data set and to produce adequately weighted averages of
-    the aligned movie frames.
+    AI Generated:
 
+    Bayesian Polishing (ProtRelionBayesianPolishing) — User Manual
+        Overview
+
+        The Bayesian Polishing protocol refines particle motion correction
+        using the Bayesian framework implemented in Relion. Its primary goal
+        is to compensate for beam-induced movement that occurs during cryo-EM
+        image acquisition, thereby improving the quality of particle averages
+        and the final reconstructed density maps. Unlike global motion
+        correction approaches that operate at the micrograph level, this
+        protocol estimates motion trajectories for each individual particle,
+        allowing more accurate correction of local movements.
+
+        In practical cryo-EM workflows, Bayesian polishing is commonly applied
+        after an initial high-resolution refinement and often after CTF
+        refinement. The protocol is especially valuable for datasets targeting
+        near-atomic resolution, where subtle motion-related blurring can limit
+        map interpretability. By improving frame weighting and trajectory
+        estimation, polishing frequently leads to measurable gains in final FSC
+        resolution and map sharpness.
+
+        Inputs and Experimental Context
+
+        The protocol requires aligned movies, refined particles, and a
+        postprocessing result containing the relevant FSC information and mask.
+        The aligned movies provide the temporal information needed to estimate
+        particle trajectories, while the refined particles define the particle
+        orientations and positions already obtained in previous refinement
+        steps. The postprocessed reconstruction contributes the FSC-based
+        weighting scheme used during frame combination.
+
+        From a biological perspective, the quality of the input refinement is
+        critical. Poor particle alignments or inaccurate CTF estimation will
+        propagate into polishing and reduce the benefit of the procedure.
+        Therefore, Bayesian polishing is typically considered an advanced
+        refinement step rather than an initial preprocessing operation.
+
+        Training and Motion Statistics Estimation
+
+        The protocol supports two operational modes. The first mode estimates
+        optimal motion regularization parameters from a representative subset
+        of particles. This training stage evaluates the statistical properties
+        of particle motion in the dataset and determines appropriate levels of
+        smoothness and coherence for the trajectories.
+
+        Biologically, this step adapts the polishing behavior to the specific
+        characteristics of the experiment. Datasets collected with unstable ice,
+        significant beam-induced motion, or large particles may require
+        different regularization strengths than highly stable datasets.
+        Estimating these parameters automatically often provides more reliable
+        results than manually selected values.
+
+        The second mode performs the actual polishing using either the trained
+        parameters or user-provided values. During this process, the protocol
+        estimates per-particle motion tracks and generates improved particle
+        images suitable for downstream refinement.
+
+        Motion Regularization Parameters
+
+        Bayesian polishing relies on three biologically meaningful motion
+        regularization parameters that control the expected behavior of particle
+        trajectories over time and across the micrograph.
+
+        The velocity parameter controls how rapidly particles are allowed to
+        move between frames. Smaller values favor shorter and smoother motion
+        trajectories, while larger values permit greater flexibility. In highly
+        stable datasets, stronger regularization often improves consistency,
+        whereas datasets with substantial beam-induced drift may benefit from
+        more relaxed motion estimates.
+
+        The divergence parameter determines how similar neighboring particle
+        trajectories are expected to be within the same micrograph. Lower values
+        enforce spatial coherence and are useful when particle movement is
+        dominated by collective ice motion. Larger values allow particles to
+        move more independently, which may better describe heterogeneous ice
+        behavior or local deformations.
+
+        The acceleration parameter controls how strongly abrupt changes in
+        particle direction are penalized. Smaller values favor smoother and
+        straighter trajectories over time, while larger values allow more
+        irregular motion patterns. Excessively weak regularization may lead to
+        overfitting noise rather than genuine particle movement.
+
+        Frame Selection and Dose Considerations
+
+        The protocol allows selection of the movie frames included in motion
+        estimation and frame combination. This is biologically important because
+        early movie frames often contain the highest-resolution information but
+        may also experience stronger beam-induced movement. Later frames are
+        generally more stable but increasingly affected by radiation damage.
+
+        Choosing an appropriate frame range therefore depends on the balance
+        between motion correction and radiation preservation. In many practical
+        datasets, excluding severely damaged late frames improves the quality of
+        the polished particles and downstream reconstructions.
+
+        Extraction and Rescaling Strategy
+
+        The protocol optionally allows particles to be extracted using a
+        different box size or rescaled pixel size during polishing. These
+        options are important for balancing computational cost and achievable
+        resolution.
+
+        Larger extraction boxes preserve more peripheral signal and are useful
+        for large macromolecular assemblies or flexible complexes. However,
+        excessively large boxes increase computational demands and may introduce
+        unnecessary background noise. Downsampling can accelerate processing,
+        particularly during exploratory refinements, although aggressive scaling
+        may limit high-resolution recovery.
+
+        The selected extraction and scaling strategy should remain consistent
+        with the expected biological resolution and particle size.
+
+        EER Data and Motion Metadata
+
+        The protocol supports advanced movie metadata, including motion models,
+        hot-pixel information, gain references, and EER acquisition schemes.
+        This ensures compatibility with modern direct electron detector
+        workflows and allows polishing to incorporate detailed acquisition
+        information when available.
+
+        Accurate handling of detector corrections and optics information is
+        particularly important in high-resolution cryo-EM projects, where even
+        small calibration inconsistencies may reduce reconstruction quality.
+
+        Outputs and Their Interpretation
+
+        After completion, the protocol produces a polished set of particles with
+        improved frame alignment and optimized weighting. These particles are
+        intended for subsequent refinement, classification, or reconstruction
+        steps.
+
+        Biologically, successful polishing is often reflected by improved map
+        sharpness, enhanced side-chain visibility, clearer secondary structure,
+        and higher FSC resolution estimates. However, the magnitude of the
+        improvement depends strongly on the original data quality, particle
+        behavior, and accuracy of the preceding refinement steps.
+
+        In training mode, the protocol also reports optimized motion
+        regularization parameters. These values can guide future polishing runs
+        on the same dataset or similar acquisitions.
+
+        Practical Recommendations
+
+        In routine cryo-EM workflows, Bayesian polishing is typically performed
+        after obtaining a stable high-resolution refinement and after CTF
+        refinement has converged. Running the training stage first is generally
+        recommended because it adapts the motion model to the specific dataset.
+
+        For datasets with strong beam-induced motion, careful optimization of
+        frame ranges and motion regularization parameters can substantially
+        improve reconstruction quality. Conversely, for highly stable datasets,
+        conservative polishing settings may already provide near-optimal
+        results.
+
+        Users should visually inspect the resulting reconstructions after
+        polishing rather than relying exclusively on nominal FSC improvements.
+        Genuine biological improvement is best assessed through clearer density
+        features and improved interpretability of flexible or previously blurred
+        regions.
+
+        Final Perspective
+
+        Bayesian polishing represents one of the most important refinement
+        stages in modern high-resolution cryo-EM workflows. By modeling
+        particle-specific motion in a statistically robust manner, it improves
+        the consistency and interpretability of reconstructed structures.
+        Careful preparation of the input data, appropriate motion
+        regularization, and biologically informed frame selection are key
+        factors for obtaining reliable and meaningful improvements in final
+        cryo-EM maps.
     """
 
     _label = 'bayesian polishing'

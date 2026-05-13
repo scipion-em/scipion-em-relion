@@ -46,7 +46,159 @@ class outputs(Enum):
 
 
 class ProtRelionCtfRefinement(ProtParticles, ProtRelionBase):
-    """ Wrapper protocol for the Relion's CTF refinement. """
+    """
+    Refines contrast transfer function parameters and optical aberrations
+    for cryo-EM particle datasets using Relion CTF refinement procedures.
+    The protocol improves the accuracy of particle imaging parameters in
+    order to enhance high-resolution reconstruction quality and reduce
+    systematic optical errors during single-particle analysis.
+
+    AI Generated:
+
+    CTF Refinement (ProtRelionCtfRefinement) — User Manual
+        Overview
+
+        The CTF Refinement protocol performs advanced refinement of imaging
+        parameters for cryo-EM particle datasets. Its primary goal is to
+        improve the accuracy of the contrast transfer function description
+        after an initial reconstruction has already been obtained. In modern
+        high-resolution cryo-EM workflows, this refinement step is often
+        essential for reaching the highest possible map quality because small
+        optical inaccuracies can significantly affect fine structural details.
+
+        The protocol operates by combining previously aligned particles with
+        information from a postprocessed reconstruction. Using the reconstructed
+        signal as a reference, the method refines imaging parameters that may
+        vary across particles, micrographs, or optics groups. Biological users
+        typically apply this protocol during late stages of refinement once a
+        reasonably accurate consensus reconstruction has already been achieved.
+
+        Inputs and General Workflow
+
+        The protocol requires a set of aligned particles together with a
+        postprocessing result that provides the refined maps and solvent mask.
+        The solvent mask plays an important biological role because it defines
+        which regions contribute signal during refinement. In practice, the mask
+        should encompass the entire molecular complex while excluding excessive
+        solvent noise.
+
+        For elongated or filamentous assemblies, users sometimes employ smaller
+        masks during postprocessing to improve FSC estimation. However, for CTF
+        refinement it is generally preferable to use broader masks that retain
+        sufficient structural signal across the full particle region. Poor mask
+        design may weaken parameter estimation and reduce refinement stability.
+
+        CTF Parameter Refinement
+
+        The protocol allows refinement of several imaging parameters, including
+        defocus, astigmatism, phase shift, and B-factor terms. These parameters
+        may be optimized globally at the micrograph level or individually for
+        each particle, depending on dataset quality and resolution goals.
+
+        Per-particle refinement is especially valuable for high-resolution
+        datasets because local variations in ice thickness, particle height,
+        charging effects, or beam-induced motion can introduce differences
+        between particles collected within the same micrograph. Refining these
+        effects individually often improves the consistency of particle
+        alignment and reconstruction quality.
+
+        Defocus refinement is commonly the most impactful option in routine
+        biological workflows. Astigmatism refinement becomes more important
+        when optical imperfections are present, while phase-shift refinement is
+        particularly relevant for datasets collected using phase plates.
+        B-factor refinement can help model signal attenuation and improve the
+        description of high-frequency information.
+
+        Beam Tilt and Higher-Order Aberrations
+
+        The protocol can estimate beam tilt and additional higher-order optical
+        aberrations. These corrections are mainly relevant for datasets aiming
+        at near-atomic or atomic resolution, where subtle optical distortions
+        become measurable and biologically significant.
+
+        Beam tilt estimation corrects systematic phase shifts introduced by
+        imperfect microscope alignment. For datasets extending beyond moderate
+        resolution ranges, correcting beam tilt can noticeably improve map
+        sharpness and interpretability.
+
+        Trefoil and fourth-order aberration estimation provide even more
+        detailed optical corrections. These options are generally recommended
+        only for very high-resolution datasets because lower-resolution data
+        rarely contain enough signal to support stable estimation. Biological
+        users should interpret these advanced corrections cautiously and avoid
+        unnecessary over-parameterization in weaker datasets.
+
+        Anisotropic Magnification Refinement
+
+        The protocol also supports estimation of anisotropic magnification
+        distortions. These distortions arise when magnification differs slightly
+        along different detector axes, producing subtle geometric stretching or
+        compression effects in reconstructed maps.
+
+        Correcting anisotropic magnification is particularly important when
+        combining datasets from multiple optics groups or when pursuing the
+        highest possible spatial accuracy. In many workflows, users alternate
+        between anisotropic magnification correction and higher-order aberration
+        refinement until optical parameters become stable.
+
+        Resolution Limits and Stability
+
+        The protocol allows users to define the minimum resolution used during
+        fitting procedures. Restricting refinement to appropriate frequency
+        ranges helps avoid overfitting noise or unstable signal regions. In
+        routine biological analyses, conservative resolution thresholds often
+        provide more reliable results than overly aggressive refinement.
+
+        High-resolution refinements should only be attempted when the dataset
+        quality, particle number, and reconstruction resolution justify the
+        additional complexity. Attempting advanced aberration estimation on
+        insufficient data may produce unstable corrections without meaningful
+        biological improvement.
+
+        Outputs and Their Interpretation
+
+        After execution, the protocol produces a refined particle set with
+        updated imaging parameters. These refined particles are typically used
+        in subsequent rounds of three-dimensional refinement, polishing, or
+        reconstruction.
+
+        Additional diagnostic outputs describing optical distortions and
+        aberration fits may also be generated. These outputs help users inspect
+        systematic microscope behavior and assess whether the estimated
+        corrections are physically meaningful.
+
+        From a biological perspective, successful CTF refinement often leads to
+        sharper density maps, improved side-chain visibility, cleaner secondary
+        structure features, and better interpretability of flexible or weakly
+        resolved regions.
+
+        Practical Recommendations
+
+        In standard cryo-EM workflows, it is often advisable to begin with
+        conservative refinement options such as defocus correction before moving
+        toward more advanced aberration estimation. Per-particle refinement is
+        generally beneficial for high-quality datasets, but advanced optical
+        corrections should only be enabled when the reconstruction resolution
+        supports them.
+
+        Beam tilt and higher-order aberration refinement are most valuable for
+        datasets approaching high or near-atomic resolution. Users should
+        visually inspect reconstruction improvements after each refinement cycle
+        rather than relying exclusively on numerical resolution estimates.
+
+        When anisotropic magnification and higher-order aberrations are both
+        suspected, iterative refinement strategies frequently provide the most
+        stable results. Applying one correction may improve the accuracy of the
+        next refinement stage.
+
+        Final Perspective
+
+        CTF refinement represents one of the key late-stage optimization steps
+        in modern single-particle cryo-EM. By improving the accuracy of optical
+        parameter estimation, the protocol helps maximize the structural signal
+        contained within experimental particles and enables more reliable
+        biological interpretation of high-resolution reconstructions.
+    """
     _label = 'ctf refinement'
     _devStatus = PROD
     _possibleOutputs = outputs
