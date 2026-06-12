@@ -34,6 +34,10 @@ try:
     from .test_dynamight import TestWorkflowRelionDynamight
 except ImportError:
     pass
+try:
+    from .tests_model_angelo import TestModelAngelo
+except ImportError:
+    pass
 
 from pyworkflow.tests import DataSet
 
