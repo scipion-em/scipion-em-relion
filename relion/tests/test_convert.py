@@ -837,6 +837,81 @@ class TestRelionReader(BaseTest):
         self.assertEqual(coord.getMicName(), 'Falcon_2012_06_12-14_33_35_0_movie.mrcs')
 
 
+class _MockStarRow:
+    def __init__(self, **kwargs):
+        self._data = kwargs
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def hasColumn(self, label):
+        return label in self._data
+
+    def hasAnyColumn(self, labels):
+        return any(self.hasColumn(label) for label in labels)
+
+
+class TestRelionReaderCoordExtraLabels(BaseTest):
+    @staticmethod
+    def _createReaderWithParticle(row, coordExtraLabels):
+        reader = convert.createReader()
+        reader._setClassId = False
+        reader._setCtf = False
+        reader._setCoord = True
+        reader._preprocessImageRow = None
+        reader._postprocessImageRow = None
+
+        particle = Particle()
+        reader.createExtraLabels(particle, row, ['rlnNrOfSignificantSamples'])
+        reader._partExtraLabels = list(reader._extraLabels)
+        reader._coordExtraLabels = coordExtraLabels
+        return reader, particle
+
+    def test_readParticleCoordinateWithExtraLabels(self):
+        row = _MockStarRow(
+            rlnImageName='1@particles.mrcs',
+            rlnCoordinateX=10.,
+            rlnCoordinateY=20.,
+            rlnMicrographName='mic_0001.mrc',
+            rlnNrOfSignificantSamples=8,
+            rlnAutopickFigureOfMerit=0.75,
+            rlnClassNumber=4,
+            rlnAnglePsi=35.
+        )
+        reader, particle = self._createReaderWithParticle(
+            row, ['rlnAutopickFigureOfMerit', 'rlnClassNumber', 'rlnAnglePsi'])
+        reader._rowToPart(row, particle)
+
+        coord = particle.getCoordinate()
+        self.assertIsNotNone(coord)
+        self.assertTrue(hasattr(coord, '_rlnAutopickFigureOfMerit'))
+        self.assertTrue(hasattr(coord, '_rlnClassNumber'))
+        self.assertTrue(hasattr(coord, '_rlnAnglePsi'))
+        self.assertTrue(hasattr(particle, '_rlnNrOfSignificantSamples'))
+        self.assertAlmostEqual(coord._rlnAutopickFigureOfMerit.get(), 0.75)
+        self.assertEqual(coord._rlnClassNumber.get(), 4)
+        self.assertAlmostEqual(coord._rlnAnglePsi.get(), 35.)
+        self.assertEqual(particle._rlnNrOfSignificantSamples.get(), 8)
+
+    def test_readParticleCoordinateWithoutExtraLabels(self):
+        row = _MockStarRow(
+            rlnImageName='1@particles.mrcs',
+            rlnCoordinateX=10.,
+            rlnCoordinateY=20.,
+            rlnMicrographName='mic_0001.mrc',
+            rlnNrOfSignificantSamples=8
+        )
+        reader, particle = self._createReaderWithParticle(row, [])
+        reader._rowToPart(row, particle)
+
+        coord = particle.getCoordinate()
+        self.assertIsNotNone(coord)
+        self.assertFalse(hasattr(coord, '_rlnAutopickFigureOfMerit'))
+        self.assertFalse(hasattr(coord, '_rlnClassNumber'))
+        self.assertFalse(hasattr(coord, '_rlnAnglePsi'))
+        self.assertTrue(hasattr(particle, '_rlnNrOfSignificantSamples'))
+        self.assertEqual(particle._rlnNrOfSignificantSamples.get(), 8)
+
+
 class TestRelionOpticsGroups(BaseTest):
     @classmethod
     def setUpClass(cls):
