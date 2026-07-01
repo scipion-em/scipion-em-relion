@@ -65,6 +65,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
                       relationName=RELATION_CTF,
                       attributeName='getInputMicrographs',
                       label='CTF estimation',
+                      allowsNull=True,
                       help='Choose some CTF estimation related to the '
                            'input micrographs.')
 
@@ -297,8 +298,12 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
          a SetOfCTF as input, so for streaming, we only want to report those
          micrographs for which the CTF is ready.
         """
+        ctfRel = self.ctfRelations.get()
         micDict, micClose = self._loadMics(self.getInputMicrographs())
-        ctfDict, ctfClosed = self._loadCTFs(self.ctfRelations.get())
+        if ctfRel is None:
+            return micDict, micClose
+            
+        ctfDict, ctfClosed = self._loadCTFs(ctfRel)
 
         # Keep the micrographs that have CTF
         # and set the CTF property for those who have it
