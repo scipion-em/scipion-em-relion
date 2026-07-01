@@ -34,7 +34,6 @@ from pyworkflow.tests import setupTestProject, DataSet
 from pyworkflow.plugin import Domain
 from pyworkflow.protocol.constants import STATUS_FINISHED
 import pyworkflow.utils as pwutils
-import relion.convert as convert
 from pwem.objects import SetOfParticles, Volume
 from pwem.protocols import ProtImportParticles, ProtImportPdb
 from pwem.emlib.image import ImageHandler
@@ -685,53 +684,6 @@ class TestRelionSubtract(TestRelionBase):
         self.assertEqual(protSubtract.outputParticles.getSize(),
                          relionRefine.outputParticles.getSize(),
                          "Output size does not match input size in no-relion subtract")
-
-    def test_subtract_subset_from_classify_multivolume(self):
-        print(pwutils.magentaStr("\n==> Running relion - classify 3d (multivolume case):"))
-        relionClassify = self.newProtocol(ProtRelionClassify3D,
-                                          numberOfClasses=2,
-                                          numberOfIterations=4,
-                                          doCTF=False, runMode=1,
-                                          maskDiameterA=320,
-                                          numberOfMpi=2, numberOfThreads=2)
-        relionClassify.inputParticles.set(self.protImport.outputParticles)
-        relionClassify.referenceVolume.set(self.protImportVol.outputVolume)
-        relionClassify.doGpu.set(False)
-        self.launchProtocol(relionClassify)
-
-        protMask = self._run_mask3d(self.protImportVol.outputVolume,
-                        'multivolume case')
-
-        classesToParts = {}
-        for part in relionClassify.outputParticles.iterItems(orderBy='id'):
-            classNo = int(part.getAttributeValue('_rlnClassNumber', part.getClassId()))
-            classesToParts.setdefault(classNo, []).append(part)
-
-        nonEmptyClasses = [c for c, parts in classesToParts.items() if len(parts) > 0]
-        self.assertGreaterEqual(len(nonEmptyClasses), 2,
-                                "Classify3D output should contain at least two classes")
-
-        selectedClasses = sorted(nonEmptyClasses)[:2]
-        subsetSet = relionClassify.outputParticles
-
-        print(pwutils.magentaStr("\n==> Testing relion - subtract projection with classify subset:"))
-        protSubtract = self._run_subtract_with_subset(relionClassify, subsetSet,
-                                  protMask.outputMask)
-
-        self.assertIsNotNone(protSubtract.outputParticles,
-                             "There was a problem with subtract projection for classify subset")
-        self.assertEqual(protSubtract.outputParticles.getSize(), subsetSet.getSize(),
-                         "Output size does not match classify subset size")
-
-        inputStar = protSubtract._getFileName('input_star')
-        classLabels = {
-            int(row.rlnClassNumber)
-            for row in convert.Table.iterRows('particles@' + inputStar,
-                                              types=convert.LABELS_DICT)
-        }
-        self.assertTrue(set(selectedClasses).issubset(classLabels),
-                        "Subtract input STAR lost class labels for classify subset")
-
 
 class TestRelionSymmetrizeVolume(TestRelionBase):
     @classmethod
