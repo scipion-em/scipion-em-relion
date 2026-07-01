@@ -3,6 +3,7 @@
 # * Authors:     Grigory Sharov (gsharov@mrc-lmb.cam.ac.uk)           [1]
 # *              Eduardo García Delgado (eduardo.garcia@cnb.csic.es)  [2]
 # *              David Herreros (dherreros@cnb.csic.es)               [2]
+# *              Mikel Iceta (miceta@cnb.csic.es)                     [2]
 # *
 # * [1] MRC Laboratory of Molecular Biology, MRC-LMB
 # * [2] Unidad de  Biocomputacion, Centro Nacional de Biotecnologia, CSIC (CNB-CSIC)
@@ -104,12 +105,11 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
                       help='Select a previous run to analyse.')
 
         form.addParam('inputParticles', params.PointerParam,
-                      allowsNull=True,
                       pointerClass='SetOfParticles',
                       pointerCondition='hasAlignmentProj',
                       condition='not doContinue',
                       label="Input particles",
-                      help='Select the input images from the project.')
+                      help='Input particles to run with.')
 
         form.addParam('referenceVolume', params.PointerParam,
                       pointerClass='Volume',
@@ -170,7 +170,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
                        label="Deformations batch size",
                        help="Batch size for processing images.")
 
-        group.addParam('numEpochsD', params.IntParam, default=100,
+        group.addParam('numEpochsD', params.IntParam, default=200,
                        condition='not doContinue',
                        label="Number of epochs",
                        help="Number of epochs for training network.")
@@ -224,7 +224,6 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
         group.addParam('storeDeforms', params.BooleanParam, default=False,
                        condition=doInverse,
                        label="Store deformations in RAM?",
-                       expertLevel=params.LEVEL_ADVANCED,
                        help="If set to Yes, dynamight will store deformations "
                             "in the GPU memory, which will speed up the "
                             "calculations, but you need to have enough GPU "
@@ -247,7 +246,6 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
 
         form.addParam('allParticlesRam', params.BooleanParam, default=False,
                        label='Pre-read all particles into RAM?',
-                       expertLevel=params.LEVEL_ADVANCED,
                        help="If set to Yes, dynamight will preload images into "
                             "memory for learning the forward or inverse deformations "
                             "and for deformed backprojection. This will speed up "
@@ -295,18 +293,22 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
         self._convertRef()
 
         if self.referenceMask.get() is not None:
+            print("Mask was provided, loading mask...")
             maskFilename = self._getFileName('input_mask')
             inMask = self.referenceMask.get().getFileName()
             shutil.copy(inMask, maskFilename)
+        else:
+            print("No mask provided, continuing without mask...")
 
     def runDynamightStep(self):
+        hasMask = self.referenceMask.get() is not None
         params = [
             "optimize-deformations",
             f"--refinement-star-file {self._getFileName('input_particles')}",
             f"--output-directory {self._getExtraPath()}",
             f"--initial-model {self._getRefArg()}",
             f"--initial-threshold {self.threshold.get()}",
-            f"--mask-file {self._getFileName('input_mask')}" if self.referenceMask.get() is not None else ""
+            f"--mask-file {self._getFileName('input_mask')}" if hasMask else "",
             f"--n-gaussians {self.numberOfGaussians.get()}",
             f"--n-latent-dimensions {self.latentDim.get()}",
             f"--weight-decay {self.weightDecay.get()}",
@@ -335,8 +337,9 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
         pwutils.createLink(inputProt._getExtraPath("forward_deformations"),
                            self._getExtraPath("forward_deformations"))
         checkpoint_file = self._getFileName('checkpoint_final')
+        hasMask = inputProt.referenceMask.get() is not None
 
-        if inputProt.referenceMask.get() is not None:
+        if hasMask:
             maskFilename = self._getFileName('input_mask')
             inMask = inputProt.referenceMask.get().getFileName()
             shutil.copy(inMask, maskFilename)
@@ -350,7 +353,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
                 self._getExtraPath(),
                 f"--checkpoint-file {checkpoint_file}",
                 f"--half-set {self.halfSet.get()}",
-                f"--mask-file {self._getFileName('input_mask')}" if inputProt.referenceMask.get() is not None else "",
+                f"--mask-file {self._getFileName('input_mask')}" if hasMask else "",
                 f"--batch-size {inputProt.batchSizeD.get()}",
                 f"--gpu-id {self.gpuList.get()}",
                 f"--n-workers {inputProt.numWorkers.get()}",
@@ -375,7 +378,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
             params = [
                 "deformable-backprojection",
                 self._getExtraPath(),
-                f"--mask-file {self._getFileName('input_mask')}" if inputProt.referenceMask else "",
+                f"--mask-file {self._getFileName('input_mask')}" if hasMask else "",
                 f"--gpu-id {self.gpuList.get()}",
                 f"--backprojection-batch-size {self.batchSizeI.get()}",
                 "--preload-images" if self.allParticlesRam else "",
