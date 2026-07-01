@@ -631,6 +631,47 @@ class TestRelionSubtract(TestRelionBase):
         self.assertIsNotNone(protSubtract.outputParticles,
                              "There was a problem with subtract projection")
 
+    def test_subtract_subset(self):
+        print(pwutils.magentaStr("\n==> Running relion - refine 3d (subset case):"))
+        relionRefine = self.newProtocol(ProtRelionRefine3D,
+                                        doCTF=False, runMode=1,
+                                        maskDiameterA=340,
+                                        symmetryGroup="d6",
+                                        numberOfMpi=3, numberOfThreads=2)
+        relionRefine.inputParticles.set(self.protImport.outputParticles)
+        relionRefine.referenceVolume.set(self.protImportVol.outputVolume)
+        relionRefine.doGpu.set(False)
+        self.launchProtocol(relionRefine)
+
+        print(pwutils.magentaStr("\n==> Running relion - create mask 3d (subset case):"))
+        protMask = self.newProtocol(ProtRelionCreateMask3D, threshold=0.045)
+        protMask.inputVolume.set(relionRefine.outputVolume)
+        self.launchProtocol(protMask)
+
+        # Build a deterministic subset to exercise useAll=False path in subtract.
+        subsetSize = 20
+        subsetSet = self.proj.createSetOfParticles()
+        subsetSet.copyInfo(relionRefine.outputParticles)
+        for i, part in enumerate(relionRefine.outputParticles.iterItems(orderBy='id')):
+            if i >= subsetSize:
+                break
+            subsetSet.append(part)
+        subsetSet.write()
+
+        print(pwutils.magentaStr("\n==> Testing relion - subtract projection with subset:"))
+        protSubtract = self.newProtocol(ProtRelionSubtract,
+                                        refMask=protMask.outputMask,
+                                        numberOfMpi=2)
+        protSubtract.inputProtocol.set(relionRefine)
+        protSubtract.useAll.set(False)
+        protSubtract.inputParticles.set(subsetSet)
+        self.launchProtocol(protSubtract)
+
+        self.assertIsNotNone(protSubtract.outputParticles,
+                             "There was a problem with subtract projection using subset")
+        self.assertEqual(protSubtract.outputParticles.getSize(), subsetSize,
+                         "Output size does not match subset size")
+
 
 class TestRelionSymmetrizeVolume(TestRelionBase):
     @classmethod
