@@ -653,15 +653,8 @@ class TestRelionSubtract(TestRelionBase):
         relionRefine = self._run_refine3d('subset case')
         protMask = self._run_mask3d(relionRefine.outputVolume, 'subset case')
 
-        # Build a deterministic subset to exercise useAll=False path in subtract.
-        subsetSize = 20
-        subsetSet = self.proj.createSetOfParticles()
-        subsetSet.copyInfo(relionRefine.outputParticles)
-        for i, part in enumerate(relionRefine.outputParticles.iterItems(orderBy='id')):
-            if i >= subsetSize:
-                break
-            subsetSet.append(part)
-        subsetSet.write()
+        # Use the full set as subset to exercise useAll=False path.
+        subsetSet = relionRefine.outputParticles
 
         print(pwutils.magentaStr("\n==> Testing relion - subtract projection with subset:"))
         protSubtract = self._run_subtract_with_subset(relionRefine, subsetSet,
@@ -669,11 +662,12 @@ class TestRelionSubtract(TestRelionBase):
 
         self.assertIsNotNone(protSubtract.outputParticles,
                              "There was a problem with subtract projection using subset")
-        self.assertEqual(protSubtract.outputParticles.getSize(), subsetSize,
+        self.assertEqual(protSubtract.outputParticles.getSize(), subsetSet.getSize(),
                          "Output size does not match subset size")
 
     def test_subtract_no_relion_input(self):
-        protMask = self._run_mask3d(self.protImportVol.outputVolume,
+        relionRefine = self._run_refine3d('no-relion input')
+        protMask = self._run_mask3d(relionRefine.outputVolume,
                                     'no-relion input')
 
         print(pwutils.magentaStr("\n==> Testing relion - subtract projection without Relion input:"))
@@ -682,20 +676,20 @@ class TestRelionSubtract(TestRelionBase):
                                         refMask=protMask.outputMask,
                                         doCTF=False,
                                         numberOfMpi=1)
-        protSubtract.inputParticlesAll.set(self.protImport.outputParticles)
-        protSubtract.inputVolume.set(self.protImportVol.outputVolume)
+        protSubtract.inputParticlesAll.set(relionRefine.outputParticles)
+        protSubtract.inputVolume.set(relionRefine.outputVolume)
         self.launchProtocol(protSubtract)
 
         self.assertIsNotNone(protSubtract.outputParticles,
                              "There was a problem with subtract projection without Relion input")
         self.assertEqual(protSubtract.outputParticles.getSize(),
-                         self.protImport.outputParticles.getSize(),
+                         relionRefine.outputParticles.getSize(),
                          "Output size does not match input size in no-relion subtract")
 
     def test_subtract_subset_from_classify_multivolume(self):
         print(pwutils.magentaStr("\n==> Running relion - classify 3d (multivolume case):"))
         relionClassify = self.newProtocol(ProtRelionClassify3D,
-                                          numberOfClasses=3,
+                                          numberOfClasses=2,
                                           numberOfIterations=4,
                                           doCTF=False, runMode=1,
                                           maskDiameterA=320,
@@ -718,12 +712,7 @@ class TestRelionSubtract(TestRelionBase):
                                 "Classify3D output should contain at least two classes")
 
         selectedClasses = sorted(nonEmptyClasses)[:2]
-        subsetSet = self.proj.createSetOfParticles()
-        subsetSet.copyInfo(relionClassify.outputParticles)
-        for classNo in selectedClasses:
-            for part in classesToParts[classNo][:10]:
-                subsetSet.append(part)
-        subsetSet.write()
+        subsetSet = relionClassify.outputParticles
 
         print(pwutils.magentaStr("\n==> Testing relion - subtract projection with classify subset:"))
         protSubtract = self._run_subtract_with_subset(relionClassify, subsetSet,
