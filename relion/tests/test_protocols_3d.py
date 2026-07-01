@@ -672,6 +672,28 @@ class TestRelionSubtract(TestRelionBase):
         self.assertEqual(protSubtract.outputParticles.getSize(), subsetSize,
                          "Output size does not match subset size")
 
+    def test_subtract_no_relion_input(self):
+        print(pwutils.magentaStr("\n==> Running relion - create mask 3d (no-relion input):"))
+        protMask = self.newProtocol(ProtRelionCreateMask3D, threshold=0.045)
+        protMask.inputVolume.set(self.protImportVol.outputVolume)
+        self.launchProtocol(protMask)
+
+        print(pwutils.magentaStr("\n==> Testing relion - subtract projection without Relion input:"))
+        protSubtract = self.newProtocol(ProtRelionSubtract,
+                                        relionInput=False,
+                                        refMask=protMask.outputMask,
+                                        doCTF=False,
+                                        numberOfMpi=1)
+        protSubtract.inputParticlesAll.set(self.protImport.outputParticles)
+        protSubtract.inputVolume.set(self.protImportVol.outputVolume)
+        self.launchProtocol(protSubtract)
+
+        self.assertIsNotNone(protSubtract.outputParticles,
+                             "There was a problem with subtract projection without Relion input")
+        self.assertEqual(protSubtract.outputParticles.getSize(),
+                         self.protImport.outputParticles.getSize(),
+                         "Output size does not match input size in no-relion subtract")
+
 
 class TestRelionSymmetrizeVolume(TestRelionBase):
     @classmethod
