@@ -600,7 +600,9 @@ class Reader(ReaderBase):
             coord = Coordinate()
             self.rowToCoord(row, coord)
             if self._coordExtraLabels:
+                partExtraLabels = self._extraLabels
                 self.createExtraLabels(coord, row, self._coordExtraLabels)
+                self._extraLabels = partExtraLabels
             particle.setCoordinate(coord)
 
         if self._postprocessImageRow:
