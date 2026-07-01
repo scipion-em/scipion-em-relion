@@ -300,6 +300,10 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
         if self.numberOfMpi > 1 and (not self.relionInput.get()):
             errors.append("Use of several CPUs when input is not relion "
                           "protocol is not supported")
+            
+        elif self.numberOfMpi < 2 and self.relionInput.get():
+            errors.append("When executing over a Relion run, you must "
+                            " use at least 2 MPIs")
 
         return errors
     
