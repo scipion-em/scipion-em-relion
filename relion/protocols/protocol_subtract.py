@@ -268,7 +268,10 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
         self.runJob(self._getProgram('relion_particle_subtract'), params)
 
     def createOutputStep(self):
-        imgSet = self._getInputParticles()
+        if self._isRelionInput() and not self.useAll.get():
+            imgSet = self.inputParticles.get()
+        else:
+            imgSet = self._getInputParticles()
         outImgSet = self._createSetOfParticles()
         outImgsFn = self._getFileName('output_star')
         outImgSet.copyInfo(imgSet)
@@ -349,8 +352,14 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
         self._createFilenameTemplates()
         self._subsetLabelsById = {}
         if self._isRelionInput() and not self.useAll.get():
+            inputProt = self.inputProtocol.get()
+            isClassifyRun = getattr(inputProt, 'IS_CLASSIFY', False)
             for p in self._getInputParticles().iterItems():
-                classNo = p.getAttributeValue('_rlnClassNumber', p.getClassId())
+                classNo = p.getAttributeValue('_rlnClassNumber', None)
+                if classNo is None:
+                    # Refine/multibody subtraction uses one reference map.
+                    # Avoid inheriting arbitrary set class IDs from subset tools.
+                    classNo = p.getClassId() if isClassifyRun else 1
                 randomSubset = p.getAttributeValue('_rlnRandomSubset', None)
                 if classNo is None or randomSubset is None:
                     continue
