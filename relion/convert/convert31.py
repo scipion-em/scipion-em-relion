@@ -557,6 +557,12 @@ class Reader(ReaderBase):
 
         extraLabels = kwargs.get('extraLabels', []) + PARTICLE_EXTRA_LABELS
         self.createExtraLabels(particle, firstRow, extraLabels)
+        self._partExtraLabels = list(self._extraLabels)
+
+        coordExtraLabels = kwargs.get('coordExtraLabels', []) + self.COORD_LABELS[3:]
+        # Keep order and remove duplicates while preserving only labels present in the STAR file.
+        self._coordExtraLabels = [l for l in dict.fromkeys(coordExtraLabels)
+                      if firstRow.hasColumn(l)]
 
         self._rowToPart(firstRow, particle)
         partSet.setSamplingRate(self._pixelSize)
@@ -587,12 +593,16 @@ class Reader(ReaderBase):
             self.rowToCtf(row, particle.getCTF())
 
         self.setParticleTransform(particle, row)
+        self._extraLabels = self._partExtraLabels
         self.setExtraLabels(particle, row)
 
-        # TODO: coord extra labels, partId, micId,
         if self._setCoord:
             coord = Coordinate()
             self.rowToCoord(row, coord)
+            if self._coordExtraLabels:
+                partExtraLabels = self._extraLabels
+                self.createExtraLabels(coord, row, self._coordExtraLabels)
+                self._extraLabels = partExtraLabels
             particle.setCoordinate(coord)
 
         if self._postprocessImageRow:
