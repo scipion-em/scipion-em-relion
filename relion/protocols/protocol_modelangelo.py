@@ -23,6 +23,7 @@
 # *
 # **************************************************************************
 import os.path
+import re
 from typing import List
 
 from pwem.objects import Volume, AtomStruct, VolumeMask
@@ -206,6 +207,49 @@ Below is an example of a config file:
             errors.append('Only one GPU can be used.')
 
         return errors
+
+    def _summary(self):
+        summary = []
+        logFile = self._getExtraPath('model_angelo.log')
+
+        if not os.path.exists(logFile):
+            return summary
+        caBefore = caAfter = None
+        pBefore = pAfter = None
+        windows = runtime = None
+
+        with open(logFile, 'r') as f:
+            for line in f:
+                if "Model prediction done" in line:
+                    m = re.search(r"took ([\d.]+) seconds for (\d+) sliding windows", line)
+                    if m:
+                        runtime = float(m.group(1))
+                        windows = int(m.group(2))
+                elif "Have" in line and "Cα points before pruning" in line:
+                    m = re.search(r"Have (\d+) Cα points before pruning and (\d+) after pruning", line)
+                    if m:
+                        caBefore = int(m.group(1))
+                        caAfter = int(m.group(2))
+                elif "Have" in line and "P points before pruning" in line:
+                    m = re.search(r"Have (\d+) P points before pruning and (\d+) after pruning", line)
+                    if m:
+                        pBefore = int(m.group(1))
+                        pAfter = int(m.group(2))
+
+        if windows is not None:
+            summary.append(f"Sliding windows processed: *{windows}*")
+        if runtime is not None:
+            summary.append(f"Cα prediction time: *{runtime:.1f} s*")
+        if caAfter is not None:
+            summary.append(
+                f"Predicted Cα points: *{caAfter}* (from {caBefore} candidates before pruning)"
+            )
+        if pAfter is not None:
+            summary.append(
+                f"Predicted P atoms: *{pAfter}* (from {pBefore} candidates before pruning)"
+            )
+
+        return summary
 
     # -------------------------- UTILS functions ------------------------------
     def createInputFastaFile(self, seqs):
