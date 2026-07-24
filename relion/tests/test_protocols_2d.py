@@ -314,7 +314,7 @@ class TestRelionExportParticles(TestRelionBase):
         print(magentaStr("\n==> Testing relion - export particles:"))
 
         def _checkProt(prot, stackType):
-            stackFiles = glob(prot._getExportPath('Particles', '*mrcs'))
+            stackFiles = glob(prot._getExportPath('Particles' + prot.suffix.get(), '*mrcs'))
             print("stackFiles: ", stackFiles)
 
             n = len(stackFiles)
@@ -328,14 +328,19 @@ class TestRelionExportParticles(TestRelionBase):
         stackTypes = [0, 1, 2]
         stackNames = ['no', 'multi', 'single']
         alignments = [True, False]
-        combinations = [(s, a) for s in stackTypes for a in alignments]
+        suffixes = ['', '_test']
+        abspaths = [True, False]
+        combinations = [(0, a, '', False) for a in alignments]
+        combinations.extend([(s, a, x, p) for a in alignments 
+                             for s in stackTypes[1:] for x in suffixes for p in abspaths])
 
-        for s, a in combinations:
-            label = 'export %s (stack: %s - align: %s)' % (name, stackNames[s], a)
+        for s, a, x, p in combinations:
+            label = 'export %s (stack: %s - align: %s - suffix: %s - abs: %s)' % (name, stackNames[s], a, x, p)
             exportProt = self.newProtocol(ProtRelionExportParticles,
                                           inputParticles=inputParts,
                                           objLabel=label,
-                                          stackType=s, alignmentType=a)
+                                          stackType=s, alignmentType=a,
+                                          suffix=x, useAbsPaths=p)
             self.launchProtocol(exportProt)
             _checkProt(exportProt, s)
 

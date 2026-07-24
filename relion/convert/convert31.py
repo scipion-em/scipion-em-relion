@@ -358,6 +358,9 @@ class Writer(WriterBase):
             if self.outputDir is not None:
                 fn = self._filesDict.get(fn, fn)
 
+        if self.useAbsPath:
+            fn = os.path.abspath(fn)
+
         row['rlnImageName'] = locationToRelion(index, fn)
 
         # Set CTF values
@@ -379,7 +382,7 @@ class Writer(WriterBase):
     def writeSetOfParticles(self, partsSet, starFile, **kwargs):
         # Process the first item and create the table based
         # on the generated columns
-        self.update(['rootDir', 'outputDir', 'outputStack'], **kwargs)
+        self.update(['rootDir', 'outputDir', 'outputStack', 'useAbsPath'], **kwargs)
 
         self._optics = OpticsGroups.fromImages(partsSet)
         partRow = OrderedDict()
@@ -387,8 +390,14 @@ class Writer(WriterBase):
 
         # Convert binaries if required
         if self.outputStack:
-            self._relOutputStack = os.path.relpath(self.outputStack,
-                                                   os.path.dirname(starFile))
+            if self.useAbsPath:
+                # Use absolute path for output stack as requested
+                self._relOutputStack = os.path.abspath(self.outputStack)
+            else:
+                # Default: Make output stack relative to star file location as usual
+                self._relOutputStack = os.path.relpath(self.outputStack,
+                                                       os.path.dirname(starFile))
+
         if self.outputDir is not None:
             forceConvert = kwargs.get('forceConvert', False)
             incompatibleExtensions = kwargs.get('incompatibleExtensions', None)

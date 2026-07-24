@@ -72,6 +72,18 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
                            "select to write images into a single stack file or"
                            " several stacks (one per micrograph). ")
 
+        form.addParam('suffix', params.StringParam, default='',
+                      condition='stackType!=%d' % 0, # Only if stacks are written
+                      label='Particles folder suffix?',
+                      help="By default, the export has a folder Particles. "
+                           "You can now add a suffix to the name that will be "
+                           "reflected in the star file")
+
+        form.addParam('useAbsPath', params.BooleanParam, default=False,
+                      label='Use absolute path?',
+                      help='If *Yes* the absolute path will be used in the '
+                           'star file. This is only used for single stack export.')
+
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         objId = self.inputParticles.get().getObjId()
@@ -93,14 +105,16 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
         outputDir = None
         outputStack = None
         postprocessImageRow = None
+        particlesFolderName = "Particles" + self.suffix.get().strip()
 
         if self._stackType == STACK_ONE:
-            outputStack = self._getExportPath('Particles/particles.mrcs')
-            pwutils.makePath(self._getExportPath("Particles"))
+            outputStack = self._getExportPath(particlesFolderName + '/particles.mrcs')
+            pwutils.makePath(self._getExportPath(particlesFolderName))
 
         elif self._stackType == STACK_MULT:
             postprocessImageRow = self._postprocessImageRow
-            outputDir = self._getExportPath("Particles")
+            outputDir = self._getExportPath(particlesFolderName)
+            # outputDir triggers creation of multiple stacks in convert module
 
         # Create links to binary files and write the relion .star file
         convert.writeSetOfParticles(
@@ -110,7 +124,9 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
             alignType=alignType,
             postprocessImageRow=postprocessImageRow,
             fillMagnification=True,
-            forceConvert=True)
+            forceConvert=True,
+            useAbsPath=self.useAbsPath.get())
+        # useAbsPath overrides default of relative paths
 
     # --------------------------- INFO functions ------------------------------
     def _validate(self):
