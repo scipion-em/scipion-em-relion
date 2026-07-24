@@ -34,7 +34,144 @@ from pwem.convert import Ccp4Header
 
 
 class ProtRelionResizeVolume(ProtPreprocessVolumes):
-    """ This protocol rescales/resizes 3D volumes using relion_image_handler. """
+    """
+    Rescales and resizes 3D cryo-EM volumes while preserving their
+    structural content and compatibility with downstream image analysis
+    workflows. The protocol is designed to adapt map dimensions and voxel
+    sizes to match the requirements of reconstruction, refinement,
+    visualization, or comparative structural analysis.
+
+    AI Generated:
+
+    Resize Volume (ProtRelionResizeVolume) — User Manual
+        Overview
+
+        The Resize Volume protocol modifies the sampling rate and box size
+        of three-dimensional cryo-EM maps. Its primary purpose is to make
+        volumes compatible with downstream processing steps, facilitate
+        comparisons between datasets, or optimize computational efficiency.
+        In cryo-EM workflows, resizing and rescaling are common operations
+        when combining maps from different sources, preparing references for
+        refinement, or adapting reconstructions to specific software
+        requirements.
+
+        For biological users, this protocol is particularly useful when maps
+        have incompatible voxel sizes or box dimensions. Standardizing these
+        properties allows reconstructions to be compared directly, aligned
+        consistently, or processed together in later stages of analysis.
+        Although resizing is mathematically straightforward, it can strongly
+        influence map interpretation and should therefore be applied with
+        biological caution.
+
+        Inputs and General Workflow
+
+        The protocol accepts either a single volume or an entire set of
+        volumes. This flexibility is useful in practical cryo-EM projects,
+        where users may need to process individual reconstructions, multiple
+        conformational states, masks, or collections of maps originating from
+        classification procedures.
+
+        The workflow may involve two related but distinct operations:
+        rescaling the voxel size and resizing the box dimensions. These
+        operations can be performed independently or together, depending on
+        the biological and computational objective of the analysis.
+
+        Rescaling Volumes
+
+        Rescaling changes the effective sampling rate of the map. This
+        operation is commonly required when volumes from different datasets
+        or software packages must be brought into a consistent physical
+        scale. For example, a reconstruction generated with one pixel size
+        may need to match the sampling of another reconstruction before
+        comparison, subtraction, docking, or flexible fitting.
+
+        From a biological perspective, preserving consistent spatial scaling
+        is critical because structural measurements, molecular dimensions,
+        and atomic interpretation all depend directly on the voxel size.
+        Incorrect scaling can lead to inaccurate structural conclusions or
+        failed downstream refinements.
+
+        Users should also recognize that rescaling may introduce small
+        adjustments due to numerical constraints associated with even box
+        dimensions. As a result, the final voxel size may differ slightly
+        from the requested value. These differences are usually minor but
+        should still be considered when performing quantitative structural
+        analysis.
+
+        Resizing the Box
+
+        Resizing changes the number of voxels defining the three-dimensional
+        map volume. This operation is often used to crop unnecessary solvent
+        regions, reduce computational cost, or adapt maps to software
+        requirements that expect specific box dimensions.
+
+        Smaller boxes reduce memory usage and accelerate downstream
+        calculations, which is especially valuable during iterative
+        refinement or large-scale processing. However, overly aggressive
+        cropping can remove biologically important density, truncate flexible
+        regions, or introduce edge artifacts that negatively affect later
+        analysis.
+
+        Enlarging the box may also be useful in some workflows, particularly
+        when additional surrounding space is needed for alignment,
+        visualization, or flexible motion analysis. In all cases, users
+        should ensure that the molecular complex remains fully contained
+        within the resized volume.
+
+        Handling Half-Maps
+
+        The protocol supports processing of half-maps together with the main
+        reconstruction. Maintaining consistency between consensus maps and
+        corresponding half-maps is biologically important because many
+        validation procedures, including resolution estimation and local
+        refinement assessment, rely on the correct relationship between
+        these maps.
+
+        By preserving compatible dimensions and sampling across all related
+        reconstructions, the protocol helps maintain reliable downstream
+        validation and interpretation.
+
+        Outputs and Their Interpretation
+
+        After execution, the protocol produces resized or rescaled volumes
+        with updated voxel sizes and box dimensions. The resulting outputs
+        retain the structural information of the original maps while being
+        adapted to the desired computational or biological context.
+
+        For sets of volumes, each output preserves its original identity and
+        metadata while sharing the newly standardized dimensions and
+        sampling. This is especially useful for comparative structural
+        studies involving multiple conformational states or reconstruction
+        methods.
+
+        Practical Recommendations
+
+        In routine cryo-EM workflows, users should carefully evaluate
+        whether resizing or rescaling is biologically justified before
+        applying the protocol. Rescaling is appropriate when maps originate
+        from different pixel sizes, whereas resizing is mainly useful for
+        computational optimization or compatibility.
+
+        When cropping volumes, it is advisable to preserve sufficient solvent
+        margins around the molecular complex in order to avoid truncation
+        artifacts. Flexible domains, membrane regions, or extended filament
+        segments may require larger boxes than initially expected.
+
+        For high-resolution work, users should verify that interpolation
+        effects introduced during rescaling do not compromise fine structural
+        details. Visual inspection of the resized maps is strongly
+        recommended before continuing with refinement or interpretation.
+
+        Final Perspective
+
+        Volume resizing and rescaling are fundamental preparation steps in
+        cryo-EM image analysis. Although these operations are computational
+        in nature, they have direct biological consequences because they
+        determine how structural information is represented, compared, and
+        interpreted throughout downstream workflows. Careful control of voxel
+        size and box dimensions helps ensure reliable structural analysis and
+        robust integration of cryo-EM datasets.
+    """
 
     _label = 'crop/resize volumes'
     _devStatus = PROD

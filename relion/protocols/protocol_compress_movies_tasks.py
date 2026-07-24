@@ -43,7 +43,163 @@ from pyworkflow.protocol import STEPS_SERIAL
 
 class ProtRelionCompressMoviesTasks(ProtProcessMovies):
     """
-    Using *relion_convert_to_tiff* to compress a set of movies.
+    Compresses cryo-EM movie datasets into TIFF format using RELION
+    movie conversion utilities. The protocol is intended to reduce
+    storage requirements while preserving the information needed for
+    downstream motion correction, refinement, and high-resolution
+    reconstruction workflows.
+
+    AI Generated:
+
+    Compress Movies Tasks (ProtRelionCompressMoviesTasks) — User Manual
+        Overview
+
+        The Compress Movies Tasks protocol converts cryo-EM movies into
+        compressed TIFF representations optimized for efficient storage
+        and data management. Its main objective is to decrease disk
+        usage while maintaining compatibility with standard RELION-based
+        image processing pipelines.
+
+        In modern cryo-EM facilities, movie datasets often occupy many
+        terabytes of storage due to the large number of recorded frames
+        and the increasing detector sizes used during acquisition.
+        Compression therefore becomes an important practical step for
+        long-term storage, data transfer, and computational efficiency.
+        This protocol is especially useful in large screening projects,
+        facility-scale processing environments, and workflows involving
+        extensive archival requirements.
+
+        Inputs and General Workflow
+
+        The protocol requires a set of input movies that will be
+        converted into compressed TIFF files. The resulting movies
+        preserve the temporal and structural information needed for
+        downstream cryo-EM analysis while reducing the physical storage
+        footprint.
+
+        The protocol supports streaming execution, allowing movies to be
+        processed continuously as they become available. This capability
+        is particularly valuable in automated acquisition pipelines
+        where compression can occur in parallel with ongoing microscope
+        data collection.
+
+        Biological users should understand that compression changes the
+        storage representation of the data but is not intended to alter
+        the biological interpretation of the recorded signal. The output
+        movies remain suitable for standard downstream procedures such
+        as motion correction, CTF estimation, particle extraction, and
+        reconstruction.
+
+        TIFF Compression Strategies
+
+        Several compression strategies are available depending on the
+        balance desired between storage efficiency and processing speed.
+        Lossless approaches are generally preferred in cryo-EM because
+        they preserve the original detector information without
+        introducing irreversible distortions.
+
+        Automatic compression modes are convenient for routine
+        workflows, while explicit ZIP or LZW compression can be useful
+        when users wish to optimize storage efficiency or compatibility
+        with specific infrastructures. Higher compression levels may
+        provide smaller file sizes but can increase computational time
+        during conversion.
+
+        In most biological workflows, moderate compression settings
+        offer the best compromise between storage reduction and runtime
+        efficiency.
+
+        Gain Reference Handling
+
+        The protocol can incorporate detector gain references generated
+        either externally or from dedicated gain estimation workflows.
+        Proper gain handling is biologically important because detector
+        response variations influence image uniformity and quantitative
+        signal interpretation.
+
+        When gain references are available, they are associated with the
+        compressed dataset to preserve compatibility with downstream
+        processing steps. This is particularly important in high-
+        resolution cryo-EM workflows where subtle detector corrections
+        can influence the final reconstruction quality.
+
+        EER Movie Support
+
+        The protocol provides dedicated support for Falcon EER movie
+        formats. EER data contain highly fractionated temporal
+        information that enables flexible dose grouping during
+        processing. The protocol allows users to define grouping and
+        sampling strategies appropriate for their imaging conditions.
+
+        From a biological perspective, frame grouping affects the
+        balance between temporal resolution and signal-to-noise ratio.
+        Excessively fine grouping may preserve motion information but
+        increase noise, whereas overly coarse grouping may obscure rapid
+        beam-induced motion. Practical grouping choices usually depend
+        on total dose, detector performance, and specimen sensitivity.
+
+        The protocol also supports different EER upsampling modes,
+        allowing users to adapt the effective detector sampling to their
+        experimental requirements and computational constraints.
+
+        Streaming and Parallel Processing
+
+        One of the major strengths of this protocol is its ability to
+        process movies in parallel batches while supporting continuous
+        streaming operation. This design is particularly useful in
+        modern cryo-EM infrastructures where datasets are generated
+        continuously during automated acquisition sessions.
+
+        By organizing movies into processing batches, the protocol
+        improves throughput and allows efficient utilization of
+        computational resources. This is especially beneficial when
+        handling very large datasets acquired over extended microscope
+        sessions.
+
+        Outputs and Their Interpretation
+
+        The protocol produces a new set of compressed TIFF movies ready
+        for downstream cryo-EM analysis. The resulting dataset preserves
+        acquisition metadata, frame organization, and experimental
+        information required for later processing stages.
+
+        When gain references are included, they are propagated together
+        with the compressed movie set to maintain consistency throughout
+        the workflow. For EER datasets, the output reflects the selected
+        grouping and sampling strategy.
+
+        Biological interpretation of the movies remains unchanged, but
+        the storage representation becomes more efficient and practical
+        for long-term computational workflows.
+
+        Practical Recommendations
+
+        In routine cryo-EM practice, movie compression is most valuable
+        immediately after acquisition or before transferring datasets to
+        long-term storage systems. Early compression can substantially
+        reduce storage demands while maintaining workflow compatibility.
+
+        For high-resolution projects, users should generally prefer
+        conservative, lossless compression strategies to avoid any risk
+        of compromising downstream refinement quality. It is also
+        advisable to validate compressed outputs on a subset of movies
+        before converting very large datasets.
+
+        Users working with EER data should carefully select frame
+        grouping values that match specimen motion behavior and exposure
+        conditions. Appropriate grouping often improves downstream
+        motion correction stability and computational efficiency.
+
+        Final Perspective
+
+        Efficient movie storage management has become increasingly
+        important as cryo-EM datasets continue to grow in size and
+        complexity. The Compress Movies Tasks protocol provides a
+        practical solution for reducing storage requirements while
+        preserving compatibility with modern RELION-based workflows.
+        Careful selection of compression settings, gain handling, and
+        EER grouping strategies helps ensure reliable and efficient
+        downstream cryo-EM analysis.
     """
     _label = 'compress movies (tasks)'
     _devStatus = BETA

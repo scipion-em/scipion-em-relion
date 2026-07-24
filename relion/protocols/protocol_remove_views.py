@@ -40,10 +40,152 @@ class outputs(Enum):
 
 
 class ProtRelionRemovePrefViews(ProtParticles):
-    """ Protocol to remove preferential views from a particle set.
+    """
+    Removes preferential particle orientations from a cryo-EM particle set in
+    order to reduce angular bias and improve the isotropy of downstream
+    reconstructions. The protocol enables selective elimination of particles
+    whose viewing directions fall within user-defined angular regions of the
+    Euler sphere. It is particularly useful when datasets contain excessive
+    representation of specific orientations that may negatively affect 3D
+    refinement, directional resolution, or map interpretability.
 
     Inspired by https://github.com/leschzinerlab/Relion
 
+    AI Generated:
+
+    Remove Preferential Views (ProtRelionRemovePrefViews) - User Manual
+        Overview
+
+        The Remove Preferential Views protocol is designed to reduce angular
+        overrepresentation in cryo-EM particle datasets by selectively removing
+        particles that belong to preferred orientations. In many single-particle
+        cryo-EM experiments, molecules adsorb to the air-water interface or
+        support film in a non-random manner, producing datasets dominated by a
+        limited set of views. Although large numbers of particles may initially
+        appear beneficial, severe angular imbalance can reduce directional
+        resolution, introduce anisotropy, and compromise the quality of the
+        reconstructed map.
+
+        This protocol helps users create a more balanced angular distribution by
+        removing particles located within specified orientation ranges. The
+        resulting dataset is often better suited for testing reconstruction
+        robustness, evaluating angular coverage, or preparing datasets for more
+        isotropic refinement strategies.
+
+        Biological Motivation
+
+        Preferential orientation is one of the most common limitations in
+        cryo-EM data collection. Biological assemblies with flat surfaces,
+        membrane-associated regions, or strong adsorption tendencies frequently
+        adopt only a narrow subset of orientations on the grid. As a result,
+        certain projection directions become heavily oversampled while others
+        remain poorly represented or completely absent.
+
+        Removing part of the dominant orientations can sometimes improve the
+        effective balance of the dataset and reveal whether reconstruction
+        artifacts are linked to angular bias. This strategy is particularly
+        useful during method development, refinement validation, or when testing
+        the contribution of underrepresented orientations to the final map.
+
+        Inputs and Orientation Requirements
+
+        The protocol requires a particle set containing projection alignment
+        information. Since particle orientations are defined in angular space,
+        the input dataset must already include valid rotational assignments
+        obtained from previous refinement or classification procedures.
+
+        The protocol operates on Euler angles commonly described by rot, tilt,
+        and optionally psi. Rot and tilt define the viewing direction on the
+        orientation sphere, while psi describes the in-plane rotation of the
+        particle image. In most biological analyses, preferential orientation
+        is primarily associated with rot and tilt, whereas psi often reflects
+        rotational variability around the projection axis.
+
+        Defining Angular Regions
+
+        Users define angular intervals that identify the region of orientation
+        space targeted for particle removal. The protocol allows specification
+        of minimum and maximum values for rot and tilt, thereby selecting a
+        region on the Euler sphere corresponding to the preferred views of
+        interest.
+
+        In many practical cryo-EM workflows, users first inspect angular
+        distribution plots generated during refinement and then define limits
+        surrounding the most populated orientation clusters. Narrow limits allow
+        focused removal of highly dominant views, whereas broader limits remove
+        larger angular regions and produce more aggressive balancing.
+
+        Optional Psi Filtering
+
+        The protocol also provides optional filtering using psi angles. This is
+        generally less important for correcting preferential orientation itself,
+        because psi mainly represents in-plane image rotation rather than true
+        sampling of distinct projection directions. However, psi selection may
+        still be useful in specialized analyses where users wish to isolate or
+        remove particles exhibiting restricted rotational behavior within the
+        image plane.
+
+        In most biological applications, filtering based only on rot and tilt is
+        sufficient and biologically more meaningful.
+
+        Particle Removal Strategy
+
+        Once the angular region is defined, the protocol removes a user-defined
+        number of particles from within that region. This allows controlled
+        reduction of oversampled views without completely eliminating them from
+        the dataset.
+
+        The selective nature of the protocol is important biologically because
+        completely removing an orientation may introduce new sampling gaps or
+        destabilize refinement. Partial reduction often provides a better
+        compromise between balancing angular coverage and preserving sufficient
+        signal for accurate reconstruction.
+
+        The protocol can also automatically adapt when fewer particles are
+        available than requested, ensuring that all eligible particles are
+        handled consistently.
+
+        Outputs and Interpretation
+
+        The output consists of a new particle set with the selected particles
+        removed. All remaining particles preserve their original metadata and
+        alignment information, making the resulting dataset immediately usable
+        for downstream refinement, classification, or validation workflows.
+
+        Comparing reconstructions before and after preferential-view removal can
+        help users evaluate the impact of angular imbalance on directional
+        resolution, map anisotropy, or structural interpretability. In some
+        cases, apparent structural features may weaken after balancing the
+        dataset, indicating that they were influenced by orientation bias.
+
+        Practical Recommendations
+
+        In routine cryo-EM analysis, it is usually advisable to begin with
+        conservative particle removal rather than aggressive filtering. Removing
+        a moderate fraction of dominant views often provides sufficient angular
+        balancing while preserving reconstruction stability.
+
+        Users should carefully inspect angular distribution plots before
+        selecting removal ranges. Overly broad angular limits may excessively
+        reduce particle count and degrade reconstruction quality. Likewise,
+        removing too many particles from already sparse datasets may reduce
+        overall signal-to-noise ratio and negatively affect refinement.
+
+        This protocol is especially valuable for methodological experiments,
+        validation studies, and investigations of anisotropic resolution. It is
+        less commonly used as a standard preprocessing step in routine
+        high-quality datasets with already balanced orientation distributions.
+
+        Final Perspective
+
+        Preferential orientation is fundamentally a biological and biophysical
+        phenomenon arising from how particles interact with cryo-EM grids and
+        interfaces. The Remove Preferential Views protocol provides a practical
+        way to study and partially compensate for these effects by selectively
+        reducing dominant orientations. When used carefully, it can help improve
+        angular balance, support more isotropic reconstructions, and provide
+        deeper insight into the relationship between particle orientation
+        distributions and final map quality.
     """
     _label = 'remove preferential views'
     _devStatus = PROD

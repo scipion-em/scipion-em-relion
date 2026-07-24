@@ -44,8 +44,193 @@ from .protocol_base import ProtRelionBase
 
 
 class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
-    """ Protocol to extract particles using a set of coordinates. """
+    """
+    Extracts single-particle images from cryo-EM micrographs using
+    coordinate information and RELION preprocessing utilities. The
+    protocol prepares particle stacks suitable for downstream
+    classification, refinement, and structural analysis workflows.
 
+    AI Generated:
+
+    Particle Extraction (ProtRelionExtractParticles) — User Manual
+        Overview
+
+        The Particle Extraction protocol converts particle coordinates
+        into boxed particle images that can be used for downstream
+        cryo-EM analysis within RELION and Scipion workflows. Its main
+        purpose is to isolate individual particle projections from raw
+        or corrected micrographs while preserving the spatial and
+        imaging information required for high-quality reconstruction.
+
+        In biological cryo-EM processing, particle extraction is one of
+        the most influential stages because the quality of the boxed
+        particles directly affects classification, alignment, and final
+        map resolution. Proper extraction ensures that particles are
+        centered, normalized, and scaled consistently across the
+        dataset, enabling reliable downstream processing.
+
+        Inputs and General Workflow
+
+        The protocol requires a set of particle coordinates together
+        with the associated micrographs. Coordinates are usually
+        generated from manual picking, template-based picking, or
+        neural-network particle picking workflows. The protocol then
+        extracts boxed particle images around each coordinate and
+        organizes them into particle stacks for subsequent analysis.
+
+        The extraction process supports both standard processing and
+        streaming workflows. In streaming environments, newly available
+        micrographs and coordinates may be processed continuously,
+        which is especially useful during data acquisition sessions or
+        automated facility pipelines.
+
+        Particle Box Size
+
+        The particle box size is one of the most biologically important
+        parameters because it determines how much surrounding signal is
+        included around the particle. A box that is too small may crop
+        flexible domains or peripheral structural features, whereas a
+        box that is too large introduces unnecessary solvent noise and
+        increases computational cost.
+
+        For most cryo-EM datasets, the selected box should comfortably
+        contain the entire particle together with a reasonable solvent
+        margin. Flexible complexes, membrane proteins, and elongated
+        assemblies often require larger margins to avoid truncating
+        meaningful structural information.
+
+        Rescaling and Downsampling
+
+        The protocol optionally supports particle rescaling during
+        extraction. Downsampling particles can significantly reduce
+        computational cost during early exploratory analysis and is
+        particularly useful for large particles or very large datasets.
+
+        From a biological perspective, downsampling is often beneficial
+        during initial 2D classification or ab initio reconstruction,
+        where rapid feedback is more important than preserving the
+        highest spatial frequencies. However, excessive downsampling
+        may remove high-resolution information that becomes important
+        during refinement stages.
+
+        In many practical workflows, users begin with downsampled
+        particles for rapid cleaning and classification and later
+        return to full-resolution extraction for final refinement.
+
+        Contrast Inversion and Image Normalization
+
+        Different cryo-EM software ecosystems expect different image
+        contrast conventions. The protocol therefore allows optional
+        contrast inversion to ensure compatibility with downstream
+        processing expectations.
+
+        Particle normalization is strongly recommended in most
+        biological workflows because it standardizes particle intensity
+        distributions and improves the stability of alignment and
+        classification algorithms. Background normalization also helps
+        reduce variability caused by uneven ice thickness, detector
+        response, or illumination gradients.
+
+        The protocol defines the normalization region using a
+        background diameter. Biologically, this diameter should exclude
+        the particle itself while still sampling representative solvent
+        regions. Poor normalization settings may introduce artifacts or
+        reduce classification quality.
+
+        Dust Removal and Artifact Suppression
+
+        The extraction workflow includes optional suppression of
+        abnormally bright or dark pixels, commonly referred to as white
+        dust and black dust removal. These artifacts may arise from
+        detector defects, contamination, ice crystals, or transient
+        imaging problems.
+
+        Removing extreme outlier pixels can improve downstream
+        classification stability, especially in large datasets.
+        However, aggressive filtering should be applied carefully
+        because excessive cleaning may suppress genuine structural
+        signal in rare cases.
+
+        Coordinate Scaling and Micrograph Consistency
+
+        The protocol supports workflows where particle coordinates and
+        extraction micrographs originate from datasets with different
+        sampling rates. This situation commonly appears when particles
+        are picked on downsampled micrographs but extracted from
+        higher-resolution images.
+
+        Automatic coordinate scaling ensures that particle positions
+        remain geometrically consistent between picking and extraction
+        stages. This capability is particularly important in facility
+        pipelines where different preprocessing strategies may coexist.
+
+        CTF and Optics Information
+
+        Extracted particles preserve imaging metadata such as CTF
+        parameters and optics group assignments. Maintaining this
+        information is essential for accurate downstream refinement and
+        beam-tilt or aberration correction workflows.
+
+        In modern cryo-EM processing, optics groups often represent
+        different acquisition conditions, detector modes, or microscope
+        sessions. Correct propagation of these parameters improves the
+        reliability of Bayesian refinement and high-resolution
+        reconstruction.
+
+        Outputs and Their Interpretation
+
+        The protocol produces a set of extracted particles together
+        with updated metadata describing particle locations, imaging
+        conditions, and preprocessing history. The resulting particle
+        stacks are ready for 2D classification, ab initio modeling,
+        heterogeneous analysis, or high-resolution refinement.
+
+        Biologically, the extracted particles should be inspected
+        carefully before proceeding. Poor centering, inconsistent box
+        sizes, contamination, or extraction artifacts can negatively
+        affect all subsequent stages of processing.
+
+        Practical Recommendations
+
+        In routine cryo-EM workflows, it is generally advisable to use
+        a slightly generous box size rather than risking truncation of
+        flexible regions. When computational speed is important,
+        moderate downsampling provides an efficient compromise between
+        image quality and performance.
+
+        Normalization should usually remain enabled, particularly for
+        heterogeneous datasets or large automated collections. Dust
+        removal is often beneficial for noisy datasets but should be
+        adjusted conservatively to avoid suppressing real signal.
+
+        When coordinates were generated from differently sampled
+        micrographs, users should verify that extracted particles are
+        centered correctly after scaling. Visual inspection of a subset
+        of particles remains one of the most effective quality-control
+        steps in cryo-EM preprocessing.
+
+        Streaming and High-Throughput Environments
+
+        The protocol is suitable for streaming and automated processing
+        pipelines in which micrographs arrive continuously during data
+        collection. This capability enables rapid feedback regarding
+        particle quality, ice conditions, and acquisition performance.
+
+        In high-throughput facilities, streaming extraction allows
+        users to identify acquisition problems early and refine
+        collection strategies before large amounts of unusable data are
+        accumulated.
+
+        Final Perspective
+
+        Particle extraction is more than a simple cropping operation.
+        It establishes the foundation for all downstream cryo-EM
+        analysis and strongly influences classification quality,
+        alignment accuracy, and achievable resolution. Careful choice
+        of extraction size, normalization strategy, and scaling
+        behavior is essential for producing biologically meaningful and
+        high-quality structural reconstructions.
+    """
     _label = 'particles extraction'
     _devStatus = PROD
 

@@ -39,12 +39,180 @@ from .protocol_postprocess import ProtRelionPostprocess
 
 
 class ProtRelionLocalRes(ProtRelionPostprocess):
-    """ This protocol does local resolution estimation using Relion.
+    """
+    Estimates local resolution variations within cryo-EM density maps using
+    RELION-based postprocessing procedures. The protocol evaluates how map
+    quality changes across different structural regions and generates locally
+    filtered and sharpened reconstructions that help distinguish well-resolved
+    domains from flexible or poorly ordered areas.
 
-    This program basically performs a series of post-processing operations
-    with a small soft, spherical mask that is moved over the entire map,
-    while using phase-randomisation to estimate the convolution effects
-    of that mask.
+    AI Generated:
+
+    Local Resolution Estimation (ProtRelionLocalRes) — User Manual
+        Overview
+
+        The Local Resolution protocol estimates spatial variations in map
+        resolution across a cryo-EM reconstruction using RELION local
+        resolution analysis tools. Instead of assigning a single global
+        resolution value to the entire reconstruction, this protocol evaluates
+        how structural quality changes from one region to another. This is
+        particularly important for biological assemblies that contain flexible
+        domains, mobile subunits, partially occupied regions, or compositional
+        heterogeneity.
+
+        In practical cryo-EM analysis, global Fourier shell correlation values
+        often hide important local differences in map quality. Many complexes
+        contain rigid cores with excellent structural detail together with
+        peripheral regions that are substantially more flexible. Local
+        resolution estimation helps users identify which regions are suitable
+        for atomic interpretation and which regions should be interpreted with
+        caution.
+
+        Inputs and General Workflow
+
+        The protocol requires two independently refined half maps originating
+        from a previous gold-standard refinement procedure. These half maps are
+        essential because the local resolution estimation relies on comparing
+        independent signal contributions while minimizing overfitting effects.
+        For best results, the input refinement should already be well converged
+        and properly masked.
+
+        During processing, the protocol evaluates local frequency content
+        throughout the reconstruction by moving a soft spherical region across
+        the map and estimating the local signal-to-noise characteristics. The
+        final outputs include a local resolution map together with a locally
+        filtered reconstruction in which each region is filtered according to
+        its estimated local quality.
+
+        Biological Interpretation of Local Resolution
+
+        Local resolution maps provide direct biological insight into molecular
+        flexibility and conformational variability. Regions with higher local
+        resolution often correspond to rigid structural cores, stable secondary
+        structure elements, tightly interacting interfaces, or highly occupied
+        domains. Lower local resolution regions frequently indicate molecular
+        motion, partial occupancy, conformational heterogeneity, or intrinsic
+        disorder.
+
+        For membrane proteins, local resolution differences commonly appear
+        between the transmembrane core and flexible extracellular or cytosolic
+        regions. In ribosomes or large macromolecular assemblies, peripheral
+        domains and dynamic interaction partners often display lower local
+        resolution than the central scaffold.
+
+        From a biological perspective, local resolution estimation is therefore
+        not only a technical quality-control procedure but also an indirect
+        indicator of structural dynamics within the sample.
+
+        Solvent Masking and Region Selection
+
+        The protocol optionally accepts a solvent mask that defines the region
+        of interest for analysis and visualization. Although the local
+        resolution calculation itself is not strictly driven by the mask in the
+        same way as refinement masking, the mask strongly influences histogram
+        interpretation and helps isolate meaningful molecular regions from
+        solvent background.
+
+        In biological practice, masks should include all structurally relevant
+        domains while avoiding excessive solvent regions. Poor masks may
+        artificially distort local resolution statistics or complicate visual
+        interpretation. For highly flexible complexes, broader masks are often
+        preferable because overly restrictive masking may exclude biologically
+        relevant motions.
+
+        Sharpening and B-Factor Considerations
+
+        The protocol supports application of a sharpening B-factor during local
+        filtering. Negative B-factors enhance high-frequency information and
+        can significantly improve map interpretability. However, excessive
+        sharpening may amplify noise and create misleading structural features.
+
+        In biological interpretation, sharpening should always be evaluated
+        visually together with prior biochemical and structural knowledge.
+        Strong sharpening may produce apparent side-chain features in regions
+        that are not genuinely resolved. Conservative sharpening is generally
+        safer for flexible regions or medium-resolution reconstructions.
+
+        Pixel Size Calibration
+
+        The protocol allows users to provide a calibrated pixel size that may
+        differ from the original acquisition value. This becomes important when
+        the microscope magnification has been refined using atomic models,
+        diffraction standards, or post-acquisition calibration procedures.
+        Accurate pixel size calibration improves the interpretation of
+        resolution values and ensures consistency between reconstruction and
+        atomic modeling workflows.
+
+        Detector MTF Correction
+
+        Advanced users may include a modulation transfer function correction
+        for the detector. MTF correction compensates for detector-dependent
+        attenuation of high-frequency information and may improve sharpening
+        behavior and local resolution estimation accuracy.
+
+        In most routine workflows, standard detector calibrations are
+        sufficient. However, high-resolution projects aiming for atomic detail
+        may benefit from carefully characterized detector MTF curves,
+        particularly when comparing datasets acquired under different imaging
+        conditions.
+
+        Advanced Local Resolution Parameters
+
+        The protocol exposes several advanced parameters controlling local
+        sampling behavior, spherical mask dimensions, edge smoothing, phase
+        randomization limits, and minimum allowed resolutions. These settings
+        mainly influence the balance between spatial sensitivity and numerical
+        stability.
+
+        Smaller sampling regions may reveal fine local variations but can
+        increase noise sensitivity. Larger regions provide smoother and more
+        stable estimates but may obscure sharp transitions between rigid and
+        flexible domains. For most biological applications, default parameters
+        provide reliable results and should only be modified when specific map
+        characteristics justify additional optimization.
+
+        Outputs and Their Interpretation
+
+        The protocol produces a local resolution map together with a locally
+        filtered reconstruction. The local resolution map can be visualized as
+        a colored overlay in molecular visualization software, allowing direct
+        inspection of structural quality across the reconstruction.
+
+        The locally filtered map is often more biologically interpretable than
+        a globally filtered reconstruction because each region is filtered
+        according to its own estimated quality. Well-resolved domains retain
+        high-frequency detail, while poorly resolved regions remain smoother
+        and less noisy.
+
+        These outputs are particularly valuable during model building,
+        validation, figure preparation, and interpretation of flexible
+        assemblies.
+
+        Practical Recommendations
+
+        For most cryo-EM workflows, local resolution estimation should be
+        performed after obtaining the final refined reconstruction and before
+        extensive atomic interpretation. Users should visually compare the
+        local resolution distribution with known flexible regions, biochemical
+        expectations, and conformational variability observed during
+        classification.
+
+        Conservative sharpening is generally recommended during initial
+        analysis. If certain regions appear artificially noisy or fragmented,
+        reducing sharpening strength often improves interpretability.
+        Similarly, local resolution values should always be interpreted
+        together with map appearance rather than treated as absolute indicators
+        of atomic accuracy.
+
+        Final Perspective
+
+        Local resolution estimation is one of the most informative quality
+        assessment procedures in modern cryo-EM analysis. Beyond providing a
+        technical characterization of reconstruction quality, it offers direct
+        insight into structural flexibility, conformational variability, and
+        molecular stability. Careful interpretation of local resolution maps
+        helps users distinguish reliable structural features from uncertain
+        regions and supports more accurate biological conclusions.
     """
     _label = 'local resolution'
     _devStatus = PROD

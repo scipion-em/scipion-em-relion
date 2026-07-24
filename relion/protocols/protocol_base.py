@@ -49,13 +49,138 @@ from ..constants import (ANGULAR_SAMPLING_LIST, MASK_FILL_ZERO,
 
 
 class ProtRelionBase(EMProtocol):
-    """ This class contains the common functions for all Relion protocols.
-    In subclasses there should be little changes about how to create the command
-    line and the files produced.
+    """
+    Provides the common infrastructure and shared behavior required by
+    Relion-based cryo-EM protocols within Scipion. The class establishes a
+    unified framework for handling iterative refinement workflows, metadata
+    organization, input and output management, execution of external Relion
+    programs, and generation of intermediate reconstruction products. Its main
+    objective is to standardize how Relion protocols interact with particle
+    datasets, reference volumes, classifications, and refinement iterations so
+    that higher-level protocols can focus on specific biological or computational
+    tasks while relying on a consistent execution environment.
 
-    Most of the Relion protocols, have two modes: NORMAL or CONTINUE. That's why
-    some functions have a template pattern approach to define the behaviour
-    depending on the case.
+    AI Generated:
+
+    Relion Base Protocol (ProtRelionBase) - User Manual
+        Overview
+
+        The Relion Base protocol serves as the foundational layer for many
+        Relion-driven workflows inside Scipion. Rather than representing a
+        standalone biological analysis, it defines the shared operational logic
+        used by refinement, classification, reconstruction, and polishing
+        procedures that depend on Relion. By centralizing common functionality,
+        the protocol ensures that different processing strategies follow a
+        consistent structure for managing iterations, metadata, file handling,
+        and execution settings.
+
+        In practical cryo-EM workflows, this shared infrastructure is essential
+        because many Relion protocols rely on similar concepts: iterative
+        optimization, particle alignment, map refinement, classification
+        tracking, and management of large collections of intermediate files.
+        The protocol provides the organizational framework that allows these
+        operations to remain reproducible and scalable across projects of very
+        different sizes.
+
+        General Workflow and Purpose
+
+        The protocol is designed around iterative cryo-EM refinement concepts.
+        During processing, particle images are repeatedly aligned, classified,
+        or reconstructed while refinement parameters evolve between iterations.
+        The framework organizes these iterative stages and keeps track of the
+        corresponding metadata, references, maps, and reconstruction products.
+
+        A central objective of the protocol is to maintain compatibility between
+        Scipion data models and Relion conventions. Biological users therefore
+        benefit from an integrated environment where particle sets, class
+        averages, and reconstructed maps can move seamlessly between different
+        protocols without manual conversion or bookkeeping.
+
+        The protocol also supports workflows that continue from previous runs.
+        This is particularly important in cryo-EM projects where refinement may
+        require multiple rounds of optimization, parameter adjustment, or
+        computational recovery after interruptions. By preserving iteration
+        structure and refinement history, the framework enables long-running
+        analyses to remain organized and reproducible.
+
+        Iterative Refinement Management
+
+        A major responsibility of the protocol is the management of iterative
+        refinement cycles. In cryo-EM reconstruction, each iteration may produce
+        updated alignments, improved maps, refined class assignments, and new
+        statistical estimates. The framework standardizes how these outputs are
+        named, stored, and retrieved across the entire workflow.
+
+        From a biological perspective, iterative refinement is critical because
+        structural quality depends strongly on progressive improvement of
+        particle orientations and class consistency. The protocol therefore
+        provides a stable environment in which these iterative processes can
+        evolve without ambiguity in file organization or metadata tracking.
+
+        Classification and Reconstruction Context
+
+        The framework supports both two-dimensional and three-dimensional
+        workflows, including classification and refinement strategies. These
+        operations are central to cryo-EM because they separate structural
+        heterogeneity, improve signal quality, and identify biologically
+        meaningful conformational states.
+
+        In classification workflows, the protocol helps organize class-specific
+        outputs and metadata so that particle populations remain associated with
+        their reconstructed states. In refinement workflows, it maintains the
+        relationship between particles, orientations, and reference maps across
+        multiple optimization cycles.
+
+        Biological Interpretation
+
+        Although the protocol itself is infrastructural, the quality of the
+        downstream biological interpretation depends heavily on the consistency
+        it provides. Reliable metadata handling and iteration management are
+        essential for ensuring that reconstructed densities accurately reflect
+        the underlying particle populations.
+
+        Poor organization of iterations or inconsistent metadata can lead to
+        incorrect particle assignments, unstable refinements, or loss of
+        reproducibility. By enforcing standardized handling of refinement data,
+        the protocol reduces these risks and improves the reliability of
+        downstream structural analysis.
+
+        Input and Output Coordination
+
+        The protocol coordinates multiple forms of cryo-EM data, including
+        particle images, class averages, reconstructed maps, and metadata
+        tables. It also manages temporary and intermediate files generated
+        during Relion execution. This coordination is especially important in
+        large-scale cryo-EM projects where thousands or millions of particles
+        may be processed across many refinement iterations.
+
+        Outputs generated through derived workflows preserve the relationships
+        between particles, references, and refinement states. This continuity
+        allows users to trace biological interpretations back to specific
+        refinement stages and reconstruction parameters.
+
+        Practical Recommendations
+
+        For most users, the protocol operates transparently as part of higher-
+        level Relion workflows. Nevertheless, understanding its role is useful
+        when troubleshooting iterative refinements, continuing interrupted
+        projects, or interpreting the organization of refinement outputs.
+
+        Users should ensure that particle datasets, references, and sampling
+        parameters remain biologically consistent throughout iterative
+        processing. Careful management of refinement continuity is especially
+        important when comparing conformational states or combining multiple
+        rounds of classification and refinement.
+
+        Final Perspective
+
+        The Relion Base protocol provides the structural backbone for many
+        Relion operations within Scipion. Although it does not itself perform a
+        single biological analysis, it enables complex cryo-EM workflows to
+        remain coherent, reproducible, and scalable. By standardizing iteration
+        management, metadata handling, and reconstruction organization, the
+        protocol plays a fundamental role in ensuring that downstream structural
+        interpretations are reliable and biologically meaningful.
     """
     _label = None
     IS_CLASSIFY = True

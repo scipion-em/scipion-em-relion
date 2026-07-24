@@ -41,7 +41,162 @@ from .protocol_base import ProtRelionBase
 
 class ProtRelionCalculateFSC(ProtAnalysis3D, ProtRelionBase):
     """
-    Relion protocol to calculate various FSC curves using relion_image_handler.
+    Calculates Fourier Shell Correlation (FSC) curves between cryo-EM maps
+    and atomic models using Relion image analysis tools. The protocol
+    supports multiple validation strategies for estimating the consistency,
+    reproducibility, and potential overfitting of reconstructed structures.
+
+    AI Generated:
+
+    Calculate FSC (ProtRelionCalculateFSC) — User Manual
+        Overview
+
+        The Calculate FSC protocol evaluates the agreement between cryo-EM
+        reconstructions or between reconstructed maps and atomic models using
+        Fourier Shell Correlation analysis. FSC is one of the most widely used
+        validation metrics in structural biology because it provides a
+        resolution-dependent estimate of similarity between two datasets.
+
+        In practical cryo-EM workflows, FSC calculations are essential for
+        validating reconstruction quality, estimating map resolution, and
+        assessing whether an atomic model faithfully represents the experimental
+        density. The protocol is designed to support both standard refinement
+        validation and more advanced procedures aimed at detecting overfitting.
+
+        Biological Purpose of FSC Analysis
+
+        FSC analysis compares two independent representations of structural
+        information across spatial frequencies. High FSC values indicate strong
+        agreement, while decreasing correlation at higher frequencies reflects
+        the loss of reliable signal at finer structural detail.
+
+        For biological interpretation, FSC curves are commonly used to estimate
+        the effective resolution of a reconstruction. They also help determine
+        whether observed structural features are supported by experimental data
+        or may instead arise from noise, masking artifacts, or refinement bias.
+
+        The protocol supports several biologically meaningful FSC workflows,
+        each adapted to different stages of cryo-EM analysis and validation.
+
+        FSC Overall: Half-Map Consistency
+
+        The FSC overall calculation measures the correlation between two
+        independently refined half-maps. This is the standard procedure used
+        in modern single-particle cryo-EM to estimate global map resolution.
+
+        Biologically, this analysis evaluates the reproducibility of structural
+        information recovered from independent subsets of particles. Strong
+        agreement between half-maps indicates that the reconstruction contains
+        reproducible signal rather than random noise.
+
+        This mode is most appropriate after refinement or classification steps
+        when independent half-maps are already available. The resulting FSC
+        curve is typically used to determine the nominal resolution of the map
+        using criteria such as the 0.143 threshold.
+
+        FSC Model-Map: Agreement Between Structure and Density
+
+        The FSC model-map mode evaluates the agreement between an atomic model
+        and a reconstructed cryo-EM density map. This analysis is especially
+        important after atomic model building and refinement.
+
+        From a biological perspective, this calculation helps determine whether
+        the structural model is genuinely supported by experimental density.
+        Good agreement indicates that the atomic coordinates are consistent
+        with observed structural features, while poor agreement may reveal
+        local modeling errors, incorrect conformations, or overinterpretation
+        of noisy regions.
+
+        This mode is particularly valuable for validating flexible domains,
+        ligand placement, membrane protein regions, or areas with heterogeneous
+        local resolution. It is often used before deposition or publication as
+        part of the final validation workflow.
+
+        FSC Work and FSC Free: Detecting Overfitting
+
+        The FSC work and FSC free calculations are designed to evaluate possible
+        overfitting during model refinement. In this strategy, an atomic model
+        refined against one half-map is independently compared against both the
+        same half-map and the opposite half-map.
+
+        FSC work reflects agreement between the model and the map used during
+        refinement, while FSC free measures agreement against independent data.
+        If FSC work remains substantially higher than FSC free at high spatial
+        frequencies, this may indicate overfitting of noise rather than genuine
+        structural signal.
+
+        Biologically, this validation is especially important for high-resolution
+        studies where refinement procedures can accidentally introduce features
+        unsupported by experimental evidence. Careful interpretation of FSC work
+        and FSC free curves helps ensure that reported atomic details are
+        reliable and reproducible.
+
+        Inputs and Data Preparation
+
+        Depending on the selected validation strategy, the protocol accepts
+        reconstructed maps, half-maps, or atomic coordinate models. The quality
+        and consistency of these inputs strongly influence the interpretability
+        of the resulting FSC curves.
+
+        Half-maps should originate from truly independent refinements to avoid
+        artificially inflated correlations. Similarly, atomic models should be
+        refined carefully and should not contain unrealistic geometry or
+        unsupported flexible conformations.
+
+        When atomic models are used, they are converted into volumetric density
+        representations compatible with FSC calculations. To obtain meaningful
+        results, voxel size, box dimensions, and map sampling should remain
+        consistent across all inputs.
+
+        Interpretation of FSC Curves
+
+        FSC curves must always be interpreted within their biological and
+        experimental context. Smooth curves that gradually decay with frequency
+        generally indicate stable and reliable reconstructions, whereas abrupt
+        fluctuations or unusually elevated correlations may suggest masking
+        artifacts, insufficient sampling, or refinement bias.
+
+        Resolution thresholds should not be treated as absolute indicators of
+        biological quality. Local flexibility, conformational heterogeneity,
+        preferred particle orientation, and anisotropic resolution can all
+        influence FSC behavior. Consequently, FSC analysis should be combined
+        with visual inspection of maps and independent biological validation.
+
+        Outputs and Their Use
+
+        The protocol produces one or more FSC curves depending on the selected
+        validation strategy. These outputs can be visualized, compared, or used
+        as part of downstream validation and reporting workflows.
+
+        In routine cryo-EM practice, FSC curves are commonly included in
+        publications, structure depositions, and quality assessment reports.
+        They provide a concise summary of reconstruction reproducibility and
+        model consistency across spatial frequencies.
+
+        Practical Recommendations
+
+        For routine map resolution estimation, FSC overall calculations between
+        independently refined half-maps are usually sufficient. When validating
+        atomic models, model-map FSC analysis provides a direct assessment of
+        structural consistency with the experimental density.
+
+        In high-resolution studies or when extensive model refinement has been
+        performed, FSC work and FSC free calculations are strongly recommended
+        to detect potential overfitting. Large discrepancies between the two
+        curves should prompt additional validation and careful visual inspection.
+
+        Biological users should also remember that FSC values are sensitive to
+        masking strategies, preprocessing operations, and map sharpening.
+        Consistent preparation procedures and conservative interpretation are
+        essential for obtaining biologically meaningful conclusions.
+
+        Final Perspective
+
+        FSC analysis is a central component of modern cryo-EM validation because
+        it links structural interpretation to measurable experimental agreement.
+        Whether estimating map resolution, validating atomic models, or checking
+        for overfitting, careful FSC analysis provides critical confidence in
+        the biological conclusions derived from cryo-EM reconstructions.
     """
     _label = 'calculate fsc'
     _devStatus = PROD

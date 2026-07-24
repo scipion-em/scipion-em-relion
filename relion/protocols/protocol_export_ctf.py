@@ -36,7 +36,112 @@ import relion.convert as convert
 
 
 class ProtRelionExportCtf(EMProtocol):
-    """ Export a SetOfCTF to a Relion STAR file. """
+    """
+    Exports contrast transfer function information together with associated
+    micrographs into RELION-compatible STAR files for use outside the current
+    processing environment. The protocol allows researchers to transfer CTF
+    estimations, metadata, and optional power spectrum density references into
+    external RELION workflows while preserving the relationship between imaging
+    parameters and their corresponding micrographs.
+
+    AI Generated:
+
+    Export CTF (ProtRelionExportCtf) — User Manual
+        Overview
+
+        The Export CTF protocol prepares a set of CTF estimations for use in
+        external RELION processing pipelines. Its main purpose is to generate
+        standardized STAR metadata files that describe the optical properties
+        of cryo-EM micrographs together with the corresponding image references.
+        This enables interoperability between processing environments and allows
+        datasets generated within one workflow to continue processing in RELION
+        without loss of essential microscope information.
+
+        In practical cryo-EM projects, CTF export is commonly required when
+        users wish to perform downstream classification, refinement, or particle
+        extraction in RELION while maintaining previously estimated defocus and
+        optical correction parameters. The protocol is particularly useful in
+        collaborative facilities, multi-software workflows, and archival data
+        preparation.
+
+        Inputs and General Workflow
+
+        The protocol requires a set of CTF estimations as its primary input.
+        These estimations are associated with micrographs that define the imaging
+        conditions and acquisition geometry. By default, the export uses the
+        same micrographs originally employed during CTF estimation, ensuring
+        consistency between metadata and image content.
+
+        Alternatively, users may choose to export the CTF information using a
+        different set of micrographs. This is especially useful in workflows
+        where dose-weighted or otherwise processed micrographs are preferred for
+        downstream analysis while still relying on previously computed CTF
+        parameters. In these situations, the user should ensure that the
+        replacement micrographs correspond correctly to the original acquisition
+        geometry and sampling conditions.
+
+        Handling of Power Spectrum Density Information
+
+        The protocol can also preserve associated power spectrum density
+        references when they are available. These files provide visual and
+        analytical support for evaluating the quality of the CTF estimation and
+        are often useful for validation, troubleshooting, or record keeping.
+
+        From a biological and experimental perspective, maintaining access to
+        these references can be important when comparing imaging quality across
+        datasets, microscope sessions, or acquisition strategies. However,
+        absence of these references does not prevent the export of the core CTF
+        metadata itself.
+
+        Metadata Consistency and Reliability
+
+        Successful downstream processing depends strongly on maintaining
+        consistency between exported micrographs and their associated CTF
+        parameters. If micrographs are missing, inaccessible, or incorrectly
+        matched, the resulting dataset may become unusable or scientifically
+        misleading.
+
+        Biological users should therefore verify that all exported micrographs
+        correspond to the same acquisition conditions under which the CTF values
+        were estimated. Differences in pixel size, preprocessing strategy, or
+        image orientation can negatively affect downstream refinement and
+        reconstruction quality.
+
+        Outputs and Their Interpretation
+
+        After execution, the protocol produces RELION-compatible STAR files
+        together with references to the exported micrographs and optional power
+        spectrum density data. These outputs provide the optical metadata
+        required by RELION for subsequent particle processing and reconstruction
+        steps.
+
+        The exported STAR files preserve the relationship between each
+        micrograph and its associated CTF parameters, allowing external software
+        to correctly interpret imaging conditions such as defocus and sampling
+        information. The resulting dataset is intended to function as a portable
+        representation of the experimental optical metadata.
+
+        Practical Recommendations
+
+        In routine cryo-EM practice, it is generally advisable to export CTF
+        information together with the same micrographs used during estimation,
+        as this minimizes the risk of metadata inconsistencies. When alternative
+        micrographs are required, users should carefully confirm that image
+        dimensions, pixel sizes, and acquisition identifiers remain compatible.
+
+        Retaining power spectrum density references is recommended whenever
+        storage capacity allows, particularly in collaborative projects or
+        long-term archival workflows where later validation of CTF quality may
+        become necessary.
+
+        Final Perspective
+
+        Accurate transfer of CTF metadata is an essential component of reliable
+        cryo-EM data interoperability. By preserving the relationship between
+        microscope imaging conditions and downstream reconstruction workflows,
+        this protocol helps ensure that exported datasets remain scientifically
+        consistent, reproducible, and ready for continued analysis in RELION.
+    """
 
     _label = 'export ctf'
     _devStatus = PROD

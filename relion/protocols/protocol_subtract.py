@@ -43,11 +43,150 @@ class outputs(Enum):
 
 
 class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
-    """ Signal subtraction protocol of Relion.
+    """
+    Performs signal subtraction on cryo-EM particle images using RELION-based
+    projection subtraction methods. The protocol removes selected density
+    contributions from experimental particles in order to isolate flexible,
+    heterogeneous, or weakly represented structural regions for downstream
+    analysis.
 
-    Subtract volume projections from the experimental particles.
-    The particles must have projection alignment in order to
-    properly generate volume projections.
+    AI Generated:
+
+    Signal Subtraction (ProtRelionSubtract) — User Manual
+        Overview
+
+        The Signal Subtraction protocol is designed to computationally remove
+        unwanted or dominant structural features from cryo-EM particle images.
+        This operation allows users to focus subsequent analyses on specific
+        regions of interest, particularly flexible domains, secondary binding
+        partners, or conformationally variable components that may otherwise be
+        masked by stronger signal contributions.
+
+        In practical cryo-EM workflows, signal subtraction is commonly used
+        before focused classification, local refinement, or heterogeneity
+        analysis. By subtracting projections of a known volume from the
+        experimental particles, the remaining images emphasize the density that
+        was intentionally preserved by the masking strategy. This often improves
+        the interpretability of flexible regions and enables separation of
+        biologically meaningful conformational states.
+
+        Inputs and Biological Context
+
+        The protocol can operate either from an existing RELION refinement or
+        classification workflow or from externally provided particles and maps.
+        In both cases, the particles must already contain projection alignment
+        information because accurate orientation parameters are essential for
+        generating projections that correctly match the experimental images.
+
+        When using an existing RELION refinement, the protocol directly reuses
+        the refinement geometry and associated metadata. This mode is typically
+        preferred because it guarantees consistency between the reconstructed
+        map and the particle orientations used during subtraction.
+
+        Alternatively, users may provide an external reconstructed volume and a
+        set of aligned particles. In this scenario, the biological validity of
+        the subtraction strongly depends on the consistency between the map and
+        the particle dataset. The reconstructed density should originate from
+        the same particles and ideally from the same refinement strategy to
+        preserve compatible intensity scaling and orientation conventions.
+
+        Masking Strategy and Biological Interpretation
+
+        The subtraction mask is the most biologically important component of
+        the workflow because it defines which regions are retained and which
+        are removed from the particles. Unlike masking strategies used for
+        refinement, this protocol expects the mask to preserve the density of
+        interest while excluding the signal intended for subtraction.
+
+        In biological applications, masks are often designed to isolate mobile
+        domains, ligand-binding regions, membrane-associated segments, or
+        compositional variants within large assemblies. Careful mask design is
+        essential because poor masking may introduce subtraction artifacts,
+        residual density contamination, or unintended removal of meaningful
+        structural features.
+
+        Soft mask boundaries are generally recommended because abrupt edges may
+        produce unrealistic Fourier artifacts that interfere with downstream
+        classification or interpretation. For highly flexible systems, focusing
+        the mask on structurally stable regions usually provides more reliable
+        subtraction behavior.
+
+        Particle Centering and Coordinate Handling
+
+        The protocol supports optional recentering strategies after subtraction.
+        Recentered particles can simplify downstream focused analyses by moving
+        the retained region closer to the center of the particle box.
+
+        One approach uses the center of mass of the masking region, which is
+        often appropriate when the retained density forms a compact structural
+        domain. Alternatively, users may provide explicit coordinates when prior
+        biological knowledge suggests a more suitable reference position.
+
+        Rewindowing into a smaller box size is also supported. This is useful
+        when the retained signal occupies only a limited fraction of the
+        original particle area, reducing computational cost during later
+        refinement or classification stages. However, excessively aggressive
+        cropping may truncate flexible regions or introduce edge artifacts.
+
+        CTF Considerations
+
+        The protocol includes optional handling of contrast transfer function
+        effects during subtraction. Proper CTF treatment is important because
+        projection subtraction occurs directly in the image domain and therefore
+        depends on accurate modeling of microscope imaging effects.
+
+        In most biological workflows, enabling CTF correction improves the
+        quality of the subtraction and reduces residual artifacts. Additional
+        options allow users to ignore low-frequency regions before the first
+        CTF peak when the low-resolution CTF model is considered unreliable.
+        Although potentially useful in difficult datasets, this strategy should
+        generally be applied cautiously because it may alter the balance of
+        structural signal across frequency ranges.
+
+        Outputs and Downstream Applications
+
+        The protocol produces a new particle dataset in which the selected
+        structural signal has been computationally removed. The resulting
+        particles preserve alignment information and can therefore be used
+        directly in downstream focused classification, masked refinement,
+        variability analysis, or local structural interpretation workflows.
+
+        Biologically, the resulting particles often reveal heterogeneity that
+        was previously obscured by dominant structural components. This is
+        particularly valuable for studying flexible domains, transient
+        interactions, partial ligand occupancy, or dynamic assemblies.
+
+        In some cases, subtraction can also improve classification sensitivity
+        by reducing the influence of large rigid cores that would otherwise
+        dominate similarity measurements between particles.
+
+        Practical Recommendations
+
+        For most cryo-EM applications, the quality of the subtraction depends
+        primarily on the accuracy of the alignment parameters and the biological
+        relevance of the masking strategy. Before performing subtraction, users
+        should ensure that the refinement producing the reference map is stable
+        and well converged.
+
+        It is generally advisable to begin with conservative masks and visually
+        inspect the resulting particles for subtraction artifacts. Overly large
+        masks or inaccurate centering strategies may remove meaningful signal
+        or introduce distortions that complicate interpretation.
+
+        Focused subtraction is particularly powerful when combined with focused
+        classification without alignment, as this allows subtle structural
+        variability to emerge without interference from dominant rigid regions.
+
+        Final Perspective
+
+        Signal subtraction is one of the most important focused-analysis tools
+        in modern cryo-EM image processing because it enables direct study of
+        structural heterogeneity within complex macromolecular assemblies.
+        Successful application depends on biologically meaningful masking,
+        reliable orientation information, and careful interpretation of the
+        resulting particle populations. When properly applied, subtraction can
+        reveal conformational variability and compositional differences that
+        are otherwise inaccessible in conventional global refinements.
     """
     _label = 'subtract projection'
     _devStatus = PROD

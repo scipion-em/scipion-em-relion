@@ -43,10 +43,172 @@ class outputs(Enum):
 
 
 class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
-    """ This protocol wraps relion_preprocess program.
+    """
+    Preprocesses cryo-EM particle images using Relion in order to improve
+    particle consistency before classification, reconstruction, or refinement.
+    The protocol provides a unified environment for normalization, contrast
+    adjustment, artifact removal, scaling, and particle windowing so that
+    particle stacks become more suitable for downstream high-resolution
+    analysis.
 
-    It is used to perform normalisation, filtering or scaling of
-    the particles.
+    AI Generated:
+
+    Preprocess Particles (ProtRelionPreprocessParticles) - User Manual
+        Overview
+
+        The Preprocess Particles protocol prepares cryo-EM particle images for
+        subsequent image-processing stages within Relion-based workflows. In
+        practical cryo-EM analysis, raw particle stacks often contain
+        differences in intensity distribution, imaging artifacts, inconsistent
+        particle box sizes, or contrast conventions that can negatively affect
+        classification and refinement accuracy. This protocol standardizes the
+        particles and improves their overall suitability for downstream
+        processing.
+
+        Biological users commonly apply preprocessing immediately after particle
+        extraction or before computationally demanding procedures such as 2D
+        classification, 3D classification, or high-resolution refinement.
+        Proper preprocessing can significantly improve alignment stability,
+        classification quality, and map interpretability.
+
+        Normalization of Particle Intensities
+
+        One of the most important preprocessing operations is particle
+        normalization. In cryo-EM workflows, normalization ensures that particle
+        images share comparable statistical properties, particularly in the
+        surrounding noise regions. This standardization improves the behavior of
+        statistical optimization procedures and reduces the influence of imaging
+        inconsistencies.
+
+        The protocol estimates background statistics from regions outside a
+        circular particle area. Selecting an appropriate background radius is
+        biologically important because it determines which pixels are treated as
+        noise rather than signal. A radius that is too small may include parts
+        of the particle and distort normalization, while a radius that is too
+        large may include excessive solvent regions and reduce robustness.
+
+        In most practical cryo-EM workflows, normalization should almost always
+        be enabled. Properly normalized particles generally produce more stable
+        classification and refinement results and facilitate comparisons between
+        different datasets or imaging sessions.
+
+        Removal of Imaging Artifacts
+
+        Cryo-EM micrographs occasionally contain abnormal bright or dark pixels
+        caused by detector defects, dust contamination, radiation damage, or
+        image acquisition artifacts. These features may interfere with particle
+        alignment or generate misleading high-frequency information during
+        reconstruction.
+
+        The protocol allows removal of both white and black artifacts by
+        identifying pixels that deviate strongly from the expected noise
+        distribution. In biological practice, moderate filtering values are
+        typically sufficient to suppress detector artifacts while preserving
+        genuine structural signal.
+
+        Care must be taken not to use excessively aggressive settings. Strong
+        artifact removal may erase biologically meaningful density or distort
+        delicate structural features, especially in low-contrast particles or
+        small protein complexes.
+
+        Contrast Inversion
+
+        Different cryo-EM processing pipelines may represent particles using
+        opposite contrast conventions. Some datasets contain particles that
+        appear darker than the background, while others display particles as
+        brighter features.
+
+        The protocol can invert image contrast to ensure compatibility with
+        downstream Relion processing assumptions. Biologically, this operation
+        does not alter the structure itself, but maintaining the correct
+        contrast convention is essential for stable alignment and accurate
+        reconstruction.
+
+        Particle Scaling
+
+        The protocol supports rescaling particle images to a new box size.
+        Rescaling is particularly useful when reducing computational cost,
+        matching particle dimensions between datasets, or preparing images for
+        rapid exploratory analysis.
+
+        Downsampling particles can substantially accelerate classification and
+        refinement, especially for large particles or very large datasets.
+        During early exploratory stages, lower-resolution particles often allow
+        faster testing of processing strategies without excessive computational
+        expense.
+
+        However, biological users should recognize that aggressive downsampling
+        reduces high-resolution information. Final refinement stages intended
+        for publication-quality reconstructions are generally performed using
+        minimally downsampled or original-resolution particles.
+
+        Particle Windowing
+
+        Windowing modifies the particle box dimensions while preserving the
+        particle center. This operation is useful when particles were extracted
+        with boxes that are excessively large or unnecessarily small.
+
+        Reducing box size decreases memory usage and computational demand, which
+        can become important for large-scale cryo-EM projects. Enlarging the
+        effective particle window may also help preserve flexible regions,
+        detergent micelles, or membrane-associated features that extend beyond
+        the original particle boundary.
+
+        From a biological perspective, the selected window should comfortably
+        contain the entire particle and any structurally relevant surrounding
+        density while minimizing unnecessary solvent regions.
+
+        Coordinate and Alignment Consistency
+
+        When particles are rescaled, the protocol preserves consistency between
+        image dimensions and associated metadata such as particle coordinates
+        and alignment shifts. This ensures that downstream analyses remain
+        geometrically meaningful and that alignment information remains
+        compatible with the transformed particle images.
+
+        Maintaining this consistency is especially important in iterative cryo-EM
+        workflows where preprocessing may occur between multiple refinement or
+        classification stages.
+
+        Outputs and Their Interpretation
+
+        After completion, the protocol produces a new particle set containing
+        the preprocessed images together with updated metadata. The resulting
+        particles are intended for direct use in subsequent Relion protocols or
+        other cryo-EM image-processing workflows.
+
+        The output particles preserve the biological identity of the original
+        dataset while incorporating the requested preprocessing operations.
+        Depending on the selected options, the resulting images may display
+        cleaner backgrounds, standardized intensity distributions, modified box
+        sizes, or adjusted contrast conventions.
+
+        Practical Recommendations
+
+        In routine cryo-EM workflows, normalization is generally recommended for
+        nearly all datasets because it improves statistical consistency between
+        particles. Artifact removal should be applied conservatively and only
+        when detector contamination or abnormal pixels are clearly visible.
+
+        Particle downsampling is highly useful during exploratory stages or when
+        computational resources are limited, but high-resolution refinement
+        should ultimately use particles that preserve sufficient structural
+        detail. Similarly, window sizes should be selected carefully to balance
+        computational efficiency with complete particle coverage.
+
+        Before large-scale processing, it is advisable to visually inspect a
+        subset of preprocessed particles to confirm that normalization,
+        contrast, and scaling operations behave as expected.
+
+        Final Perspective
+
+        Particle preprocessing is a foundational stage in cryo-EM image
+        analysis because it directly influences the quality and stability of
+        downstream classification and reconstruction procedures. Careful
+        normalization, cautious artifact suppression, and thoughtful selection
+        of scaling and windowing parameters can substantially improve both
+        computational performance and biological interpretability throughout
+        the entire cryo-EM workflow.
     """
     _label = 'preprocess particles'
     _devStatus = PROD

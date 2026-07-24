@@ -39,12 +39,158 @@ from .protocol_base import ProtRelionBase
 
 
 class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
-    """ Export particles from Relion to be used outside Scipion. """
+    """
+    Exports particle datasets from Scipion into RELION-compatible STAR
+    metadata and optional particle stack files for external processing,
+    sharing, or archival purposes.
+
+    AI Generated:
+
+    Export Particles (ProtRelionExportParticles) — User Manual
+        Overview
+
+        The Export Particles protocol prepares cryo-EM particle datasets
+        for use outside the Scipion environment by converting them into
+        RELION-compatible STAR metadata and associated image stacks.
+        Its main purpose is to facilitate interoperability between
+        software packages, computational facilities, collaborators, and
+        long-term storage workflows.
+
+        In practical cryo-EM research, particle export is commonly
+        required when transferring datasets between institutions,
+        continuing processing in external RELION installations,
+        performing specialized downstream analyses, or preparing data
+        for publication and public deposition. The protocol ensures
+        that particle metadata, imaging parameters, and optional
+        alignment information remain organized in a standardized and
+        portable format.
+
+        Inputs and General Workflow
+
+        The protocol requires a particle dataset that has already been
+        generated within a Scipion workflow. These particles may
+        originate from extraction, classification, refinement, or
+        polishing stages and can contain additional metadata such as
+        alignments, CTF parameters, optics information, and acquisition
+        settings.
+
+        During export, the protocol generates STAR metadata files and,
+        depending on user preference, may also generate particle stack
+        files in MRCS format. The resulting exported dataset can then
+        be imported directly into RELION or used by compatible cryo-EM
+        software environments.
+
+        Alignment Information
+
+        The protocol optionally preserves alignment information during
+        export. This capability is biologically important because
+        alignment parameters encode the estimated orientations and
+        translations of particles relative to reconstructed structures.
+
+        Including alignment information is typically recommended when
+        exporting particles for continued refinement, focused
+        classification, heterogeneous analysis, or structural
+        interpretation. Preserving these parameters allows downstream
+        workflows to continue from previously optimized orientations
+        rather than restarting alignment procedures from the beginning.
+
+        In contrast, users may choose to omit alignment information
+        when preparing datasets for independent reprocessing,
+        benchmarking studies, or unbiased exploratory analysis.
+
+        Particle Stack Organization
+
+        The protocol supports several strategies for organizing binary
+        particle stacks. Users may export only metadata, generate a
+        single consolidated stack, or create multiple stacks organized
+        according to acquisition grouping.
+
+        A single stack simplifies file management and is often
+        convenient for transfer between systems or smaller projects.
+        This approach is particularly useful when datasets are intended
+        for straightforward downstream processing or archival storage.
+
+        Multiple stack organization may be preferable for large-scale
+        cryo-EM projects, streaming environments, or facility-based
+        workflows where separating particles by micrograph or
+        acquisition batch improves scalability and data management.
+
+        Metadata Consistency and Interoperability
+
+        A major advantage of the export workflow is the preservation of
+        metadata consistency across software environments. Correct
+        handling of pixel size, optics groups, alignment parameters,
+        and acquisition settings is essential for maintaining
+        reproducibility in cryo-EM processing.
+
+        In modern high-resolution workflows, subtle metadata
+        inconsistencies can lead to refinement instability, inaccurate
+        scaling, or resolution loss. Proper export therefore plays an
+        important role in ensuring that downstream analyses remain
+        scientifically reliable.
+
+        Outputs and Their Interpretation
+
+        The protocol produces one or more STAR files describing the
+        particle dataset together with optional binary image stacks.
+        These exported files contain the information required for
+        downstream RELION processing and external data exchange.
+
+        Biologically, the exported dataset represents a portable
+        snapshot of the particle processing stage at the moment of
+        export. Depending on the workflow, this may correspond to raw
+        extracted particles, cleaned datasets after classification, or
+        highly refined particles prepared for advanced reconstruction.
+
+        Practical Recommendations
+
+        In most routine cryo-EM workflows, preserving alignment
+        information is advisable when the goal is to continue
+        refinement or structural analysis outside Scipion. However,
+        when preparing datasets for independent validation or
+        benchmarking, exporting particles without alignments may reduce
+        potential processing bias.
+
+        For small and medium-sized projects, a single particle stack is
+        often easier to manage and transfer. In contrast, very large
+        datasets may benefit from multiple-stack organization to avoid
+        extremely large binary files and improve compatibility with
+        distributed computing environments.
+
+        Before sharing exported datasets with collaborators or
+        depositing them in repositories, users should verify that pixel
+        sizes, particle counts, and metadata consistency remain correct
+        after export.
+
+        Collaborative and Facility Workflows
+
+        The protocol is especially useful in collaborative cryo-EM
+        environments where datasets move between computational
+        facilities, laboratories, and software ecosystems. Exported
+        particle packages provide a standardized mechanism for
+        exchanging data while preserving essential reconstruction
+        metadata.
+
+        In facility pipelines, this export capability also supports
+        reproducibility by enabling researchers to archive the precise
+        particle dataset associated with a published reconstruction or
+        processing milestone.
+
+        Final Perspective
+
+        Particle export is an essential interoperability step in modern
+        cryo-EM analysis. Reliable preservation of metadata, alignment
+        information, and particle organization ensures that structural
+        interpretation and downstream refinement can proceed accurately
+        across different computational environments. Careful export
+        practices contribute directly to reproducibility, collaboration,
+        and long-term scientific reliability.
+    """
 
     _label = 'export particles'
     _devStatus = PROD
     PTCLS_STAR_FILE = 'particles_%06d.star'
-    
+
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
 
@@ -116,7 +262,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
     def _validate(self):
         validateMsgs = []
         return validateMsgs
-    
+
     def _summary(self):
         summary = []
 
@@ -128,7 +274,7 @@ class ProtRelionExportParticles(ProtProcessParticles, ProtRelionBase):
             summary.append("No output generated yet.")
 
         return summary
-    
+
     # --------------------------- UTILS functions -----------------------------
     def _postprocessImageRow(self, img, row):
         """ Stack fn should be relative to Export.

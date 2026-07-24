@@ -40,10 +40,225 @@ from .protocol_base import ProtRelionBase
 
 
 class ProtRelionInitialModel(ProtInitialVolume, ProtRelionBase):
-    """ This protocols creates a 3D initial model using Relion.
+    """
+    Creates an initial 3D reconstruction from 2D cryo-EM particle images
+    using RELION stochastic gradient optimization strategies. The protocol
+    is designed for ab initio structure determination when no reliable
+    starting model is available, allowing researchers to generate one or
+    several low-resolution structural hypotheses directly from experimental
+    particle data.
 
-    Generate a 3D initial model _de novo_ from 2D particles using
-    Relion Stochastic Gradient Descent (SGD) algorithm.
+    AI Generated:
+
+    Initial Model Generation (ProtRelionInitialModel) — User Manual
+        Overview
+
+        The Initial Model protocol generates de novo 3D reconstructions from
+        2D particle images using RELION optimization approaches specifically
+        designed for early-stage cryo-EM structure determination. Its main
+        purpose is to provide biologically meaningful starting volumes that
+        can later be refined with higher precision refinement protocols.
+
+        In cryo-EM workflows, obtaining a reliable initial model is one of
+        the most important steps because it strongly influences downstream
+        refinement quality and convergence. This protocol is particularly
+        useful when no homologous structure, previously determined map, or
+        experimentally derived reference is available. Instead of relying on
+        prior structural knowledge, the method extracts common structural
+        information directly from the particle images themselves.
+
+        Biological Context and Typical Applications
+
+        The protocol is commonly used during the first stages of single-
+        particle analysis, especially when studying newly characterized
+        complexes, flexible assemblies, or systems with unknown structural
+        organization. It can also be applied when researchers wish to avoid
+        model bias introduced by external references.
+
+        In practical biological research, the protocol is often employed
+        after particle extraction and quality control. The resulting volumes
+        provide an initial structural interpretation of the sample and serve
+        as the foundation for subsequent 3D classification or high-resolution
+        refinement.
+
+        The protocol also supports generation of multiple initial classes.
+        This is especially important for heterogeneous samples containing
+        distinct conformations, compositional variability, or multiple
+        assembly states. Producing several initial models allows the workflow
+        to separate structurally different populations early in processing.
+
+        Input Particles and Data Quality
+
+        The protocol requires a set of particle images representing
+        projections of the target macromolecule. The quality of the initial
+        model strongly depends on the quality and diversity of these input
+        particles. Poor particle selection, excessive contamination,
+        inaccurate centering, or strong preferred orientation can negatively
+        affect convergence and may lead to unstable or biologically incorrect
+        reconstructions.
+
+        In most workflows, users should provide particles that have already
+        undergone careful preprocessing, including motion correction, CTF
+        estimation, and particle extraction. Removing obvious artifacts and
+        low-quality particles before running the protocol generally improves
+        robustness and accelerates convergence.
+
+        Particle Masking and Molecular Size
+
+        The particle mask diameter is biologically important because it
+        defines the region expected to contain molecular signal. Choosing an
+        appropriate diameter helps suppress surrounding noise and solvent
+        contributions while preserving the complete structure of interest.
+
+        If the diameter is too small, meaningful regions of the particle may
+        be truncated, leading to distorted reconstructions or loss of
+        flexible domains. If it is excessively large, unnecessary solvent
+        noise may reduce alignment stability and reconstruction quality.
+
+        In practice, the mask should approximately encompass the full
+        molecular envelope while avoiding excessive empty space. Flexible
+        appendages or peripheral domains should also be considered when
+        defining the effective particle size.
+
+        CTF Correction and Optical Considerations
+
+        The protocol supports internal CTF correction during optimization.
+        This is essential for accurate recovery of structural information
+        across different spatial frequencies. Proper CTF handling improves
+        both convergence stability and achievable resolution.
+
+        In many biological datasets, low-resolution regions of the CTF model
+        may be less reliable. The option to ignore the CTF until the first
+        peak can sometimes improve stability for difficult datasets, although
+        it should generally be used cautiously because excessive suppression
+        of low-frequency information may reduce alignment robustness.
+
+        The protocol can also organize particles into defocus groups. This is
+        particularly useful when datasets contain substantial variations in
+        imaging conditions. Grouping particles with similar optical behavior
+        improves statistical consistency and may enhance reconstruction
+        quality in heterogeneous acquisition conditions.
+
+        Symmetry Considerations
+
+        Symmetry handling is one of the most biologically sensitive aspects
+        of initial model generation. The protocol allows reconstructions to
+        be generated either entirely in asymmetric form or under a specified
+        symmetry group.
+
+        Running the optimization in C1 symmetry is generally the safest
+        strategy when the true symmetry is uncertain. This minimizes the risk
+        of forcing incorrect structural assumptions onto the reconstruction.
+        After convergence, symmetry can optionally be identified and applied
+        to produce a symmetrized volume.
+
+        Directly enforcing symmetry during optimization may accelerate
+        convergence and improve signal quality when the symmetry is known
+        with confidence. However, imposing incorrect symmetry can generate
+        misleading structures and obscure biologically meaningful asymmetry
+        or conformational variability.
+
+        Multi-Class Initial Models and Structural Heterogeneity
+
+        The protocol supports simultaneous generation of multiple classes.
+        This capability is particularly valuable for heterogeneous samples
+        where different conformations or assembly states coexist.
+
+        In biological systems exhibiting flexibility, ligand-dependent
+        changes, partial occupancy, or compositional diversity, generating
+        several initial models often improves downstream classification.
+        Instead of forcing all particles into a single structural solution,
+        the workflow can naturally separate distinct populations during early
+        optimization stages.
+
+        Researchers should nevertheless interpret multiple classes carefully.
+        Some classes may represent noise, damaged particles, or incomplete
+        convergence rather than biologically meaningful states.
+
+        Optimization Strategy and Convergence
+
+        The optimization process relies on iterative gradient-driven updates
+        that progressively improve the consistency between particle images
+        and the evolving 3D reconstruction. The number of optimization
+        iterations influences both convergence stability and computational
+        cost.
+
+        Short runs may terminate before meaningful structural features
+        emerge, whereas excessively long runs may overfit noisy datasets or
+        consume unnecessary computational resources. In practice, users often
+        begin with moderate iteration counts and evaluate convergence based
+        on the appearance and consistency of reconstructed features.
+
+        The regularization parameter controls the balance between the
+        experimental observations and prior expectations about map smoothness
+        and stability. Higher values place more emphasis on experimental
+        signal and may accelerate feature emergence, although overly strong
+        weighting can increase sensitivity to noise.
+
+        Solvent Flattening and Positivity Constraints
+
+        The protocol optionally applies solvent flattening and non-negativity
+        constraints to the reconstruction. These operations help suppress
+        unrealistic density fluctuations outside the molecular region and
+        improve map interpretability.
+
+        For most biological applications, enabling solvent flattening is
+        beneficial because cryo-EM particles are typically surrounded by
+        solvent regions with minimal structural signal. Enforcing physically
+        plausible density values can stabilize early optimization and improve
+        map clarity.
+
+        Outputs and Their Interpretation
+
+        The protocol produces one or more reconstructed volumes together with
+        updated particle alignment information. When multiple classes are
+        generated, each volume represents a different structural solution
+        identified from the data.
+
+        If symmetry application is requested after optimization, an
+        additional symmetrized reconstruction is also produced. This map may
+        exhibit improved signal quality and enhanced interpretability when
+        the imposed symmetry matches the true biological architecture.
+
+        The output particle set contains refined orientation and alignment
+        information that can be used in downstream refinement and
+        classification workflows.
+
+        Biological users should interpret early initial models cautiously.
+        At this stage, the maps are intended primarily as starting points for
+        further refinement rather than final structural conclusions. Broad
+        architectural features are usually more reliable than fine details.
+
+        Practical Recommendations
+
+        For most new datasets, beginning with a single initial class and C1
+        symmetry is a conservative and reliable strategy. Once a stable
+        reconstruction is obtained, additional classification and refinement
+        steps can explore heterogeneity in greater detail.
+
+        When substantial conformational or compositional variability is
+        expected, generating multiple initial classes may significantly
+        improve downstream analysis. Flexible assemblies, membrane proteins,
+        and dynamic molecular machines often benefit from this approach.
+
+        Careful particle preprocessing remains one of the most important
+        determinants of success. Accurate centering, removal of artifacts,
+        and balanced angular coverage strongly influence the quality of the
+        resulting initial model.
+
+        Final Perspective
+
+        Initial model generation represents the transition from raw particle
+        images to the first interpretable three-dimensional description of a
+        biological structure. Although the resulting maps are generally low
+        resolution, they establish the structural framework upon which all
+        subsequent refinement and interpretation depend.
+
+        Reliable results require careful consideration of symmetry,
+        heterogeneity, particle quality, and optimization stability. When
+        used appropriately, this protocol provides a robust and biologically
+        meaningful entry point into high-resolution cryo-EM structure
+        determination.
     """
     _label = '3D initial model'
     _devStatus = PROD

@@ -35,7 +35,116 @@ from pyworkflow.protocol.params import LabelParam
 
 class ProtRelionCleanJobs(Protocol):
     """
-    Run Relion gentle clean procedure for the whole project.
+    Performs a gentle cleanup of completed RELION processing jobs within a
+    Scipion project. The protocol is designed to reduce storage usage while
+    preserving the most relevant reconstruction results and maintaining the
+    integrity of the project structure.
+
+    AI Generated:
+
+    Clean Project (ProtRelionCleanJobs) — User Manual
+        Overview
+
+        The Clean Project protocol provides a controlled strategy for removing
+        unnecessary intermediate files generated during RELION processing.
+        Cryo-EM refinement, classification, polishing, and correction workflows
+        can produce very large numbers of temporary and iteration-dependent
+        files, many of which are no longer needed once a protocol has completed
+        successfully. This protocol helps maintain manageable project sizes
+        without deleting biologically relevant outputs.
+
+        Rather than permanently deleting information, the protocol moves
+        selected files into a dedicated Trash folder inside the project. This
+        approach provides a safer alternative to manual cleanup because users
+        can still inspect or recover moved files if needed. The protocol is
+        therefore particularly useful in long-term cryo-EM projects, shared
+        computing facilities, and large institutional storage environments.
+
+        General Cleaning Philosophy
+
+        The protocol follows a conservative cleaning philosophy intended to
+        preserve the final scientific results while reducing storage occupied
+        by intermediate processing stages. In iterative RELION workflows,
+        intermediate iterations often consume far more disk space than the
+        final outputs. In most biological analyses, only the final iteration
+        contains the reconstruction state that will be interpreted,
+        visualized, refined further, or deposited.
+
+        The cleanup procedure therefore retains the most recent iteration while
+        relocating older intermediate iterations. This strategy preserves the
+        ability to continue biological interpretation and downstream analysis
+        while minimizing storage overhead.
+
+        Supported Workflow Types
+
+        The protocol is intended for RELION-based workflows that generate
+        extensive intermediate files. Typical examples include 2D
+        classification, 3D classification, 3D refinement, initial model
+        generation, multibody refinement, particle polishing, motion
+        correction, and CTF refinement.
+
+        Different workflow types produce different categories of auxiliary
+        files. Some protocols mainly generate diagnostic plots and metadata,
+        while others produce large iterative reconstructions or temporary
+        optimization files. The cleaning strategy adapts to these differences
+        automatically so that biologically meaningful outputs remain available.
+
+        Biological and Practical Considerations
+
+        From a biological perspective, the protocol should only be applied
+        after users are confident that the relevant processing stages have
+        completed successfully and that no additional inspection of earlier
+        iterations is required. Intermediate iterations may still contain
+        useful information when studying convergence behavior, classification
+        instability, or heterogeneous particle populations.
+
+        For publication-quality studies or difficult datasets, users may wish
+        to archive important intermediate results externally before cleaning.
+        Although the protocol preserves final outputs, earlier iterations can
+        sometimes provide insight into refinement dynamics or alternative
+        structural states.
+
+        The protocol is particularly valuable in facilities processing many
+        datasets simultaneously, where uncontrolled accumulation of temporary
+        files can rapidly exhaust storage resources. In such environments,
+        routine cleanup improves project portability, backup efficiency, and
+        long-term maintainability.
+
+        Safety and Recovery
+
+        A key feature of the protocol is that files are relocated rather than
+        irreversibly deleted. This provides an additional level of operational
+        safety for users who may later realize that some intermediate files
+        remain important for troubleshooting or reproducibility.
+
+        Because the protocol creates a dedicated Trash directory inside the
+        project, users retain the possibility of manually restoring files if
+        necessary. Nevertheless, users should still exercise caution before
+        running cleanup operations on actively developing projects.
+
+        Outputs and Project Organization
+
+        After execution, the project directory becomes significantly more
+        compact and easier to navigate. The retained outputs correspond to the
+        latest reconstruction state and the principal scientific products of
+        each workflow. Intermediate files and auxiliary diagnostics are grouped
+        within the Trash folder, improving project readability while avoiding
+        permanent data loss.
+
+        In large cryo-EM studies involving multiple rounds of refinement,
+        classification, or polishing, this cleanup strategy can substantially
+        reduce storage requirements without compromising downstream biological
+        interpretation.
+
+        Final Perspective
+
+        In modern cryo-EM workflows, data management is an essential component
+        of reproducible structural biology. The Clean Project protocol provides
+        a practical compromise between preserving scientific reproducibility and
+        maintaining sustainable storage usage. By safely relocating unnecessary
+        intermediate files while keeping the final biologically relevant
+        results accessible, the protocol supports efficient long-term project
+        maintenance in both individual and facility-scale environments.
     """
     _label = 'clean project'
     _devStatus = PROD
