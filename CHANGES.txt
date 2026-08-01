@@ -1,4 +1,5 @@
 5.0.2:
+    - fix #430
     - add a test for DynaMight protocol
 5.0.1: bug fix for export coordinates from subparticles (close #428)
 5.0.0:
