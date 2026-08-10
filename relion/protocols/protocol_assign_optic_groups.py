@@ -152,11 +152,14 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                       help='Provide input star file with Optics groups '
                            'information. The input Star file should contain: \n'
                            '- *data_optics* table with values for each group.\n'
-                           '- *data_micrographs* table with two columns: \n\n'
-                           '\trlnMicrographName with the micName associated to '
-                           'the input set.\n'
-                           '\trlnOpticsGroup with the group number associated '
-                           'to this micrograph.\n\nIf you provide rlnMicrographGainName '
+                          '- *data_movies* table for movie inputs, with '
+                          'rlnMicrographMovieName and rlnOpticsGroup columns.\n'
+                          '- *data_micrographs* table for micrograph or '
+                          'particle inputs, with rlnMicrographName and '
+                          'rlnOpticsGroup columns. This format is also '
+                          'accepted for movies for backward compatibility.\n\n'
+                          'Image names are matched by basename.\n\n'
+                           'If you provide rlnMicrographGainName '
                            'in the optics table, it has to point to a transformed '
                            'gain reference (rotated and flipped if necessary).')
 
@@ -170,7 +173,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
     def createOutputStep(self, inputId):
         inputSet = self.inputSet.get()
 
-        getMicName = lambda item: item.getMicName()
+        getItemNames = lambda item: (item.getMicName(), item.getFileName())
 
         if isinstance(inputSet, SetOfMovies):
             outputSet = self._createSetOfMovies()
@@ -181,7 +184,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
         elif isinstance(inputSet, SetOfParticles):
             outputSet = self._createSetOfParticles()
             outputName = 'outputParticles'
-            getMicName = lambda item: item.getCoordinate().getMicName()
+            getItemNames = lambda item: (item.getCoordinate().getMicName(),)
         else:
             raise TypeError("Invalid input of type %s, expecting:\n"
                             "SetOfMovies, SetOfMicrographs or SetOfParticles"
@@ -227,10 +230,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
         else:
             inputStar = self.inputStar.get()
             og = OpticsGroups.fromStar(inputStar)
-            micTable = emtable.Table(fileName=inputStar,
-                                     tableName='micrographs')
-            micDict = {row.rlnMicrographName: row.rlnOpticsGroup
-                       for row in micTable}
+            micDict = self._readGroupAssignments(inputStar, inputSet)
 
             # check if MTF file exists
             if og.hasColumn('rlnMtfFileName'):
@@ -247,22 +247,27 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                         ))
 
             def updateItem(item, row):
-                micName = getMicName(item)
+                itemNames = {os.path.basename(name)
+                             for name in getItemNames(item)
+                             if name}
+                matches = itemNames.intersection(micDict)
 
-                if micName in micDict:
+                if len(matches) == 1:
                     item._appendItem = True
-                    ogNumber = micDict[micName]
+                    ogNumber = micDict[matches.pop()]
 
                     if not hasattr(item, '_rlnOpticsGroup'):
                         item._rlnOpticsGroup = Integer()
 
                     item._rlnOpticsGroup.set(ogNumber)
+                elif len(matches) > 1:
+                    raise ValueError("Input item matches multiple entries in "
+                                     "the STAR file: %s" % sorted(matches))
                 else:
                     item._appendItem = False  # Do not add this row to the output set
-                    self.warning("Micrograph name (aka micName) '%s' was "
-                                 "not found in the 'data_micrographs' table of "
-                                 "the input star file: %s"
-                                 % (micName, inputStar))
+                    self.warning("Image name(s) %s were not found in the "
+                                 "input STAR file: %s"
+                                 % (sorted(itemNames), inputStar))
 
             outputSet.copyItems(inputSet,
                                 updateItemCallback=updateItem,
@@ -323,6 +328,39 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
         return warnings
 
     # -------------------------- UTILS functions ------------------------------
+    @staticmethod
+    def _readGroupAssignments(inputStar, inputSet):
+        tableSpecs = ([('movies', 'rlnMicrographMovieName'),
+                       ('micrographs', 'rlnMicrographName')]
+                      if isinstance(inputSet, SetOfMovies)
+                      else [('micrographs', 'rlnMicrographName')])
+
+        for tableName, imageLabel in tableSpecs:
+            try:
+                imageTable = emtable.Table(fileName=inputStar,
+                                           tableName=tableName)
+            except Exception as error:
+                missingBlock = "'data_%s' block was not found" % tableName
+                if missingBlock in str(error) and len(tableSpecs) > 1:
+                    continue
+                raise
+
+            requiredLabels = [imageLabel, 'rlnOpticsGroup']
+            if not imageTable.hasAllColumns(requiredLabels):
+                raise ValueError("STAR table 'data_%s' should contain columns: %s"
+                                 % (tableName, ', '.join(requiredLabels)))
+
+            assignments = {}
+            for starRow in imageTable:
+                basename = os.path.basename(getattr(starRow, imageLabel))
+                if basename in assignments:
+                    raise ValueError("Duplicated image basename in STAR file: %s"
+                                     % basename)
+                assignments[basename] = starRow.rlnOpticsGroup
+            return assignments
+
+        raise ValueError("STAR file does not contain a supported image table")
+
     def _convertGain(self):
         """ We need to transform gain file for a possible polishing job. """
         rotation = self.gainRot.get()

@@ -605,8 +605,8 @@ class TestRelionSubtract(TestRelionBase):
         cls.protImport = cls.runImportParticles(cls.particlesFn, 3.5)
         cls.protImportVol = cls.runImportVolumes(cls.vol, 3.5)
 
-    def test_subtract(self):
-        print(pwutils.magentaStr("\n==> Running relion - refine 3d:"))
+    def _run_refine3d(self, label):
+        print(pwutils.magentaStr(f"\n==> Running relion - refine 3d ({label}):"))
         relionRefine = self.newProtocol(ProtRelionRefine3D,
                                         doCTF=False, runMode=1,
                                         maskDiameterA=340,
@@ -616,11 +616,28 @@ class TestRelionSubtract(TestRelionBase):
         relionRefine.referenceVolume.set(self.protImportVol.outputVolume)
         relionRefine.doGpu.set(False)
         self.launchProtocol(relionRefine)
+        return relionRefine
 
-        print(pwutils.magentaStr("\n==> Running relion - create mask 3d:"))
+    def _run_mask3d(self, inputVolume, label):
+        print(pwutils.magentaStr(f"\n==> Running relion - create mask 3d ({label}):"))
         protMask = self.newProtocol(ProtRelionCreateMask3D, threshold=0.045)
-        protMask.inputVolume.set(relionRefine.outputVolume)
+        protMask.inputVolume.set(inputVolume)
         self.launchProtocol(protMask)
+        return protMask
+
+    def _run_subtract_with_subset(self, inputProt, inputSubset, refMask, mpi=2):
+        protSubtract = self.newProtocol(ProtRelionSubtract,
+                                        refMask=refMask,
+                                        numberOfMpi=mpi)
+        protSubtract.inputProtocol.set(inputProt)
+        protSubtract.useAll.set(False)
+        protSubtract.inputParticles.set(inputSubset)
+        self.launchProtocol(protSubtract)
+        return protSubtract
+
+    def test_subtract(self):
+        relionRefine = self._run_refine3d('base case')
+        protMask = self._run_mask3d(relionRefine.outputVolume, 'base case')
 
         print(pwutils.magentaStr("\n==> Testing relion - subtract projection:"))
         protSubtract = self.newProtocol(ProtRelionSubtract,
@@ -631,6 +648,42 @@ class TestRelionSubtract(TestRelionBase):
         self.assertIsNotNone(protSubtract.outputParticles,
                              "There was a problem with subtract projection")
 
+    def test_subtract_subset(self):
+        relionRefine = self._run_refine3d('subset case')
+        protMask = self._run_mask3d(relionRefine.outputVolume, 'subset case')
+
+        # Use the full set as subset to exercise useAll=False path.
+        subsetSet = relionRefine.outputParticles
+
+        print(pwutils.magentaStr("\n==> Testing relion - subtract projection with subset:"))
+        protSubtract = self._run_subtract_with_subset(relionRefine, subsetSet,
+                                  protMask.outputMask)
+
+        self.assertIsNotNone(protSubtract.outputParticles,
+                             "There was a problem with subtract projection using subset")
+        self.assertEqual(protSubtract.outputParticles.getSize(), subsetSet.getSize(),
+                         "Output size does not match subset size")
+
+    def test_subtract_no_relion_input(self):
+        relionRefine = self._run_refine3d('no-relion input')
+        protMask = self._run_mask3d(relionRefine.outputVolume,
+                                    'no-relion input')
+
+        print(pwutils.magentaStr("\n==> Testing relion - subtract projection without Relion input:"))
+        protSubtract = self.newProtocol(ProtRelionSubtract,
+                                        relionInput=False,
+                                        refMask=protMask.outputMask,
+                                        doCTF=False,
+                                        numberOfMpi=1)
+        protSubtract.inputParticlesAll.set(relionRefine.outputParticles)
+        protSubtract.inputVolume.set(relionRefine.outputVolume)
+        self.launchProtocol(protSubtract)
+
+        self.assertIsNotNone(protSubtract.outputParticles,
+                             "There was a problem with subtract projection without Relion input")
+        self.assertEqual(protSubtract.outputParticles.getSize(),
+                         relionRefine.outputParticles.getSize(),
+                         "Output size does not match input size in no-relion subtract")
 
 class TestRelionSymmetrizeVolume(TestRelionBase):
     @classmethod
