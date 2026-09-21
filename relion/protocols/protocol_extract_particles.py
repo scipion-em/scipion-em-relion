@@ -138,7 +138,9 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
 
         # When no streaming, it doesn't make sense the default value of
         # batch size = 1, so let's use 0 to extract all micrographs at once
-        if not self._isStreamOpen() and self._getStreamingBatchSize() == 1:
+        if (not self.isContinued()
+                and not self._isStreamOpen()
+                and self._getStreamingBatchSize() == 1):
             self.info("WARNING: The batch size of 1 does not make sense when "
                       "not in streaming...changed value to 0 (extract all).")
             self.streamingBatchSize.set(0)
@@ -344,7 +346,14 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
             partsTable = relion.convert.Table(fileName=partsStar)
             stackFile = self.__getMicFile(mic, '.mrcs', folder=tmp)
             endStackFile = self.__getMicFile(mic, '.mrcs', folder=extra)
-            pwutils.moveFile(stackFile, endStackFile)
+
+            if os.path.exists(stackFile):
+                pwutils.moveFile(stackFile, endStackFile)
+            elif not os.path.exists(endStackFile):
+                raise FileNotFoundError(
+                    "Particle stack not found in temporary or output path: "
+                    "%s / %s" % (stackFile, endStackFile)
+                )
 
             for part in partsTable:
                 pos = (int(float(part.rlnCoordinateX)),
@@ -501,3 +510,8 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
 
         return (self.getInputMicrographs().isStreamOpen() or
                 ctfStreamOpen or self.getCoords().isStreamOpen())
+
+    def _isStreamClosed(self):
+        # All required input streams must be closed before flushing
+        # the final partial batch.
+        return self.micsClosed and self.ctfsClosed and self.coordsClosed

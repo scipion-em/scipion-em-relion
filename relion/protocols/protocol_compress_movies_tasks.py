@@ -25,6 +25,7 @@
 # ******************************************************************************
 
 import os
+import time
 
 from emtools.utils import Timer, Pretty
 from emtools.jobs import Pipeline
@@ -146,15 +147,70 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
 
         return gainFile
 
+    def _iterPostgresqlInputMovies(self, moviesSet, label,
+                                     blacklist=None, waitSecs=60):
+        """Yield new movies from the authoritative PostgreSQL runtime Set."""
+        seenIds = set()
+
+        if blacklist is not None:
+            refreshBlacklist = getattr(blacklist, 'loadAllProperties', None)
+            if callable(refreshBlacklist):
+                refreshBlacklist()
+
+            for item in blacklist:
+                itemId = item.getObjId()
+                if itemId is not None:
+                    seenIds.add(itemId)
+
+        if seenIds:
+            self.info("Existing output: %d %s" % (len(seenIds), label))
+        else:
+            self.info("No output %s." % label)
+
+        while True:
+            moviesSet.loadAllProperties()
+
+            for item in moviesSet.iterItems():
+                itemId = item.getObjId()
+                if itemId in seenIds:
+                    continue
+
+                if itemId is not None:
+                    seenIds.add(itemId)
+
+                yield item.clone()
+
+            if moviesSet.isStreamClosed():
+                break
+
+            if waitSecs:
+                time.sleep(waitSecs)
+
+        self.info("No more %s, stream closed. Total: %d"
+                  % (label, len(seenIds)))
+
     def _processAllMoviesStep(self):
         self.info("Relion version:")
         self._runProgram('--version')
 
-        moviesMtr = SetMonitor(SetOfMovies,
-                               self.inputMovies.get().getFileName(),
-                               blacklist=getattr(self, 'outputMovies', None))
-        moviesIter = moviesMtr.iterProtocolInput(self, 'movies',
-                                                 waitSecs=self.streamingSleepOnWait.get())
+        inputMovies = self.inputMovies.get()
+        outputMovies = getattr(self, 'outputMovies', None)
+        isPostgresqlRuntime = getattr(
+            inputMovies, 'isPostgresqlRuntimeOutput', None)
+
+        if callable(isPostgresqlRuntime) and isPostgresqlRuntime():
+            moviesIter = self._iterPostgresqlInputMovies(
+                inputMovies,
+                'movies',
+                blacklist=outputMovies,
+                waitSecs=self.streamingSleepOnWait.get())
+        else:
+            moviesMtr = SetMonitor(SetOfMovies,
+                                   inputMovies.getFileName(),
+                                   blacklist=outputMovies)
+            moviesIter = moviesMtr.iterProtocolInput(
+                self, 'movies',
+                waitSecs=self.streamingSleepOnWait.get())
         batchMgr = BatchManager(self.streamingBatchSize.get(), moviesIter,
                                 self._getTmpPath())
 
@@ -228,6 +284,9 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
         return batch
 
     def _outputFromBatch(self, batch):
+        if batch.get('error'):
+            return
+
         # First time we are running this function for this execution
         firstOutput = False
 
