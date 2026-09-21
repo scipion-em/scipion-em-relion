@@ -52,8 +52,21 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
         writer = convert.createWriter(rootDir=micsDir, outputDir=micsDir)
         writer.writeSetOfMicrographs(micList, micStar)
         self._pickMicrographsFromStar(micStar, micsDir, *args)
-        # Move coordinates files to tmp
-        os.system('mv %s/*autopick.star %s/' % (micsDir, self._getTmpPath()))
+
+        # Move each expected coordinates file explicitly. Do not let a
+        # successful wildcard move hide a missing output for one mic in a batch.
+        for mic in micList:
+            fileName = 'mic_%06d_autopick.star' % mic.getObjId()
+            srcFile = os.path.join(micsDir, fileName)
+            dstFile = self._getTmpPath(fileName)
+
+            if os.path.exists(srcFile):
+                pwutils.moveFile(srcFile, dstFile)
+            elif not os.path.exists(dstFile):
+                raise RuntimeError(
+                    "Missing autopick output for micrograph %s: %s / %s"
+                    % (mic.getObjId(), srcFile, dstFile)
+                )
 
     def _createSetOfCoordinates(self, micSet, suffix=''):
         """ Override this method to set the box size. """
