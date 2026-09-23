@@ -26,10 +26,11 @@
 
 import os
 import time
+from datetime import datetime
 
 from emtools.utils import Timer, Pretty
 from emtools.jobs import Pipeline
-from emtools.pwx import SetMonitor, BatchManager
+from emtools.pwx import BatchManager
 from emtools.metadata import StarFile, Table
 
 from pyworkflow import SCIPION_DEBUG_NOCLEAN
@@ -38,7 +39,7 @@ import pyworkflow.object as pwobj
 import pyworkflow.utils as pwutils
 from pyworkflow.constants import BETA
 from pwem.protocols import ProtProcessMovies
-from pwem.objects import MovieAlignment, SetOfMovies, ImageDim, FramesRange
+from pwem.objects import MovieAlignment, ImageDim, FramesRange
 from pyworkflow.protocol import STEPS_SERIAL
 
 
@@ -147,9 +148,9 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
 
         return gainFile
 
-    def _iterPostgresqlInputMovies(self, moviesSet, label,
-                                     blacklist=None, waitSecs=60):
-        """Yield new movies from the authoritative PostgreSQL runtime Set."""
+    def _iterInputMovies(self, moviesSet, label,
+                         blacklist=None, waitSecs=60):
+        """Yield new movies using the logical Set streaming API."""
         seenIds = set()
 
         if blacklist is not None:
@@ -168,6 +169,7 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
             self.info("No output %s." % label)
 
         while True:
+            lastCheck = datetime.now()
             moviesSet.loadAllProperties()
 
             for item in moviesSet.iterItems():
@@ -183,8 +185,9 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
             if moviesSet.isStreamClosed():
                 break
 
-            if waitSecs:
-                time.sleep(waitSecs)
+            while not moviesSet.hasChangedSince(lastCheck):
+                if waitSecs:
+                    time.sleep(waitSecs)
 
         self.info("No more %s, stream closed. Total: %d"
                   % (label, len(seenIds)))
@@ -195,22 +198,11 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
 
         inputMovies = self.inputMovies.get()
         outputMovies = getattr(self, 'outputMovies', None)
-        isPostgresqlRuntime = getattr(
-            inputMovies, 'isPostgresqlRuntimeOutput', None)
-
-        if callable(isPostgresqlRuntime) and isPostgresqlRuntime():
-            moviesIter = self._iterPostgresqlInputMovies(
-                inputMovies,
-                'movies',
-                blacklist=outputMovies,
-                waitSecs=self.streamingSleepOnWait.get())
-        else:
-            moviesMtr = SetMonitor(SetOfMovies,
-                                   inputMovies.getFileName(),
-                                   blacklist=outputMovies)
-            moviesIter = moviesMtr.iterProtocolInput(
-                self, 'movies',
-                waitSecs=self.streamingSleepOnWait.get())
+        moviesIter = self._iterInputMovies(
+            inputMovies,
+            'movies',
+            blacklist=outputMovies,
+            waitSecs=self.streamingSleepOnWait.get())
         batchMgr = BatchManager(self.streamingBatchSize.get(), moviesIter,
                                 self._getTmpPath())
 

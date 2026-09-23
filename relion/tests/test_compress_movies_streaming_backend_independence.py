@@ -1,5 +1,5 @@
 # **************************************************************************
-# * Regression tests for PostgreSQL streaming compatibility.
+# * Regression tests for backend-independent streaming behavior.
 # **************************************************************************
 
 from types import SimpleNamespace
@@ -25,11 +25,24 @@ class _Pointer:
         return self._value
 
 
-class _PostgresqlMovies:
+class _LogicalMovies:
     def getFileName(self):
-        return '/tmp/compatibility.sqlite'
+        raise AssertionError(
+            "Streaming must not inspect the compatibility SQLite filename."
+        )
 
     def isPostgresqlRuntimeOutput(self):
+        raise AssertionError(
+            "The plugin must not branch on the persistence backend."
+        )
+
+    def loadAllProperties(self):
+        pass
+
+    def iterItems(self):
+        return iter(())
+
+    def isStreamClosed(self):
         return True
 
 
@@ -65,14 +78,6 @@ class _ProtocolHarness(ProtRelionCompressMoviesTasks):
         pass
 
 
-class _RecordingSetMonitor:
-    sources = []
-
-    def __init__(self, setClass, source, *args, **kwargs):
-        self.sources.append(source)
-
-    def iterProtocolInput(self, *args, **kwargs):
-        return iter(())
 
 
 class _EmptyBatchManager:
@@ -94,21 +99,12 @@ class _EmptyPipeline:
         pass
 
 
-class TestRelionPostgresqlStreaming(TestCase):
-    def test_PostgresqlCompressMoviesDoesNotMonitorCompatibilitySqlite(self):
-        movies = _PostgresqlMovies()
+class TestRelionCompressMoviesBackendIndependence(TestCase):
+    def testCompressMoviesDoesNotInspectPersistenceBackend(self):
+        movies = _LogicalMovies()
         protocol = _ProtocolHarness(movies)
-        _RecordingSetMonitor.sources = []
 
         module = 'relion.protocols.protocol_compress_movies_tasks'
-        with patch(module + '.SetMonitor', _RecordingSetMonitor), \
-                patch(module + '.BatchManager', _EmptyBatchManager), \
+        with patch(module + '.BatchManager', _EmptyBatchManager), \
                 patch(module + '.Pipeline', _EmptyPipeline):
             protocol._processAllMoviesStep()
-
-        self.assertEqual(
-            [],
-            _RecordingSetMonitor.sources,
-            'PostgreSQL streaming must not be discovered through the '
-            'compatibility SQLite filename.'
-        )
