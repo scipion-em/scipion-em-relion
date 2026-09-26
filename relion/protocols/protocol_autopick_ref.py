@@ -254,8 +254,31 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         form.addParallelSection(threads=0, mpi=4)
 
     # -------------------------- INSERT steps functions -----------------------
+    def _wasStreamingRun(self):
+        # On Continue, infer the original execution mode from persisted steps.
+        # The streaming branch replaces createOutputStep with _doNothing, while
+        # the non-streaming batch branch persists the real createOutputStep.
+        if not self.isContinued():
+            return False
+
+        for step in self.loadSteps():
+            funcName = step.funcName
+            if hasattr(funcName, 'get'):
+                funcName = funcName.get()
+
+            if funcName == '_doNothing':
+                return True
+
+        return False
+
     def _insertAllSteps(self):
-        self.inputStreaming = self.getInputMicrographs().isStreamOpen()
+        ctfSet = self.ctfRelations.get()
+        ctfStreaming = ctfSet is not None and ctfSet.isStreamOpen()
+        self.inputStreaming = (
+            self.getInputMicrographs().isStreamOpen()
+            or ctfStreaming
+            or self._wasStreamingRun()
+        )
 
         if self.streamingBatchSize > 0 or self.inputStreaming:
             # If the input is in streaming, follow the base class policy
@@ -272,7 +295,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
                                      self.getInputMicrographs().strId(),
                                      self.getInputReferences().strId(),
                                      needsGPU=False)
-            nameList = [mic.getMicName() for mic in self.getInputMicrographs()]
+            nameList = [mic.getMicName() for mic in self.micDict.values()]
             self._insertFunctionStep(self.pickMicrographListStep, nameList,
                                      *self._getPickArgs(), needsGPU=self.usesGpu())
             self._insertFunctionStep(self.createOutputStep, needsGPU=False)
