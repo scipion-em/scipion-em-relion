@@ -63,7 +63,7 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
             if os.path.exists(srcFile):
                 pwutils.moveFile(srcFile, dstFile)
             elif not os.path.exists(dstFile):
-                raise RuntimeError(
+                self.warning(
                     "Missing autopick output for micrograph %s: %s / %s"
                     % (mic.getObjId(), srcFile, dstFile)
                 )

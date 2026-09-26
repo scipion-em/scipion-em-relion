@@ -123,6 +123,9 @@ class _BatchWriter:
 
 
 class _AutopickBatchOutputHarness(ProtRelion2Autopick):
+    def __init__(self):
+        self.warnings = []
+
     def _createTmpMicsDir(self, micList):
         return "/work/relion-autopick-batch"
 
@@ -133,9 +136,12 @@ class _AutopickBatchOutputHarness(ProtRelion2Autopick):
     def _pickMicrographsFromStar(self, *args, **kwargs):
         pass
 
+    def warning(self, message):
+        self.warnings.append(message)
+
 
 class TestRelionAutopickBatchOutputs(TestCase):
-    def test_BatchFailsWhenOneMicOutputIsMissing(self):
+    def test_BatchContinuesWhenOneMicOutputIsMissing(self):
         protocol = _AutopickBatchOutputHarness()
         micList = [_BatchMic(1), _BatchMic(2), _BatchMic(3)]
 
@@ -150,17 +156,19 @@ class TestRelionAutopickBatchOutputs(TestCase):
             module + ".convert.createWriter",
             return_value=_BatchWriter(),
         ), patch(
-            module + ".os.system",
-            return_value=0,
-        ), patch(
             module + ".os.path.exists",
             side_effect=outputExists,
         ):
-            with self.assertRaisesRegex(
-                RuntimeError,
-                "Missing autopick output",
-            ):
-                protocol._pickMicrographList(micList)
+            protocol._pickMicrographList(micList)
+
+        self.assertTrue(
+            any(
+                "micrograph 3" in message
+                for message in protocol.warnings
+            ),
+            "A missing autopick output should be reported without aborting "
+            "the remaining streaming work.",
+        )
 class _NamedMic:
     def __init__(self, mic_id):
         self._mic_id = mic_id
