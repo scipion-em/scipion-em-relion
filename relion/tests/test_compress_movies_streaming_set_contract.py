@@ -250,3 +250,85 @@ class TestRelionCompressMoviesFailedBatchCompletion(TestCase):
             "A failed streaming batch must not stop later batches from "
             "being processed before the protocol reports the failure.",
         )
+
+
+class _MissingTiffMovie:
+    def __init__(self, fileName="/data/movie_001.mrcs"):
+        self._fileName = fileName
+
+    def getFileName(self):
+        return self._fileName
+
+    def setFileName(self, fileName):
+        self._fileName = fileName
+
+
+class _FakeStarFile:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, excType, excValue, traceback):
+        return False
+
+    def writeTable(self, *args, **kwargs):
+        pass
+
+
+class _FakeTable:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def addRowValues(self, *args, **kwargs):
+        pass
+
+
+class _MissingTiffHarness(ProtRelionCompressMoviesTasks):
+    def __init__(self):
+        self.cmd = ""
+
+    def info(self, *args, **kwargs):
+        pass
+
+    def error(self, *args, **kwargs):
+        pass
+
+    def _runProgram(self, *args, **kwargs):
+        pass
+
+    def _getExtraPath(self, *paths):
+        return "/extra/" + "/".join(paths)
+
+
+class TestRelionCompressMoviesMissingTiff(TestCase):
+    def testMissingTiffMarksBatchAsFailed(self):
+        protocol = _MissingTiffHarness()
+        movie = _MissingTiffMovie()
+        batch = {
+            "id": "batch-missing-tiff",
+            "items": [movie],
+            "path": "/tmp/relion-missing-tiff",
+        }
+
+        module = "relion.protocols.protocol_compress_movies_tasks"
+        with patch(module + ".StarFile", _FakeStarFile), \
+                patch(module + ".Table", _FakeTable), \
+                patch(module + ".pwutils.createLink"), \
+                patch(module + ".pwutils.envVarOn", return_value=True), \
+                patch(module + ".os.path.exists", return_value=False):
+            result = protocol._processBatch(batch)
+
+        self.assertIn(
+            "error",
+            result,
+            "A missing expected TIFF must fail the batch so the protocol "
+            "cannot close successfully while silently dropping a movie.",
+        )
+        self.assertRegex(
+            result["error"],
+            "TIFF|tiff",
+            "The batch error must specifically report the missing TIFF, "
+            "not an unrelated harness failure.",
+        )

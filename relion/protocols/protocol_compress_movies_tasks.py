@@ -268,7 +268,10 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
                     pwutils.moveFile(outputFn, dstFn)
                     movie.setFileName(dstFn)
                 else:
-                    movie.setFileName(None)
+                    raise RuntimeError(
+                        "Missing TIFF output for movie %s: %s"
+                        % (fn, outputFn)
+                    )
 
             gain = 'gain-reference.mrc'
             outputGain = os.path.join(batchPath, gain)
