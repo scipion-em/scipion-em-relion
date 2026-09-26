@@ -124,3 +124,129 @@ class TestRelionCompressMoviesStreamingSetContract(TestCase):
             0,
             "Streaming should determine completion through Set.isStreamClosed().",
         )
+
+class TestRelionCompressMoviesFailedBatchCompletion(TestCase):
+    def testFailedBatchFailsProtocolAfterPipelineDrains(self):
+        class _FailedBatchProtocol(_ProtocolHarness):
+            def __init__(self, movies):
+                super().__init__(movies)
+                self.numberOfThreads = _Value(1)
+                self.closedOutput = False
+
+            def _processBatch(self, batch):
+                batch["error"] = "simulated compression failure"
+                return batch
+
+            def _outputFromBatch(self, batch):
+                return ProtRelionCompressMoviesTasks._outputFromBatch(
+                    self, batch
+                )
+
+            def _updateOutputSet(self, outputName, outputSet, state):
+                self.closedOutput = True
+
+        class _FailurePipeline:
+            def __init__(self):
+                self.processors = []
+
+            def addGenerator(self, *args, **kwargs):
+                return SimpleNamespace(outputQueue=object())
+
+            def addProcessor(self, inputQueue, processor, outputQueue=None):
+                self.processors.append(processor)
+                return SimpleNamespace(outputQueue=object())
+
+            def run(self):
+                batch = {
+                    "id": "batch-1",
+                    "index": 1,
+                    "items": [object()],
+                    "path": "/tmp/batch-1",
+                }
+                for processor in self.processors:
+                    batch = processor(batch)
+
+        movies = _LogicalMovies()
+        protocol = _FailedBatchProtocol(movies)
+
+        module = "relion.protocols.protocol_compress_movies_tasks"
+        with patch(module + ".BatchManager", _EmptyBatchManager), \
+                patch(module + ".Pipeline", _FailurePipeline):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "batch",
+            ):
+                protocol._processAllMoviesStep()
+
+        self.assertFalse(
+            protocol.closedOutput,
+            "A failed compression batch must prevent normal output closure.",
+        )
+
+    def testLaterBatchesContinueAfterEarlierBatchFails(self):
+        processed = []
+
+        class _MixedBatchProtocol(_ProtocolHarness):
+            def __init__(self, movies):
+                super().__init__(movies)
+                self.numberOfThreads = _Value(1)
+
+            def _processBatch(self, batch):
+                processed.append(batch["id"])
+                if batch["id"] == "batch-1":
+                    batch["error"] = "simulated compression failure"
+                return batch
+
+            def _outputFromBatch(self, batch):
+                return None
+
+        class _MixedPipeline:
+            def __init__(self):
+                self.processors = []
+
+            def addGenerator(self, *args, **kwargs):
+                return SimpleNamespace(outputQueue=object())
+
+            def addProcessor(self, inputQueue, processor, outputQueue=None):
+                self.processors.append(processor)
+                return SimpleNamespace(outputQueue=object())
+
+            def run(self):
+                batches = [
+                    {
+                        "id": "batch-1",
+                        "index": 1,
+                        "items": [object()],
+                        "path": "/tmp/batch-1",
+                    },
+                    {
+                        "id": "batch-2",
+                        "index": 2,
+                        "items": [object()],
+                        "path": "/tmp/batch-2",
+                    },
+                ]
+
+                for batch in batches:
+                    current = batch
+                    for processor in self.processors:
+                        current = processor(current)
+
+        movies = _LogicalMovies()
+        protocol = _MixedBatchProtocol(movies)
+
+        module = "relion.protocols.protocol_compress_movies_tasks"
+        with patch(module + ".BatchManager", _EmptyBatchManager), \
+                patch(module + ".Pipeline", _MixedPipeline):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "batch",
+            ):
+                protocol._processAllMoviesStep()
+
+        self.assertEqual(
+            ["batch-1", "batch-2"],
+            processed,
+            "A failed streaming batch must not stop later batches from "
+            "being processed before the protocol reports the failure.",
+        )

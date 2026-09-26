@@ -218,11 +218,26 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
                                      outputQueue=outputQueue)
             outputQueue = proc.outputQueue
 
-        pipe.addProcessor(outputQueue, self._outputFromBatch)
+        failedBatches = []
+
+        def _updateOutput(batch):
+            if batch.get('error'):
+                failedBatches.append(batch)
+            return self._outputFromBatch(batch)
+
+        pipe.addProcessor(outputQueue, _updateOutput)
         pipe.run()
 
         for batch in batchMgr.generate():
-            self._processBatch(batch)
+            batch = self._processBatch(batch)
+            if batch.get('error'):
+                failedBatches.append(batch)
+
+        if failedBatches:
+            raise RuntimeError(
+                "Relion movie compression failed for one or more "
+                "streaming batches."
+            )
 
         self._updateOutputSet('outputMovies', self._outputMovies,
                               pwobj.Set.STREAM_CLOSED)
