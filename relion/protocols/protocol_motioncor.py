@@ -297,7 +297,6 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
             self._moveFiles(movie)
         except Exception:
             self.error(f"ERROR processing movie: {movie.getFileName()}")
-            raise
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):

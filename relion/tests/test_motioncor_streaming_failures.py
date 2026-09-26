@@ -32,8 +32,8 @@ class _Pointer:
 
 
 class _Movie:
-    def __init__(self):
-        self._fileName = "/data/movie_001.mrcs"
+    def __init__(self, index=1):
+        self._fileName = "/data/movie_%03d.mrcs" % index
 
     def getFileName(self):
         return self._fileName
@@ -64,6 +64,8 @@ class _MotioncorHarness(ProtRelionMotioncor):
         self.isEER = False
         self.saveFloat16 = False
         self.extraParams = _Value(None)
+        self.runCalls = 0
+        self.errors = []
 
     def _getOutputMovieFolder(self, movie):
         return "/tmp/relion-motioncor-test"
@@ -78,16 +80,28 @@ class _MotioncorHarness(ProtRelionMotioncor):
         return False
 
     def _runProgram(self, *args, **kwargs):
-        raise RuntimeError("relion_run_motioncorr failed")
+        self.runCalls += 1
+        if self.runCalls == 1:
+            raise RuntimeError("relion_run_motioncorr failed")
 
-    def error(self, *args, **kwargs):
+    def _saveAlignmentPlots(self, *args, **kwargs):
         pass
+
+    def _computeExtra(self, *args, **kwargs):
+        pass
+
+    def _moveFiles(self, *args, **kwargs):
+        pass
+
+    def error(self, message, *args, **kwargs):
+        self.errors.append(message)
 
 
 class TestRelionMotioncorStreamingFailures(TestCase):
-    def test_MotioncorProcessingFailurePropagatesBeforeDoneCheckpoint(self):
+    def test_MotioncorProcessingFailureDoesNotAbortFollowingMovie(self):
         protocol = _MotioncorHarness()
-        movie = _Movie()
+        firstMovie = _Movie(1)
+        secondMovie = _Movie(2)
 
         with patch(
             "relion.protocols.protocol_motioncor.pwutils.makePath"
@@ -98,8 +112,18 @@ class TestRelionMotioncorStreamingFailures(TestCase):
             "relion.protocols.protocol_motioncor.convert.createWriter",
             return_value=_Writer(),
         ):
-            with self.assertRaisesRegex(
-                RuntimeError,
-                "relion_run_motioncorr failed",
-            ):
-                protocol._processMovie(movie)
+            protocol._processMovie(firstMovie)
+            protocol._processMovie(secondMovie)
+
+        self.assertEqual(
+            2,
+            protocol.runCalls,
+            "A failed movie must not prevent the following movie from being processed.",
+        )
+        self.assertTrue(
+            any(
+                "ERROR processing movie" in message
+                for message in protocol.errors
+            ),
+            "The failed movie should still be reported in the protocol log.",
+        )
