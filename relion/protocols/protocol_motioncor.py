@@ -298,6 +298,48 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
         except Exception:
             self.error(f"ERROR processing movie: {movie.getFileName()}")
 
+    def _checkNewOutput(self):
+        # Persist outputs before committing movies to the done list.
+        if getattr(self, 'finished', False):
+            return
+
+        doneList = self._readDoneList()
+        newDone = [
+            movie for movie in self.listOfMovies
+            if movie.getObjId() not in doneList and self._isMovieDone(movie)
+        ]
+
+        self.debug('_checkNewOutput: ')
+        self.debug('   listOfMovies: %s, doneList: %s, newDone: %s'
+                   % (len(self.listOfMovies), len(doneList), len(newDone)))
+
+        self._firstTimeOutput = len(doneList) == 0
+        allDone = len(doneList) + len(newDone)
+        self.finished = self.streamClosed and allDone == len(self.listOfMovies)
+        streamMode = (pwobj.Set.STREAM_CLOSED
+                      if self.finished else pwobj.Set.STREAM_OPEN)
+
+        if not newDone and not self.finished:
+            return
+
+        self.debug('   finished: %s ' % self.finished)
+        self.debug('        self.streamClosed (%s) AND' % self.streamClosed)
+        self.debug('        allDone (%s) == len(self.listOfMovies (%s)'
+                   % (allDone, len(self.listOfMovies)))
+        self.debug('   streamMode: %s' % streamMode)
+
+        # If persistence fails, DONE/all.TXT must remain unchanged so
+        # Continue can retry these movies.
+        self._updateOutputSets(newDone, streamMode)
+
+        if newDone:
+            self._writeDoneList(newDone)
+
+        if self.finished:
+            outputStep = self._getFirstJoinStep()
+            if outputStep and outputStep.isWaiting():
+                outputStep.setStatus(cons.STATUS_NEW)
+
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
         summary = []

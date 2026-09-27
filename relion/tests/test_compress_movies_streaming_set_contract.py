@@ -332,3 +332,89 @@ class TestRelionCompressMoviesMissingTiff(TestCase):
             "The batch error must specifically report the missing TIFF, "
             "not an unrelated harness failure.",
         )
+
+class _PersistedMovie:
+    def __init__(self, objId):
+        self._objId = objId
+
+    def getObjId(self):
+        return self._objId
+
+
+class _ClosedResumeInput:
+    def __init__(self, items):
+        self._items = list(items)
+
+    def loadAllProperties(self):
+        pass
+
+    def iterItems(self):
+        return iter(self._items)
+
+    def isStreamClosed(self):
+        return True
+
+
+class _PersistedOutput:
+    def __init__(self, items):
+        self._items = list(items)
+        self.loadCalls = 0
+
+    def loadAllProperties(self):
+        self.loadCalls += 1
+
+    def __iter__(self):
+        return iter(self._items)
+
+
+class _ResumeCompletionHarness(ProtRelionCompressMoviesTasks):
+    def __init__(self, inputMovies, outputMovies):
+        self.inputMovies = _Pointer(inputMovies)
+        self.outputMovies = outputMovies
+        self.streamingSleepOnWait = _Value(0)
+        self.streamingBatchSize = _Value(1)
+        self.numberOfThreads = _Value(0)
+        self.closedWith = None
+
+    def info(self, *args, **kwargs):
+        pass
+
+    def _runProgram(self, *args, **kwargs):
+        pass
+
+    def _getTmpPath(self, *args):
+        return "/tmp"
+
+    def _linkGain(self):
+        return None
+
+    def _getCmd(self):
+        return ""
+
+    def _updateOutputSet(self, outputName, outputSet, state):
+        self.closedWith = (outputName, outputSet, state)
+
+
+class TestRelionCompressMoviesResumeCompletion(TestCase):
+    def testResumeClosesPersistedOutputWhenNoNewMoviesRemain(self):
+        movies = [_PersistedMovie(1), _PersistedMovie(2)]
+        inputMovies = _ClosedResumeInput(movies)
+        outputMovies = _PersistedOutput(
+            [_PersistedMovie(1), _PersistedMovie(2)]
+        )
+        protocol = _ResumeCompletionHarness(inputMovies, outputMovies)
+
+        module = "relion.protocols.protocol_compress_movies_tasks"
+        with patch(module + ".BatchManager", _EmptyBatchManager),                 patch(module + ".Pipeline", _EmptyPipeline):
+            protocol._processAllMoviesStep()
+
+        self.assertIsNotNone(
+            protocol.closedWith,
+            "Resume must finalize the already-persisted output even when "
+            "there are no new movies to process.",
+        )
+        self.assertIs(
+            outputMovies,
+            protocol.closedWith[1],
+            "Resume must close the existing persisted output, not None.",
+        )

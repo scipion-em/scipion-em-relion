@@ -127,3 +127,58 @@ class TestRelionMotioncorStreamingFailures(TestCase):
             ),
             "The failed movie should still be reported in the protocol log.",
         )
+
+class _DoneMovie:
+    def __init__(self, objId=1):
+        self._objId = objId
+
+    def getObjId(self):
+        return self._objId
+
+
+class _PersistenceFailureHarness(ProtRelionMotioncor):
+    def __init__(self):
+        self.listOfMovies = [_DoneMovie(1)]
+        self.streamClosed = False
+        self.doneWrites = []
+        self.persistenceCalls = 0
+
+    def _readDoneList(self):
+        return []
+
+    def _isMovieDone(self, movie):
+        return True
+
+    def _writeDoneList(self, movies):
+        self.doneWrites.extend(movie.getObjId() for movie in movies)
+
+    def _updateOutputSets(self, newDone, streamMode):
+        self.persistenceCalls += 1
+        raise RuntimeError("simulated output persistence failure")
+
+    def debug(self, *args, **kwargs):
+        pass
+
+
+class TestRelionMotioncorPersistenceResume(TestCase):
+    def test_PersistenceFailureDoesNotCommitMovieDoneList(self):
+        protocol = _PersistenceFailureHarness()
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "persistence",
+        ):
+            protocol._checkNewOutput()
+
+        self.assertEqual(
+            1,
+            protocol.persistenceCalls,
+            "The protocol must attempt to persist the processed movie.",
+        )
+        self.assertEqual(
+            [],
+            protocol.doneWrites,
+            "A movie must not be committed to the persistent done list "
+            "before its outputs have been persisted successfully; otherwise "
+            "Continue will skip the movie.",
+        )

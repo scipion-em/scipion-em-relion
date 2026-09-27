@@ -189,3 +189,153 @@ class TestRelionExtractParticlesBatchClosure(TestCase):
         )
         self.assertEqual([], deps)
         self.assertEqual({}, protocol.micDict)
+
+class _NoStorageFilenameSet:
+    def getFileName(self):
+        raise AssertionError(
+            "Streaming input discovery must not depend on a storage filename."
+        )
+
+
+class _LogicalCoordinates(_NoStorageFilenameSet):
+    def __init__(self, micrographs):
+        self._micrographs = micrographs
+
+    def getMicrographs(self):
+        return self._micrographs
+
+
+class _LogicalPointer:
+    def __init__(self, value):
+        self._value = value
+
+    def get(self):
+        return self._value
+
+
+class _BackendIndependentCheckHarness(ProtRelionExtractParticles):
+    def __init__(self):
+        self._micrographs = _NoStorageFilenameSet()
+        self._coordinates = _LogicalCoordinates(self._micrographs)
+        self.inputCoordinates = _LogicalPointer(self._coordinates)
+        self.micDict = {}
+        self.loadCalls = 0
+
+    def _micsOther(self):
+        return False
+
+    def _useCTF(self):
+        return False
+
+    def _loadInputList(self):
+        self.loadCalls += 1
+        return {}
+
+    def _getFirstJoinStep(self):
+        return None
+
+    def debug(self, *args, **kwargs):
+        pass
+
+    def updateSteps(self):
+        raise AssertionError("No new micrographs should have been scheduled.")
+
+
+class TestRelionExtractParticlesBackendIndependentInputCheck(TestCase):
+    def test_CheckNewInputDoesNotDependOnStorageMtime(self):
+        protocol = _BackendIndependentCheckHarness()
+
+        protocol._checkNewInput()
+
+        self.assertEqual(
+            1,
+            protocol.loadCalls,
+            "Streaming must refresh logical input state directly instead of "
+            "gating discovery on SQLite/file modification times.",
+        )
+
+class _LogicalMic:
+    def __init__(self, objId, name):
+        self._objId = objId
+        self._name = name
+
+    def getObjId(self):
+        return self._objId
+
+    def getMicName(self):
+        return self._name
+
+    def clone(self):
+        return _LogicalMic(self._objId, self._name)
+
+
+class _LogicalMicSet:
+    def __init__(self, items, closed=False):
+        self._items = list(items)
+        self._closed = closed
+        self.loadCalls = 0
+
+    def getFileName(self):
+        raise AssertionError(
+            "Logical streaming sets must not be reopened from a storage filename."
+        )
+
+    def loadAllProperties(self):
+        self.loadCalls += 1
+
+    def iterItems(self, *args, **kwargs):
+        return iter(self._items)
+
+    def isStreamClosed(self):
+        return self._closed
+
+
+class _LogicalCoordsForLoad:
+    def __init__(self, micrographs):
+        self._micrographs = micrographs
+
+    def getMicrographs(self):
+        return self._micrographs
+
+    def getFileName(self):
+        raise AssertionError(
+            "Coordinates must be consumed through the logical Set API."
+        )
+
+
+class _LogicalLoadHarness(ProtRelionExtractParticles):
+    def __init__(self):
+        self.micDict = {}
+        self.coordDict = {}
+        self._mics = _LogicalMicSet(
+            [_LogicalMic(7, "mic_007")],
+            closed=True,
+        )
+        self._coords = _LogicalCoordsForLoad(self._mics)
+        self.inputCoordinates = _LogicalPointer(self._coords)
+
+    def _micsOther(self):
+        return False
+
+    def _useCTF(self):
+        return False
+
+    def _loadInputCoords(self, micDict):
+        self.coordsClosed = True
+        return micDict
+
+    def debug(self, *args, **kwargs):
+        pass
+
+
+class TestRelionExtractParticlesLogicalSetLoading(TestCase):
+    def test_LoadInputListUsesLogicalSets(self):
+        protocol = _LogicalLoadHarness()
+
+        newMics = protocol._loadInputList()
+
+        self.assertEqual(["mic_007"], list(newMics.keys()))
+        self.assertEqual(1, protocol._mics.loadCalls)
+        self.assertTrue(protocol.micsClosed)
+        self.assertTrue(protocol.ctfsClosed)
+        self.assertTrue(protocol.streamClosed)

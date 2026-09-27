@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from pwem.protocols import ProtParticlePickingAuto
 from relion.protocols.protocol_autopick_ref import ProtRelion2Autopick
+from relion.protocols.protocol_autopick_log import ProtRelionAutopickLoG
 
 
 class _ClosedMicrographs:
@@ -243,3 +244,214 @@ class TestRelionAutopickBatchFiltering(TestCase):
             "_loadInputList(), since those are the ones whose required CTF "
             "input is ready.",
         )
+
+class _NoStorageMicSet:
+    def getFileName(self):
+        raise AssertionError(
+            "Autopick streaming must not depend on a storage filename."
+        )
+
+
+class _AutopickLogicalInputHarness(ProtRelion2Autopick):
+    def __init__(self):
+        self._mics = _NoStorageMicSet()
+        self.micDict = {}
+        self.streamClosed = False
+        self.loadCalls = 0
+
+    def getInputMicrographs(self):
+        return self._mics
+
+    def _loadInputList(self):
+        self.loadCalls += 1
+        return {}, False
+
+    def _getFirstJoinStep(self):
+        return None
+
+    def debug(self, *args, **kwargs):
+        pass
+
+    def updateSteps(self):
+        raise AssertionError("No new micrographs should have been scheduled.")
+
+
+class TestRelionAutopickBackendIndependentInputCheck(TestCase):
+    def test_CheckNewInputDoesNotDependOnStorageMtime(self):
+        protocol = _AutopickLogicalInputHarness()
+
+        protocol._checkNewInput()
+
+        self.assertEqual(
+            1,
+            protocol.loadCalls,
+            "Autopick streaming must refresh logical input state directly "
+            "instead of gating discovery on SQLite/file modification times.",
+        )
+
+class _LogicalAutopickMic:
+    def __init__(self, objId, name):
+        self._objId = objId
+        self._name = name
+
+    def getObjId(self):
+        return self._objId
+
+    def getMicName(self):
+        return self._name
+
+    def clone(self):
+        return _LogicalAutopickMic(self._objId, self._name)
+
+
+class _LogicalAutopickMicSet:
+    def __init__(self, items, closed=False):
+        self._items = list(items)
+        self._closed = closed
+        self.loadCalls = 0
+
+    def getFileName(self):
+        raise AssertionError(
+            "Autopick streaming Sets must not be reopened from storage filenames."
+        )
+
+    def loadAllProperties(self):
+        self.loadCalls += 1
+
+    def iterItems(self):
+        return iter(self._items)
+
+    def isStreamClosed(self):
+        return self._closed
+
+
+class _AutopickLogicalLoadHarness(ProtRelion2Autopick):
+    def __init__(self):
+        self.micDict = {}
+        self.ctfRelations = _Pointer(None)
+        self._mics = _LogicalAutopickMicSet(
+            [_LogicalAutopickMic(7, "mic_007")],
+            closed=True,
+        )
+
+    def getInputMicrographs(self):
+        return self._mics
+
+    def debug(self, *args, **kwargs):
+        pass
+
+
+class TestRelionAutopickLogicalSetLoading(TestCase):
+    def test_LoadInputListUsesLogicalSets(self):
+        protocol = _AutopickLogicalLoadHarness()
+
+        newMics, closed = protocol._loadInputList()
+
+        self.assertEqual(["mic_007"], list(newMics.keys()))
+        self.assertEqual(1, protocol._mics.loadCalls)
+        self.assertTrue(closed)
+
+class _LoGNoStorageMicSet:
+    def getFileName(self):
+        raise AssertionError(
+            "LoG streaming must not depend on a storage filename."
+        )
+
+
+class _LoGLogicalInputHarness(ProtRelionAutopickLoG):
+    def __init__(self):
+        self._mics = _LoGNoStorageMicSet()
+        self.micDict = {}
+        self.streamClosed = False
+        self.loadCalls = 0
+
+    def getInputMicrographs(self):
+        return self._mics
+
+    def _loadInputList(self):
+        self.loadCalls += 1
+        return {}, False
+
+    def _getFirstJoinStep(self):
+        return None
+
+    def debug(self, *args, **kwargs):
+        pass
+
+    def updateSteps(self):
+        raise AssertionError("No new micrographs should have been scheduled.")
+
+
+class TestRelionAutopickLoGBackendIndependentInputCheck(TestCase):
+    def test_LoGCheckNewInputDoesNotDependOnStorageMtime(self):
+        protocol = _LoGLogicalInputHarness()
+
+        protocol._checkNewInput()
+
+        self.assertEqual(
+            1,
+            protocol.loadCalls,
+            "LoG streaming must refresh logical input state directly instead "
+            "of gating discovery on SQLite/file modification times.",
+        )
+
+class _LoGLogicalMic:
+    def __init__(self, objId, name):
+        self._objId = objId
+        self._name = name
+
+    def getObjId(self):
+        return self._objId
+
+    def getMicName(self):
+        return self._name
+
+    def clone(self):
+        return _LoGLogicalMic(self._objId, self._name)
+
+
+class _LoGLogicalMicSet:
+    def __init__(self, items, closed=False):
+        self._items = list(items)
+        self._closed = closed
+        self.loadCalls = 0
+
+    def getFileName(self):
+        raise AssertionError(
+            "LoG streaming Sets must not be reopened from storage filenames."
+        )
+
+    def loadAllProperties(self):
+        self.loadCalls += 1
+
+    def iterItems(self):
+        return iter(self._items)
+
+    def isStreamClosed(self):
+        return self._closed
+
+
+class _LoGLogicalLoadHarness(ProtRelionAutopickLoG):
+    def __init__(self):
+        self.micDict = {}
+        self._mics = _LoGLogicalMicSet(
+            [_LoGLogicalMic(9, "mic_009")],
+            closed=True,
+        )
+
+    def getInputMicrographs(self):
+        return self._mics
+
+    def debug(self, *args, **kwargs):
+        pass
+
+
+class TestRelionAutopickLoGLogicalSetLoading(TestCase):
+    def test_LoGLoadInputListUsesLogicalSets(self):
+        protocol = _LoGLogicalLoadHarness()
+
+        newMics, closed = protocol._loadInputList()
+
+        self.assertEqual(["mic_009"], list(newMics.keys()))
+        self.assertEqual(1, protocol._mics.loadCalls)
+        self.assertTrue(closed)

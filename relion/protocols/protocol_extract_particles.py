@@ -502,6 +502,110 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         return 'micrographs_%05d-%05d.star' % (micList[0].getObjId(),
                                                micList[-1].getObjId())
 
+    def _loadInputList(self):
+        # Streaming input discovery must use logical Sets instead of
+        # reopening compatibility SQLite files.
+        def _loadSet(inputSet, getKeyFunc):
+            inputSet.loadAllProperties()
+            newItemDict = {}
+
+            for item in inputSet.iterItems():
+                itemKey = getKeyFunc(item)
+                if itemKey not in self.micDict:
+                    newItemDict[itemKey] = item.clone()
+
+            return newItemDict, inputSet.isStreamClosed()
+
+        def _loadMics(micSet):
+            return _loadSet(micSet, lambda mic: mic.getMicName())
+
+        def _loadCTFs(ctfSet):
+            return _loadSet(
+                ctfSet,
+                lambda ctf: ctf.getMicrograph().getMicName(),
+            )
+
+        self.debug("Loading Mics from Coords.")
+        coordMics = self.inputCoordinates.get().getMicrographs()
+        micDict, self.micsClosed = _loadMics(coordMics)
+
+        if self._micsOther():
+            self.debug("Loading other Mics.")
+            otherMics, otherClosed = _loadMics(self.inputMicrographs.get())
+            self.micsClosed = self.micsClosed and otherClosed
+
+            matchedMics = {}
+            for micKey, mic in micDict.items():
+                if micKey in otherMics:
+                    otherMic = otherMics[micKey]
+                    otherMic.copyObjId(mic)
+                    matchedMics[micKey] = otherMic
+            micDict = matchedMics
+
+        self.debug("Mics are closed? %s" % self.micsClosed)
+
+        if self._useCTF():
+            self.debug("Loading CTFs.")
+            ctfDict, self.ctfsClosed = _loadCTFs(self.ctfRelations.get())
+
+            matchedMics = {}
+            for micKey, mic in micDict.items():
+                if micKey in ctfDict:
+                    mic.setCTF(ctfDict[micKey])
+                    matchedMics[micKey] = mic
+            micDict = matchedMics
+        else:
+            self.ctfsClosed = True
+
+        self.debug("CTFs are closed? %s" % self.ctfsClosed)
+        self.debug("Loading Coords.")
+
+        micDict = self._loadInputCoords(micDict)
+        self.streamClosed = self._isStreamClosed()
+
+        return micDict
+
+    def _loadInputCoords(self, micDict):
+        # Load coordinates through the logical Set API.
+        coordSet = self.getCoords()
+        coordSet.loadAllProperties()
+        micList = {}
+
+        for micKey, mic in micDict.items():
+            micId = mic.getObjId()
+            coordList = [
+                coord.clone()
+                for coord in coordSet.iterItems(where='_micId=%s' % micId)
+            ]
+
+            self.debug(
+                "Coords found for mic %s (%s): %s"
+                % (micId, micKey, len(coordList))
+            )
+
+            if coordList:
+                self.coordDict[micId] = coordList
+                micList[micKey] = mic
+
+        self.coordsClosed = coordSet.isStreamClosed()
+        self.debug("Coords are closed? %s" % self.coordsClosed)
+
+        return micList
+
+    def _checkNewInput(self):
+        # Refresh logical streaming inputs on every check. Do not gate
+        # discovery on storage filenames or file modification times.
+        self.debug(">>> _checkNewInput ")
+
+        newMics = self._loadInputList()
+        outputStep = self._getFirstJoinStep()
+
+        if newMics:
+            deps = self._insertNewMicsSteps(newMics.values())
+            if outputStep is not None:
+                outputStep.addPrerequisites(*deps)
+            self.updateSteps()
+
     def _isStreamOpen(self):
         if self._useCTF():
             ctfStreamOpen = self.ctfRelations.get().isStreamOpen()

@@ -206,7 +206,7 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
         batchMgr = BatchManager(self.streamingBatchSize.get(), moviesIter,
                                 self._getTmpPath())
 
-        self._outputMovies = None
+        self._outputMovies = outputMovies
         self._gainFile = self._linkGain()
         self.cmd = self._getCmd()
 

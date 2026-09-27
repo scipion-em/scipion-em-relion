@@ -38,6 +38,33 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
     """
     _label = None
 
+    def _loadSet(self, inputSet, SetClass, getKeyFunc):
+        # Relion autopick streaming must use logical Sets instead of
+        # reopening compatibility SQLite files.
+        refresh = getattr(inputSet, 'loadAllProperties', None)
+        if callable(refresh):
+            refresh()
+
+        newItemDict = {}
+        for item in inputSet.iterItems():
+            itemKey = getKeyFunc(item)
+            if itemKey not in self.micDict:
+                newItemDict[itemKey] = item.clone()
+
+        return newItemDict, inputSet.isStreamClosed()
+
+    def _checkNewInput(self):
+        # Refresh logical input state directly. Do not gate discovery on
+        # storage filenames or filesystem modification times.
+        micDict, self.streamClosed = self._loadInputList()
+        outputStep = self._getFirstJoinStep()
+
+        if micDict:
+            deps = self._insertNewMicsSteps(micDict.values())
+            if outputStep is not None:
+                outputStep.addPrerequisites(*deps)
+            self.updateSteps()
+
     def _pickMicrograph(self, mic, *args):
         """ This method should be invoked only when working in streaming mode.
         """
