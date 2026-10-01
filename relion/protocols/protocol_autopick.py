@@ -38,6 +38,33 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
     """
     _label = None
 
+    def _loadSet(self, inputSet, SetClass, getKeyFunc):
+        # Relion autopick streaming must use logical Sets instead of
+        # reopening compatibility SQLite files.
+        refresh = getattr(inputSet, 'loadAllProperties', None)
+        if callable(refresh):
+            refresh()
+
+        newItemDict = {}
+        for item in inputSet.iterItems():
+            itemKey = getKeyFunc(item)
+            if itemKey not in self.micDict:
+                newItemDict[itemKey] = item.clone()
+
+        return newItemDict, inputSet.isStreamClosed()
+
+    def _checkNewInput(self):
+        # Refresh logical input state directly. Do not gate discovery on
+        # storage filenames or filesystem modification times.
+        micDict, self.streamClosed = self._loadInputList()
+        outputStep = self._getFirstJoinStep()
+
+        if micDict:
+            deps = self._insertNewMicsSteps(micDict.values())
+            if outputStep is not None:
+                outputStep.addPrerequisites(*deps)
+            self.updateSteps()
+
     def _pickMicrograph(self, mic, *args):
         """ This method should be invoked only when working in streaming mode.
         """
@@ -51,9 +78,33 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
         micStar = os.path.join(micsDir, 'input_micrographs.star')
         writer = convert.createWriter(rootDir=micsDir, outputDir=micsDir)
         writer.writeSetOfMicrographs(micList, micStar)
-        self._pickMicrographsFromStar(micStar, micsDir, *args)
-        # Move coordinates files to tmp
-        os.system('mv %s/*autopick.star %s/' % (micsDir, self._getTmpPath()))
+        try:
+            # pickMicrographListStep (pwem) has no exception boundary of
+            # its own around this call - a single relion_autopick crash
+            # for the whole batch would otherwise propagate uncaught and
+            # abort the entire streaming run instead of being reported
+            # like every other missing-output case below.
+            self._pickMicrographsFromStar(micStar, micsDir, *args)
+        except Exception as e:
+            self.error(
+                "ERROR: Autopick failed for micrograph batch starting at "
+                "%s with the exception %s" % (micList[0].getObjId(), e)
+            )
+
+        # Move each expected coordinates file explicitly. Do not let a
+        # successful wildcard move hide a missing output for one mic in a batch.
+        for mic in micList:
+            fileName = 'mic_%06d_autopick.star' % mic.getObjId()
+            srcFile = os.path.join(micsDir, fileName)
+            dstFile = self._getTmpPath(fileName)
+
+            if os.path.exists(srcFile):
+                pwutils.moveFile(srcFile, dstFile)
+            elif not os.path.exists(dstFile):
+                self.warning(
+                    "Missing autopick output for micrograph %s: %s / %s"
+                    % (mic.getObjId(), srcFile, dstFile)
+                )
 
     def _createSetOfCoordinates(self, micSet, suffix=''):
         """ Override this method to set the box size. """

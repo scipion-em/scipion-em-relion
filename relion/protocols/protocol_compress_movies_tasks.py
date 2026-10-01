@@ -25,10 +25,13 @@
 # ******************************************************************************
 
 import os
+import time
+import traceback
+from datetime import datetime
 
 from emtools.utils import Timer, Pretty
 from emtools.jobs import Pipeline
-from emtools.pwx import SetMonitor, BatchManager
+from emtools.pwx import BatchManager
 from emtools.metadata import StarFile, Table
 
 from pyworkflow import SCIPION_DEBUG_NOCLEAN
@@ -37,7 +40,7 @@ import pyworkflow.object as pwobj
 import pyworkflow.utils as pwutils
 from pyworkflow.constants import BETA
 from pwem.protocols import ProtProcessMovies
-from pwem.objects import MovieAlignment, SetOfMovies, ImageDim, FramesRange
+from pwem.objects import MovieAlignment, ImageDim, FramesRange
 from pyworkflow.protocol import STEPS_SERIAL
 
 
@@ -146,19 +149,65 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
 
         return gainFile
 
+    def _iterInputMovies(self, moviesSet, label,
+                         blacklist=None, waitSecs=60):
+        """Yield new movies using the logical Set streaming API."""
+        seenIds = set()
+
+        if blacklist is not None:
+            refreshBlacklist = getattr(blacklist, 'loadAllProperties', None)
+            if callable(refreshBlacklist):
+                refreshBlacklist()
+
+            for item in blacklist:
+                itemId = item.getObjId()
+                if itemId is not None:
+                    seenIds.add(itemId)
+
+        if seenIds:
+            self.info("Existing output: %d %s" % (len(seenIds), label))
+        else:
+            self.info("No output %s." % label)
+
+        while True:
+            lastCheck = datetime.now()
+            moviesSet.loadAllProperties()
+
+            for item in moviesSet.iterItems():
+                itemId = item.getObjId()
+                if itemId in seenIds:
+                    continue
+
+                if itemId is not None:
+                    seenIds.add(itemId)
+
+                yield item.clone()
+
+            if moviesSet.isStreamClosed():
+                break
+
+            while not moviesSet.hasChangedSince(lastCheck):
+                if waitSecs:
+                    time.sleep(waitSecs)
+
+        self.info("No more %s, stream closed. Total: %d"
+                  % (label, len(seenIds)))
+
     def _processAllMoviesStep(self):
         self.info("Relion version:")
         self._runProgram('--version')
 
-        moviesMtr = SetMonitor(SetOfMovies,
-                               self.inputMovies.get().getFileName(),
-                               blacklist=getattr(self, 'outputMovies', None))
-        moviesIter = moviesMtr.iterProtocolInput(self, 'movies',
-                                                 waitSecs=self.streamingSleepOnWait.get())
+        inputMovies = self.inputMovies.get()
+        outputMovies = getattr(self, 'outputMovies', None)
+        moviesIter = self._iterInputMovies(
+            inputMovies,
+            'movies',
+            blacklist=outputMovies,
+            waitSecs=self.streamingSleepOnWait.get())
         batchMgr = BatchManager(self.streamingBatchSize.get(), moviesIter,
                                 self._getTmpPath())
 
-        self._outputMovies = None
+        self._outputMovies = outputMovies
         self._gainFile = self._linkGain()
         self.cmd = self._getCmd()
 
@@ -170,11 +219,41 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
                                      outputQueue=outputQueue)
             outputQueue = proc.outputQueue
 
-        pipe.addProcessor(outputQueue, self._outputFromBatch)
+        failedBatches = []
+
+        def _updateOutput(batch):
+            if batch.get('error'):
+                failedBatches.append(batch)
+                return batch
+
+            try:
+                # emtools.jobs.Pipeline's TaskGenerator.run() has no
+                # exception boundary of its own: an uncaught exception
+                # here would die silently in this worker thread and
+                # skip notifyGeneratorEnds(), leaving every downstream
+                # node waiting forever instead of the pipeline simply
+                # failing. _outputFromBatch must never raise out of
+                # this callback.
+                self._outputFromBatch(batch)
+            except Exception as e:
+                batch['error'] = str(e)
+                failedBatches.append(batch)
+                self.error(
+                    "ERROR: updating output movies failed for batch %s. "
+                    "--> %s\n" % (batch.get('id'), e)
+                )
+                traceback.print_exc()
+
+            return batch
+
+        pipe.addProcessor(outputQueue, _updateOutput)
         pipe.run()
 
-        for batch in batchMgr.generate():
-            self._processBatch(batch)
+        if failedBatches:
+            raise RuntimeError(
+                "Relion movie compression failed for one or more "
+                "streaming batches."
+            )
 
         self._updateOutputSet('outputMovies', self._outputMovies,
                               pwobj.Set.STREAM_CLOSED)
@@ -205,7 +284,10 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
                     pwutils.moveFile(outputFn, dstFn)
                     movie.setFileName(dstFn)
                 else:
-                    movie.setFileName(None)
+                    raise RuntimeError(
+                        "Missing TIFF output for movie %s: %s"
+                        % (fn, outputFn)
+                    )
 
             gain = 'gain-reference.mrc'
             outputGain = os.path.join(batchPath, gain)
@@ -222,12 +304,14 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
             self.error("ERROR: relion_convert_to_tiff has failed for batch %s. --> %s\n"
                        % (batch['id'], eStr))
             batch['error'] = eStr
-            import traceback
             traceback.print_exc()
 
         return batch
 
     def _outputFromBatch(self, batch):
+        if batch.get('error'):
+            return
+
         # First time we are running this function for this execution
         firstOutput = False
 
@@ -242,8 +326,15 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
                 outputMovies.setDim(dim)  # Clear image dim
                 framesRange = [1, dim[2], 1]
                 acq = outputMovies.getAcquisition()
-                newDose = acq.getDosePerFrame() * self.eerGroup.get()
-                acq.setDosePerFrame(newDose)
+                # The input movies' acquisition may not carry a dose per
+                # frame at all (e.g. an import that didn't set it) - only
+                # regroup it into the EER-fractionated dose when it is
+                # actually known, instead of crashing on None * int or
+                # fabricating a fake 0.0 dose that downstream protocols
+                # would then treat as "dose is known and is zero".
+                dosePerFrame = acq.getDosePerFrame()
+                if dosePerFrame is not None:
+                    acq.setDosePerFrame(dosePerFrame * self.eerGroup.get())
                 outputMovies.setFramesRange(framesRange)
                 outputGain = self._getExtraPath('gain-reference.mrc')
                 if os.path.exists(outputGain):
