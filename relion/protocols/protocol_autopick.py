@@ -78,7 +78,18 @@ class ProtRelionAutopickBase(ProtParticlePickingAuto, ProtRelionBase):
         micStar = os.path.join(micsDir, 'input_micrographs.star')
         writer = convert.createWriter(rootDir=micsDir, outputDir=micsDir)
         writer.writeSetOfMicrographs(micList, micStar)
-        self._pickMicrographsFromStar(micStar, micsDir, *args)
+        try:
+            # pickMicrographListStep (pwem) has no exception boundary of
+            # its own around this call - a single relion_autopick crash
+            # for the whole batch would otherwise propagate uncaught and
+            # abort the entire streaming run instead of being reported
+            # like every other missing-output case below.
+            self._pickMicrographsFromStar(micStar, micsDir, *args)
+        except Exception as e:
+            self.error(
+                "ERROR: Autopick failed for micrograph batch starting at "
+                "%s with the exception %s" % (micList[0].getObjId(), e)
+            )
 
         # Move each expected coordinates file explicitly. Do not let a
         # successful wildcard move hide a missing output for one mic in a batch.

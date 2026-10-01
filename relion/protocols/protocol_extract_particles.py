@@ -192,7 +192,22 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
 
         args = ' --i %s --part_star %s %s' % (micsStar, partsStar, params)
 
-        self.runJob(self._getProgram('relion_preprocess'), args, cwd=workingDir)
+        try:
+            # extractMicrographListStep (pwem) has no exception boundary
+            # of its own around this call - a single relion_preprocess
+            # crash for the whole batch would otherwise propagate
+            # uncaught and abort the entire streaming run. Downstream,
+            # readPartsFromMics already reports a missing particle stack
+            # per micrograph instead of crashing, so letting this batch's
+            # mics fall through to that same "no output produced" path is
+            # consistent with the rest of this protocol's failure handling.
+            self.runJob(self._getProgram('relion_preprocess'), args, cwd=workingDir)
+        except Exception as e:
+            self.error(
+                "ERROR: relion_preprocess failed for micrograph batch "
+                "starting at %s with the exception %s"
+                % (micList[0].getObjId(), e)
+            )
 
     def createOutputStep(self):
         pass
@@ -335,48 +350,65 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         extra = self._getExtraPath()
 
         for mic in micList:
-            posSet = set()
-            coordDict = {self._getPos(c): c
-                         for c in self.coordDict[mic.getObjId()]}
-            del self.coordDict[mic.getObjId()]
+            try:
+                # Isolate this mic's failures (a missing particle stack,
+                # a corrupted star table) from the rest of the batch.
+                # The outer caller (pwem's _updateOutputPartSet) already
+                # has its own try/except, but it treats the WHOLE pending
+                # batch as lost if any single mic raises - per-mic
+                # isolation here means one bad mic no longer costs its
+                # siblings in the same batch their particles too.
+                posSet = set()
+                coordDict = {self._getPos(c): c
+                             for c in self.coordDict[mic.getObjId()]}
 
-            ogNumber = mic.getAttributeValue('_rlnOpticsGroup', 1)
+                ogNumber = mic.getAttributeValue('_rlnOpticsGroup', 1)
 
-            partsStar = self.__getMicFile(mic, '_extract.star', folder=tmp)
-            partsTable = relion.convert.Table(fileName=partsStar)
-            stackFile = self.__getMicFile(mic, '.mrcs', folder=tmp)
-            endStackFile = self.__getMicFile(mic, '.mrcs', folder=extra)
+                partsStar = self.__getMicFile(mic, '_extract.star', folder=tmp)
+                partsTable = relion.convert.Table(fileName=partsStar)
+                stackFile = self.__getMicFile(mic, '.mrcs', folder=tmp)
+                endStackFile = self.__getMicFile(mic, '.mrcs', folder=extra)
 
-            if os.path.exists(stackFile):
-                pwutils.moveFile(stackFile, endStackFile)
-            elif not os.path.exists(endStackFile):
-                raise FileNotFoundError(
-                    "Particle stack not found in temporary or output path: "
-                    "%s / %s" % (stackFile, endStackFile)
+                if os.path.exists(stackFile):
+                    pwutils.moveFile(stackFile, endStackFile)
+                elif not os.path.exists(endStackFile):
+                    raise FileNotFoundError(
+                        "Particle stack not found in temporary or output path: "
+                        "%s / %s" % (stackFile, endStackFile)
+                    )
+
+                for part in partsTable:
+                    pos = (int(float(part.rlnCoordinateX)),
+                           int(float(part.rlnCoordinateY)))
+
+                    if pos in posSet:
+                        self.warning(f"Duplicate coordinate at: {str(pos)}, IGNORED.")
+                        coord = None
+                    else:
+                        coord = coordDict.get(pos, None)
+
+                    if coord is not None:
+                        # scale the coordinates according to particles dimension.
+                        coord.scale(self.getBoxScale())
+                        p.copyObjId(coord)
+                        idx, _ = relionToLocation(part.rlnImageName)
+                        p.setLocation(idx, endStackFile)
+                        p.setCoordinate(coord)
+                        p.setMicId(mic.getObjId())
+                        p.setCTF(mic.getCTF())
+                        p._rlnOpticsGroup.set(ogNumber)
+                        outputParts.append(p)
+                        posSet.add(pos)
+            except Exception as e:
+                self.error(
+                    "ERROR: Reading particles failed for micrograph %s "
+                    "with the exception %s" % (mic.getObjId(), e)
                 )
-
-            for part in partsTable:
-                pos = (int(float(part.rlnCoordinateX)),
-                       int(float(part.rlnCoordinateY)))
-
-                if pos in posSet:
-                    self.warning(f"Duplicate coordinate at: {str(pos)}, IGNORED.")
-                    coord = None
-                else:
-                    coord = coordDict.get(pos, None)
-
-                if coord is not None:
-                    # scale the coordinates according to particles dimension.
-                    coord.scale(self.getBoxScale())
-                    p.copyObjId(coord)
-                    idx, _ = relionToLocation(part.rlnImageName)
-                    p.setLocation(idx, endStackFile)
-                    p.setCoordinate(coord)
-                    p.setMicId(mic.getObjId())
-                    p.setCTF(mic.getCTF())
-                    p._rlnOpticsGroup.set(ogNumber)
-                    outputParts.append(p)
-                    posSet.add(pos)
+            finally:
+                # Whether this mic succeeded or failed, there is no retry
+                # path for a one-shot batch read - drop its coordinates so
+                # they are not held onto for the rest of the run.
+                self.coordDict.pop(mic.getObjId(), None)
 
     def _updateOutputSet(self, outputName, outputSet,
                          state=Set.STREAM_OPEN):

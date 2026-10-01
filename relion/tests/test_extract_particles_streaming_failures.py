@@ -83,6 +83,91 @@ class TestRelionExtractParticlesStreamingFailures(TestCase):
             protocol.readPartsFromMics([mic], outputParts)
 
         moveFile.assert_not_called()
+
+
+class _MultiMic:
+    def __init__(self, objId):
+        self._objId = objId
+
+    def getObjId(self):
+        return self._objId
+
+    def getAttributeValue(self, name, default=None):
+        return default
+
+    def getCTF(self):
+        return None
+
+
+class _PerMicIsolationHarness(ProtRelionExtractParticles):
+    def __init__(self):
+        self.coordDict = {1: [], 2: []}
+        self.errors = []
+
+    def getInputMicrographs(self):
+        return _InputMicrographs()
+
+    def _getTmpPath(self, *paths):
+        base = "/tmp/relion-extract-isolation"
+        return os.path.join(base, *paths) if paths else base
+
+    def _getExtraPath(self, *paths):
+        base = "/extra/relion-extract-isolation"
+        return os.path.join(base, *paths) if paths else base
+
+    def warning(self, *args, **kwargs):
+        pass
+
+    def error(self, message):
+        self.errors.append(message)
+
+
+class TestRelionExtractParticlesPerMicIsolation(TestCase):
+    # Regression test: readPartsFromMics used to let one mic's exception
+    # (e.g. a missing particle stack) propagate out of the whole batch
+    # loop, losing every OTHER mic's work in the same batch too. pwem's
+    # own outer try/except (_updateOutputPartSet) only prevents a
+    # protocol-wide crash - it still treats the whole pending batch as
+    # lost. Per-mic isolation means mic 2 must still be attempted (and
+    # have its coordDict entry cleaned up) even though mic 1 fails.
+    def test_OneMicFailureDoesNotStopTheRestOfTheBatch(self):
+        protocol = _PerMicIsolationHarness()
+        mic1 = _MultiMic(1)
+        mic2 = _MultiMic(2)
+        outputParts = MagicMock()
+
+        def exists(path):
+            # mic 1's stack is missing everywhere -> must fail and be
+            # reported. mic 2's stack already exists in extra -> must
+            # still be reached and succeed.
+            return path == "/extra/relion-extract-isolation/mic_000002.mrcs"
+
+        with patch(
+            "relion.protocols.protocol_extract_particles.relion.convert.Table",
+            return_value=[],
+        ), patch(
+            "relion.protocols.protocol_extract_particles.os.path.exists",
+            side_effect=exists,
+        ), patch(
+            "relion.protocols.protocol_extract_particles.pwutils.moveFile"
+        ):
+            # Must not raise.
+            protocol.readPartsFromMics([mic1, mic2], outputParts)
+
+        self.assertEqual(
+            1,
+            len(protocol.errors),
+            "Exactly mic 1 should have failed and been reported.",
+        )
+        self.assertIn("micrograph 1 ", protocol.errors[0])
+        self.assertEqual(
+            {},
+            protocol.coordDict,
+            "Both mics' coordinates must be dropped after this one-shot "
+            "read attempt, whether they succeeded or failed.",
+        )
+
+
 class _BatchValue:
     def __init__(self, value):
         self.value = value

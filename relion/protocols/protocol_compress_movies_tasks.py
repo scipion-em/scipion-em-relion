@@ -26,6 +26,7 @@
 
 import os
 import time
+import traceback
 from datetime import datetime
 
 from emtools.utils import Timer, Pretty
@@ -223,15 +224,30 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
         def _updateOutput(batch):
             if batch.get('error'):
                 failedBatches.append(batch)
-            return self._outputFromBatch(batch)
+                return batch
+
+            try:
+                # emtools.jobs.Pipeline's TaskGenerator.run() has no
+                # exception boundary of its own: an uncaught exception
+                # here would die silently in this worker thread and
+                # skip notifyGeneratorEnds(), leaving every downstream
+                # node waiting forever instead of the pipeline simply
+                # failing. _outputFromBatch must never raise out of
+                # this callback.
+                self._outputFromBatch(batch)
+            except Exception as e:
+                batch['error'] = str(e)
+                failedBatches.append(batch)
+                self.error(
+                    "ERROR: updating output movies failed for batch %s. "
+                    "--> %s\n" % (batch.get('id'), e)
+                )
+                traceback.print_exc()
+
+            return batch
 
         pipe.addProcessor(outputQueue, _updateOutput)
         pipe.run()
-
-        for batch in batchMgr.generate():
-            batch = self._processBatch(batch)
-            if batch.get('error'):
-                failedBatches.append(batch)
 
         if failedBatches:
             raise RuntimeError(
@@ -288,7 +304,6 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
             self.error("ERROR: relion_convert_to_tiff has failed for batch %s. --> %s\n"
                        % (batch['id'], eStr))
             batch['error'] = eStr
-            import traceback
             traceback.print_exc()
 
         return batch
@@ -311,8 +326,15 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
                 outputMovies.setDim(dim)  # Clear image dim
                 framesRange = [1, dim[2], 1]
                 acq = outputMovies.getAcquisition()
-                newDose = acq.getDosePerFrame() * self.eerGroup.get()
-                acq.setDosePerFrame(newDose)
+                # The input movies' acquisition may not carry a dose per
+                # frame at all (e.g. an import that didn't set it) - only
+                # regroup it into the EER-fractionated dose when it is
+                # actually known, instead of crashing on None * int or
+                # fabricating a fake 0.0 dose that downstream protocols
+                # would then treat as "dose is known and is zero".
+                dosePerFrame = acq.getDosePerFrame()
+                if dosePerFrame is not None:
+                    acq.setDosePerFrame(dosePerFrame * self.eerGroup.get())
                 outputMovies.setFramesRange(framesRange)
                 outputGain = self._getExtraPath('gain-reference.mrc')
                 if os.path.exists(outputGain):

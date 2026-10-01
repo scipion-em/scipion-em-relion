@@ -89,14 +89,26 @@ class _EmptyBatchManager:
 
 
 class _EmptyPipeline:
-    def addGenerator(self, *args, **kwargs):
+    # A real Pipeline's generator node fully drains its generator
+    # function inside pipe.run() (TaskGenerator.run() iterates it to
+    # completion before notifyGeneratorEnds()). This fake must do the
+    # same instead of being a no-op, otherwise nothing ever actually
+    # iterates batchMgr.generate()/the underlying movies iterator in
+    # these tests.
+    def __init__(self):
+        self._generatorFunc = None
+
+    def addGenerator(self, generatorFunc, *args, **kwargs):
+        self._generatorFunc = generatorFunc
         return SimpleNamespace(outputQueue=None)
 
     def addProcessor(self, *args, **kwargs):
         return SimpleNamespace(outputQueue=None)
 
     def run(self):
-        pass
+        if self._generatorFunc is not None:
+            for _ in self._generatorFunc():
+                pass
 
 
 class TestRelionCompressMoviesStreamingSetContract(TestCase):
@@ -417,4 +429,164 @@ class TestRelionCompressMoviesResumeCompletion(TestCase):
             outputMovies,
             protocol.closedWith[1],
             "Resume must close the existing persisted output, not None.",
+        )
+
+
+class _DoseAcquisition:
+    def __init__(self, dosePerFrame=None):
+        self._dosePerFrame = dosePerFrame
+
+    def getDosePerFrame(self):
+        return self._dosePerFrame
+
+    def setDosePerFrame(self, value):
+        self._dosePerFrame = value
+
+
+class _DoseOutputMovies:
+    def __init__(self):
+        self._acquisition = _DoseAcquisition(dosePerFrame=None)
+        self.appended = []
+
+    def setStreamState(self, state):
+        pass
+
+    def copyInfo(self, other):
+        pass
+
+    def setDim(self, dim):
+        pass
+
+    def getAcquisition(self):
+        return self._acquisition
+
+    def setFramesRange(self, r):
+        pass
+
+    def getFramesRange(self):
+        return [1, 1, 1]
+
+    def setGain(self, gain):
+        pass
+
+    def enableAppend(self):
+        pass
+
+    def append(self, movie):
+        self.appended.append(movie)
+
+
+class _DoseMovie:
+    def getDim(self):
+        return (10, 10, 2)
+
+    def getFileName(self):
+        return "/data/movie_0001.tif"
+
+    def setAcquisition(self, acq):
+        pass
+
+    def setFramesRange(self, r):
+        pass
+
+
+class _DoseBatchHarness(ProtRelionCompressMoviesTasks):
+    # Regression harness: the input movies' acquisition may not carry a
+    # dose per frame at all (e.g. an import that didn't set it).
+    # _outputFromBatch used to do "acq.getDosePerFrame() * eerGroup"
+    # unconditionally, crashing with TypeError on None - and because this
+    # runs inside an emtools Pipeline worker thread with no exception
+    # boundary of its own, that crash would silently hang the whole
+    # pipeline instead of failing cleanly.
+    def __init__(self):
+        self.eerGroup = _Value(32)
+        self._outputMovies = None
+        self.inputMovies = _Pointer(None)
+
+    def _createSetOfMovies(self):
+        return _DoseOutputMovies()
+
+    def _getExtraPath(self, *paths):
+        return "/extra/" + "/".join(paths)
+
+    def _updateOutputSet(self, *args, **kwargs):
+        pass
+
+    def _defineSourceRelation(self, *args, **kwargs):
+        pass
+
+
+class TestRelionCompressMoviesMissingDoseRegression(TestCase):
+    def testOutputFromBatchDoesNotCrashWhenDoseIsUnknown(self):
+        protocol = _DoseBatchHarness()
+        movie = _DoseMovie()
+        batch = {"id": "batch-1", "items": [movie]}
+
+        # Must not raise.
+        protocol._outputFromBatch(batch)
+
+        self.assertIsNone(
+            protocol._outputMovies.getAcquisition().getDosePerFrame(),
+            "An unknown dose per frame must stay None (honestly unknown), "
+            "not crash and not be fabricated into a fake 0.0 dose.",
+        )
+        self.assertEqual(
+            [movie],
+            protocol._outputMovies.appended,
+            "The movie must still be appended to the output even though "
+            "its dose could not be regrouped.",
+        )
+
+
+class _CapturingPipeline:
+    """ Fake Pipeline that records the last processor added (the
+    _updateOutput stage) and actually invokes it during run(), unlike
+    _EmptyPipeline above which only records wiring. """
+    def __init__(self):
+        self.lastProcessor = None
+
+    def addGenerator(self, *args, **kwargs):
+        return SimpleNamespace(outputQueue=None)
+
+    def addProcessor(self, inputQueue, processor, outputQueue=None):
+        self.lastProcessor = processor
+        return SimpleNamespace(outputQueue=None)
+
+    def run(self):
+        if self.lastProcessor is not None:
+            self.lastProcessor({"id": "batch-1", "items": []})
+
+
+class _CrashingOutputHarness(_ProtocolHarness):
+    def __init__(self, movies):
+        super().__init__(movies)
+        self.errors = []
+
+    def _outputFromBatch(self, batch):
+        raise RuntimeError("boom from _outputFromBatch")
+
+    def error(self, message, *args, **kwargs):
+        self.errors.append(message)
+
+
+class TestRelionCompressMoviesUpdateOutputPipelineSafety(TestCase):
+    def testOutputFromBatchExceptionFailsTheBatchInsteadOfHangingThePipeline(self):
+        movies = _LogicalMovies()
+        protocol = _CrashingOutputHarness(movies)
+
+        module = "relion.protocols.protocol_compress_movies_tasks"
+        with patch(module + ".BatchManager", _EmptyBatchManager), \
+                patch(module + ".Pipeline", _CapturingPipeline):
+            with self.assertRaises(RuntimeError) as ctx:
+                protocol._processAllMoviesStep()
+
+        # The RuntimeError must be the controlled, post-pipe.run() failure
+        # (proving _updateOutput caught the exception and recorded it in
+        # failedBatches), not the raw "boom" escaping uncaught.
+        self.assertIn(
+            "streaming batches",
+            str(ctx.exception),
+            "_outputFromBatch raising must be converted into a failed "
+            "batch by _updateOutput, not propagate out of the pipeline "
+            "processor thread (which would hang it instead of failing).",
         )

@@ -126,6 +126,7 @@ class _BatchWriter:
 class _AutopickBatchOutputHarness(ProtRelion2Autopick):
     def __init__(self):
         self.warnings = []
+        self.errors = []
 
     def _createTmpMicsDir(self, micList):
         return "/work/relion-autopick-batch"
@@ -139,6 +140,9 @@ class _AutopickBatchOutputHarness(ProtRelion2Autopick):
 
     def warning(self, message):
         self.warnings.append(message)
+
+    def error(self, message):
+        self.errors.append(message)
 
 
 class TestRelionAutopickBatchOutputs(TestCase):
@@ -170,6 +174,60 @@ class TestRelionAutopickBatchOutputs(TestCase):
             "A missing autopick output should be reported without aborting "
             "the remaining streaming work.",
         )
+
+
+class _CrashingAutopickBatchHarness(ProtRelion2Autopick):
+    # Regression test harness: relion_autopick (invoked through
+    # _pickMicrographsFromStar/runJob) can fail for the whole batch, not
+    # just produce a missing output file for one mic. Before this fix,
+    # that exception propagated uncaught out of _pickMicrographList and
+    # crashed the entire streaming run instead of being reported like
+    # any other batch failure.
+    def __init__(self):
+        self.warnings = []
+        self.errors = []
+
+    def _createTmpMicsDir(self, micList):
+        return "/work/relion-autopick-batch"
+
+    def _getTmpPath(self, *paths):
+        base = "/tmp/relion-autopick-test"
+        return os.path.join(base, *paths) if paths else base
+
+    def _pickMicrographsFromStar(self, *args, **kwargs):
+        raise RuntimeError("relion_autopick crashed for this batch")
+
+    def warning(self, message):
+        self.warnings.append(message)
+
+    def error(self, message):
+        self.errors.append(message)
+
+
+class TestRelionAutopickBatchCrashRegression(TestCase):
+    def test_BatchCrashIsReportedInsteadOfAbortingTheRun(self):
+        protocol = _CrashingAutopickBatchHarness()
+        micList = [_BatchMic(1), _BatchMic(2)]
+
+        module = "relion.protocols.protocol_autopick"
+        with patch(
+            module + ".convert.createWriter",
+            return_value=_BatchWriter(),
+        ), patch(
+            module + ".os.path.exists",
+            return_value=False,
+        ):
+            # Must not raise.
+            protocol._pickMicrographList(micList)
+
+        self.assertEqual(1, len(protocol.errors))
+        self.assertIn("batch", protocol.errors[0])
+        # The per-mic file-check loop still runs after the caught crash,
+        # reporting each mic as missing output rather than silently
+        # losing them.
+        self.assertEqual(2, len(protocol.warnings))
+
+
 class _NamedMic:
     def __init__(self, mic_id):
         self._mic_id = mic_id

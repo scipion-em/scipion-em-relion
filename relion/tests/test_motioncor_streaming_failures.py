@@ -182,3 +182,91 @@ class TestRelionMotioncorPersistenceResume(TestCase):
             "before its outputs have been persisted successfully; otherwise "
             "Continue will skip the movie.",
         )
+
+
+class _DoseAcquisition:
+    def __init__(self, doseInitial=None, dosePerFrame=None):
+        self._doseInitial = doseInitial
+        self._dosePerFrame = dosePerFrame
+
+    def getDoseInitial(self):
+        return self._doseInitial
+
+    def getDosePerFrame(self):
+        return self._dosePerFrame
+
+
+class _DoseInputMoviesSet(_InputMoviesSet):
+    def __init__(self, acquisition):
+        self._acquisition = acquisition
+
+    def getAcquisition(self):
+        return self._acquisition
+
+    def getFramesRange(self):
+        return [1, 2, 1]
+
+
+class _MissingDoseMotioncorHarness(_MotioncorHarness):
+    # Regression test harness: _getCorrectedDose is inherited from
+    # pwem's ProtAlignMovies, which does
+    # "preExp += dose * (firstFrame - 1)" unconditionally and crashes
+    # with TypeError when the acquisition has no dose per frame.
+    # _validate() blocks a direct launch with doDW on and no dose, but
+    # that is not necessarily re-enforced on every launch path (e.g. a
+    # resumed/chained workflow) - the same scenario already fixed in
+    # scipion-em-motioncorr.
+    def __init__(self):
+        super().__init__()
+        self.inputMovies = _Pointer(
+            _DoseInputMoviesSet(
+                _DoseAcquisition(doseInitial=None, dosePerFrame=None))
+        )
+        self.doDW = True
+        self.eerGroup = _Value(32)
+        self.saveNonDW = _Value(False)
+
+    def _runProgram(self, *args, **kwargs):
+        self.runCalls += 1
+
+
+class TestRelionMotioncorMissingDoseRegression(TestCase):
+    def test_ProcessMovieDoesNotCrashWhenDoseIsUnknown(self):
+        protocol = _MissingDoseMotioncorHarness()
+        movie = _Movie(1)
+
+        with patch(
+            "relion.protocols.protocol_motioncor.pwutils.makePath"
+        ), patch(
+            "relion.protocols.protocol_motioncor.OpticsGroups.fromImages",
+            return_value=object(),
+        ), patch(
+            "relion.protocols.protocol_motioncor.convert.createWriter",
+            return_value=_Writer(),
+        ):
+            protocol._processMovie(movie)
+
+        self.assertEqual(
+            1,
+            protocol.runCalls,
+            "The protocol must still attempt to run motioncor even when "
+            "the dose is unknown - only the dose arguments should default "
+            "safely to 0.0 instead of crashing before runJob is reached.",
+        )
+        self.assertEqual(
+            [],
+            protocol.errors,
+            "A missing dose must not be treated as an argument-building "
+            "failure; it should default safely instead.",
+        )
+
+
+class TestRelionMotioncorCalcPsDoseZeroDoseRegression(TestCase):
+    def test_CalcPsDoseDoesNotCrashWhenDoseIsUnknown(self):
+        protocol = _MissingDoseMotioncorHarness()
+        protocol.dosePSsum = _Value(4.0)
+
+        # Must not raise ZeroDivisionError.
+        result = protocol._calcPsDose()
+
+        self.assertEqual(1, result)
