@@ -1,3 +1,6 @@
+import os
+import shutil
+import tempfile
 from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import patch
@@ -256,8 +259,12 @@ class TestRelionCompressMoviesFailedBatchCompletion(TestCase):
 
 
 class _MissingTiffMovie:
-    def __init__(self, fileName="/data/movie_001.mrcs"):
+    def __init__(self, objId=1, fileName="/data/movie_001.mrcs"):
+        self._objId = objId
         self._fileName = fileName
+
+    def getObjId(self):
+        return self._objId
 
     def getFileName(self):
         return self._fileName
@@ -564,4 +571,150 @@ class TestRelionCompressMoviesUpdateOutputPipelineSafety(TestCase):
             "_outputFromBatch raising must be converted into a failed "
             "batch by _updateOutput, not propagate out of the pipeline "
             "processor thread (which would hang it instead of failing).",
+        )
+
+
+class _NamedMovie:
+    def __init__(self, objId, fileName):
+        self._objId = objId
+        self._fileName = fileName
+
+    def getObjId(self):
+        return self._objId
+
+    def getFileName(self):
+        return self._fileName
+
+
+class _NamingHarness(ProtRelionCompressMoviesTasks):
+    def __init__(self):
+        pass
+
+
+SAME_BASENAME_A = '/data/sessionA/movie_001.eer'
+SAME_BASENAME_B = '/data/sessionB/movie_001.eer'
+
+
+class TestRelionCompressMoviesArtefactNames(TestCase):
+    """Every movie of a batch is linked into one folder, listed in one
+    star file, and has relion name its output after the input.
+
+    A Set can hold /data/sessionA/movie_001.eer and
+    /data/sessionB/movie_001.eer at once: different movies, one
+    basename. Keyed on that alone they become a single link and a single
+    .tif, and both output movies end up pointing at the survivor.
+    """
+
+    def setUp(self):
+        self.harness = _NamingHarness()
+
+    def test_TwoMoviesSharingABasenameGetDifferentNames(self):
+        first = self.harness._getBatchMovieName(_NamedMovie(1, SAME_BASENAME_A))
+        second = self.harness._getBatchMovieName(_NamedMovie(2, SAME_BASENAME_B))
+
+        self.assertNotEqual(
+            first,
+            second,
+            "Both movies are linked and listed under the same name, so "
+            "one of them never reaches relion and both outputs point at "
+            "the other's compressed file.",
+        )
+
+    def test_TheOutputNameIsDistinctToo(self):
+        first = self.harness._getBatchMovieName(
+            _NamedMovie(1, SAME_BASENAME_A), 'tif')
+        second = self.harness._getBatchMovieName(
+            _NamedMovie(2, SAME_BASENAME_B), 'tif')
+
+        self.assertNotEqual(first, second)
+        self.assertTrue(first.endswith('.tif'))
+
+    def test_TheNameIsStableForTheSameMovie(self):
+        """The collector re-derives it to pick relion's output back up."""
+        movie = _NamedMovie(7, SAME_BASENAME_A)
+
+        self.assertEqual(
+            self.harness._getBatchMovieName(movie),
+            self.harness._getBatchMovieName(_NamedMovie(7, SAME_BASENAME_A)),
+        )
+
+    def test_TheOriginalBasenameStaysInTheName(self):
+        """Keep it recognisable in the star file and in relion's logs."""
+        self.assertIn(
+            'movie_001',
+            self.harness._getBatchMovieName(_NamedMovie(1, SAME_BASENAME_A)),
+        )
+
+
+class _CleanupHarness(ProtRelionCompressMoviesTasks):
+    def __init__(self, tmpDir):
+        self._tmpDir = tmpDir
+        self.warnings = []
+
+    def _getTmpPath(self, *parts):
+        return os.path.join(self._tmpDir, *parts)
+
+    def warning(self, message):
+        self.warnings.append(message)
+
+
+class TestRelionCompressMoviesBatchCleanup(TestCase):
+    """The batch folder was removed by handing its path to a shell."""
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.root, True)
+
+    def _workspace(self, name):
+        path = os.path.join(self.root, name)
+        os.makedirs(path)
+        return path
+
+    def test_ABatchFolderIsRemoved(self):
+        tmpDir = self._workspace('tmp')
+        harness = _CleanupHarness(tmpDir)
+        batchPath = os.path.join(tmpDir, 'batch-1')
+        os.makedirs(batchPath)
+
+        harness._cleanBatchFolder(batchPath)
+
+        self.assertFalse(os.path.exists(batchPath))
+
+    def test_ASpaceInThePathDoesNotDeleteASibling(self):
+        tmpDir = self._workspace('my project/tmp')
+        harness = _CleanupHarness(tmpDir)
+        batchPath = os.path.join(tmpDir, 'batch-1')
+        os.makedirs(batchPath)
+
+        # What the shell would take as its second argument.
+        sibling = os.path.join(self.root, 'my')
+        os.makedirs(os.path.join(sibling, 'keep-me'), exist_ok=True)
+
+        harness._cleanBatchFolder(batchPath)
+
+        self.assertTrue(
+            os.path.exists(os.path.join(sibling, 'keep-me')),
+            "A space in the project path turned the cleanup into the "
+            "deletion of an unrelated directory.",
+        )
+        self.assertFalse(os.path.exists(batchPath))
+
+    def test_AFolderOutsideTheWorkspaceIsRefused(self):
+        harness = _CleanupHarness(self._workspace('tmp'))
+        outsider = self._workspace('not-mine')
+
+        harness._cleanBatchFolder(outsider)
+
+        self.assertTrue(os.path.exists(outsider))
+
+    def test_TheWorkspaceItselfIsRefused(self):
+        tmpDir = self._workspace('tmp')
+        harness = _CleanupHarness(tmpDir)
+
+        harness._cleanBatchFolder(tmpDir)
+
+        self.assertTrue(
+            os.path.exists(tmpDir),
+            "Removing the working directory would take every other batch "
+            "in flight with it.",
         )

@@ -175,6 +175,15 @@ class ProtRelionCompressMoviesTasks(RelionStreamingBase, ProtProcessMovies):
         self._lastInputId = watermark
 
         while True:
+            # Compression is the expensive part and this generator is what
+            # feeds it. Once the output can no longer be written, or the
+            # run has been aborted, every further batch is compressed and
+            # thrown away - and the failure would only surface when the
+            # producer finally closes, hours later on a long acquisition.
+            if self._streamingMustStop() or getattr(self, '_failedBatches',
+                                                    None):
+                break
+
             newMovies, producerClosed, terminalConsistent = (
                 self._discoverNewInputItems(moviesSet, '_lastInputId',
                                             seenIds))
@@ -231,7 +240,10 @@ class ProtRelionCompressMoviesTasks(RelionStreamingBase, ProtProcessMovies):
                                      outputQueue=outputQueue)
             outputQueue = proc.outputQueue
 
-        failedBatches = []
+        # Kept on the protocol so the input generator can see it: it has
+        # to stop feeding compression once the output is lost.
+        self._failedBatches = []
+        failedBatches = self._failedBatches
 
         def _updateOutput(batch):
             if batch.get('error'):
@@ -270,6 +282,40 @@ class ProtRelionCompressMoviesTasks(RelionStreamingBase, ProtProcessMovies):
         self._updateOutputSet('outputMovies', self._outputMovies,
                               pwobj.Set.STREAM_CLOSED)
 
+    def _getBatchMovieName(self, movie, ext=None):
+        """Name this movie takes inside its batch, and as its output.
+
+        Every movie of a batch is linked into one folder and listed in
+        one star file, and relion names its output after each input. Two
+        movies whose files share a basename would collide there and in
+        extra/ afterwards, with both output movies left pointing at
+        whichever was written last. The id keeps them apart.
+        """
+        baseName = os.path.basename(movie.getFileName())
+
+        if ext is not None:
+            baseName = pwutils.replaceExt(baseName, ext)
+
+        return self._itemScopedName(movie, baseName)
+
+    def _cleanBatchFolder(self, batchPath):
+        """Remove a batch folder without going through a shell.
+
+        Building a shell command out of the path means a project living
+        under a directory with a space in its name deletes whatever the
+        shell reads as a second argument instead. Only ever touch what is
+        inside this run's own working directory.
+        """
+        workspace = os.path.realpath(self._getTmpPath())
+        target = os.path.realpath(batchPath)
+
+        if target == workspace or not target.startswith(workspace + os.sep):
+            self.warning("Refusing to remove %s: it is not a batch folder "
+                         "inside this run's working directory." % batchPath)
+            return
+
+        pwutils.cleanPath(target)
+
     def _processBatch(self, batch):
         try:
             self.info(pwutils.cyanStr(f">>> Processing batch {batch['path']}"))
@@ -279,7 +325,7 @@ class ProtRelionCompressMoviesTasks(RelionStreamingBase, ProtProcessMovies):
                 t = Table(['rlnMicrographMovieName'])
                 for movie in batch['items']:
                     fn = movie.getFileName()
-                    bn = os.path.basename(fn)
+                    bn = self._getBatchMovieName(movie)
                     pwutils.createLink(fn, os.path.join(batchPath, bn))
                     t.addRowValues(bn)
                 sf.writeTable('movies', t)
@@ -289,7 +335,7 @@ class ProtRelionCompressMoviesTasks(RelionStreamingBase, ProtProcessMovies):
             # Check resulting files and update movies
             for movie in batch['items']:
                 fn = movie.getFileName()
-                tifBn = pwutils.replaceExt(os.path.basename(fn), 'tif')
+                tifBn = self._getBatchMovieName(movie, 'tif')
                 outputFn = os.path.join(batchPath, tifBn)
                 dstFn = self._getExtraPath(tifBn)
                 if os.path.exists(outputFn):
@@ -309,7 +355,7 @@ class ProtRelionCompressMoviesTasks(RelionStreamingBase, ProtProcessMovies):
 
             # Clean batch folder if not in debug mode
             if not pwutils.envVarOn(SCIPION_DEBUG_NOCLEAN):
-                os.system('rm -rf %s' % batchPath)
+                self._cleanBatchFolder(batchPath)
 
         except Exception as e:
             eStr = str(e)
