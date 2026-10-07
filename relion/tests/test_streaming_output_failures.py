@@ -50,7 +50,7 @@ class _ProtocolHarness(ProtRelionCompressMoviesTasks):
         self.outputUpdates.append((outputName, outputSet, state))
 
 
-class TestRelionPostgresqlStreamingFailures(TestCase):
+class TestRelionStreamingOutputFailures(TestCase):
     def test_FailedCompressBatchIsNotPersistedAsSuccessfulOutput(self):
         protocol = _ProtocolHarness()
         movie = _Movie()

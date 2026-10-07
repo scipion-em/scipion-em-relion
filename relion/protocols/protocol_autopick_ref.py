@@ -323,20 +323,33 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         """
         ctfRel = self.ctfRelations.get()
         micDict, micClose = self._loadMics(self.getInputMicrographs())
+
         if ctfRel is None:
             return micDict, micClose
-            
+
         ctfDict, ctfClosed = self._loadCTFs(ctfRel)
 
-        # Keep the micrographs that have CTF
-        # and set the CTF property for those who have it
+        # The two inputs are streams that advance independently, so what
+        # has no counterpart yet waits in a pending map. Discovery is by
+        # watermark and will not offer the same item twice, so dropping an
+        # unmatched one here would lose it for good.
+        self._micsWithoutCtf = getattr(self, '_micsWithoutCtf', {})
+        self._ctfByMicName = getattr(self, '_ctfByMicName', {})
+
+        self._micsWithoutCtf.update(micDict)
+        self._ctfByMicName.update(ctfDict)
+
         readyMics = dict()
 
-        for micKey, mic in micDict.items():
-            if micKey in ctfDict:
+        for micKey in list(self._micsWithoutCtf):
+            ctf = self._ctfByMicName.pop(micKey, None)
 
-                mic.setCTF(ctfDict[micKey])
-                readyMics[micKey] = mic
+            if ctf is None:
+                continue
+
+            mic = self._micsWithoutCtf.pop(micKey)
+            mic.setCTF(ctf)
+            readyMics[micKey] = mic
 
         # Return the updated micDict and the closed status
         return readyMics, micClose and ctfClosed

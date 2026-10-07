@@ -46,9 +46,19 @@ from relion import Plugin
 import relion.convert as convert
 from relion.convert.convert31 import OpticsGroups
 from .protocol_base import ProtRelionBase
+from .protocol_streaming_base import RelionStreamingBase
+
+# Module level: the output-id helper is called unbound on light test
+# harnesses, so it cannot rely on a class attribute.
+MOTIONCOR_OUTPUT_NAMES = (
+    'outputMovies',
+    'outputMicrographs',
+    'outputMicrographsDoseWeighted',
+)
 
 
-class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
+class ProtRelionMotioncor(RelionStreamingBase, ProtAlignMovies,
+                          ProtRelionBase):
     """ Wrapper for the Relion's implementation of motioncor algorithm. """
 
     _label = 'motion correction'
@@ -58,6 +68,11 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
     def __init__(self, **kwargs):
         ProtAlignMovies.__init__(self, **kwargs)
         self.updatedSets = []
+        # _validate() is what works this out, but it does not run on every
+        # launch path (a scheduled or resumed run can skip it), and
+        # _processMovie reads it. It used to be assigned after a return
+        # statement, so it was never set at all.
+        self.isEER = False
 
     def _getCorrectedDose(self, movieSet):
         """ Reimplement pwem's ProtAlignMovies._getCorrectedDose, which
@@ -75,7 +90,60 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
         preExp += dose * (firstFrame - 1)
 
         return preExp, dose
-        self.isEER = False
+
+    def _loadInputList(self):
+        """Discover the movies added since the last poll.
+
+        pwem's version rebuilds the Set from a storage filename and
+        walks it whole every time, which ties discovery to how the Set
+        happens to be persisted. This asks the Set itself for the ids
+        above the watermark and loads only those, so a poll costs what
+        just arrived.
+        """
+        movieSet = self.inputMovies.get()
+        self.listOfMovies = getattr(self, 'listOfMovies', [])
+        self._knownMovieIds = getattr(self, '_knownMovieIds', set())
+
+        newMovies, producerClosed, terminalConsistent = (
+            self._discoverNewInputItems(movieSet, '_lastInputId',
+                                        self._knownMovieIds))
+
+        for movie in newMovies:
+            movieId = movie.getObjId()
+
+            if movieId in self._knownMovieIds:
+                continue
+
+            self._knownMovieIds.add(movieId)
+            # listOfMovies stays the full list of what the stream has
+            # produced: _checkNewOutput and createOutputStep count it.
+            self.listOfMovies.append(movie)
+
+        self.streamClosed = producerClosed and terminalConsistent
+
+    def _checkNewInput(self):
+        """Discover new movies without consulting a filesystem mtime.
+
+        pwem gates this on the modification time of a file behind the
+        input Set, which says nothing about the Set's logical contents.
+        The Set itself is the only thing asked here.
+        """
+        self._loadInputList()
+
+        newMovies = any(movie.getObjId() not in self.insertedDict
+                        for movie in self.listOfMovies)
+
+        if not newMovies:
+            return
+
+        outputStep = self._getFirstJoinStep()
+        fDeps = self._insertNewMoviesSteps(self.insertedDict,
+                                           self.listOfMovies)
+
+        if outputStep is not None:
+            outputStep.addPrerequisites(*fDeps)
+
+        self.updateSteps()
 
     def _getConvertExtension(self, filename):
         """ Check whether it is needed to convert to .mrc or not """
@@ -326,16 +394,45 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
         except Exception:
             self.error(f"ERROR processing movie: {movie.getFileName()}")
 
+    def _getPublishedMovieIds(self):
+        """Movie ids already present in the logical outputs.
+
+        Asked as an id query on each output Set rather than by walking
+        it, since the outputs grow with the stream.
+        """
+        publishedIds = set()
+
+        for outputName in MOTIONCOR_OUTPUT_NAMES:
+            publishedIds.update(
+                self._getOutputIdSet(getattr(self, outputName, None)))
+
+        publishedIds.discard(None)
+
+        return publishedIds
+
+    def _getFinishedMovieIds(self):
+        """Movie ids carried by finished processMovieStep steps."""
+        return self._collectStepArgKeys(('processMovieStep',),
+                                        dictField='object.id')
+
     def _checkNewOutput(self):
         # Persist outputs before committing movies to the done list.
         if getattr(self, 'finished', False):
             return
 
-        doneList = self._readDoneList()
+        # Completion comes from the persisted step graph and publication
+        # from the output Sets themselves - no DONE/*.TXT sidecar decides
+        # anything, so a cleaned extra/ cannot make work look undone.
+        publishedIds = self._getPublishedMovieIds()
+        finishedIds = self._getFinishedMovieIds()
+
         newDone = [
             movie for movie in self.listOfMovies
-            if movie.getObjId() not in doneList and self._isMovieDone(movie)
+            if movie.getObjId() not in publishedIds
+            and movie.getObjId() in finishedIds
         ]
+
+        doneList = publishedIds
 
         self.debug('_checkNewOutput: ')
         self.debug('   listOfMovies: %s, doneList: %s, newDone: %s'
@@ -359,9 +456,6 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
         # If persistence fails, DONE/all.TXT must remain unchanged so
         # Continue can retry these movies.
         self._updateOutputSets(newDone, streamMode)
-
-        if newDone:
-            self._writeDoneList(newDone)
 
         if self.finished:
             outputStep = self._getFirstJoinStep()

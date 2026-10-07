@@ -43,8 +43,10 @@ from pwem.protocols import ProtProcessMovies
 from pwem.objects import MovieAlignment, ImageDim, FramesRange
 from pyworkflow.protocol import STEPS_SERIAL
 
+from .protocol_streaming_base import RelionStreamingBase
 
-class ProtRelionCompressMoviesTasks(ProtProcessMovies):
+
+class ProtRelionCompressMoviesTasks(RelionStreamingBase, ProtProcessMovies):
     """
     Using *relion_convert_to_tiff* to compress a set of movies.
     """
@@ -151,44 +153,54 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
 
     def _iterInputMovies(self, moviesSet, label,
                          blacklist=None, waitSecs=60):
-        """Yield new movies using the logical Set streaming API."""
-        seenIds = set()
+        """Yield the movies added since the last poll.
 
-        if blacklist is not None:
-            refreshBlacklist = getattr(blacklist, 'loadAllProperties', None)
-            if callable(refreshBlacklist):
-                refreshBlacklist()
-
-            for item in blacklist:
-                itemId = item.getObjId()
-                if itemId is not None:
-                    seenIds.add(itemId)
+        Discovery is by id watermark: each poll queries the ids above it
+        and loads only those, so the cost follows what just arrived
+        instead of everything the stream has produced. It also means no
+        filesystem mtime decides whether the input changed: the Set
+        itself answers that.
+        """
+        seenIds = self._getOutputIdSet(blacklist)
+        seenIds.discard(None)
 
         if seenIds:
             self.info("Existing output: %d %s" % (len(seenIds), label))
         else:
             self.info("No output %s." % label)
 
-        while True:
-            lastCheck = datetime.now()
-            moviesSet.loadAllProperties()
+        # Start past what the output already accounts for, and pick up
+        # anything below that which was never processed.
+        watermark, gapIds = self._resumeWatermarkWithGaps(moviesSet, seenIds)
+        self._lastInputId = watermark
 
-            for item in moviesSet.iterItems():
+        while True:
+            newMovies, producerClosed, terminalConsistent = (
+                self._discoverNewInputItems(moviesSet, '_lastInputId',
+                                            seenIds))
+
+            if gapIds:
+                newMovies = (self._loadLogicalSetItemsByIds(moviesSet, gapIds)
+                             + newMovies)
+                gapIds = set()
+
+            for item in newMovies:
                 itemId = item.getObjId()
+
                 if itemId in seenIds:
                     continue
 
                 if itemId is not None:
                     seenIds.add(itemId)
 
-                yield item.clone()
+                yield item
 
-            if moviesSet.isStreamClosed():
+            if producerClosed and terminalConsistent:
                 break
 
-            while not moviesSet.hasChangedSince(lastCheck):
-                if waitSecs:
-                    time.sleep(waitSecs)
+            # Never spin: a zero wait used to mean "poll as fast as the CPU
+            # allows", which pinned a core for the whole run.
+            time.sleep(waitSecs if waitSecs else 1)
 
         self.info("No more %s, stream closed. Total: %d"
                   % (label, len(seenIds)))
@@ -379,7 +391,11 @@ class ProtRelionCompressMoviesTasks(ProtProcessMovies):
     def _validate(self):
         errors = []
         firstMovie = self.inputMovies.get().getFirstItem()
-        self.isEER = pwutils.getExt(firstMovie.getFileName()) == ".eer"
+
+        # A streaming input can still be empty when validation runs, and
+        # validation runs before the steps are even inserted.
+        self.isEER = (firstMovie is not None
+                      and pwutils.getExt(firstMovie.getFileName()) == ".eer")
 
         errors.extend(ProtProcessMovies._validate(self))
 

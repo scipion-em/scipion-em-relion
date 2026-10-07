@@ -3,6 +3,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from pwem.protocols import ProtParticlePickingAuto
+from .logical_set_fakes import LogicalSetFake
 from relion.protocols.protocol_autopick_ref import ProtRelion2Autopick
 from relion.protocols.protocol_autopick_log import ProtRelionAutopickLoG
 
@@ -344,7 +345,7 @@ class TestRelionAutopickBackendIndependentInputCheck(TestCase):
             1,
             protocol.loadCalls,
             "Autopick streaming must refresh logical input state directly "
-            "instead of gating discovery on SQLite/file modification times.",
+            "instead of gating discovery on file modification times.",
         )
 
 class _LogicalAutopickMic:
@@ -362,25 +363,9 @@ class _LogicalAutopickMic:
         return _LogicalAutopickMic(self._objId, self._name)
 
 
-class _LogicalAutopickMicSet:
+class _LogicalAutopickMicSet(LogicalSetFake):
     def __init__(self, items, closed=False):
-        self._items = list(items)
-        self._closed = closed
-        self.loadCalls = 0
-
-    def getFileName(self):
-        raise AssertionError(
-            "Autopick streaming Sets must not be reopened from storage filenames."
-        )
-
-    def loadAllProperties(self):
-        self.loadCalls += 1
-
-    def iterItems(self):
-        return iter(self._items)
-
-    def isStreamClosed(self):
-        return self._closed
+        super().__init__(items, streamClosed=closed)
 
 
 class _AutopickLogicalLoadHarness(ProtRelion2Autopick):
@@ -450,7 +435,7 @@ class TestRelionAutopickLoGBackendIndependentInputCheck(TestCase):
             1,
             protocol.loadCalls,
             "LoG streaming must refresh logical input state directly instead "
-            "of gating discovery on SQLite/file modification times.",
+            "of gating discovery on file modification times.",
         )
 
 class _LoGLogicalMic:
@@ -468,25 +453,9 @@ class _LoGLogicalMic:
         return _LoGLogicalMic(self._objId, self._name)
 
 
-class _LoGLogicalMicSet:
+class _LoGLogicalMicSet(LogicalSetFake):
     def __init__(self, items, closed=False):
-        self._items = list(items)
-        self._closed = closed
-        self.loadCalls = 0
-
-    def getFileName(self):
-        raise AssertionError(
-            "LoG streaming Sets must not be reopened from storage filenames."
-        )
-
-    def loadAllProperties(self):
-        self.loadCalls += 1
-
-    def iterItems(self):
-        return iter(self._items)
-
-    def isStreamClosed(self):
-        return self._closed
+        super().__init__(items, streamClosed=closed)
 
 
 class _LoGLogicalLoadHarness(ProtRelionAutopickLoG):

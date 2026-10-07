@@ -28,7 +28,7 @@ import os
 
 from pyworkflow.object import Set, Integer
 import pyworkflow.utils as pwutils
-from pyworkflow.protocol.constants import STATUS_FINISHED
+from pyworkflow.protocol.constants import STATUS_FINISHED, STATUS_NEW
 import pyworkflow.protocol.params as params
 from pyworkflow.constants import PROD
 
@@ -41,9 +41,14 @@ from relion import Plugin
 from relion.convert.convert31 import OpticsGroups
 from relion.constants import OTHER
 from .protocol_base import ProtRelionBase
+from .protocol_streaming_base import RelionStreamingBase
+
+# Module level: these helpers are called unbound on light test harnesses.
+EXTRACT_STEP_NAMES = ('extractMicrographStep', 'extractMicrographListStep')
 
 
-class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
+class ProtRelionExtractParticles(RelionStreamingBase, ProtExtractParticles,
+                                 ProtRelionBase):
     """ Protocol to extract particles using a set of coordinates. """
 
     _label = 'particles extraction'
@@ -534,57 +539,165 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         return 'micrographs_%05d-%05d.star' % (micList[0].getObjId(),
                                                micList[-1].getObjId())
 
+    def _getFinishedExtractMicNames(self):
+        """Micrograph names carried by finished extraction steps."""
+        return self._collectStepArgKeys(EXTRACT_STEP_NAMES, keyType=str)
+
+    def _getPublishedExtractMicIds(self):
+        """Micrograph ids already represented in the output particles.
+
+        An id query on the output, not a walk over it.
+        """
+        micIds = self._getOutputUniqueValues(
+            getattr(self, 'outputParticles', None), '_micId')
+
+        return set() if micIds is None else micIds
+
+    def _checkNewOutput(self):
+        """Publish finished extractions without DONE sidecars.
+
+        pwem decides this with extra/DONE/mic_*.TXT plus DONE/all.TXT.
+        The persisted step graph already records what finished and the
+        output Set what was published, so neither file is consulted and a
+        cleaned extra/ cannot make finished work look pending.
+        """
+        if getattr(self, 'finished', False):
+            return
+
+        publishedMicIds = self._getPublishedExtractMicIds()
+        finishedMicNames = self._getFinishedExtractMicNames()
+
+        newDone = [mic for mic in self.micDict.values()
+                   if mic.getMicName() in finishedMicNames
+                   and mic.getObjId() not in publishedMicIds]
+
+        inputLen = len(self.micDict)
+        doneCount = len([mic for mic in self.micDict.values()
+                         if mic.getObjId() in publishedMicIds])
+
+        self.debug('_checkNewOutput: ')
+        self.debug('   input: %s, published: %s, newDone: %s'
+                   % (inputLen, doneCount, len(newDone)))
+
+        allDone = doneCount + len(newDone)
+        streamClosed = self._isStreamClosed()
+        self.finished = streamClosed and allDone == inputLen
+        streamMode = (Set.STREAM_CLOSED
+                      if self.finished else Set.STREAM_OPEN)
+
+        if newDone:
+            self._updateOutputPartSet(newDone, streamMode)
+        elif not self.finished:
+            self._streamingSleepOnWait()
+            return
+
+        if self.finished:
+            # Close the output set first, then release createOutputStep:
+            # the lifecycle here is still the classic one, so that step was
+            # scheduled with wait=True and stays WAITING until something
+            # sets it back to NEW - without this the protocol never ends.
+            self._updateOutputPartSet([], Set.STREAM_CLOSED)
+
+            outputStep = self._getFirstJoinStep()
+
+            if outputStep and outputStep.isWaiting():
+                outputStep.setStatus(STATUS_NEW)
+
     def _loadInputList(self):
-        # Streaming input discovery must use logical Sets instead of
-        # reopening compatibility SQLite files.
-        def _loadSet(inputSet, getKeyFunc):
-            inputSet.loadAllProperties()
+        # Streaming input discovery must go through the Set API, never
+        # by reopening whatever file happens to back it.
+        def _loadStream(inputSet, getKeyFunc, watermarkAttr):
+            """Discover one input stream by its own id watermark.
+
+            Each input advances independently, so each keeps a separate
+            watermark; only the ids above it are queried and only those
+            items are loaded.
+            """
+            knownIds = self._getKnownStreamIds(watermarkAttr)
+            newItems, producerClosed, terminalConsistent = (
+                self._discoverNewInputItems(inputSet, watermarkAttr,
+                                            knownIds))
             newItemDict = {}
 
-            for item in inputSet.iterItems():
+            for item in newItems:
+                itemId = item.getObjId()
+
+                if itemId in knownIds:
+                    continue
+
+                knownIds.add(itemId)
                 itemKey = getKeyFunc(item)
+
                 if itemKey not in self.micDict:
-                    newItemDict[itemKey] = item.clone()
+                    newItemDict[itemKey] = item
 
-            return newItemDict, inputSet.isStreamClosed()
+            return newItemDict, producerClosed and terminalConsistent
 
-        def _loadMics(micSet):
-            return _loadSet(micSet, lambda mic: mic.getMicName())
+        def _pending(name):
+            pendingMaps = getattr(self, '_pendingStreamItems', None)
 
-        def _loadCTFs(ctfSet):
-            return _loadSet(
-                ctfSet,
-                lambda ctf: ctf.getMicrograph().getMicName(),
-            )
+            if pendingMaps is None:
+                pendingMaps = {}
+                self._pendingStreamItems = pendingMaps
 
-        self.debug("Loading Mics from Coords.")
+            return pendingMaps.setdefault(name, {})
+
+        self.debug("Discovering Mics from Coords.")
         coordMics = self.inputCoordinates.get().getMicrographs()
-        micDict, self.micsClosed = _loadMics(coordMics)
+        newCoordMics, self.micsClosed = _loadStream(
+            coordMics, lambda mic: mic.getMicName(), '_lastCoordMicId')
+
+        # Whatever has no counterpart on the other streams yet waits here:
+        # the watermark will never offer it a second time.
+        coordMicsPending = _pending('coordMics')
+        coordMicsPending.update(newCoordMics)
+        micDict = coordMicsPending
 
         if self._micsOther():
-            self.debug("Loading other Mics.")
-            otherMics, otherClosed = _loadMics(self.inputMicrographs.get())
+            self.debug("Discovering other Mics.")
+            newOther, otherClosed = _loadStream(
+                self.inputMicrographs.get(), lambda mic: mic.getMicName(),
+                '_lastOtherMicId')
             self.micsClosed = self.micsClosed and otherClosed
 
+            otherPending = _pending('otherMics')
+            otherPending.update(newOther)
+
             matchedMics = {}
-            for micKey, mic in micDict.items():
-                if micKey in otherMics:
-                    otherMic = otherMics[micKey]
-                    otherMic.copyObjId(mic)
+            for micKey in list(micDict):
+                if micKey in otherPending:
+                    otherMic = otherPending.pop(micKey)
+                    otherMic.copyObjId(micDict.pop(micKey))
                     matchedMics[micKey] = otherMic
             micDict = matchedMics
+        else:
+            micDict = dict(micDict)
+            coordMicsPending.clear()
 
         self.debug("Mics are closed? %s" % self.micsClosed)
 
         if self._useCTF():
-            self.debug("Loading CTFs.")
-            ctfDict, self.ctfsClosed = _loadCTFs(self.ctfRelations.get())
+            self.debug("Discovering CTFs.")
+            newCtfs, self.ctfsClosed = _loadStream(
+                self.ctfRelations.get(),
+                lambda ctf: ctf.getMicrograph().getMicName(),
+                '_lastCtfId')
+
+            ctfPending = _pending('ctfs')
+            ctfPending.update(newCtfs)
+            readyMicsPending = _pending('micsWithoutCtf')
+            readyMicsPending.update(micDict)
 
             matchedMics = {}
-            for micKey, mic in micDict.items():
-                if micKey in ctfDict:
-                    mic.setCTF(ctfDict[micKey])
-                    matchedMics[micKey] = mic
+            for micKey in list(readyMicsPending):
+                ctf = ctfPending.pop(micKey, None)
+
+                if ctf is None:
+                    continue
+
+                mic = readyMicsPending.pop(micKey)
+                mic.setCTF(ctf)
+                matchedMics[micKey] = mic
             micDict = matchedMics
         else:
             self.ctfsClosed = True

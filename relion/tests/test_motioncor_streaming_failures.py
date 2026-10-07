@@ -140,17 +140,14 @@ class _PersistenceFailureHarness(ProtRelionMotioncor):
     def __init__(self):
         self.listOfMovies = [_DoneMovie(1)]
         self.streamClosed = False
-        self.doneWrites = []
         self.persistenceCalls = 0
-
-    def _readDoneList(self):
-        return []
-
-    def _isMovieDone(self, movie):
-        return True
+        # The step for movie 1 finished; nothing has been published yet.
+        self._steps = [_FinishedMovieStep(1)]
 
     def _writeDoneList(self, movies):
-        self.doneWrites.extend(movie.getObjId() for movie in movies)
+        raise AssertionError(
+            "Completion must not be recorded in a DONE sidecar."
+        )
 
     def _updateOutputSets(self, newDone, streamMode):
         self.persistenceCalls += 1
@@ -158,6 +155,16 @@ class _PersistenceFailureHarness(ProtRelionMotioncor):
 
     def debug(self, *args, **kwargs):
         pass
+
+
+class _FinishedMovieStep:
+    funcName = 'processMovieStep'
+
+    def __init__(self, movieId):
+        self.argsStr = '[{"object.id": %d}, false]' % movieId
+
+    def isFinished(self):
+        return True
 
 
 class TestRelionMotioncorPersistenceResume(TestCase):
@@ -175,13 +182,14 @@ class TestRelionMotioncorPersistenceResume(TestCase):
             protocol.persistenceCalls,
             "The protocol must attempt to persist the processed movie.",
         )
+        # There is no done list to commit any more: what counts as
+        # published is the output Set itself, so a failed persist leaves
+        # the movie pending and Continue retries it, with nothing to undo.
         self.assertEqual(
-            [],
-            protocol.doneWrites,
-            "A movie must not be committed to the persistent done list "
-            "before its outputs have been persisted successfully; otherwise "
-            "Continue will skip the movie.",
+            {1},
+            protocol._getFinishedMovieIds(),
         )
+        self.assertEqual(set(), protocol._getPublishedMovieIds())
 
 
 class _DoseAcquisition:

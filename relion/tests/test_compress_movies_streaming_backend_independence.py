@@ -28,10 +28,10 @@ class _Pointer:
 class _LogicalMovies:
     def getFileName(self):
         raise AssertionError(
-            "Streaming must not inspect the compatibility SQLite filename."
+            "Streaming must not inspect the storage filename."
         )
 
-    def isPostgresqlRuntimeOutput(self):
+    def isRuntimeBackedOutput(self):
         raise AssertionError(
             "The plugin must not branch on the persistence backend."
         )

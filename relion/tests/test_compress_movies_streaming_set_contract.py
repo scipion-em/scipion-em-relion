@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import patch
 
+from .logical_set_fakes import LogicalSetFake
 from relion.protocols.protocol_compress_movies_tasks import (
     ProtRelionCompressMoviesTasks,
 )
@@ -23,28 +24,16 @@ class _Pointer:
         return self._value
 
 
-class _LogicalMovies:
+class _LogicalMovies(LogicalSetFake):
+    """Empty, already-closed input that must never be asked for a file."""
+
     def __init__(self):
-        self.loadCalls = 0
+        super().__init__([], streamClosed=True)
         self.iterCalls = 0
-        self.closedChecks = 0
 
-    def getFileName(self):
-        raise AssertionError(
-            "Streaming must not inspect the Set storage filename to detect "
-            "logical input changes."
-        )
-
-    def loadAllProperties(self):
-        self.loadCalls += 1
-
-    def iterItems(self):
+    def iterItems(self, *args, **kwargs):
         self.iterCalls += 1
-        return iter(())
-
-    def isStreamClosed(self):
-        self.closedChecks += 1
-        return True
+        return super().iterItems(*args, **kwargs)
 
 
 class _ProtocolHarness(ProtRelionCompressMoviesTasks):
@@ -126,10 +115,12 @@ class TestRelionCompressMoviesStreamingSetContract(TestCase):
             0,
             "Streaming should refresh the logical Set state.",
         )
-        self.assertGreater(
-            movies.iterCalls,
+        # Discovery asks the Set for the ids above the watermark rather
+        # than walking it, so an empty input is never iterated at all.
+        self.assertEqual(
             0,
-            "Streaming should discover input items through Set.iterItems().",
+            movies.fullScans,
+            "Streaming must not walk the whole input Set to discover items.",
         )
         self.assertGreater(
             movies.closedChecks,
@@ -353,30 +344,14 @@ class _PersistedMovie:
         return self._objId
 
 
-class _ClosedResumeInput:
+class _ClosedResumeInput(LogicalSetFake):
     def __init__(self, items):
-        self._items = list(items)
-
-    def loadAllProperties(self):
-        pass
-
-    def iterItems(self):
-        return iter(self._items)
-
-    def isStreamClosed(self):
-        return True
+        super().__init__(items, streamClosed=True)
 
 
-class _PersistedOutput:
+class _PersistedOutput(LogicalSetFake):
     def __init__(self, items):
-        self._items = list(items)
-        self.loadCalls = 0
-
-    def loadAllProperties(self):
-        self.loadCalls += 1
-
-    def __iter__(self):
-        return iter(self._items)
+        super().__init__(items, streamClosed=False)
 
 
 class _ResumeCompletionHarness(ProtRelionCompressMoviesTasks):

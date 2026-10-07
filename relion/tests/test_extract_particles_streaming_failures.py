@@ -1,6 +1,7 @@
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
+from .logical_set_fakes import LogicalSetFake
 from relion.protocols.protocol_extract_particles import (
     ProtRelionExtractParticles,
 )
@@ -336,7 +337,7 @@ class TestRelionExtractParticlesBackendIndependentInputCheck(TestCase):
             1,
             protocol.loadCalls,
             "Streaming must refresh logical input state directly instead of "
-            "gating discovery on SQLite/file modification times.",
+            "gating discovery on file modification times.",
         )
 
 class _LogicalMic:
@@ -354,25 +355,9 @@ class _LogicalMic:
         return _LogicalMic(self._objId, self._name)
 
 
-class _LogicalMicSet:
+class _LogicalMicSet(LogicalSetFake):
     def __init__(self, items, closed=False):
-        self._items = list(items)
-        self._closed = closed
-        self.loadCalls = 0
-
-    def getFileName(self):
-        raise AssertionError(
-            "Logical streaming sets must not be reopened from a storage filename."
-        )
-
-    def loadAllProperties(self):
-        self.loadCalls += 1
-
-    def iterItems(self, *args, **kwargs):
-        return iter(self._items)
-
-    def isStreamClosed(self):
-        return self._closed
+        super().__init__(items, streamClosed=closed)
 
 
 class _LogicalCoordsForLoad:
