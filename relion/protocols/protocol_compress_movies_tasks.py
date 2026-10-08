@@ -279,6 +279,13 @@ class ProtRelionCompressMoviesTasks(RelionStreamingBase, ProtProcessMovies):
                 "streaming batches."
             )
 
+        if self._outputMovies is None:
+            # The producer closed without ever sending a movie. There is
+            # nothing to close, and whatever comes next is waiting for an
+            # output that closes - so publish the empty one and close it.
+            self._outputMovies = self._createSetOfMovies()
+            self._outputMovies.copyInfo(self.inputMovies.get())
+
         self._updateOutputSet('outputMovies', self._outputMovies,
                               pwobj.Set.STREAM_CLOSED)
 

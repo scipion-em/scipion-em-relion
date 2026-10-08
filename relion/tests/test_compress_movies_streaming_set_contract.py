@@ -1,6 +1,7 @@
 import os
 import shutil
 import tempfile
+import pyworkflow.object as pwobj
 from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import patch
@@ -66,6 +67,10 @@ class _ProtocolHarness(ProtRelionCompressMoviesTasks):
 
     def _outputFromBatch(self, batch):
         pass
+
+    def _createSetOfMovies(self, *args, **kwargs):
+        # Reached when the stream closes without producing anything.
+        return SimpleNamespace(copyInfo=lambda other: None)
 
     def _updateOutputSet(self, *args, **kwargs):
         pass
@@ -717,4 +722,83 @@ class TestRelionCompressMoviesBatchCleanup(TestCase):
             os.path.exists(tmpDir),
             "Removing the working directory would take every other batch "
             "in flight with it.",
+        )
+
+
+class _EmptyStreamHarness(ProtRelionCompressMoviesTasks):
+    """A producer that closes without ever sending a movie."""
+
+    def __init__(self, movies):
+        self.inputMovies = _Pointer(movies)
+        self.streamingSleepOnWait = _Value(0)
+        self.streamingBatchSize = _Value(1)
+        self.numberOfThreads = _Value(0)
+        self.closedWith = []
+        self.createdOutputs = []
+
+    def info(self, *args, **kwargs):
+        pass
+
+    def _runProgram(self, *args, **kwargs):
+        pass
+
+    def _getTmpPath(self, *args):
+        return "/tmp"
+
+    def _linkGain(self):
+        return None
+
+    def _getCmd(self):
+        return ""
+
+    def _processBatch(self, batch):
+        return batch
+
+    def _outputFromBatch(self, batch):
+        pass
+
+    def _createSetOfMovies(self, *args, **kwargs):
+        created = SimpleNamespace(
+            streamState=None,
+            setStreamState=lambda state: None,
+            copyInfo=lambda other: None,
+            setStreamStateCalls=[],
+        )
+        self.createdOutputs.append(created)
+        return created
+
+    def _updateOutputSet(self, outputName, outputSet, state=None):
+        self.closedWith.append((outputName, outputSet, state))
+
+
+class TestRelionCompressMoviesClosesAnEmptyStream(TestCase):
+    """A producer can close without ever sending a movie.
+
+    Nothing was produced, so there is no output object around - and the
+    close was handed that nothing. Downstream protocols wait on an
+    output that closes; one that never does leaves them waiting.
+    """
+
+    def _run(self, protocol):
+        module = "relion.protocols.protocol_compress_movies_tasks"
+        with patch(module + ".BatchManager", _EmptyBatchManager), \
+                patch(module + ".Pipeline", _EmptyPipeline):
+            protocol._processAllMoviesStep()
+
+    def test_AnEmptyStreamStillLeavesAClosedOutput(self):
+        protocol = _EmptyStreamHarness(_LogicalMovies())
+
+        self._run(protocol)
+
+        closes = [call for call in protocol.closedWith
+                  if call[2] == pwobj.Set.STREAM_CLOSED]
+
+        self.assertTrue(
+            closes,
+            "The stream closed and nothing closed the output.",
+        )
+        self.assertIsNotNone(
+            closes[-1][1],
+            "The close was handed no output at all, so it cannot have "
+            "closed anything: %r" % (closes[-1],),
         )
