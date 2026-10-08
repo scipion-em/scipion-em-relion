@@ -237,8 +237,8 @@ class TestRelionInitialModel(TestRelionBase):
 
         def _checkAsserts(relionProt):
             relionProt._initialize()  # Load filename templates
-            dataSqlite = relionProt._getIterData(relionProt._lastIter())
-            outImgSet = SetOfParticles(filename=dataSqlite)
+            iterDataFn = relionProt._getIterData(relionProt._lastIter())
+            outImgSet = SetOfParticles(filename=iterDataFn)
 
             self.assertIsNotNone(relionProt.outputVolume,
                                  "There was a problem with Relion initial model")
@@ -539,8 +539,8 @@ class TestRelionRefine(TestRelionBase):
 
         def _checkAsserts(relionRefine):
             relionRefine._initialize()  # Load filename templates
-            dataSqlite = relionRefine._getIterData(3)
-            outImgSet = SetOfParticles(filename=dataSqlite)
+            iterDataFn = relionRefine._getIterData(3)
+            outImgSet = SetOfParticles(filename=iterDataFn)
 
             self.assertIsNotNone(relionRefine.outputVolume,
                                  "There was a problem with Relion autorefine")

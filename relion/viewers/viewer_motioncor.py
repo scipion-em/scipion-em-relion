@@ -116,11 +116,11 @@ class RelionMotioncorrViewer(EmProtocolViewer):
                 return [self.errorMessage('No failed movies found!',
                                           title="Visualization error")]
             else:
-                sqliteFn = self.protocol._getPath('movies_failed.sqlite')
-                self.createFailedMoviesSqlite(sqliteFn)
-                return [self.objectView(sqliteFn, viewParams=viewParamsDef)]
+                failedSetFn = self.protocol._getPath('movies_failed.sqlite')
+                self.createFailedMoviesSet(failedSetFn)
+                return [self.objectView(failedSetFn, viewParams=viewParamsDef)]
 
-    def createFailedMoviesSqlite(self, path):
+    def createFailedMoviesSet(self, path):
         inputMovies = self.protocol.inputMovies.get()
         cleanPath(path)
         movieSet = SetOfMovies(filename=path)
