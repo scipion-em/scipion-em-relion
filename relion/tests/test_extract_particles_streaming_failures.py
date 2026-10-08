@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
 from .logical_set_fakes import LogicalSetFake
+from pwem.protocols import ProtExtractParticles
 from relion.protocols.protocol_extract_particles import (
     ProtRelionExtractParticles,
 )
@@ -162,10 +163,25 @@ class TestRelionExtractParticlesPerMicIsolation(TestCase):
         )
         self.assertIn("micrograph 1 ", protocol.errors[0])
         self.assertEqual(
+            {1, 2},
+            set(protocol.coordDict),
+            "Nothing has been written yet, so neither mic's coordinates "
+            "can be let go: a failed write brings both round again.",
+        )
+        self.assertEqual(
+            {1, 2},
+            set(protocol._micsReadPendingRelease),
+            "Both mics were read, so both are waiting on the write - "
+            "the one that failed included, since pwem will offer it "
+            "again and it needs its coordinates to be there.",
+        )
+
+        protocol._releaseReadCoordinates()
+
+        self.assertEqual(
             {},
             protocol.coordDict,
-            "Both mics' coordinates must be dropped after this one-shot "
-            "read attempt, whether they succeeded or failed.",
+            "Once the output is durable the coordinates are dead weight.",
         )
 
 
@@ -409,3 +425,154 @@ class TestRelionExtractParticlesLogicalSetLoading(TestCase):
         self.assertTrue(protocol.micsClosed)
         self.assertTrue(protocol.ctfsClosed)
         self.assertTrue(protocol.streamClosed)
+
+
+class _RetryHarness(ProtRelionExtractParticles):
+    """Reads a micrograph's particles, then tries to publish them."""
+
+    def __init__(self, coordsByMic):
+        self.coordDict = dict(coordsByMic)
+        # The protocol assigns this per run; the harness supplies it.
+        self._getPos = lambda coord: 0
+        self.errors = []
+        self.published = []
+        self.publishShouldFail = False
+
+    def getInputMicrographs(self):
+        return _InputMicrographs()
+
+    def _getTmpPath(self, *paths):
+        base = "/tmp/relion-extract-retry"
+        return os.path.join(base, *paths) if paths else base
+
+    def _getExtraPath(self, *paths):
+        base = "/extra/relion-extract-retry"
+        return os.path.join(base, *paths) if paths else base
+
+    def warning(self, *args, **kwargs):
+        pass
+
+    def error(self, message):
+        self.errors.append(message)
+
+    def _commit(self, outputName, outputSet, state):
+        """Stands in for the durable write pwem does after reading."""
+        if self.publishShouldFail:
+            raise RuntimeError("persistence failed")
+
+        self.published.append(outputName)
+
+
+class TestRelionExtractParticlesKeepsCoordsUntilPublished(TestCase):
+    """Coordinates are what a retry is rebuilt from.
+
+    pwem reads a batch's particles and only then writes the output. The
+    mics in that batch are worked out from what is durably published, so
+    a write that fails leaves them pending and they are read again on the
+    next poll - but only if their coordinates are still there.
+    """
+
+    def _readOneMic(self, harness):
+        def exists(path):
+            return path.endswith('mic_000001.mrcs')
+
+        with patch(
+            "relion.protocols.protocol_extract_particles.relion.convert.Table",
+            return_value=[],
+        ), patch(
+            "relion.protocols.protocol_extract_particles.os.path.exists",
+            side_effect=exists,
+        ), patch(
+            "relion.protocols.protocol_extract_particles.pwutils.moveFile"
+        ):
+            harness.readPartsFromMics([_MultiMic(1)], MagicMock())
+
+    def test_CoordinatesSurviveUntilTheOutputIsWritten(self):
+        harness = _RetryHarness({1: []})
+
+        self._readOneMic(harness)
+
+        self.assertIn(
+            1,
+            harness.coordDict,
+            "The particles have been read but nothing has been written "
+            "yet: dropping the coordinates now leaves nothing to retry "
+            "with if the write fails.",
+        )
+
+    def test_AFailedWriteCanStillBeRetried(self):
+        harness = _RetryHarness({1: []})
+
+        self._readOneMic(harness)
+
+        # The write failed, so nothing released anything.
+
+        # pwem works the pending mics out from the durable output, so
+        # this micrograph comes round again.
+        self._readOneMic(harness)
+
+        self.assertEqual(
+            harness.errors,
+            [],
+            "Re-reading the micrograph after a failed write blew up - "
+            "its coordinates had already been thrown away: %s"
+            % harness.errors,
+        )
+
+    def test_CoordinatesAreReleasedOnceWritten(self):
+        harness = _RetryHarness({1: []})
+
+        self._readOneMic(harness)
+        harness._releaseReadCoordinates()
+
+        self.assertNotIn(
+            1,
+            harness.coordDict,
+            "Once the particles are durable the coordinates are dead "
+            "weight and must not be held for the rest of the run.",
+        )
+
+
+class TestRelionExtractParticlesReleasesAfterTheWrite(TestCase):
+    """It is _updateOutputSet, not the reader, that knows the particles
+    are durable - so that is where the coordinates are let go."""
+
+    def _harness(self):
+        harness = _RetryHarness({1: ['coord']})
+        harness._micsReadPendingRelease.add(1)
+        # Skip the one-off optics work; this is about the release.
+        harness._firstUpdate = False
+
+        return harness
+
+    def test_TheCoordinatesAreReleasedByTheWrite(self):
+        harness = self._harness()
+
+        with patch.object(ProtExtractParticles, '_updateOutputSet'):
+            harness._updateOutputSet('outputParticles', MagicMock())
+
+        self.assertEqual(
+            harness.coordDict,
+            {},
+            "The write happened and nothing let the coordinates go; they "
+            "are held for the rest of the run.",
+        )
+
+    def test_TheyAreReleasedAfterTheWriteAndNotBefore(self):
+        harness = self._harness()
+        order = []
+
+        def _write(self, outputName, outputSet, state=None):
+            order.append('write')
+            order.append('coords held: %s' % bool(harness.coordDict))
+
+        with patch.object(ProtExtractParticles, '_updateOutputSet', _write):
+            harness._updateOutputSet('outputParticles', MagicMock())
+
+        self.assertEqual(
+            order,
+            ['write', 'coords held: True'],
+            "The coordinates were let go before the write: if it then "
+            "fails there is nothing left to retry with.",
+        )
+        self.assertEqual(harness.coordDict, {})

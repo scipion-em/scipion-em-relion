@@ -333,6 +333,29 @@ class ProtRelionExtractParticles(RelionStreamingBase, ProtExtractParticles,
 
         return [params]
 
+    @property
+    def _micsReadPendingRelease(self):
+        """Mics whose coordinates are kept until their particles land."""
+        pending = getattr(self, '_micsReadPendingReleaseSet', None)
+
+        if pending is None:
+            pending = set()
+            self._micsReadPendingReleaseSet = pending
+
+        return pending
+
+    def _releaseReadCoordinates(self):
+        """Drop the coordinates of mics whose particles are now durable.
+
+        Coordinates are what a re-read is rebuilt from, so they are only
+        dead weight once the particles they produced have actually been
+        written.
+        """
+        for micId in self._micsReadPendingRelease:
+            self.coordDict.pop(micId, None)
+
+        self._micsReadPendingRelease.clear()
+
     def readPartsFromMics(self, micList, outputParts):
         """ Read the particles extract for the given list of micrographs
         and update the outputParts set with new items.
@@ -410,10 +433,12 @@ class ProtRelionExtractParticles(RelionStreamingBase, ProtExtractParticles,
                     "with the exception %s" % (mic.getObjId(), e)
                 )
             finally:
-                # Whether this mic succeeded or failed, there is no retry
-                # path for a one-shot batch read - drop its coordinates so
-                # they are not held onto for the rest of the run.
-                self.coordDict.pop(mic.getObjId(), None)
+                # Not dropped yet: nothing has been written. pwem works
+                # out which mics are still pending from what is durably
+                # published, so a write that fails brings this one round
+                # again - and re-reading it needs its coordinates. They
+                # are released once the output is durable.
+                self._micsReadPendingRelease.add(mic.getObjId())
 
     def _updateOutputSet(self, outputName, outputSet,
                          state=Set.STREAM_OPEN):
@@ -429,6 +454,10 @@ class ProtRelionExtractParticles(RelionStreamingBase, ProtExtractParticles,
 
         ProtExtractParticles._updateOutputSet(self, outputName, outputSet,
                                               state=state)
+
+        # Only now are those particles durable, so only now can the
+        # coordinates that produced them be let go.
+        self._releaseReadCoordinates()
         self._firstUpdate = False
 
     def _micsOther(self):
