@@ -33,7 +33,7 @@ import pwem
 from .constants import *
 
 
-__version__ = '5.0.2'
+__version__ = '5.1.0'
 _logo = "relion_logo.jpg"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016',
                'Zivanov2018', 'Kimanius2021']
@@ -42,16 +42,16 @@ _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016',
 class Plugin(pwem.Plugin):
     _homeVar = RELION_HOME
     _pathVars = [RELION_HOME]
-    _supportedVersions = [V4_0, V5_0]
+    _supportedVersions = [V4_0, V5_0, V5_1]
     _url = "https://github.com/scipion-em/scipion-em-relion"
     _processingField = [SPA, TOMO]
 
     @classmethod
     def _defineVariables(cls):
-        cls._defineEmVar(RELION_HOME, f'relion-{V5_0}')
+        cls._defineEmVar(RELION_HOME, f'relion-{V5_1}')
         cls._defineVar(RELION_CUDA_LIB, pwem.Config.CUDA_LIB)
         cls._defineVar(RELION_CUDA_BIN, pwem.Config.CUDA_BIN)
-        cls._defineVar(RELION_ENV_ACTIVATION, DEFAULT_ACTIVATION_CMD % V5_0)
+        cls._defineVar(RELION_ENV_ACTIVATION, DEFAULT_ACTIVATION_CMD % V5_1)
         cls._defineVar(RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE,
                        os.getenv(RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE, None))
         cls._defineEmVar(TORCH_HOME_VAR, 'modelangelomodels-1.0')
@@ -162,4 +162,4 @@ class Plugin(pwem.Plugin):
                            commands=installCmds,
                            neededProgs=cls.getDependencies(),
                            updateCuda=True,
-                           default=ver == V5_0)
+                           default=ver == V5_1)

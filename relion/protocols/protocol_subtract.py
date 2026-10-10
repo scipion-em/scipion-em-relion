@@ -53,9 +53,6 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
     _devStatus = PROD
     _possibleOutputs = outputs
 
-    def _initialize(self):
-        self._createFilenameTemplates()
-    
     def _createFilenameTemplates(self):
         """ Centralize how files are called. """
         myDict = {
@@ -74,13 +71,10 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
                            "a Relion protocol. Otherwise set it to No")
         form.addParam('inputProtocol', PointerParam,
                       important=True,
-                      pointerClass='ProtRelionRefine3D, ProtRelionClassify3D,'
-                                   'ProtRelionMultiBody',
+                      pointerClass='ProtRelionRefine3D',
                       label="Input Relion protocol",
                       condition="relionInput",
-                      help="Select the 3D refinement/classification or multi-body "
-                           "run which you want to use for subtraction. It will "
-                           "use the maps from this run for the subtraction.")
+                      help="Select the 3D refinement protocol.")
         form.addParam('inputVolume', PointerParam, pointerClass='Volume',
                       label="Input map to be projected",
                       important=True,
@@ -197,7 +191,7 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
         self.isRelionInput = self.relionInput.get()
         self._initialize()
 
-        if not self.useAll or not self.isRelionInput:
+        if not self.useAll or not self._isRelionInput():
             self._insertFunctionStep(self.convertInputStep, needsGPU=False)
 
         self._insertFunctionStep(self.subtractStep, needsGPU=False)
@@ -206,17 +200,22 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
     # -------------------------- STEPS functions ------------------------------
     def convertInputStep(self):
         """ Write the input images as a Relion star file. """
-        if self.isRelionInput:
+        if self._isRelionInput():
             imgSet = self.inputParticles.get()
+            rowCallback = self._postprocessSubsetRow
         else:
             imgSet = self.inputParticlesAll.get()
+            rowCallback = None
 
+        extraLabels = ['rlnClassNumber', 'rlnRandomSubset'] if self._isRelionInput() else []
         convert.writeSetOfParticles(
             imgSet, self._getFileName('input_star'),
-            outputDir=self._getExtraPath(), alignType=ALIGN_PROJ)
+            outputDir=self._getExtraPath(), alignType=ALIGN_PROJ,
+            extraLabels=extraLabels,
+            postprocessImageRow=rowCallback)
 
     def subtractStep(self):
-        if self.isRelionInput:
+        if self._isRelionInput():
             self.subtractStepRelion()
         else:
             self.subtractStepNoRelion()
@@ -266,7 +265,10 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
         self.runJob(self._getProgram('relion_particle_subtract'), params)
 
     def createOutputStep(self):
-        imgSet = self._getInputParticles()
+        if self._isRelionInput() and not self.useAll.get():
+            imgSet = self.inputParticles.get()
+        else:
+            imgSet = self._getInputParticles()
         outImgSet = self._createSetOfParticles()
         outImgsFn = self._getFileName('output_star')
         outImgSet.copyInfo(imgSet)
@@ -287,14 +289,18 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
     # -------------------------- INFO functions -------------------------------
     def _validate(self):
         errors = []
-        if not self.useAll:
-            self._validateDim(self.inputParticles(),
-                              self._getInputParticles().getXDim(),
+        if not self.useAll.get():
+            self._validateDim(self.inputParticles.get(),
+                              self._getInputParticles(),
                               errors, 'Input particles subset',
                               'Input particles from 3D protocol')
         if self.numberOfMpi > 1 and (not self.relionInput.get()):
             errors.append("Use of several CPUs when input is not relion "
                           "protocol is not supported")
+            
+        elif self.numberOfMpi < 2 and self.relionInput.get():
+            errors.append("When executing over a Relion run, you must "
+                            " use at least 2 MPIs")
 
         return errors
     
@@ -310,7 +316,7 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
     
     # -------------------------- UTILS functions ------------------------------
     def _updateItem(self, particle, row):
-        if self.isRelionInput:
+        if self._isRelionInput():
             # FIXME: check if other attrs need saving
             particle._rlnRandomSubset = Integer(row.rlnRandomSubset)
             self.reader.setParticleTransform(particle, row)
@@ -320,11 +326,45 @@ class ProtRelionSubtract(ProtOperateParticles, ProtRelionBase):
         particle.setLocation(newLoc)
 
     def _getInputParticles(self):
-        if self.isRelionInput:
+        if self.relionInput.get():
             inputProt = self.inputProtocol.get()
             return inputProt.outputParticles
         else:
             return self.inputParticlesAll.get()
+
+    def _postprocessSubsetRow(self, particle, row):
+        """Restore RELION labels required by particle subtraction.
+
+        Some subset generators may drop custom metadata (e.g. when using
+        ``pwem -split sets``), while RELION subtraction still requires these
+        labels in ``--data`` STAR files.
+        """
+        fullSetPart = self._subsetLabelsById.get(particle.getObjId())
+        if fullSetPart is None:
+            return
+
+        row['rlnClassNumber'] = fullSetPart[0]
+        row['rlnRandomSubset'] = fullSetPart[1]
+
+    def _isRelionInput(self):
+        return getattr(self, "isRelionInput", self.relionInput.get())
+
+    def _initialize(self):
+        self._createFilenameTemplates()
+        self._subsetLabelsById = {}
+        if self._isRelionInput() and not self.useAll.get():
+            inputProt = self.inputProtocol.get()
+            isClassifyRun = getattr(inputProt, 'IS_CLASSIFY', False)
+            for p in self._getInputParticles().iterItems():
+                classNo = p.getAttributeValue('_rlnClassNumber', None)
+                if classNo is None:
+                    # Refine/multibody subtraction uses one reference map.
+                    # Avoid inheriting arbitrary set class IDs from subset tools.
+                    classNo = p.getClassId() if isClassifyRun else 1
+                randomSubset = p.getAttributeValue('_rlnRandomSubset', None)
+                if classNo is None or randomSubset is None:
+                    continue
+                self._subsetLabelsById[p.getObjId()] = (int(classNo), int(randomSubset))
 
     def _convertMask(self, invert=False, resize=True):
         tmp = self._getTmpPath()

@@ -114,14 +114,14 @@ opticsGroup1            1 mtf_k2_200kV.star     0.885000   200.000000     1.4000
 opticsGroup2            2 mtf_k2_200kV.star     0.885000   200.000000     1.400000     0.100000     0.885000
 opticsGroup3            3 mtf_k2_200kV.star     0.885000   200.000000     1.400000     0.100000     0.885000
 
-data_micrographs
+data_movies
 
 loop_
-_rlnMicrographName #1 
+_rlnMicrographMovieName #1
 _rlnOpticsGroup #2 
-20170629_00025_frameImage.tiff 1
-20170629_00035_frameImage.tiff 2
-20170629_00045_frameImage.tiff 3
+/some/path/20170629_00025_frameImage.tiff 1
+/some/path/20170629_00035_frameImage.tiff 2
+/some/path/20170629_00045_frameImage.tiff 3
         """)
         f.close()
 
@@ -139,6 +139,42 @@ _rlnOpticsGroup #2
 
         for i, movie in enumerate(outputMovies):
             self.assertEqual(i + 1, movie.getAttributeValue('_rlnOpticsGroup'))
+
+    def test_readLegacyMovieAssignments(self):
+        inputStar = self.getOutputPath('legacy_movies.star')
+        with open(inputStar, 'w') as starFile:
+            starFile.write("""
+data_micrographs
+
+loop_
+_rlnMicrographName #1
+_rlnOpticsGroup #2
+/some/path/movie_001.mrc 2
+movie_002.mrc 1
+""")
+
+        assignments = ProtRelionAssignOpticsGroup._readGroupAssignments(
+            inputStar, self.protImport.outputMovies)
+        self.assertEqual({'movie_001.mrc': 2, 'movie_002.mrc': 1},
+                         assignments)
+
+    def test_rejectDuplicatedMovieBasenames(self):
+        inputStar = self.getOutputPath('duplicated_movies.star')
+        with open(inputStar, 'w') as starFile:
+            starFile.write("""
+data_movies
+
+loop_
+_rlnMicrographMovieName #1
+_rlnOpticsGroup #2
+/path/one/movie.mrc 1
+/path/two/movie.mrc 2
+""")
+
+        with self.assertRaisesRegex(ValueError,
+                                    'Duplicated image basename.*movie.mrc'):
+            ProtRelionAssignOpticsGroup._readGroupAssignments(
+                inputStar, self.protImport.outputMovies)
 
 
 class TestRelionCenterAverages(TestRelionBase):

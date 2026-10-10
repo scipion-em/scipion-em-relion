@@ -1,3 +1,10 @@
+5.1.0:
+    - Fix MPI validations on some protocols
+    - Fix particle subtraction
+    - Fix optics group assignment
+    - RLN mcorr now passes down existing optics groups
+    - Modelangelo now part of the plugin
+    - Add RELION 5.1
 5.0.2:
     - add a test for DynaMight protocol
 5.0.1: bug fix for export coordinates from subparticles (close #428)
