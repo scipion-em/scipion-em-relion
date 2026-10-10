@@ -209,6 +209,71 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
 
         return errors
 
+    def _warnings(self):
+        """ When extracting from a different set of micrographs, the particles
+        take the optics groups of that set. Warn if it does not agree with the
+        set the coordinates were picked on, since that silently changes (or
+        drops) the optics group assignment of the output particles.
+        """
+        warnings = []
+
+        if not self._micsOther():
+            return warnings
+
+        coordMics = self.getCoords().getMicrographs()
+        otherMics = self.inputMicrographs.get()
+
+        if coordMics is None or otherMics is None:
+            return warnings
+
+        def _groupNames(micSet):
+            return {og.rlnOpticsGroup:
+                    getattr(og, 'rlnOpticsGroupName',
+                            'optics_group_%d' % og.rlnOpticsGroup)
+                    for og in OpticsGroups.fromImages(micSet)}
+
+        def _assignments(micSet):
+            return {mic.getMicName():
+                    mic.getAttributeValue('_rlnOpticsGroup', 1)
+                    for mic in micSet if mic.getMicName()}
+
+        def _format(names):
+            return ', '.join('%d=%s' % (n, names[n]) for n in sorted(names))
+
+        pickNames = _groupNames(coordMics)
+        otherNames = _groupNames(otherMics)
+
+        if pickNames != otherNames:
+            warnings.append("The micrographs used for picking and the ones "
+                            "selected to extract from do not declare the same "
+                            "optics groups:\n"
+                            "  - used for picking: %s\n"
+                            "  - extracting from: %s"
+                            % (_format(pickNames), _format(otherNames)))
+
+        # Comparing the assignment micrograph by micrograph is only
+        # meaningful if at least one of the sets has several groups
+        if max(len(pickNames), len(otherNames)) > 1:
+            pickAssign = _assignments(coordMics)
+            otherAssign = _assignments(otherMics)
+            common = set(pickAssign).intersection(otherAssign)
+            changed = sorted(micName for micName in common
+                             if pickAssign[micName] != otherAssign[micName])
+
+            if changed:
+                warnings.append("%d out of %d micrographs present in both sets "
+                                "are assigned to a different optics group, "
+                                "e.g. %s."
+                                % (len(changed), len(common),
+                                   ', '.join(changed[:3])))
+
+        if warnings:
+            warnings.append("The extracted particles will take the optics "
+                            "groups of the micrographs selected to extract "
+                            "from.")
+
+        return warnings
+
     def _citations(self):
         return ['Scheres2012b']
 
