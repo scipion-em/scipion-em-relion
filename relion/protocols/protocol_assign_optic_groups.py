@@ -246,6 +246,8 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                             i.rlnMicrographGainName, i.rlnOpticsGroupName
                         ))
 
+            counters = {'matched': 0, 'skipped': 0}
+
             def updateItem(item, row):
                 itemNames = {os.path.basename(name)
                              for name in getItemNames(item)
@@ -260,11 +262,13 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
                         item._rlnOpticsGroup = Integer()
 
                     item._rlnOpticsGroup.set(ogNumber)
+                    counters['matched'] += 1
                 elif len(matches) > 1:
                     raise ValueError("Input item matches multiple entries in "
                                      "the STAR file: %s" % sorted(matches))
                 else:
                     item._appendItem = False  # Do not add this row to the output set
+                    counters['skipped'] += 1
                     self.warning("Image name(s) %s were not found in the "
                                  "input STAR file: %s"
                                  % (sorted(itemNames), inputStar))
@@ -272,6 +276,7 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
             outputSet.copyItems(inputSet,
                                 updateItemCallback=updateItem,
                                 doClone=False)
+            self._warnAboutSkipped(counters, inputStar)
 
         self.info(og)
 
@@ -280,6 +285,30 @@ class ProtRelionAssignOpticsGroup(ProtRelionBase):
         self._defineOutputs(**{outputName: outputSet})
         self._defineTransformRelation(inputSet, outputSet)
     
+    def _warnAboutSkipped(self, counters, inputStar):
+        """ Warn when input items could not be matched against the STAR file.
+        Unmatched items are left out of the output set, so without this the
+        only clue would be one message per item, and a fully unmatched input
+        would silently produce an empty output.
+        """
+        matched, skipped = counters['matched'], counters['skipped']
+
+        if not skipped:
+            return
+
+        if matched:
+            self.warning(pwutils.yellowStr(
+                "WARNING: %d out of %d input items were not found in the "
+                "input STAR file and were left out of the output set."
+                % (skipped, matched + skipped)))
+        else:
+            self.warning(pwutils.redStr(
+                "WARNING: none of the %d input items were found in the input "
+                "STAR file %s, so the output set is EMPTY.\n"
+                "Image names are matched by basename, extension included: "
+                "check that the image names in the STAR file match the ones "
+                "of the input set." % (skipped, inputStar)))
+
     # --------------------------- INFO functions ------------------------------
     def _validate(self):
         validateMsgs = []
