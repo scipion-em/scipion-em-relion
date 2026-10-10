@@ -39,7 +39,6 @@ import pyworkflow.utils as pwutils
 from pwem.protocols import ProtAlignMovies
 from pwem.objects import Image
 from pyworkflow.gui.plotter import Plotter
-from pyworkflow.protocol import STEPS_SERIAL
 
 import relion
 from relion import Plugin
@@ -53,7 +52,6 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
 
     _label = 'motion correction'
     _devStatus = PROD
-    stepsExecutionMode = STEPS_SERIAL
 
     def __init__(self, **kwargs):
         ProtAlignMovies.__init__(self, **kwargs)
@@ -216,7 +214,10 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
                            "recommended by Relion. See "
                            "https://relion.readthedocs.io/en/latest/Reference/MovieCompression.html")
 
-        form.addParallelSection(threads=4, mpi=0)
+        form.addParallelSection(threads=1, mpi=0, binThreads=4,
+                                binThreadsHelp='Number of threads passed to '
+                                               'relion_run_motioncorr with '
+                                               '*--j* for each movie.')
 
     # --------------------------- STEPS functions -------------------------------
     def _convertInputStep(self):
@@ -248,7 +249,7 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
         args += "--angpix %0.5f " % (movie.getSamplingRate())
         args += "--patch_x %d --patch_y %d " % (self.patchX, self.patchY)
         args += "--group_frames %d " % self.groupFrames
-        args += "--j %d " % self.numberOfThreads
+        args += "--j %d " % self.getBinThreads()
 
         inputMovies = self.inputMovies.get()
         if inputMovies.getGain():
@@ -386,10 +387,23 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
     def _preprocessOutputMicrograph(self, mic, movie):
         self._setPlotInfo(movie, mic)
         self._setMotionValues(movie, mic)
+        self._setOpticsGroup(movie, mic)
         if self._savePsSum():
             outPs = self._getExtraPath(self._getOutputMicPsName(movie))
             mic._powerSpectra = Image(location=outPs)
             mic._powerSpectra.setSamplingRate(self._calcPSSampling())
+
+    @staticmethod
+    def _setOpticsGroup(movie, mic):
+        """ Carry the optics group assignment from the input movie to the
+        output micrograph. The base class only copies objId, micName and
+        the filename, so without this the per-item assignment done by the
+        'assign optics groups' protocol would be lost and every micrograph
+        would fall back to the first optics group.
+        """
+        ogNumber = movie.getAttributeValue('_rlnOpticsGroup', None)
+        if ogNumber is not None:
+            mic._rlnOpticsGroup = pwobj.Integer(ogNumber)
 
     def _setMotionValues(self, movie, mic):
         """ Parse motion values from the 'corrected_micrographs.star' file
