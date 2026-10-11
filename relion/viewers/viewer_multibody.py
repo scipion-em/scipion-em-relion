@@ -86,8 +86,8 @@ class MultibodyViewer(RelionViewer):
                 'showMovie': self._showMovie
                 }
 
-    def _createVolumesSqlite(self):
-        """ Write a sqlite with all volumes selected for visualization. """
+    def _createSelectedVolumesSet(self):
+        """ Write a Set with all volumes selected for visualization. """
         path = self.protocol._getExtraPath('relion_viewer_volumes.sqlite')
         if self.protocol.doContinue:
             protRef = self.protocol.continueRun.get().protRefine.get()

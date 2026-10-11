@@ -46,9 +46,19 @@ from relion import Plugin
 import relion.convert as convert
 from relion.convert.convert31 import OpticsGroups
 from .protocol_base import ProtRelionBase
+from .protocol_streaming_base import RelionStreamingBase
+
+# Module level: the output-id helper is called unbound on light test
+# harnesses, so it cannot rely on a class attribute.
+MOTIONCOR_OUTPUT_NAMES = (
+    'outputMovies',
+    'outputMicrographs',
+    'outputMicrographsDoseWeighted',
+)
 
 
-class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
+class ProtRelionMotioncor(RelionStreamingBase, ProtAlignMovies,
+                          ProtRelionBase):
     """ Wrapper for the Relion's implementation of motioncor algorithm. """
 
     _label = 'motion correction'
@@ -58,7 +68,82 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
     def __init__(self, **kwargs):
         ProtAlignMovies.__init__(self, **kwargs)
         self.updatedSets = []
+        # _validate() is what works this out, but it does not run on every
+        # launch path (a scheduled or resumed run can skip it), and
+        # _processMovie reads it. It used to be assigned after a return
+        # statement, so it was never set at all.
         self.isEER = False
+
+    def _getCorrectedDose(self, movieSet):
+        """ Reimplement pwem's ProtAlignMovies._getCorrectedDose, which
+        does "preExp += dose * (firstFrame - 1)" unconditionally and
+        crashes with TypeError when the input movies' acquisition does
+        not carry a dose per frame (e.g. an import that didn't set it).
+        _validate() already blocks a direct launch with doDW on and no
+        dose, but that is not necessarily re-enforced on every launch
+        path (e.g. a protocol started as part of a resumed/chained
+        workflow) - default to 0.0 instead of crashing, matching the
+        same fix already applied in scipion-em-motioncorr. """
+        firstFrame, _, _ = movieSet.getFramesRange()
+        preExp = movieSet.getAcquisition().getDoseInitial() or 0.0
+        dose = movieSet.getAcquisition().getDosePerFrame() or 0.0
+        preExp += dose * (firstFrame - 1)
+
+        return preExp, dose
+
+    def _loadInputList(self):
+        """Discover the movies added since the last poll.
+
+        pwem's version rebuilds the Set from a storage filename and
+        walks it whole every time, which ties discovery to how the Set
+        happens to be persisted. This asks the Set itself for the ids
+        above the watermark and loads only those, so a poll costs what
+        just arrived.
+        """
+        movieSet = self.inputMovies.get()
+        self.listOfMovies = getattr(self, 'listOfMovies', [])
+        self._knownMovieIds = getattr(self, '_knownMovieIds', set())
+
+        newMovies, producerClosed, terminalConsistent = (
+            self._discoverNewInputItems(movieSet, '_lastInputId',
+                                        self._knownMovieIds))
+
+        for movie in newMovies:
+            movieId = movie.getObjId()
+
+            if movieId in self._knownMovieIds:
+                continue
+
+            self._knownMovieIds.add(movieId)
+            # listOfMovies stays the full list of what the stream has
+            # produced: _checkNewOutput and createOutputStep count it.
+            self.listOfMovies.append(movie)
+
+        self.streamClosed = producerClosed and terminalConsistent
+
+    def _checkNewInput(self):
+        """Discover new movies without consulting a filesystem mtime.
+
+        pwem gates this on the modification time of a file behind the
+        input Set, which says nothing about the Set's logical contents.
+        The Set itself is the only thing asked here.
+        """
+        self._loadInputList()
+
+        newMovies = any(movie.getObjId() not in self.insertedDict
+                        for movie in self.listOfMovies)
+
+        if not newMovies:
+            return
+
+        outputStep = self._getFirstJoinStep()
+        fDeps = self._insertNewMoviesSteps(self.insertedDict,
+                                           self.listOfMovies)
+
+        if outputStep is not None:
+            outputStep.addPrerequisites(*fDeps)
+
+        self.updateSteps()
 
     def _getConvertExtension(self, filename):
         """ Check whether it is needed to convert to .mrc or not """
@@ -227,62 +312,73 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
         ProtAlignMovies._convertInputStep(self)
 
     def _processMovie(self, movie):
-        movieFolder = self._getOutputMovieFolder(movie)
-        inputStar = os.path.join(movieFolder,
-                                 '%s_input.star' % self._getMovieRoot(movie))
-        pwutils.makePath(os.path.join(movieFolder, 'output'))
+        try:
+            # Building these arguments can raise on its own (e.g. a
+            # missing/unusable acquisition value), and this function
+            # has no exception boundary of its own around it otherwise -
+            # a single movie failing here must not crash the whole
+            # protocol, the same as the runJob failure just below is
+            # already isolated.
+            movieFolder = self._getOutputMovieFolder(movie)
+            inputStar = os.path.join(movieFolder,
+                                     '%s_input.star' % self._getMovieRoot(movie))
+            pwutils.makePath(os.path.join(movieFolder, 'output'))
 
-        og = OpticsGroups.fromImages(self.inputMovies.get())
-        writer = convert.createWriter(optics=og)
-        # Let's use only the basename, since we will launch the command
-        # from the movieFolder
-        movie.setFileName(os.path.basename(movie.getFileName()))
-        writer.writeSetOfMovies([movie], inputStar)
+            og = OpticsGroups.fromImages(self.inputMovies.get())
+            writer = convert.createWriter(optics=og)
+            # Let's use only the basename, since we will launch the command
+            # from the movieFolder
+            movie.setFileName(os.path.basename(movie.getFileName()))
+            writer.writeSetOfMovies([movie], inputStar)
 
-        # The program will run in the movie folder, so let's put
-        # the input files relative to that
-        args = "--i %s --o output/ " % os.path.basename(inputStar)
-        args += "--use_own --skip_logfile "
-        args += "--first_frame_sum %d --last_frame_sum %d " % (self._getFrameRange())
-        args += "--bin_factor %f --bfactor %d " % (self.binFactor, self.bfactor)
-        args += "--angpix %0.5f " % (movie.getSamplingRate())
-        args += "--patch_x %d --patch_y %d " % (self.patchX, self.patchY)
-        args += "--group_frames %d " % self.groupFrames
-        args += "--j %d " % self.numberOfThreads
+            # The program will run in the movie folder, so let's put
+            # the input files relative to that
+            args = "--i %s --o output/ " % os.path.basename(inputStar)
+            args += "--use_own --skip_logfile "
+            args += "--first_frame_sum %d --last_frame_sum %d " % (self._getFrameRange())
+            args += "--bin_factor %f --bfactor %d " % (self.binFactor, self.bfactor)
+            args += "--angpix %0.5f " % (movie.getSamplingRate())
+            args += "--patch_x %d --patch_y %d " % (self.patchX, self.patchY)
+            args += "--group_frames %d " % self.groupFrames
+            args += "--j %d " % self.numberOfThreads
 
-        inputMovies = self.inputMovies.get()
-        if inputMovies.getGain():
-            args += '--gainref "%s" ' % inputMovies.getGain()
-            args += '--gain_rot %d ' % self.gainRot
-            args += '--gain_flip %d ' % self.gainFlip
+            inputMovies = self.inputMovies.get()
+            if inputMovies.getGain():
+                args += '--gainref "%s" ' % inputMovies.getGain()
+                args += '--gain_rot %d ' % self.gainRot
+                args += '--gain_flip %d ' % self.gainFlip
 
-        if self.defectFile.get():
-            args += '--defect_file "%s" ' % self.defectFile.get()
+            if self.defectFile.get():
+                args += '--defect_file "%s" ' % self.defectFile.get()
 
-        if self._savePsSum():
-            args += '--grouping_for_ps %d ' % self._calcPsDose()
+            if self._savePsSum():
+                args += '--grouping_for_ps %d ' % self._calcPsDose()
 
-        if self.doDW:
-            args += "--dose_weighting "
-            preExp, dose = self._getCorrectedDose(inputMovies)
-            # when using EER, the hardware frames are grouped
+            if self.doDW:
+                args += "--dose_weighting "
+                preExp, dose = self._getCorrectedDose(inputMovies)
+                # when using EER, the hardware frames are grouped
+                if self.isEER:
+                    dose *= self.eerGroup.get()
+                args += "--dose_per_frame %f " % dose
+                args += "--preexposure %f " % preExp
+
+                if self.saveNonDW:
+                    args += "--save_noDW "
+
             if self.isEER:
-                dose *= self.eerGroup.get()
-            args += "--dose_per_frame %f " % dose
-            args += "--preexposure %f " % preExp
+                args += "--eer_grouping %d " % self.eerGroup
+                args += "--eer_upsampling %d " % (self.eerSampling.get() + 1)
 
-            if self.saveNonDW:
-                args += "--save_noDW "
+            if self.saveFloat16:
+                args += "--float16 "
 
-        if self.isEER:
-            args += "--eer_grouping %d " % self.eerGroup
-            args += "--eer_upsampling %d " % (self.eerSampling.get() + 1)
-
-        if self.saveFloat16:
-            args += "--float16 "
-
-        if self.extraParams.hasValue():
-            args += " " + self.extraParams.get()
+            if self.extraParams.hasValue():
+                args += " " + self.extraParams.get()
+        except Exception as e:
+            self.error(f"ERROR building arguments for movie: "
+                      f"{movie.getFileName()} with the exception {e}")
+            return
 
         try:
             self._runProgram('relion_run_motioncorr', args, cwd=movieFolder)
@@ -295,8 +391,76 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
                            % movie.getFileName())
 
             self._moveFiles(movie)
-        except:
+        except Exception:
             self.error(f"ERROR processing movie: {movie.getFileName()}")
+
+    def _getPublishedMovieIds(self):
+        """Movie ids already present in the logical outputs.
+
+        Asked as an id query on each output Set rather than by walking
+        it, since the outputs grow with the stream.
+        """
+        publishedIds = set()
+
+        for outputName in MOTIONCOR_OUTPUT_NAMES:
+            publishedIds.update(
+                self._getOutputIdSet(getattr(self, outputName, None)))
+
+        publishedIds.discard(None)
+
+        return publishedIds
+
+    def _getFinishedMovieIds(self):
+        """Movie ids carried by finished processMovieStep steps."""
+        return self._collectStepArgKeys(('processMovieStep',),
+                                        dictField='object.id')
+
+    def _checkNewOutput(self):
+        # Persist outputs before committing movies to the done list.
+        if getattr(self, 'finished', False):
+            return
+
+        # Completion comes from the persisted step graph and publication
+        # from the output Sets themselves - no DONE/*.TXT sidecar decides
+        # anything, so a cleaned extra/ cannot make work look undone.
+        publishedIds = self._getPublishedMovieIds()
+        finishedIds = self._getFinishedMovieIds()
+
+        newDone = [
+            movie for movie in self.listOfMovies
+            if movie.getObjId() not in publishedIds
+            and movie.getObjId() in finishedIds
+        ]
+
+        doneList = publishedIds
+
+        self.debug('_checkNewOutput: ')
+        self.debug('   listOfMovies: %s, doneList: %s, newDone: %s'
+                   % (len(self.listOfMovies), len(doneList), len(newDone)))
+
+        self._firstTimeOutput = len(doneList) == 0
+        allDone = len(doneList) + len(newDone)
+        self.finished = self.streamClosed and allDone == len(self.listOfMovies)
+        streamMode = (pwobj.Set.STREAM_CLOSED
+                      if self.finished else pwobj.Set.STREAM_OPEN)
+
+        if not newDone and not self.finished:
+            return
+
+        self.debug('   finished: %s ' % self.finished)
+        self.debug('        self.streamClosed (%s) AND' % self.streamClosed)
+        self.debug('        allDone (%s) == len(self.listOfMovies (%s)'
+                   % (allDone, len(self.listOfMovies)))
+        self.debug('   streamMode: %s' % streamMode)
+
+        # If persistence fails, DONE/all.TXT must remain unchanged so
+        # Continue can retry these movies.
+        self._updateOutputSets(newDone, streamMode)
+
+        if self.finished:
+            outputStep = self._getFirstJoinStep()
+            if outputStep and outputStep.isWaiting():
+                outputStep.setStatus(cons.STATUS_NEW)
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):
@@ -588,7 +752,11 @@ class ProtRelionMotioncor(ProtAlignMovies, ProtRelionBase):
         # when using EER, the hardware frames are grouped
         if self.isEER:
             dose *= self.eerGroup.get()
-        dose_for_ps = round(self.dosePSsum.get() / dose)
+        # _getCorrectedDose now defaults an unknown dose to 0.0 instead
+        # of crashing - guard the division here too, same as the
+        # "early is <= 4e/A^2 -> treat every frame as early" fallback
+        # used elsewhere when there is no known dose.
+        dose_for_ps = round(self.dosePSsum.get() / dose) if dose else 0
 
         return 1 if dose_for_ps == 0 else dose_for_ps
 

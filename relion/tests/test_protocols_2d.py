@@ -251,12 +251,12 @@ class TestRelionExportCtf(TestRelionBase):
 
     def runImportScipion(self):
         print(magentaStr("\n==> Importing data - ctfs (from scipion):"))
-        ctfSqlite = self.dsGrigorieff.getFile('ctffind3/ctfs.sqlite')
+        ctfSetFn = self.dsGrigorieff.getFile('ctffind3/ctfs.sqlite')
 
         protCTF = self.newProtocol(ProtImportCTF,
                                    objLabel='import from scipion',
                                    importFrom=ProtImportCTF.IMPORT_FROM_SCIPION,
-                                   filesPath=ctfSqlite)
+                                   filesPath=ctfSetFn)
 
         protCTF.inputMicrographs.set(self.protImport.outputMicrographs)
         self.launchProtocol(protCTF)

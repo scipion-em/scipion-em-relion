@@ -158,6 +158,11 @@ class ProtRelionCompressEstimateGain(ProtProcessMovies):
         errors = []
         inputMovies = self.inputMovies.get()
         firstMovie = inputMovies.getFirstItem()
+
+        if firstMovie is None:
+            # A streaming input can still be empty when validation runs.
+            return errors
+
         fn = firstMovie.getFileName()
 
         ih = emlib.image.ImageHandler()
