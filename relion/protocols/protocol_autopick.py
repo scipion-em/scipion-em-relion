@@ -44,6 +44,9 @@ class ProtRelionAutopickBase(RelionStreamingBase, ProtParticlePickingAuto,
     """ Base class for auto-picking protocols in Relion.
     """
     _label = None
+    # LoG opts into strict failure handling; reference picking keeps
+    # the existing per-batch streaming failure tolerance.
+    _failOnPickingError = False
 
     def _loadSet(self, inputSet, SetClass, getKeyFunc, watermarkAttr=None,
                  knownIds=None):
@@ -189,6 +192,8 @@ class ProtRelionAutopickBase(RelionStreamingBase, ProtParticlePickingAuto,
                 "ERROR: Autopick failed for micrograph batch starting at "
                 "%s with the exception %s" % (micList[0].getObjId(), e)
             )
+            if self._failOnPickingError:
+                raise
 
         # Move each expected coordinates file explicitly. Do not let a
         # successful wildcard move hide a missing output for one mic in a batch.
@@ -200,10 +205,13 @@ class ProtRelionAutopickBase(RelionStreamingBase, ProtParticlePickingAuto,
             if os.path.exists(srcFile):
                 pwutils.moveFile(srcFile, dstFile)
             elif not os.path.exists(dstFile):
-                self.warning(
+                message = (
                     "Missing autopick output for micrograph %s: %s / %s"
                     % (mic.getObjId(), srcFile, dstFile)
                 )
+                if self._failOnPickingError:
+                    raise RuntimeError(message)
+                self.warning(message)
 
     def _createSetOfCoordinates(self, micSet, suffix=''):
         """ Override this method to set the box size. """
