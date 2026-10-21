@@ -117,7 +117,10 @@ class ProtRelionCompressMoviesTasks(RelionStreamingBase, ProtProcessMovies):
 
     def _insertAllSteps(self):
         self.samplingRate = self.inputMovies.get().getSamplingRate()
-        self._insertFunctionStep(self._processAllMoviesStep, needsGPU=False)
+        # A new timestamp every launch: a finished step pyworkflow would
+        # not run again, and Continue has to look at the input once more.
+        self._insertFunctionStep(self._processAllMoviesStep,
+                                 str(datetime.now()), needsGPU=False)
 
     def _linkGain(self):
         gainFile = None
@@ -180,8 +183,7 @@ class ProtRelionCompressMoviesTasks(RelionStreamingBase, ProtProcessMovies):
             # run has been aborted, every further batch is compressed and
             # thrown away - and the failure would only surface when the
             # producer finally closes, hours later on a long acquisition.
-            if self._streamingMustStop() or getattr(self, '_failedBatches',
-                                                    None):
+            if self._streamingMustStop() or self._mustStopFeeding():
                 break
 
             newMovies, producerClosed, terminalConsistent = (
@@ -214,7 +216,7 @@ class ProtRelionCompressMoviesTasks(RelionStreamingBase, ProtProcessMovies):
         self.info("No more %s, stream closed. Total: %d"
                   % (label, len(seenIds)))
 
-    def _processAllMoviesStep(self):
+    def _processAllMoviesStep(self, when=None):
         self.info("Relion version:")
         self._runProgram('--version')
 
@@ -230,7 +232,6 @@ class ProtRelionCompressMoviesTasks(RelionStreamingBase, ProtProcessMovies):
 
         self._outputMovies = outputMovies
         self._gainFile = self._linkGain()
-        self.cmd = self._getCmd()
 
         pipe = Pipeline()
         g = pipe.addGenerator(batchMgr.generate)
@@ -240,44 +241,13 @@ class ProtRelionCompressMoviesTasks(RelionStreamingBase, ProtProcessMovies):
                                      outputQueue=outputQueue)
             outputQueue = proc.outputQueue
 
-        # Kept on the protocol so the input generator can see it: it has
-        # to stop feeding compression once the output is lost.
-        self._failedBatches = []
-        failedBatches = self._failedBatches
-
-        def _updateOutput(batch):
-            if batch.get('error'):
-                failedBatches.append(batch)
-                return batch
-
-            try:
-                # emtools.jobs.Pipeline's TaskGenerator.run() has no
-                # exception boundary of its own: an uncaught exception
-                # here would die silently in this worker thread and
-                # skip notifyGeneratorEnds(), leaving every downstream
-                # node waiting forever instead of the pipeline simply
-                # failing. _outputFromBatch must never raise out of
-                # this callback.
-                self._outputFromBatch(batch)
-            except Exception as e:
-                batch['error'] = str(e)
-                failedBatches.append(batch)
-                self.error(
-                    "ERROR: updating output movies failed for batch %s. "
-                    "--> %s\n" % (batch.get('id'), e)
-                )
-                traceback.print_exc()
-
-            return batch
-
-        pipe.addProcessor(outputQueue, _updateOutput)
+        self._startBatchBookkeeping()
+        pipe.addProcessor(outputQueue, self._handleProcessedBatch)
         pipe.run()
 
-        if failedBatches:
-            raise RuntimeError(
-                "Relion movie compression failed for one or more "
-                "streaming batches."
-            )
+        # Fails before closing the output when the output could not be
+        # saved or no movie at all could be compressed.
+        self._finishCompression(self._outputMovies)
 
         if self._outputMovies is None:
             # The producer closed without ever sending a movie. There is
@@ -289,14 +259,83 @@ class ProtRelionCompressMoviesTasks(RelionStreamingBase, ProtProcessMovies):
         self._updateOutputSet('outputMovies', self._outputMovies,
                               pwobj.Set.STREAM_CLOSED)
 
+    # ------------------------- batch bookkeeping -------------------------
+    def _startBatchBookkeeping(self):
+        # Kept on the protocol so the input generator can see them.
+        self._failedCompressions = []
+        self._outputWriteFailures = []
+
+    def _mustStopFeeding(self):
+        """Once the output cannot be saved, every further batch would be
+        compressed and thrown away; a batch that failed to compress only
+        loses its own movies."""
+        return bool(getattr(self, '_outputWriteFailures', None))
+
+    def _handleProcessedBatch(self, batch):
+        """Publish a compressed batch; a failed one is left out.
+
+        Its movies never reach the output, so a Continue compresses them
+        again (discovery restarts from what the output holds).
+        emtools.jobs.Pipeline's TaskGenerator.run() has no exception
+        boundary of its own: an uncaught exception here would die silently
+        in this worker thread and skip notifyGeneratorEnds(), leaving every
+        downstream node waiting forever. This must never raise.
+        """
+        if batch.get('error'):
+            self._failedCompressions.append(batch)
+            return batch
+
+        try:
+            self._outputFromBatch(batch)
+        except Exception as e:
+            batch['error'] = str(e)
+            self._outputWriteFailures.append(batch)
+            self.error(
+                "ERROR: updating output movies failed for batch %s. "
+                "--> %s\n" % (batch.get('id'), e)
+            )
+            traceback.print_exc()
+
+        return batch
+
+    def _finishCompression(self, outputMovies):
+        """Fail when the output could not be saved or no movie at all
+        could be compressed; otherwise only report the failed batches."""
+        if getattr(self, '_outputWriteFailures', None):
+            raise RuntimeError("The compressed movies of one or more "
+                               "streaming batches could not be saved to the "
+                               "output; see the errors above.")
+
+        failed = getattr(self, '_failedCompressions', None)
+
+        if not failed:
+            return
+
+        if outputMovies is None or outputMovies.getSize() == 0:
+            raise RuntimeError("Compression failed for every movie (%d "
+                               "batch(es) failed); see the errors above. "
+                               "Continue compresses them again." % len(failed))
+
+        self.warning("Compression failed for %d batch(es); their movies are "
+                     "left out and a Continue compresses them again."
+                     % len(failed))
+
+    def _getOutputMovieFn(self, movie):
+        """Where a compressed movie is published: under its own name."""
+        tifName = pwutils.replaceExt(os.path.basename(movie.getFileName()),
+                                     'tif')
+
+        return self._outputFileName(movie, tifName,
+                                    getattr(self, 'outputMovies', None))
+
     def _getBatchMovieName(self, movie, ext=None):
         """Name this movie takes inside its batch, and as its output.
 
         Every movie of a batch is linked into one folder and listed in
         one star file, and relion names its output after each input. Two
-        movies whose files share a basename would collide there and in
-        extra/ afterwards, with both output movies left pointing at
-        whichever was written last. The id keeps them apart.
+        movies whose files share a basename would collide there, so inside
+        the batch the id keeps them apart; the published file keeps the
+        movie's own name (see _getOutputMovieFn).
         """
         baseName = os.path.basename(movie.getFileName())
 
@@ -337,14 +376,16 @@ class ProtRelionCompressMoviesTasks(RelionStreamingBase, ProtProcessMovies):
                     t.addRowValues(bn)
                 sf.writeTable('movies', t)
 
-            self._runProgram(self.cmd, cwd=batch['path'])
+            # Built per batch: whether the movies are EER is known from them.
+            self.isEER = self._isEERMovie(batch['items'][0])
+            self._runProgram(self._getCmd(), cwd=batch['path'])
 
             # Check resulting files and update movies
             for movie in batch['items']:
                 fn = movie.getFileName()
                 tifBn = self._getBatchMovieName(movie, 'tif')
                 outputFn = os.path.join(batchPath, tifBn)
-                dstFn = self._getExtraPath(tifBn)
+                dstFn = self._getOutputMovieFn(movie)
                 if os.path.exists(outputFn):
                     pwutils.moveFile(outputFn, dstFn)
                     movie.setFileName(dstFn)

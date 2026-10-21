@@ -209,7 +209,11 @@ class TestRelionCompressMoviesFailedBatchCompletion(TestCase):
                 return batch
 
             def _outputFromBatch(self, batch):
-                return None
+                # batch-2 is published.
+                self._outputMovies = SimpleNamespace(getSize=lambda: 1)
+
+            def warning(self, message):
+                self.reported = getattr(self, 'reported', []) + [message]
 
         class _MixedPipeline:
             def __init__(self):
@@ -249,11 +253,11 @@ class TestRelionCompressMoviesFailedBatchCompletion(TestCase):
         module = "relion.protocols.protocol_compress_movies_tasks"
         with patch(module + ".BatchManager", _EmptyBatchManager), \
                 patch(module + ".Pipeline", _MixedPipeline):
-            with self.assertRaisesRegex(
-                RuntimeError,
-                "batch",
-            ):
-                protocol._processAllMoviesStep()
+            # One failed batch only loses its own movies: the run goes on,
+            # ends, and reports it.
+            protocol._processAllMoviesStep()
+
+        self.assertTrue(protocol.reported)
 
         self.assertEqual(
             ["batch-1", "batch-2"],
@@ -302,7 +306,10 @@ class _FakeTable:
 
 class _MissingTiffHarness(ProtRelionCompressMoviesTasks):
     def __init__(self):
-        self.cmd = ""
+        pass
+
+    def _getCmd(self):
+        return ""
 
     def info(self, *args, **kwargs):
         pass

@@ -30,6 +30,7 @@ import threading
 import pyworkflow.object as pwobj
 from pyworkflow.protocol.constants import STATUS_NEW
 import pyworkflow.utils as pwutils
+from pwem.objects import Micrograph
 from pwem.protocols import ProtParticlePickingAuto
 
 import relion.convert as convert
@@ -119,8 +120,28 @@ class ProtRelionAutopickBase(RelionStreamingBase, ProtParticlePickingAuto,
             self.updateSteps()
 
     def _getFinishedPickingMicNames(self):
-        """Micrograph names carried by finished picking steps."""
-        return self._collectStepArgKeys(PICKING_STEP_NAMES, keyType=str)
+        """Micrograph names carried by finished picking steps.
+
+        A micrograph that failed in an earlier run is picked again, and
+        only counts once its new step has finished: its old step finished
+        too, and read before the new one runs it would be taken as failed
+        once more and never published.
+        """
+        finished = self._collectStepArgKeys(PICKING_STEP_NAMES, keyType=str)
+
+        if getattr(self, '_failedBeforeThisRun', None) is None:
+            self._failedBeforeThisRun = self._failedPickingMicIds()
+
+        retried = {micName for micName, mic in self.micDict.items()
+                   if mic.getObjId() in self._failedBeforeThisRun}
+
+        if retried:
+            finishedNow = self._collectStepArgKeys(
+                PICKING_STEP_NAMES, keyType=str, includePrevious=False)
+            finished = {micName for micName in finished
+                        if micName not in retried or micName in finishedNow}
+
+        return finished
 
     def _getPublishedPickingMicIds(self):
         """Micrograph ids already represented in the output coordinates.
@@ -256,10 +277,39 @@ class ProtRelionAutopickBase(RelionStreamingBase, ProtParticlePickingAuto,
         ProtParticlePickingAuto.pickMicrographStep(self, micName, *args)
         self._forgetDoneMarkersOfFailed([micName])
 
+        return self._pickingStepResults([micName])
+
     def pickMicrographListStep(self, micNameList, *args):
         ProtParticlePickingAuto.pickMicrographListStep(self, micNameList,
                                                        *args)
         self._forgetDoneMarkersOfFailed(micNameList)
+
+        return self._pickingStepResults(micNameList)
+
+    def _pickingStepResults(self, micNames):
+        return self._stepResultFiles(
+            [self.micDict[micName].getObjId() for micName in micNames
+             if micName in self.micDict])
+
+    def _insertAllSteps(self):
+        self._prepareFailedForRetry()
+        ProtParticlePickingAuto._insertAllSteps(self)
+
+    def _prepareFailedForRetry(self):
+        """Have Continue pick again the micrographs that failed.
+
+        A failure found only when the coordinates were read leaves the
+        DONE marker pwem skips a micrograph by in place, and the finished
+        step pyworkflow does not run again: both go.
+        """
+        failedIds = self._failedPickingMicIds()
+        self._failedBeforeThisRun = failedIds
+        self._forgetStepResults(failedIds)
+
+        for micId in failedIds:
+            mic = Micrograph()
+            mic.setObjId(micId)
+            pwutils.cleanPath(self._getMicDone(mic))
 
     def _pickMicrograph(self, mic, *args):
         """ This method should be invoked only when working in streaming mode.
@@ -272,9 +322,12 @@ class ProtRelionAutopickBase(RelionStreamingBase, ProtParticlePickingAuto,
 
         micsDir = self._createTmpMicsDir(micList)
         micStar = os.path.join(micsDir, 'input_micrographs.star')
-        writer = convert.createWriter(rootDir=micsDir, outputDir=micsDir)
-        writer.writeSetOfMicrographs(micList, micStar)
+
         try:
+            # Writing the input reads every micrograph's header, and an
+            # unreadable one fails here already.
+            writer = convert.createWriter(rootDir=micsDir, outputDir=micsDir)
+            writer.writeSetOfMicrographs(micList, micStar)
             # pickMicrographListStep (pwem) has no exception boundary of
             # its own around this call - a single relion_autopick crash
             # for the whole batch would otherwise propagate uncaught and

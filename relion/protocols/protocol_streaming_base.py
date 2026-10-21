@@ -16,10 +16,21 @@
 # **************************************************************************
 
 import json
+import threading
 from collections import OrderedDict
 
 import pyworkflow.protocol.constants as cons
 import os
+
+
+# Output names are claimed from several worker threads at once.
+_outputNamesLock = threading.Lock()
+
+# Per-item steps return one file per item here as their result files. On
+# Continue, pyworkflow keeps a finished step finished only while its result
+# files exist, so removing the ones of failed items makes their steps run
+# again.
+STEP_RESULTS_DIR = 'STEP_RESULTS'
 
 
 class _StepArgScan:
@@ -69,6 +80,36 @@ class RelionStreamingBase:
 
     # ------------------------ per-item artefacts -----------------------
 
+    def _stepResultFiles(self, itemIds):
+        """Result files for a per-item step, one per item it handled.
+
+        Returned by the step, whatever became of its items: a failed item
+        has its file removed when the next run starts, see
+        _forgetStepResults.
+        """
+        resultsDir = self._getExtraPath(STEP_RESULTS_DIR)
+        os.makedirs(resultsDir, exist_ok=True)
+        paths = []
+
+        for itemId in itemIds:
+            path = os.path.join(resultsDir, '%06d.TXT' % itemId)
+            open(path, 'a').close()
+            paths.append(path)
+
+        return paths
+
+    def _forgetStepResults(self, itemIds):
+        """Have the steps of these items run again on Continue.
+
+        Called before pyworkflow compares the steps with the ones of the
+        previous run, that is, from _insertAllSteps.
+        """
+        for itemId in itemIds:
+            path = self._getExtraPath(STEP_RESULTS_DIR, '%06d.TXT' % itemId)
+
+            if os.path.exists(path):
+                os.remove(path)
+
     def _itemScopedName(self, item, baseName):
         """A per-item artefact name two items can never share.
 
@@ -97,6 +138,68 @@ class RelionStreamingBase:
                 return legacy
 
         return scoped
+
+    def _outputFileName(self, item, baseName, outputSet, pathFunc=None):
+        """Path of a published file: the input's own name when it is free.
+
+        Other protocols find an item's files by name (coordinates matched to
+        a micrograph, a motion-corrected micrograph named after its movie),
+        so outputs keep the input's file name. Only a second item with the
+        same name, from another folder, gets its id in front instead of
+        overwriting the first one's file.
+        """
+        pathFunc = pathFunc or self._getExtraPath
+        scoped = pathFunc(self._itemScopedName(item, baseName))
+
+        if os.path.exists(scoped):
+            # Written with its id before: by a run made while every output
+            # carried it, or because its name was already taken.
+            return scoped
+
+        with _outputNamesLock:
+            owners = self.__dict__.setdefault('_outputNameOwners', {})
+            owner = owners.get(baseName)
+
+            if owner == item.getObjId() or (
+                    owner is None
+                    and baseName not in self._publishedFileNames(outputSet)):
+                owners[baseName] = item.getObjId()
+                return pathFunc(baseName)
+
+        return scoped
+
+    def _publishedFileNames(self, outputSet):
+        """File names the items published so far use (read once per run).
+
+        On a Continue, an item still to be written must not take the name
+        of one already published: that file is the other one's.
+        """
+        names = getattr(self, '_publishedFileNamesCache', None)
+
+        if names is None:
+            fileNames = []
+
+            if outputSet is not None:
+                try:
+                    fileNames = outputSet.getUniqueValues('_filename')
+                except (NotImplementedError, TypeError, AttributeError):
+                    fileNames = [item.getFileName() for item in outputSet]
+
+            names = {os.path.basename(fn) for fn in fileNames or []}
+            self._publishedFileNamesCache = names
+
+        return names
+
+    @staticmethod
+    def _isEERMovie(movie):
+        """Whether a movie is an EER file, the case some options depend on.
+
+        Decided from the movie at hand, where the step runs: _validate runs
+        in the process that launches the protocol, and flags it sets are
+        gone in the one that executes the steps.
+        """
+        return (movie is not None and
+                os.path.splitext(movie.getFileName())[1].lower() == '.eer')
 
     # ------------------------- input discovery -------------------------
     def _discoverIdsAfter(self, inputSet, lastId):

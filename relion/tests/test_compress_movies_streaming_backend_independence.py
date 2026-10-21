@@ -77,6 +77,11 @@ class _ProtocolHarness(ProtRelionCompressMoviesTasks):
     def _updateOutputSet(self, *args, **kwargs):
         pass
 
+    def _createSetOfMovies(self, *args, **kwargs):
+        # An empty stream publishes an empty output: the fake one is enough.
+        return SimpleNamespace(copyInfo=lambda other: None,
+                               getSize=lambda: 0)
+
 
 
 

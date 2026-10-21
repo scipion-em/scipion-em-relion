@@ -37,7 +37,7 @@ import pyworkflow.protocol.constants as cons
 from pyworkflow.constants import PROD
 import pyworkflow.utils as pwutils
 from pwem.protocols import ProtAlignMovies
-from pwem.objects import Image
+from pwem.objects import Image, Movie
 from pyworkflow.gui.plotter import Plotter
 from pyworkflow.protocol import STEPS_SERIAL
 
@@ -47,15 +47,6 @@ import relion.convert as convert
 from relion.convert.convert31 import OpticsGroups
 from .protocol_base import ProtRelionBase
 from .protocol_streaming_base import RelionStreamingBase
-
-# Module level: the output-id helper is called unbound on light test
-# harnesses, so it cannot rely on a class attribute.
-MOTIONCOR_OUTPUT_NAMES = (
-    'outputMovies',
-    'outputMicrographs',
-    'outputMicrographsDoseWeighted',
-)
-
 
 class ProtRelionMotioncor(RelionStreamingBase, ProtAlignMovies,
                           ProtRelionBase):
@@ -311,7 +302,32 @@ class ProtRelionMotioncor(RelionStreamingBase, ProtAlignMovies,
 
         ProtAlignMovies._convertInputStep(self)
 
+    def _insertAllSteps(self):
+        # Publishing (optics groups) needs it too, also on a Continue with
+        # nothing left to align.
+        self.isEER = self._isEERMovie(self.inputMovies.get().getFirstItem())
+        self._prepareFailedForRetry()
+        ProtAlignMovies._insertAllSteps(self)
+
+    def _failedMovieIds(self):
+        """Movies that failed and are still missing from the outputs."""
+        return set(self._readFailedList()) - self._getPublishedMovieIds()
+
+    def _prepareFailedForRetry(self):
+        """Have Continue align again the movies that failed: the finished
+        step pyworkflow does not run again, and the DONE marker pwem skips a
+        movie by, both go."""
+        self._failedBeforeThisRun = self._failedMovieIds()
+        self._forgetStepResults(self._failedBeforeThisRun)
+
+        for movieId in self._failedBeforeThisRun:
+            movie = Movie()
+            movie.setObjId(movieId)
+            pwutils.cleanPath(self._getMovieDone(movie))
+
     def _processMovie(self, movie):
+        self.isEER = self._isEERMovie(movie)
+
         try:
             # Building these arguments can raise on its own (e.g. a
             # missing/unusable acquisition value), and this function
@@ -394,26 +410,101 @@ class ProtRelionMotioncor(RelionStreamingBase, ProtAlignMovies,
         except Exception:
             self.error(f"ERROR processing movie: {movie.getFileName()}")
 
+    def _enabledOutputUpdaters(self):
+        """(output name, function publishing movies to it) of each output
+        this run produces, with pwem's own update functions."""
+        updaters = []
+
+        if self._createOutputMovies():
+            updaters.append(('outputMovies', self._updateOutputMovieSet))
+        if self._createOutputMicrographs():
+            updaters.append(('outputMicrographs', lambda done, mode: (
+                self._updateOutputMicSet(done, 'micrographs.sqlite',
+                                         self._getOutputMicName,
+                                         'outputMicrographs', mode))))
+        if self._createOutputWeightedMicrographs():
+            updaters.append(('outputMicrographsDoseWeighted', lambda done, mode: (
+                self._updateOutputMicSet(done, 'micrographs_dose-weighted.sqlite',
+                                         self._getOutputMicWtName,
+                                         'outputMicrographsDoseWeighted',
+                                         mode))))
+
+        return updaters
+
     def _getPublishedMovieIds(self):
-        """Movie ids already present in the logical outputs.
+        """Movie ids present in every output this run produces.
 
-        Asked as an id query on each output Set rather than by walking
-        it, since the outputs grow with the stream.
+        A movie in only some of them (one write failed) is not published
+        yet: the outputs it lacks still get it. Asked as an id query on
+        each output Set rather than by walking it.
         """
-        publishedIds = set()
+        publishedIds = None
 
-        for outputName in MOTIONCOR_OUTPUT_NAMES:
-            publishedIds.update(
-                self._getOutputIdSet(getattr(self, outputName, None)))
+        for outputName, _ in self._enabledOutputUpdaters():
+            ids = self._getOutputIdSet(getattr(self, outputName, None))
+            publishedIds = ids if publishedIds is None else publishedIds & ids
 
+        publishedIds = publishedIds or set()
         publishedIds.discard(None)
 
         return publishedIds
 
+    def _updateOutputSets(self, newDone, streamMode):
+        """Give each output only the movies it does not have yet.
+
+        pwem appends the same list to every output, so a movie one of them
+        already holds would be added twice.
+        """
+        for outputName, update in self._enabledOutputUpdaters():
+            outputIds = self._getOutputIdSet(getattr(self, outputName, None))
+            update([movie for movie in newDone
+                    if movie.getObjId() not in outputIds], streamMode)
+
+    def _movieResultExists(self, movie):
+        """Whether the micrographs this movie's outputs are built from exist."""
+        names = []
+
+        if self._createOutputMicrographs():
+            names.append(self._getOutputMicName(movie))
+        if self._createOutputWeightedMicrographs():
+            names.append(self._getOutputMicWtName(movie))
+
+        return all(os.path.exists(self._getExtraPath(name)) for name in names)
+
+    def _forgetDoneMarkerIfFailed(self, movie):
+        """pwem marks a movie DONE whatever it gave, and a Continue skips
+        the ones marked: a failed one must be aligned again."""
+        if not self._movieResultExists(movie):
+            pwutils.cleanPath(self._getMovieDone(movie))
+
+    def processMovieStep(self, movieDict, hasAlignment):
+        ProtAlignMovies.processMovieStep(self, movieDict, hasAlignment)
+
+        movie = Movie()
+        movie.setAttributesFromDict(movieDict, setBasic=True,
+                                    ignoreMissing=True)
+        self._forgetDoneMarkerIfFailed(movie)
+
+        return self._stepResultFiles([movie.getObjId()])
+
     def _getFinishedMovieIds(self):
-        """Movie ids carried by finished processMovieStep steps."""
-        return self._collectStepArgKeys(('processMovieStep',),
-                                        dictField='object.id')
+        """Movie ids carried by finished processMovieStep steps.
+
+        A movie aligned again in this run (it failed before) only counts
+        once its new step has finished: its old step finished too.
+        """
+        finished = self._collectStepArgKeys(('processMovieStep',),
+                                            dictField='object.id')
+        retried = getattr(self, '_failedBeforeThisRun', None)
+
+        if retried:
+            finishedNow = self._collectStepArgKeys(
+                ('processMovieStep',), dictField='object.id',
+                includePrevious=False)
+            finished = {movieId for movieId in finished
+                        if movieId not in retried or movieId in finishedNow}
+
+        return finished
 
     def _checkNewOutput(self):
         # Persist outputs before committing movies to the done list.
@@ -425,14 +516,18 @@ class ProtRelionMotioncor(RelionStreamingBase, ProtAlignMovies,
         # anything, so a cleaned extra/ cannot make work look undone.
         publishedIds = self._getPublishedMovieIds()
         finishedIds = self._getFinishedMovieIds()
+        # Looked at in this run already: a failed movie is never in the
+        # outputs, and would otherwise be looked at again every poll.
+        handledIds = self.__dict__.setdefault('_handledMovieIds', set())
 
         newDone = [
             movie for movie in self.listOfMovies
             if movie.getObjId() not in publishedIds
+            and movie.getObjId() not in handledIds
             and movie.getObjId() in finishedIds
         ]
 
-        doneList = publishedIds
+        doneList = publishedIds | handledIds
 
         self.debug('_checkNewOutput: ')
         self.debug('   listOfMovies: %s, doneList: %s, newDone: %s'
@@ -453,9 +548,17 @@ class ProtRelionMotioncor(RelionStreamingBase, ProtAlignMovies,
                    % (allDone, len(self.listOfMovies)))
         self.debug('   streamMode: %s' % streamMode)
 
-        # If persistence fails, DONE/all.TXT must remain unchanged so
-        # Continue can retry these movies.
-        self._updateOutputSets(newDone, streamMode)
+        # A movie is published to every output or to none: one whose
+        # micrographs are missing failed, and is listed as such once.
+        failed = [movie for movie in newDone
+                  if not self._movieResultExists(movie)]
+
+        if failed:
+            self._writeFailedList(failed)
+
+        self._updateOutputSets([movie for movie in newDone
+                                if movie not in failed], streamMode)
+        handledIds.update(movie.getObjId() for movie in newDone)
 
         if self.finished:
             outputStep = self._getFirstJoinStep()

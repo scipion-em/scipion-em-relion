@@ -1,3 +1,4 @@
+import os
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
@@ -7,6 +8,19 @@ from relion.protocols.protocol_extract_particles import (
     ProtRelionExtractParticles,
 )
 
+
+
+class _InMemoryFailedExtraction:
+    """The failed-micrograph list, kept in memory instead of in extra/."""
+
+    def _failedExtractMicIds(self):
+        return set(self.__dict__.setdefault('failedIds', set()))
+
+    def _recordFailedExtraction(self, mic):
+        self.__dict__.setdefault('failedIds', set()).add(mic.getObjId())
+
+    def _forgetFailedExtraction(self, micIds):
+        self.__dict__.setdefault('failedIds', set()).difference_update(micIds)
 
 class _Acquisition:
     def getMagnification(self):
@@ -38,7 +52,7 @@ class _Mic:
         return None
 
 
-class _ProtocolHarness(ProtRelionExtractParticles):
+class _ProtocolHarness(_InMemoryFailedExtraction, ProtRelionExtractParticles):
     def __init__(self):
         self.coordDict = {7: []}
 
@@ -101,7 +115,7 @@ class _MultiMic:
         return None
 
 
-class _PerMicIsolationHarness(ProtRelionExtractParticles):
+class _PerMicIsolationHarness(_InMemoryFailedExtraction, ProtRelionExtractParticles):
     def __init__(self):
         self.coordDict = {1: [], 2: []}
         self.errors = []
@@ -201,7 +215,7 @@ class _BatchInputMics:
         return 17
 
 
-class _BatchResumeHarness(ProtRelionExtractParticles):
+class _BatchResumeHarness(_InMemoryFailedExtraction, ProtRelionExtractParticles):
     def __init__(self):
         self.streamingBatchSize = _BatchValue(1)
 
@@ -250,7 +264,7 @@ class _PendingBatchMic:
         return "mic_%03d" % self.mic_id
 
 
-class _PendingBatchHarness(ProtRelionExtractParticles):
+class _PendingBatchHarness(_InMemoryFailedExtraction, ProtRelionExtractParticles):
     def __init__(self):
         self.coordsClosed = True
         self.micsClosed = True
@@ -315,7 +329,7 @@ class _LogicalPointer:
         return self._value
 
 
-class _BackendIndependentCheckHarness(ProtRelionExtractParticles):
+class _BackendIndependentCheckHarness(_InMemoryFailedExtraction, ProtRelionExtractParticles):
     def __init__(self):
         self._micrographs = _NoStorageFilenameSet()
         self._coordinates = _LogicalCoordinates(self._micrographs)
@@ -389,7 +403,7 @@ class _LogicalCoordsForLoad:
         )
 
 
-class _LogicalLoadHarness(ProtRelionExtractParticles):
+class _LogicalLoadHarness(_InMemoryFailedExtraction, ProtRelionExtractParticles):
     def __init__(self):
         self.micDict = {}
         self.coordDict = {}
@@ -427,7 +441,7 @@ class TestRelionExtractParticlesLogicalSetLoading(TestCase):
         self.assertTrue(protocol.streamClosed)
 
 
-class _RetryHarness(ProtRelionExtractParticles):
+class _RetryHarness(_InMemoryFailedExtraction, ProtRelionExtractParticles):
     """Reads a micrograph's particles, then tries to publish them."""
 
     def __init__(self, coordsByMic):

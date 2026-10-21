@@ -114,7 +114,27 @@ class ProtRelionCompressEstimateGain(ProtProcessMovies):
         writer.writeSetOfMovies(self.inputMovies.get(),
                                 self._getFileName("input_star"))
 
+    def _detectInputKind(self):
+        """Set isFloat32 / isEER from the first input movie.
+
+        They choose the program and its options, so they are worked out
+        where the step runs: _validate runs in the process that launches
+        the protocol, not in the one that executes its steps, so flags it
+        sets are not there any more.
+        """
+        firstMovie = self.inputMovies.get().getFirstItem()
+
+        if firstMovie is None:
+            return
+
+        fn = firstMovie.getFileName()
+        ext = pwutils.getExt(fn)
+        self.isEER = ext == ".eer"
+        self.isFloat32 = ("mrc" in ext and emlib.image.ImageHandler()
+                          .getDataType(fn) == emlib.DT_FLOAT)
+
     def estimateGainStep(self):
+        self._detectInputKind()
         args = [
             f"--i {self._getFileName('input_star')}",
             f"--j {self.numberOfThreads}",
@@ -163,12 +183,6 @@ class ProtRelionCompressEstimateGain(ProtProcessMovies):
             # A streaming input can still be empty when validation runs.
             return errors
 
-        fn = firstMovie.getFileName()
-
-        ih = emlib.image.ImageHandler()
-        if "mrc" in pwutils.getExt(fn) and ih.getDataType(fn) == emlib.DT_FLOAT:
-            self.isFloat32 = True
-        if pwutils.getExt(fn) == ".eer":
-            self.isEER = True
+        self._detectInputKind()
 
         return errors

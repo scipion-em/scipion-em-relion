@@ -272,6 +272,7 @@ class ProtRelion2Autopick(ProtRelionAutopickBase):
         return False
 
     def _insertAllSteps(self):
+        self._prepareFailedForRetry()
         ctfSet = self.ctfRelations.get()
         ctfStreaming = ctfSet is not None and ctfSet.isStreamOpen()
         self.inputStreaming = (

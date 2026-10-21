@@ -860,8 +860,10 @@ class ProtRelionBase(EMProtocol):
         if not self.doContinue:
             imgStar = self._getFileName('input_star')
 
-            self.info("Converting set from '%s' into '%s'" %
-                      (imgSet.getFileName(), imgStar))
+            # Described, not located: asking a Set for its file name can
+            # mean writing a copy of the whole Set just for this log line.
+            self.info("Converting %s (%d particles) into '%s'" %
+                      (imgSet.getClassName(), imgSet.getSize(), imgStar))
 
             # Pass stack file as None to avoid write the images files
             # If copyAlignment is set to False pass alignType to ALIGN_NONE

@@ -143,6 +143,9 @@ class _PersistenceFailureHarness(ProtRelionMotioncor):
         self.persistenceCalls = 0
         # The step for movie 1 finished; nothing has been published yet.
         self._steps = [_FinishedMovieStep(1)]
+        # Which outputs exist depends on these: here, no dose weighting.
+        self.doDW = False
+        self.saveNonDW = False
 
     def _writeDoneList(self, movies):
         raise AssertionError(
@@ -152,6 +155,10 @@ class _PersistenceFailureHarness(ProtRelionMotioncor):
     def _updateOutputSets(self, newDone, streamMode):
         self.persistenceCalls += 1
         raise RuntimeError("simulated output persistence failure")
+
+    def _movieResultExists(self, movie):
+        # Aligned fine: what fails here is persisting it.
+        return True
 
     def debug(self, *args, **kwargs):
         pass

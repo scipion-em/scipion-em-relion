@@ -16,6 +16,19 @@ from relion.protocols.protocol_extract_particles import (
     ProtRelionExtractParticles)
 
 
+
+class _InMemoryFailedExtraction:
+    """The failed-micrograph list, kept in memory instead of in extra/."""
+
+    def _failedExtractMicIds(self):
+        return set(self.__dict__.setdefault('failedIds', set()))
+
+    def _recordFailedExtraction(self, mic):
+        self.__dict__.setdefault('failedIds', set()).add(mic.getObjId())
+
+    def _forgetFailedExtraction(self, micIds):
+        self.__dict__.setdefault('failedIds', set()).difference_update(micIds)
+
 class _Mic:
     def __init__(self, objId):
         self._objId = objId
@@ -65,7 +78,7 @@ class _CoordSet:
         return [c for c in self.coords if c.getMicId() == micId]
 
 
-class _Extract(ProtRelionExtractParticles):
+class _Extract(_InMemoryFailedExtraction, ProtRelionExtractParticles):
     def __init__(self, coordSet=None, batchSize=1):
         self.micDict = OrderedDict()
         self.coordDict = {}

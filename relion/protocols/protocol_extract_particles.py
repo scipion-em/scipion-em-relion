@@ -25,6 +25,7 @@
 # **************************************************************************
 
 import os
+import threading
 from collections import OrderedDict
 
 from pyworkflow.object import Set, Integer
@@ -35,7 +36,7 @@ from pyworkflow.constants import PROD
 
 from pwem.protocols import ProtExtractParticles
 from pwem.emlib.image import ImageHandler
-from pwem.objects import Particle, Acquisition
+from pwem.objects import Particle, Acquisition, Micrograph
 
 import relion.convert
 from relion import Plugin
@@ -46,6 +47,10 @@ from .protocol_streaming_base import RelionStreamingBase
 
 # Module level: these helpers are called unbound on light test harnesses.
 EXTRACT_STEP_NAMES = ('extractMicrographStep', 'extractMicrographListStep')
+# The micrographs whose extraction failed, as a durable list in extra/:
+# Continue extracts the listed ones again.
+FAILED_EXTRACTION_LIST = 'FAILED_extraction.TXT'
+_failedListLock = threading.Lock()
 
 
 class ProtRelionExtractParticles(RelionStreamingBase, ProtExtractParticles,
@@ -179,34 +184,32 @@ class ProtRelionExtractParticles(RelionStreamingBase, ProtExtractParticles,
             return
 
         workingDir = self.getWorkingDir()
-        micsStar = self._getMicsStar(micList)
-        og = OpticsGroups.fromImages(self.getInputMicrographs())
-        starWriter = relion.convert.createWriter(rootDir=workingDir,
-                                                 outputDir=self._getTmpPath(),
-                                                 optics=og)
-        starWriter.writeSetOfMicrographs(micList, self._getPath(micsStar))
-
-        # convert.writeSetOfMicrographs(micList, self._getPath(micsStar),
-        #                               alignType=emcts.ALIGN_NONE,
-        #                               preprocessImageRow=self._preprocessMicrographRow)
-
-        partsStar = self._getMicParticlesStar(micList)
-
-        for mic in micList:
-            self._convertCoordinates(mic, self.coordDict[mic.getObjId()])
-            self._micCoordStarDict[mic.getObjId()] = partsStar
-
-        args = ' --i %s --part_star %s %s' % (micsStar, partsStar, params)
 
         try:
             # extractMicrographListStep (pwem) has no exception boundary
-            # of its own around this call - a single relion_preprocess
-            # crash for the whole batch would otherwise propagate
-            # uncaught and abort the entire streaming run. Downstream,
-            # readPartsFromMics already reports a missing particle stack
-            # per micrograph instead of crashing, so letting this batch's
-            # mics fall through to that same "no output produced" path is
-            # consistent with the rest of this protocol's failure handling.
+            # of its own around this call - an unreadable micrograph (its
+            # header is read to write the input STAR) or a single
+            # relion_preprocess crash for the whole batch would otherwise
+            # propagate uncaught and abort the entire streaming run.
+            # Downstream, readPartsFromMics already reports a missing
+            # particle stack per micrograph instead of crashing, so letting
+            # this batch's mics fall through to that same "no output
+            # produced" path is consistent with the rest of this protocol's
+            # failure handling.
+            micsStar = self._getMicsStar(micList)
+            og = OpticsGroups.fromImages(self.getInputMicrographs())
+            starWriter = relion.convert.createWriter(rootDir=workingDir,
+                                                     outputDir=self._getTmpPath(),
+                                                     optics=og)
+            starWriter.writeSetOfMicrographs(micList, self._getPath(micsStar))
+
+            partsStar = self._getMicParticlesStar(micList)
+
+            for mic in micList:
+                self._convertCoordinates(mic, self.coordDict[mic.getObjId()])
+                self._micCoordStarDict[mic.getObjId()] = partsStar
+
+            args = ' --i %s --part_star %s %s' % (micsStar, partsStar, params)
             self.runJob(self._getProgram('relion_preprocess'), args, cwd=workingDir)
         except Exception as e:
             self.error(
@@ -377,6 +380,7 @@ class ProtRelionExtractParticles(RelionStreamingBase, ProtExtractParticles,
 
         tmp = self._getTmpPath()
         extra = self._getExtraPath()
+        readWell = []
 
         for mic in micList:
             # A micrograph is published whole or not at all: its particles
@@ -434,6 +438,8 @@ class ProtRelionExtractParticles(RelionStreamingBase, ProtExtractParticles,
                         p._rlnOpticsGroup.set(ogNumber)
                         micParticles.append(p.clone())
                         posSet.add(pos)
+
+                readWell.append(mic.getObjId())
             except Exception as e:
                 self.error(
                     "ERROR: Reading particles failed for micrograph %s "
@@ -452,11 +458,79 @@ class ProtRelionExtractParticles(RelionStreamingBase, ProtExtractParticles,
             for particle in micParticles:
                 outputParts.append(particle)
 
-    def _recordFailedExtraction(self, mic):
-        self.__dict__.setdefault('_failedMicIds', set()).add(mic.getObjId())
+        self._forgetFailedExtraction(readWell)
 
+    # ------------------------- failed micrographs ------------------------
     def _failedExtractMicIds(self):
-        return set(getattr(self, '_failedMicIds', ()))
+        """Ids of the micrographs whose extraction failed, from extra/."""
+        cached = getattr(self, '_failedExtractMicIdsCache', None)
+
+        if cached is None:
+            cached = set()
+            path = self._getExtraPath(FAILED_EXTRACTION_LIST)
+
+            if os.path.exists(path):
+                with open(path) as handle:
+                    cached = {int(line) for line in handle if line.strip()}
+
+            self._failedExtractMicIdsCache = cached
+
+        return set(cached)
+
+    def _writeFailedExtraction(self, micIds):
+        with open(self._getExtraPath(FAILED_EXTRACTION_LIST), 'w') as handle:
+            handle.writelines('%d\n' % micId for micId in sorted(micIds))
+
+        self._failedExtractMicIdsCache = set(micIds)
+
+    def _recordFailedExtraction(self, mic):
+        with _failedListLock:
+            failed = self._failedExtractMicIds()
+
+            if mic.getObjId() not in failed:
+                self._writeFailedExtraction(failed | {mic.getObjId()})
+
+    def _forgetFailedExtraction(self, micIds):
+        """Extracted well now: no longer listed as failed."""
+        with _failedListLock:
+            failed = self._failedExtractMicIds()
+
+            if failed & set(micIds):
+                self._writeFailedExtraction(failed - set(micIds))
+
+    def extractMicrographStep(self, micKey, *args):
+        ProtExtractParticles.extractMicrographStep(self, micKey, *args)
+
+        return self._extractionStepResults([micKey])
+
+    def extractMicrographListStep(self, micKeyList, *args):
+        ProtExtractParticles.extractMicrographListStep(self, micKeyList, *args)
+
+        return self._extractionStepResults(micKeyList)
+
+    def _extractionStepResults(self, micKeys):
+        return self._stepResultFiles(
+            [self.micDict[micKey].getObjId() for micKey in micKeys
+             if micKey in self.micDict])
+
+    def _insertAllSteps(self):
+        self._prepareFailedForRetry()
+        ProtExtractParticles._insertAllSteps(self)
+
+    def _prepareFailedForRetry(self):
+        """Have Continue extract again the micrographs that failed.
+
+        A failure is found when the particles are read, after the step
+        finished: its DONE marker, which pwem skips a micrograph by, and
+        the finished step pyworkflow does not run again, both go.
+        """
+        self._failedBeforeThisRun = self._failedExtractMicIds()
+        self._forgetStepResults(self._failedBeforeThisRun)
+
+        for micId in self._failedBeforeThisRun:
+            mic = Micrograph()
+            mic.setObjId(micId)
+            pwutils.cleanPath(self._getMicDone(mic))
 
     def _updateOutputSet(self, outputName, outputSet,
                          state=Set.STREAM_OPEN):
@@ -587,8 +661,23 @@ class ProtRelionExtractParticles(RelionStreamingBase, ProtExtractParticles,
                                                micList[-1].getObjId())
 
     def _getFinishedExtractMicNames(self):
-        """Micrograph names carried by finished extraction steps."""
-        return self._collectStepArgKeys(EXTRACT_STEP_NAMES, keyType=str)
+        """Micrograph names carried by finished extraction steps.
+
+        A micrograph extracted again in this run (it failed before) only
+        counts once its new step has finished: its old step finished too.
+        """
+        finished = self._collectStepArgKeys(EXTRACT_STEP_NAMES, keyType=str)
+        failedBefore = getattr(self, '_failedBeforeThisRun', None)
+        retried = {micName for micName, mic in self.micDict.items()
+                   if failedBefore and mic.getObjId() in failedBefore}
+
+        if retried:
+            finishedNow = self._collectStepArgKeys(
+                EXTRACT_STEP_NAMES, keyType=str, includePrevious=False)
+            finished = {micName for micName in finished
+                        if micName not in retried or micName in finishedNow}
+
+        return finished
 
     def _getPublishedExtractMicIds(self):
         """Micrograph ids already represented in the output particles.

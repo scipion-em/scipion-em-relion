@@ -171,6 +171,43 @@ class TestFailedMicrographsArePickedAgain(unittest.TestCase):
             # Kept on disk: a later run reads the same list.
             self.assertEqual(set(), _Picking(root)._failedPickingMicIds())
 
+    def test_ItsOldFinishedStepDoesNotPublishIt(self):
+        # Published before its new step ran, it would be read as failed
+        # once more and never published after picking well.
+        with tempfile.TemporaryDirectory() as root:
+            protocol = _Picking(root)
+            protocol._recordFailedPicking(_Mic(2))
+            protocol._failedPickingMicIdsCache = None
+            protocol.micDict["mic_001"] = _Mic(1)
+            protocol.micDict["mic_002"] = _Mic(2)
+            protocol._prevSteps = [_PickStep("mic_001"), _PickStep("mic_002")]
+            protocol._steps = []
+
+            self.assertEqual({"mic_001"},
+                             protocol._getFinishedPickingMicNames())
+
+            protocol._steps.append(_PickStep("mic_002"))
+
+            self.assertEqual({"mic_001", "mic_002"},
+                             protocol._getFinishedPickingMicNames())
+
+
+class _StoredValue:
+    def __init__(self, value):
+        self._value = value
+
+    def get(self, default=None):
+        return self._value
+
+
+class _PickStep:
+    def __init__(self, micName):
+        self.funcName = _StoredValue("pickMicrographListStep")
+        self.argsStr = _StoredValue('[["%s"]]' % micName)
+
+    def isFinished(self):
+        return True
+
 
 if __name__ == '__main__':
     unittest.main()

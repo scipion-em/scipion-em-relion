@@ -253,6 +253,9 @@ class _NoSidecarPickingHarness(ProtRelionAutopickBase):
         self.published.append([mic.getMicName() for mic in micList])
         return list(micList)
 
+    def _failedPickingMicIds(self):
+        return set()
+
     def _streamingSleepOnWait(self):
         pass
 

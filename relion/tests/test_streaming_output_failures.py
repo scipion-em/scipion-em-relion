@@ -101,7 +101,7 @@ class _PollHarness(ProtRelionCompressMoviesTasks):
     def __init__(self, status=STATUS_RUNNING, closeAfter=None):
         self.status = _Status(status)
         self.polls = 0
-        self._failedBatches = []
+        self._outputWriteFailures = []
         self._closeAfter = closeAfter
         self._lastInputId = 0
 
@@ -146,14 +146,14 @@ class TestRelionCompressPollingStopsWhenItCannotFinish(TestCase):
     away, and the error only surfaces when the producer closes.
     """
 
-    def test_PollingStopsOnceABatchHasFailed(self):
+    def test_PollingStopsOnceTheOutputCannotBeSaved(self):
         harness = _PollHarness()
         realDiscover = harness._discoverNewInputItems
 
         def failOnThirdPoll(*args, **kwargs):
             result = realDiscover(*args, **kwargs)
             if harness.polls == 3:
-                harness._failedBatches.append({'id': 'batch-1'})
+                harness._outputWriteFailures.append({'id': 'batch-1'})
             return result
 
         harness._discoverNewInputItems = failOnThirdPoll

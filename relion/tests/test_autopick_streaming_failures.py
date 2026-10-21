@@ -39,6 +39,9 @@ class _References:
 
 
 class _AutopickHarness(ProtRelion2Autopick):
+    def _prepareFailedForRetry(self):
+        pass
+
     def __init__(self):
         self.streamingBatchSize = 0
         self.ctfRelations = _Pointer(_OpenCtfSet())
@@ -263,6 +266,9 @@ class _ClosedBatchMicrographs:
 
 
 class _AutopickFilteredBatchHarness(ProtRelion2Autopick):
+    def _prepareFailedForRetry(self):
+        pass
+
     def __init__(self):
         self.streamingBatchSize = 0
         self.ctfRelations = _Pointer(_ClosedCtfSet())
