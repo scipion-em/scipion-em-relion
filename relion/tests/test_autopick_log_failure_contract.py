@@ -32,6 +32,10 @@ class _LoGFailureHarness(ProtRelionAutopickLoG):
         self.warnings = []
         self.jobs = []
 
+    def _getExtraPath(self, *parts):
+        os.makedirs(os.path.join(self.root, "extra"), exist_ok=True)
+        return os.path.join(self.root, "extra", *parts)
+
     def _getTmpPath(self, *parts):
         return os.path.join(self.root, *parts)
 
@@ -68,39 +72,36 @@ class TestRelionLoGFailureContract(TestCase):
                 " --pickname autopick --LoG", 114, 138, 0, 2.5,
             )
 
-    def test_MpiLaunchFailureMustNotBecomeFinished(self):
+    # A failed micrograph must never look like one without particles. Under
+    # the streaming policy it is recorded as failed (not published, picked
+    # again on Continue) and the run fails only when every one failed.
+
+    def test_AnMpiLaunchFailureRecordsTheWholeBatchAsFailed(self):
         with tempfile.TemporaryDirectory() as root:
             protocol = _LoGFailureHarness(root, failure="mpi")
 
-            with self.assertRaisesRegex(
-                RuntimeError, "2 total processes failed to start"
-            ):
-                self._pick(protocol, [19, 20, 21])
+            self._pick(protocol, [19, 20, 21])
 
             self.assertEqual(1, len(protocol.jobs))
             self.assertEqual("relion_autopick_mpi", protocol.jobs[0][0])
+            self.assertEqual({19, 20, 21}, protocol._failedPickingMicIds())
+            self.assertTrue(protocol.errors)
 
-    def test_SuccessExitWithoutAnyStarMustNotBecomeFinished(self):
+    def test_ASuccessExitWithoutAnyStarRecordsTheMicrographsAsFailed(self):
         with tempfile.TemporaryDirectory() as root:
             protocol = _LoGFailureHarness(root)
 
-            with self.assertRaisesRegex(
-                RuntimeError, "(?i)(missing|not found|autopick)"
-            ):
-                self._pick(protocol, [19, 20, 21])
+            self._pick(protocol, [19, 20, 21])
 
-            self.assertEqual(1, len(protocol.jobs))
+            self.assertEqual({19, 20, 21}, protocol._failedPickingMicIds())
 
-    def test_PartialBatchMustNotBeAcceptedAsComplete(self):
+    def test_OnlyTheMicrographMissingFromABatchFails(self):
         with tempfile.TemporaryDirectory() as root:
             protocol = _LoGFailureHarness(root, produced_ids=(19, 21))
 
-            with self.assertRaisesRegex(
-                RuntimeError, "(?i)(micrograph 20|mic_000020)"
-            ):
-                self._pick(protocol, [19, 20, 21])
+            self._pick(protocol, [19, 20, 21])
 
-            self.assertEqual(1, len(protocol.jobs))
+            self.assertEqual({20}, protocol._failedPickingMicIds())
 
     def test_ValidStarsWithZeroParticlesAreNotAnExecutionFailure(self):
         with tempfile.TemporaryDirectory() as root:
@@ -114,3 +115,4 @@ class TestRelionLoGFailureContract(TestCase):
                 )))
             self.assertEqual([], protocol.errors)
             self.assertEqual([], protocol.warnings)
+            self.assertEqual(set(), protocol._failedPickingMicIds())

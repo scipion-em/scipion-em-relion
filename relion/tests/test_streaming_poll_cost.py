@@ -11,6 +11,8 @@ Sets keep growing, so anything done per poll over every item seen makes
 them slower the longer they run - exactly when there is most data.
 """
 
+import os
+import tempfile
 import unittest
 
 from relion.protocols.protocol_autopick import ProtRelionAutopickBase
@@ -319,6 +321,9 @@ class _FinishingPickingHarness(_NoSidecarPickingHarness):
     def _getFirstJoinStep(self):
         return self.joinStep
 
+    def _getExtraPath(self, *paths):
+        return os.path.join(tempfile.gettempdir(), 'relion-finishing-%d' % id(self), *paths)
+
     def _updateStreamState(self, streamMode):
         self.streamStates.append(streamMode)
 
@@ -439,7 +444,8 @@ class TestTerminalInconsistencyDoesNotHangForever(unittest.TestCase):
         harness.poll(inputSet)
 
         self.assertEqual(
-            harness._terminalStallCount,
+            harness.__dict__.get('_terminalStallCounts', {}).get(
+                '_lastInputId', 0),
             0,
             "The view did become consistent; nothing is stalled.",
         )

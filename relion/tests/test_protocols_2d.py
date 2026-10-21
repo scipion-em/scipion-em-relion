@@ -348,7 +348,10 @@ class TestRelionExportParticles(TestRelionBase):
 
 class TestRelionExtractParticles(TestRelionBase):
     @classmethod
-    def runDownsamplingMicrographs(cls, mics, downFactorValue, threads=1):
+    def runDownsamplingMicrographs(cls, mics, downFactorValue, threads=3):
+        # Xmipp's preprocessing runs as a streaming generator, which holds
+        # one thread for the whole run besides the executor's own: it needs
+        # at least 3.
         # test downsampling a set of micrographs
         XmippProtPreprocessMicrographs = Domain.importFromPlugin(
             'xmipp3.protocols', 'XmippProtPreprocessMicrographs')

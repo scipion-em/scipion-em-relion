@@ -41,9 +41,6 @@ class ProtRelionAutopickLoG(ProtRelionAutopickBase):
     Laplacian of Gaussian (LoG) option.
     """
     _label = 'auto-picking LoG'
-    # Unlike reference-based streaming picking, LoG must not report
-    # successful processing if MPI failed or a STAR is missing.
-    _failOnPickingError = True
     _devStatus = PROD
     stepsExecutionMode = STEPS_SERIAL
 

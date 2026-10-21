@@ -1,4 +1,5 @@
 import os
+import tempfile
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -128,6 +129,10 @@ class _AutopickBatchOutputHarness(ProtRelion2Autopick):
     def __init__(self):
         self.warnings = []
         self.errors = []
+        self._extraDir = tempfile.mkdtemp()
+
+    def _getExtraPath(self, *paths):
+        return os.path.join(self._extraDir, *paths)
 
     def _createTmpMicsDir(self, micList):
         return "/work/relion-autopick-batch"
@@ -170,11 +175,13 @@ class TestRelionAutopickBatchOutputs(TestCase):
         self.assertTrue(
             any(
                 "micrograph 3" in message
-                for message in protocol.warnings
+                for message in protocol.errors
             ),
             "A missing autopick output should be reported without aborting "
             "the remaining streaming work.",
         )
+        # Recorded as failed: left out, and picked again on Continue.
+        self.assertEqual({3}, protocol._failedPickingMicIds())
 
 
 class _CrashingAutopickBatchHarness(ProtRelion2Autopick):
@@ -187,6 +194,10 @@ class _CrashingAutopickBatchHarness(ProtRelion2Autopick):
     def __init__(self):
         self.warnings = []
         self.errors = []
+        self._extraDir = tempfile.mkdtemp()
+
+    def _getExtraPath(self, *paths):
+        return os.path.join(self._extraDir, *paths)
 
     def _createTmpMicsDir(self, micList):
         return "/work/relion-autopick-batch"
@@ -221,12 +232,12 @@ class TestRelionAutopickBatchCrashRegression(TestCase):
             # Must not raise.
             protocol._pickMicrographList(micList)
 
-        self.assertEqual(1, len(protocol.errors))
         self.assertIn("batch", protocol.errors[0])
         # The per-mic file-check loop still runs after the caught crash,
         # reporting each mic as missing output rather than silently
         # losing them.
-        self.assertEqual(2, len(protocol.warnings))
+        self.assertEqual(3, len(protocol.errors))
+        self.assertEqual({1, 2}, protocol._failedPickingMicIds())
 
 
 class _NamedMic:
