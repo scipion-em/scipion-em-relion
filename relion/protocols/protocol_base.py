@@ -860,8 +860,10 @@ class ProtRelionBase(EMProtocol):
         if not self.doContinue:
             imgStar = self._getFileName('input_star')
 
-            self.info("Converting set from '%s' into '%s'" %
-                      (imgSet.getFileName(), imgStar))
+            # Described, not located: asking a Set for its file name can
+            # mean writing a copy of the whole Set just for this log line.
+            self.info("Converting %s (%d particles) into '%s'" %
+                      (imgSet.getClassName(), imgSet.getSize(), imgStar))
 
             # Pass stack file as None to avoid write the images files
             # If copyAlignment is set to False pass alignType to ALIGN_NONE
@@ -1216,7 +1218,7 @@ class ProtRelionBase(EMProtocol):
         return self._getIterNumber(0) or 1
 
     def _getIterClasses(self, it, clean=False):
-        """ Return a classes .sqlite file for this iteration.
+        """ Return the classes Set file for this iteration.
         If the file doesn't exists, it will be created by
         converting from this iteration data.star file.
         """
@@ -1240,16 +1242,16 @@ class ProtRelionBase(EMProtocol):
 
     def _getIterData(self, it, **kwargs):
         """ Sort the it??.data.star file by the maximum likelihood. """
-        data_sqlite = self._getFileName('data_scipion', iter=it)
+        dataSetFn = self._getFileName('data_scipion', iter=it)
 
-        if not os.path.exists(data_sqlite):
-            iterImgSet = SetOfParticles(filename=data_sqlite)
+        if not os.path.exists(dataSetFn):
+            iterImgSet = SetOfParticles(filename=dataSetFn)
             iterImgSet.copyInfo(self._getInputParticles())
             self._fillDataFromIter(iterImgSet, it)
             iterImgSet.write()
             iterImgSet.close()
 
-        return data_sqlite
+        return dataSetFn
 
     def _fillDataFromIter(self, imgSet, iteration):
         """ Should be implemented in subclasses. """

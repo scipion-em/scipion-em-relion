@@ -500,10 +500,10 @@ Examples:
         if self.displayVol == VOLUME_CHIMERA:
             return self._showVolumesChimera()
         elif self.displayVol == VOLUME_SLICES:
-            return self._createVolumesSqlite()
+            return self._createSelectedVolumesSet()
 
-    def _createVolumesSqlite(self):
-        """ Write an sqlite with all volumes selected for visualization. """
+    def _createSelectedVolumesSet(self):
+        """ Write a Set with all volumes selected for visualization. """
         path = self.protocol._getExtraPath('relion_viewer_volumes.sqlite')
         samplingRate = self.protocol.inputParticles.get().getSamplingRate()
 
@@ -570,13 +570,13 @@ Examples:
             raise FileNotFoundError("This class is empty. Please try with another class")
 
         for prefix in prefixes:
-            sqliteFn = self.protocol._getFileName('projections',
+            angDistFn = self.protocol._getFileName('projections',
                                                   iter=it, ref3d=ref3d,
                                                   half=prefix)
-            if not os.path.exists(sqliteFn):
+            if not os.path.exists(angDistFn):
                 mdOut = self._getMdOut(it, prefix, ref3d)
                 self.createAngDistributionSqlite(
-                    sqliteFn, nparts,
+                    angDistFn, nparts,
                     itemDataIterator=self._iterAngles(mdOut))
             if hasattr(self.protocol, 'outputVolumes'):
                 vol = self.protocol.outputVolumes.getFirstItem()
@@ -587,7 +587,7 @@ Examples:
             return ChimeraAngDist(volFn, self.protocol._getPath(),
                                   voxelSize=samplingRate,
                                   volOrigin=volOrigin,
-                                  angularDistFile=sqliteFn,
+                                  angularDistFile=angDistFn,
                                   spheresDistance=radius)
 
     def _createAngDist2D(self, it):
@@ -612,13 +612,13 @@ Examples:
                     title = '%s class %d' % (prefix, ref3d)
                 else:
                     title = 'class %d' % ref3d
-                sqliteFn = self.protocol._getFileName('projections',
+                angDistFn = self.protocol._getFileName('projections',
                                                       iter=it, ref3d=ref3d, half=prefix)
-                if not os.path.exists(sqliteFn):
-                    self.createAngDistributionSqlite(sqliteFn, nparts,
+                if not os.path.exists(angDistFn):
+                    self.createAngDistributionSqlite(angDistFn, nparts,
                                                      itemDataIterator=self._iterAngles(
                                                          self._getMdOut(it, prefix, ref3d)))
-                plotter.plotAngularDistributionFromMd(sqliteFn, title)
+                plotter.plotAngularDistributionFromMd(angDistFn, title)
 
         for prefix in prefixes:
             dataStar = self._getDataStar(prefix, it)

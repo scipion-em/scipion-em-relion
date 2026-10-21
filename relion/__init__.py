@@ -31,6 +31,7 @@ from pyworkflow import Config, SPA, TOMO
 import pwem
 
 from .constants import *
+from .build_toolchain import GUI_FLAG_SHELL, cmakeToolchainFlags
 
 
 __version__ = '5.0.2'
@@ -134,6 +135,10 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def defineBinaries(cls, env):
+        # A CUDA host compiler nvcc accepts, when the default gcc is too new.
+        toolchainFlags = cmakeToolchainFlags(
+            cls.getVar(RELION_CUDA_BIN, pwem.Config.CUDA_BIN))
+
         for ver in cls._supportedVersions:
             torchHome = cls.getVar(TORCH_HOME_VAR)
             os.makedirs(torchHome, exist_ok=True)
@@ -149,7 +154,8 @@ class Plugin(pwem.Plugin):
                 f'cd relion-{ver} && git checkout ver{ver} &&',
                 cls.getCondaActivationCmd(),
                 envCmd,
-                f'cmake -DCMAKE_INSTALL_PREFIX=./ -DTORCH_HOME_PATH={torchHome} .'
+                f'cmake -DCMAKE_INSTALL_PREFIX=./ -DTORCH_HOME_PATH={torchHome} '
+                f'{toolchainFlags} {GUI_FLAG_SHELL} .'
             ]
 
             installCmds = [

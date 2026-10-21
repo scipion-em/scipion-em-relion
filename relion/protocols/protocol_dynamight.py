@@ -34,7 +34,6 @@ from typing import List
 import numpy as np
 
 import pyworkflow.protocol.params as params
-from joblib.testing import param
 from pyworkflow.constants import NEW
 import pyworkflow.utils as pwutils
 from pwem.protocols import ProtAnalysis3D, ProtFlexBase

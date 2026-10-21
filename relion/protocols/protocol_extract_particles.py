@@ -25,25 +25,36 @@
 # **************************************************************************
 
 import os
+import threading
+from collections import OrderedDict
 
 from pyworkflow.object import Set, Integer
 import pyworkflow.utils as pwutils
-from pyworkflow.protocol.constants import STATUS_FINISHED
+from pyworkflow.protocol.constants import STATUS_FINISHED, STATUS_NEW
 import pyworkflow.protocol.params as params
 from pyworkflow.constants import PROD
 
 from pwem.protocols import ProtExtractParticles
 from pwem.emlib.image import ImageHandler
-from pwem.objects import Particle, Acquisition
+from pwem.objects import Particle, Acquisition, Micrograph
 
 import relion.convert
 from relion import Plugin
 from relion.convert.convert31 import OpticsGroups
 from relion.constants import OTHER
 from .protocol_base import ProtRelionBase
+from .protocol_streaming_base import RelionStreamingBase
+
+# Module level: these helpers are called unbound on light test harnesses.
+EXTRACT_STEP_NAMES = ('extractMicrographStep', 'extractMicrographListStep')
+# The micrographs whose extraction failed, as a durable list in extra/:
+# Continue extracts the listed ones again.
+FAILED_EXTRACTION_LIST = 'FAILED_extraction.TXT'
+_failedListLock = threading.Lock()
 
 
-class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
+class ProtRelionExtractParticles(RelionStreamingBase, ProtExtractParticles,
+                                 ProtRelionBase):
     """ Protocol to extract particles using a set of coordinates. """
 
     _label = 'particles extraction'
@@ -138,7 +149,9 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
 
         # When no streaming, it doesn't make sense the default value of
         # batch size = 1, so let's use 0 to extract all micrographs at once
-        if not self._isStreamOpen() and self._getStreamingBatchSize() == 1:
+        if (not self.isContinued()
+                and not self._isStreamOpen()
+                and self._getStreamingBatchSize() == 1):
             self.info("WARNING: The batch size of 1 does not make sense when "
                       "not in streaming...changed value to 0 (extract all).")
             self.streamingBatchSize.set(0)
@@ -171,26 +184,39 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
             return
 
         workingDir = self.getWorkingDir()
-        micsStar = self._getMicsStar(micList)
-        og = OpticsGroups.fromImages(self.getInputMicrographs())
-        starWriter = relion.convert.createWriter(rootDir=workingDir,
-                                                 outputDir=self._getTmpPath(),
-                                                 optics=og)
-        starWriter.writeSetOfMicrographs(micList, self._getPath(micsStar))
 
-        # convert.writeSetOfMicrographs(micList, self._getPath(micsStar),
-        #                               alignType=emcts.ALIGN_NONE,
-        #                               preprocessImageRow=self._preprocessMicrographRow)
+        try:
+            # extractMicrographListStep (pwem) has no exception boundary
+            # of its own around this call - an unreadable micrograph (its
+            # header is read to write the input STAR) or a single
+            # relion_preprocess crash for the whole batch would otherwise
+            # propagate uncaught and abort the entire streaming run.
+            # Downstream, readPartsFromMics already reports a missing
+            # particle stack per micrograph instead of crashing, so letting
+            # this batch's mics fall through to that same "no output
+            # produced" path is consistent with the rest of this protocol's
+            # failure handling.
+            micsStar = self._getMicsStar(micList)
+            og = OpticsGroups.fromImages(self.getInputMicrographs())
+            starWriter = relion.convert.createWriter(rootDir=workingDir,
+                                                     outputDir=self._getTmpPath(),
+                                                     optics=og)
+            starWriter.writeSetOfMicrographs(micList, self._getPath(micsStar))
 
-        partsStar = self._getMicParticlesStar(micList)
+            partsStar = self._getMicParticlesStar(micList)
 
-        for mic in micList:
-            self._convertCoordinates(mic, self.coordDict[mic.getObjId()])
-            self._micCoordStarDict[mic.getObjId()] = partsStar
+            for mic in micList:
+                self._convertCoordinates(mic, self.coordDict[mic.getObjId()])
+                self._micCoordStarDict[mic.getObjId()] = partsStar
 
-        args = ' --i %s --part_star %s %s' % (micsStar, partsStar, params)
-
-        self.runJob(self._getProgram('relion_preprocess'), args, cwd=workingDir)
+            args = ' --i %s --part_star %s %s' % (micsStar, partsStar, params)
+            self.runJob(self._getProgram('relion_preprocess'), args, cwd=workingDir)
+        except Exception as e:
+            self.error(
+                "ERROR: relion_preprocess failed for micrograph batch "
+                "starting at %s with the exception %s"
+                % (micList[0].getObjId(), e)
+            )
 
     def createOutputStep(self):
         pass
@@ -311,6 +337,29 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
 
         return [params]
 
+    @property
+    def _micsReadPendingRelease(self):
+        """Mics whose coordinates are kept until their particles land."""
+        pending = getattr(self, '_micsReadPendingReleaseSet', None)
+
+        if pending is None:
+            pending = set()
+            self._micsReadPendingReleaseSet = pending
+
+        return pending
+
+    def _releaseReadCoordinates(self):
+        """Drop the coordinates of mics whose particles are now durable.
+
+        Coordinates are what a re-read is rebuilt from, so they are only
+        dead weight once the particles they produced have actually been
+        written.
+        """
+        for micId in self._micsReadPendingRelease:
+            self.coordDict.pop(micId, None)
+
+        self._micsReadPendingRelease.clear()
+
     def readPartsFromMics(self, micList, outputParts):
         """ Read the particles extract for the given list of micrographs
         and update the outputParts set with new items.
@@ -331,43 +380,157 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
 
         tmp = self._getTmpPath()
         extra = self._getExtraPath()
+        readWell = []
 
         for mic in micList:
-            posSet = set()
-            coordDict = {self._getPos(c): c
-                         for c in self.coordDict[mic.getObjId()]}
-            del self.coordDict[mic.getObjId()]
+            # A micrograph is published whole or not at all: its particles
+            # are kept apart until every row of its table has been read.
+            micParticles = []
 
-            ogNumber = mic.getAttributeValue('_rlnOpticsGroup', 1)
+            try:
+                # Isolate this mic's failures (a missing particle stack,
+                # a corrupted star table) from the rest of the batch.
+                # The outer caller (pwem's _updateOutputPartSet) already
+                # has its own try/except, but it treats the WHOLE pending
+                # batch as lost if any single mic raises - per-mic
+                # isolation here means one bad mic no longer costs its
+                # siblings in the same batch their particles too.
+                posSet = set()
+                coordDict = {self._getPos(c): c
+                             for c in self.coordDict[mic.getObjId()]}
 
-            partsStar = self.__getMicFile(mic, '_extract.star', folder=tmp)
-            partsTable = relion.convert.Table(fileName=partsStar)
-            stackFile = self.__getMicFile(mic, '.mrcs', folder=tmp)
-            endStackFile = self.__getMicFile(mic, '.mrcs', folder=extra)
-            pwutils.moveFile(stackFile, endStackFile)
+                ogNumber = mic.getAttributeValue('_rlnOpticsGroup', 1)
 
-            for part in partsTable:
-                pos = (int(float(part.rlnCoordinateX)),
-                       int(float(part.rlnCoordinateY)))
+                partsStar = self.__getMicFile(mic, '_extract.star', folder=tmp)
+                partsTable = relion.convert.Table(fileName=partsStar)
+                stackFile = self.__getMicFile(mic, '.mrcs', folder=tmp)
+                endStackFile = self.__getMicFile(mic, '.mrcs', folder=extra)
 
-                if pos in posSet:
-                    self.warning(f"Duplicate coordinate at: {str(pos)}, IGNORED.")
-                    coord = None
-                else:
-                    coord = coordDict.get(pos, None)
+                if os.path.exists(stackFile):
+                    pwutils.moveFile(stackFile, endStackFile)
+                elif not os.path.exists(endStackFile):
+                    raise FileNotFoundError(
+                        "Particle stack not found in temporary or output path: "
+                        "%s / %s" % (stackFile, endStackFile)
+                    )
 
-                if coord is not None:
-                    # scale the coordinates according to particles dimension.
-                    coord.scale(self.getBoxScale())
-                    p.copyObjId(coord)
-                    idx, _ = relionToLocation(part.rlnImageName)
-                    p.setLocation(idx, endStackFile)
-                    p.setCoordinate(coord)
-                    p.setMicId(mic.getObjId())
-                    p.setCTF(mic.getCTF())
-                    p._rlnOpticsGroup.set(ogNumber)
-                    outputParts.append(p)
-                    posSet.add(pos)
+                for part in partsTable:
+                    pos = (int(float(part.rlnCoordinateX)),
+                           int(float(part.rlnCoordinateY)))
+
+                    if pos in posSet:
+                        self.warning(f"Duplicate coordinate at: {str(pos)}, IGNORED.")
+                        coord = None
+                    else:
+                        coord = coordDict.get(pos, None)
+
+                    if coord is not None:
+                        # Scale a copy: the kept coordinates are what a
+                        # re-read after a failed write is rebuilt from.
+                        coord = coord.clone()
+                        coord.scale(self.getBoxScale())
+                        p.copyObjId(coord)
+                        idx, _ = relionToLocation(part.rlnImageName)
+                        p.setLocation(idx, endStackFile)
+                        p.setCoordinate(coord)
+                        p.setMicId(mic.getObjId())
+                        p.setCTF(mic.getCTF())
+                        p._rlnOpticsGroup.set(ogNumber)
+                        micParticles.append(p.clone())
+                        posSet.add(pos)
+
+                readWell.append(mic.getObjId())
+            except Exception as e:
+                self.error(
+                    "ERROR: Reading particles failed for micrograph %s "
+                    "with the exception %s" % (mic.getObjId(), e)
+                )
+                self._recordFailedExtraction(mic)
+                micParticles = []
+            finally:
+                # Not dropped yet: nothing has been written. pwem works
+                # out which mics are still pending from what is durably
+                # published, so a write that fails brings this one round
+                # again - and re-reading it needs its coordinates. They
+                # are released once the output is durable.
+                self._micsReadPendingRelease.add(mic.getObjId())
+
+            for particle in micParticles:
+                outputParts.append(particle)
+
+        self._forgetFailedExtraction(readWell)
+
+    # ------------------------- failed micrographs ------------------------
+    def _failedExtractMicIds(self):
+        """Ids of the micrographs whose extraction failed, from extra/."""
+        cached = getattr(self, '_failedExtractMicIdsCache', None)
+
+        if cached is None:
+            cached = set()
+            path = self._getExtraPath(FAILED_EXTRACTION_LIST)
+
+            if os.path.exists(path):
+                with open(path) as handle:
+                    cached = {int(line) for line in handle if line.strip()}
+
+            self._failedExtractMicIdsCache = cached
+
+        return set(cached)
+
+    def _writeFailedExtraction(self, micIds):
+        with open(self._getExtraPath(FAILED_EXTRACTION_LIST), 'w') as handle:
+            handle.writelines('%d\n' % micId for micId in sorted(micIds))
+
+        self._failedExtractMicIdsCache = set(micIds)
+
+    def _recordFailedExtraction(self, mic):
+        with _failedListLock:
+            failed = self._failedExtractMicIds()
+
+            if mic.getObjId() not in failed:
+                self._writeFailedExtraction(failed | {mic.getObjId()})
+
+    def _forgetFailedExtraction(self, micIds):
+        """Extracted well now: no longer listed as failed."""
+        with _failedListLock:
+            failed = self._failedExtractMicIds()
+
+            if failed & set(micIds):
+                self._writeFailedExtraction(failed - set(micIds))
+
+    def extractMicrographStep(self, micKey, *args):
+        ProtExtractParticles.extractMicrographStep(self, micKey, *args)
+
+        return self._extractionStepResults([micKey])
+
+    def extractMicrographListStep(self, micKeyList, *args):
+        ProtExtractParticles.extractMicrographListStep(self, micKeyList, *args)
+
+        return self._extractionStepResults(micKeyList)
+
+    def _extractionStepResults(self, micKeys):
+        return self._stepResultFiles(
+            [self.micDict[micKey].getObjId() for micKey in micKeys
+             if micKey in self.micDict])
+
+    def _insertAllSteps(self):
+        self._prepareFailedForRetry()
+        ProtExtractParticles._insertAllSteps(self)
+
+    def _prepareFailedForRetry(self):
+        """Have Continue extract again the micrographs that failed.
+
+        A failure is found when the particles are read, after the step
+        finished: its DONE marker, which pwem skips a micrograph by, and
+        the finished step pyworkflow does not run again, both go.
+        """
+        self._failedBeforeThisRun = self._failedExtractMicIds()
+        self._forgetStepResults(self._failedBeforeThisRun)
+
+        for micId in self._failedBeforeThisRun:
+            mic = Micrograph()
+            mic.setObjId(micId)
+            pwutils.cleanPath(self._getMicDone(mic))
 
     def _updateOutputSet(self, outputName, outputSet,
                          state=Set.STREAM_OPEN):
@@ -383,6 +546,10 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
 
         ProtExtractParticles._updateOutputSet(self, outputName, outputSet,
                                               state=state)
+
+        # Only now are those particles durable, so only now can the
+        # coordinates that produced them be let go.
+        self._releaseReadCoordinates()
         self._firstUpdate = False
 
     def _micsOther(self):
@@ -493,6 +660,314 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         return 'micrographs_%05d-%05d.star' % (micList[0].getObjId(),
                                                micList[-1].getObjId())
 
+    def _getFinishedExtractMicNames(self):
+        """Micrograph names carried by finished extraction steps.
+
+        A micrograph extracted again in this run (it failed before) only
+        counts once its new step has finished: its old step finished too.
+        """
+        finished = self._collectStepArgKeys(EXTRACT_STEP_NAMES, keyType=str)
+        failedBefore = getattr(self, '_failedBeforeThisRun', None)
+        retried = {micName for micName, mic in self.micDict.items()
+                   if failedBefore and mic.getObjId() in failedBefore}
+
+        if retried:
+            finishedNow = self._collectStepArgKeys(
+                EXTRACT_STEP_NAMES, keyType=str, includePrevious=False)
+            finished = {micName for micName in finished
+                        if micName not in retried or micName in finishedNow}
+
+        return finished
+
+    def _getPublishedExtractMicIds(self):
+        """Micrograph ids already represented in the output particles.
+
+        An id query on the output, not a walk over it.
+        """
+        micIds = self._getOutputUniqueValues(
+            getattr(self, 'outputParticles', None), '_micId')
+
+        return set() if micIds is None else micIds
+
+    def _checkNewOutput(self):
+        """Publish finished extractions without DONE sidecars.
+
+        pwem decides this with extra/DONE/mic_*.TXT plus DONE/all.TXT.
+        The persisted step graph already records what finished and the
+        output Set what was published, so neither file is consulted and a
+        cleaned extra/ cannot make finished work look pending.
+        """
+        if getattr(self, 'finished', False):
+            return
+
+        publishedMicIds = self._getPublishedExtractMicIds()
+        finishedMicNames = self._getFinishedExtractMicNames()
+        # Read in this run already: a micrograph that gave no particles
+        # (it failed, or all its coordinates fell off the edge) is never
+        # in the output, and would otherwise be read again every poll.
+        handledMicIds = self.__dict__.setdefault('_handledExtractMicIds',
+                                                 set())
+
+        newDone = [mic for mic in self.micDict.values()
+                   if mic.getMicName() in finishedMicNames
+                   and mic.getObjId() not in publishedMicIds
+                   and mic.getObjId() not in handledMicIds]
+
+        inputLen = len(self.micDict)
+        doneCount = len([mic for mic in self.micDict.values()
+                         if mic.getObjId() in publishedMicIds
+                         or mic.getObjId() in handledMicIds])
+
+        self.debug('_checkNewOutput: ')
+        self.debug('   input: %s, published: %s, newDone: %s'
+                   % (inputLen, doneCount, len(newDone)))
+
+        allDone = doneCount + len(newDone)
+        streamClosed = self._isStreamClosed()
+        self._allExtractionsHandled = allDone == inputLen
+        self.finished = (streamClosed and self._allExtractionsHandled
+                         and not self._hasBatchRemainder()
+                         and not self._micsWaitingForCoords())
+        streamMode = (Set.STREAM_CLOSED
+                      if self.finished else Set.STREAM_OPEN)
+
+        if newDone:
+            self._updateOutputPartSet(newDone, streamMode)
+            handledMicIds.update(mic.getObjId() for mic in newDone)
+        elif not self.finished:
+            self._streamingSleepOnWait()
+            return
+
+        if self.finished:
+            # Close the output set first, then release createOutputStep:
+            # the lifecycle here is still the classic one, so that step was
+            # scheduled with wait=True and stays WAITING until something
+            # sets it back to NEW - without this the protocol never ends.
+            self._updateOutputPartSet([], Set.STREAM_CLOSED)
+            self._failIfEveryExtractionFailed()
+
+            outputStep = self._getFirstJoinStep()
+
+            if outputStep and outputStep.isWaiting():
+                outputStep.setStatus(STATUS_NEW)
+
+    def _failIfEveryExtractionFailed(self):
+        """One failed micrograph is left out; the run fails only when no
+        micrograph at all could be extracted."""
+        handled = getattr(self, '_handledExtractMicIds', set())
+        output = getattr(self, 'outputParticles', None)
+
+        if (handled and handled <= self._failedExtractMicIds()
+                and (output is None or output.getSize() == 0)):
+            raise Exception("Extraction failed for every one of the %d "
+                            "micrographs; see the errors above."
+                            % len(handled))
+
+    def _hasActiveStreamingWork(self):
+        """Micrographs waiting for a batch, or extracted and not read."""
+        return self._hasBatchRemainder() or not getattr(
+            self, '_allExtractionsHandled', False)
+
+    def _insertNewMicsSteps(self, inputMics):
+        return self._insertKeepingBatchRemainder(
+            inputMics,
+            lambda mics: ProtExtractParticles._insertNewMicsSteps(self, mics))
+
+    def _loadInputList(self):
+        # Streaming input discovery must go through the Set API, never
+        # by reopening whatever file happens to back it.
+        def _loadStream(inputSet, getKeyFunc, watermarkAttr):
+            """Discover one input stream by its own id watermark.
+
+            Each input advances independently, so each keeps a separate
+            watermark; only the ids above it are queried and only those
+            items are loaded.
+            """
+            knownIds = self._getKnownStreamIds(watermarkAttr)
+            newItems, producerClosed, terminalConsistent = (
+                self._discoverNewInputItems(inputSet, watermarkAttr,
+                                            knownIds))
+            newItemDict = {}
+
+            for item in newItems:
+                itemId = item.getObjId()
+
+                if itemId in knownIds:
+                    continue
+
+                knownIds.add(itemId)
+                itemKey = getKeyFunc(item)
+
+                if itemKey not in self.micDict:
+                    newItemDict[itemKey] = item
+
+            return newItemDict, producerClosed and terminalConsistent
+
+        def _pending(name):
+            pendingMaps = getattr(self, '_pendingStreamItems', None)
+
+            if pendingMaps is None:
+                pendingMaps = {}
+                self._pendingStreamItems = pendingMaps
+
+            return pendingMaps.setdefault(name, {})
+
+        self.debug("Discovering Mics from Coords.")
+        coordMics = self.inputCoordinates.get().getMicrographs()
+        newCoordMics, self.micsClosed = _loadStream(
+            coordMics, lambda mic: mic.getMicName(), '_lastCoordMicId')
+
+        # Whatever has no counterpart on the other streams yet waits here:
+        # the watermark will never offer it a second time.
+        coordMicsPending = _pending('coordMics')
+        coordMicsPending.update(newCoordMics)
+        micDict = coordMicsPending
+
+        if self._micsOther():
+            self.debug("Discovering other Mics.")
+            newOther, otherClosed = _loadStream(
+                self.inputMicrographs.get(), lambda mic: mic.getMicName(),
+                '_lastOtherMicId')
+            self.micsClosed = self.micsClosed and otherClosed
+
+            otherPending = _pending('otherMics')
+            otherPending.update(newOther)
+
+            matchedMics = {}
+            for micKey in list(micDict):
+                if micKey in otherPending:
+                    otherMic = otherPending.pop(micKey)
+                    otherMic.copyObjId(micDict.pop(micKey))
+                    matchedMics[micKey] = otherMic
+            micDict = matchedMics
+        else:
+            micDict = dict(micDict)
+            coordMicsPending.clear()
+
+        self.debug("Mics are closed? %s" % self.micsClosed)
+
+        if self._useCTF():
+            self.debug("Discovering CTFs.")
+            newCtfs, self.ctfsClosed = _loadStream(
+                self.ctfRelations.get(),
+                lambda ctf: ctf.getMicrograph().getMicName(),
+                '_lastCtfId')
+
+            ctfPending = _pending('ctfs')
+            ctfPending.update(newCtfs)
+            readyMicsPending = _pending('micsWithoutCtf')
+            readyMicsPending.update(micDict)
+
+            matchedMics = {}
+            for micKey in list(readyMicsPending):
+                ctf = ctfPending.pop(micKey, None)
+
+                if ctf is None:
+                    continue
+
+                mic = readyMicsPending.pop(micKey)
+                mic.setCTF(ctf)
+                matchedMics[micKey] = mic
+            micDict = matchedMics
+        else:
+            self.ctfsClosed = True
+
+        self.debug("CTFs are closed? %s" % self.ctfsClosed)
+        self.debug("Loading Coords.")
+
+        micDict = self._loadInputCoords(micDict)
+        self.streamClosed = self._isStreamClosed()
+
+        return micDict
+
+    def _micsWaitingForCoords(self):
+        return bool(getattr(self, '_micsWithoutCoords', None))
+
+    def _coordMicIdsSinceLastPoll(self, coordSet):
+        """Micrographs that got coordinates since the previous poll.
+
+        Coordinates are a stream of their own, so they get a watermark too:
+        a micrograph waiting for them is looked at again only when some
+        coordinate of it has arrived, not on every poll.
+        """
+        lastId = getattr(self, '_lastCoordRowId', 0)
+        where = 'id > %d' % lastId
+
+        try:
+            rowIds = list(coordSet.getUniqueValues('id', where=where))
+            micIds = set(coordSet.getUniqueValues('_micId', where=where))
+        except (NotImplementedError, TypeError):
+            rows = [coord for coord in coordSet if coord.getObjId() > lastId]
+            rowIds = [coord.getObjId() for coord in rows]
+            micIds = {coord.getMicId() for coord in rows}
+
+        if rowIds:
+            self._lastCoordRowId = max(rowIds)
+
+        return micIds
+
+    def _loadInputCoords(self, micDict):
+        """Micrographs ready to extract: the ones whose coordinates are there.
+
+        A micrograph can turn up before its coordinates do; discovery will
+        not offer it again, so it waits in _micsWithoutCoords. Once the
+        coordinates stream is closed, one still without any has nothing to
+        extract and is let go.
+        """
+        # Load coordinates through the logical Set API.
+        coordSet = self.getCoords()
+        coordSet.loadAllProperties()
+        self.coordsClosed = coordSet.isStreamClosed()
+        waiting = self.__dict__.setdefault('_micsWithoutCoords', OrderedDict())
+        recentMicIds = self._coordMicIdsSinceLastPoll(coordSet)
+
+        candidates = OrderedDict(micDict)
+
+        for micKey, mic in waiting.items():
+            if self.coordsClosed or mic.getObjId() in recentMicIds:
+                candidates.setdefault(micKey, mic)
+
+        micList = {}
+
+        for micKey, mic in candidates.items():
+            micId = mic.getObjId()
+            coordList = [
+                coord.clone()
+                for coord in coordSet.iterItems(where='_micId=%s' % micId)
+            ]
+
+            self.debug(
+                "Coords found for mic %s (%s): %s"
+                % (micId, micKey, len(coordList))
+            )
+
+            if coordList:
+                self.coordDict[micId] = coordList
+                micList[micKey] = mic
+                waiting.pop(micKey, None)
+            elif self.coordsClosed:
+                waiting.pop(micKey, None)
+            else:
+                waiting[micKey] = mic
+
+        self.debug("Coords are closed? %s" % self.coordsClosed)
+
+        return micList
+
+    def _checkNewInput(self):
+        # Refresh logical streaming inputs on every check. Do not gate
+        # discovery on storage filenames or file modification times.
+        self.debug(">>> _checkNewInput ")
+
+        newMics = self._loadInputList()
+        outputStep = self._getFirstJoinStep()
+
+        if newMics or self._hasBatchRemainder():
+            deps = self._insertNewMicsSteps(newMics.values())
+            if outputStep is not None:
+                outputStep.addPrerequisites(*deps)
+            self.updateSteps()
+
     def _isStreamOpen(self):
         if self._useCTF():
             ctfStreamOpen = self.ctfRelations.get().isStreamOpen()
@@ -501,3 +976,8 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
 
         return (self.getInputMicrographs().isStreamOpen() or
                 ctfStreamOpen or self.getCoords().isStreamOpen())
+
+    def _isStreamClosed(self):
+        # All required input streams must be closed before flushing
+        # the final partial batch.
+        return self.micsClosed and self.ctfsClosed and self.coordsClosed
