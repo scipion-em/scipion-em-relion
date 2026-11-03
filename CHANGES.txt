@@ -5,6 +5,13 @@
     - RLN mcorr now passes down existing optics groups
     - Modelangelo now part of the plugin
     - Add RELION 5.1
+    - Warn when the input images do not match the optics groups STAR file
+    - Warn when extracting from micrographs with different optics groups
+    - Preprocess particles: remove the MPI option, relion_preprocess has no
+      threads option and each step operates on a single stack
+    - Reconstruct: expose the RELION threads option (--j)
+    - Pass the RELION threads with getBinThreads() in every protocol
+    - Require scipion-pyworkflow 3.11.0 or newer
 5.0.2:
     - add a test for DynaMight protocol
 5.0.1: bug fix for export coordinates from subparticles (close #428)

@@ -1,3 +1,4 @@
 scipion-em
+scipion-pyworkflow>=3.11.0
 emtable>=0.0.14
 emtools==0.1.0
