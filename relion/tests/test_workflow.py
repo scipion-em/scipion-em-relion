@@ -88,7 +88,8 @@ class TestWorkflowRelionBetagal(TestWorkflow):
             ProtRelionMotioncor,
             objLabel='relion - motioncor',
             patchX=1, patchY=1,
-            numberOfThreads=CPUS)
+            # CPUS-1 movies at a time, one RELION thread each
+            numberOfThreads=CPUS, binThreads=1)
 
         protRelionMc.inputMovies.set(protImport.outputMovies)
         protRelionMc = self.launchProtocol(protRelionMc)

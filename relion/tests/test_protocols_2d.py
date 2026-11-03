@@ -741,7 +741,9 @@ class TestRelionMotioncor(TestRelionBase):
             'objLabel': 'relion - motioncor',
             'patchX': 5,
             'patchY': 5,
-            'numberOfThreads': CPUS
+            # CPUS-1 movies at a time, one RELION thread each
+            'numberOfThreads': CPUS,
+            'binThreads': 1
         }
         args.update(kwargs)
         protRelionMc = self.newProtocol(ProtRelionMotioncor, **args)
