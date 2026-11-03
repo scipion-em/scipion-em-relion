@@ -12,6 +12,7 @@
     - Reconstruct: expose the RELION threads option (--j)
     - Pass the RELION threads with getBinThreads() in every protocol
     - Require scipion-pyworkflow 3.11.0 or newer
+    - Add tests for the optics group propagation and its warnings
 5.0.2:
     - add a test for DynaMight protocol
 5.0.1: bug fix for export coordinates from subparticles (close #428)
