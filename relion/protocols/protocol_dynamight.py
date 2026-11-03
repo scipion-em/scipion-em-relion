@@ -124,7 +124,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
 
         form.addSection(label='Tasks')
         group = form.addGroup('Deformations', condition='not doContinue')
-        group.addParam('numberOfGaussians', params.IntParam, default=5000,
+        group.addParam('numberOfGaussians', params.IntParam, default=10000,
                       condition='not doContinue',
                       label="Number of Gaussians",
                       help="Number of Gaussians to describe the consensus "
@@ -229,20 +229,22 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
                             "calculations, but you need to have enough GPU "
                             "memory to do this.")
 
-        group.addParam('batchSizeI', params.IntParam, default=10,
-                       condition=doInverse,
-                       label="Backprojection batch size",
-                       help="Number of images to process in parallel. "
-                            "This will speed up the calculation, but will "
-                            "cost GPU memory. Try how high you can go on "
-                            "your GPU, given your box size and size of the "
-                            "neural network.")
-
         group.addParam('downFactor', params.IntParam, default=2,
                        condition=doInverse,
                        label='Downsampling factor for IT',
                        help='Downsampling factor to decrease IT computation to a smaller box. It is then upsampled'
                             ' to its original size.')
+
+        form.addParam('batchSizeI', params.IntParam, default=10,
+                      condition='doContinue',
+                      label="Batch size",
+                      help="Number of images to process in parallel in the "
+                           "task selected above. This will speed up the "
+                           "calculation, but will cost GPU memory. Try how "
+                           "high you can go on your GPU, given your box size "
+                           "and size of the neural network.\n"
+                           "The default is the one RELION uses for the "
+                           "deformed backprojection.")
 
         form.addParam('allParticlesRam', params.BooleanParam, default=False,
                        label='Pre-read all particles into RAM?',
@@ -354,7 +356,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
                 f"--checkpoint-file {checkpoint_file}",
                 f"--half-set {self.halfSet.get()}",
                 f"--mask-file {self._getFileName('input_mask')}" if hasMask else "",
-                f"--batch-size {inputProt.batchSizeD.get()}",
+                f"--batch-size {self.batchSizeI.get()}",
                 f"--gpu-id {self.gpuList.get()}",
                 f"--n-workers {inputProt.numWorkers.get()}",
                 f"--dimensionality-reduction-method {dimRed}"
@@ -380,7 +382,9 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
                 self._getExtraPath(),
                 f"--mask-file {self._getFileName('input_mask')}" if hasMask else "",
                 f"--gpu-id {self.gpuList.get()}",
-                f"--backprojection-batch-size {self.batchSizeI.get()}",
+                # dynamight ignores --backprojection-batch-size, it overwrites
+                # it with --batch-size, so only the latter has any effect
+                f"--batch-size {self.batchSizeI.get()}",
                 "--preload-images" if self.allParticlesRam else "",
                 f"--data-loader-threads {self.numberOfThreads.get()}",
                 f"--downsample {self.downFactor.get()}"

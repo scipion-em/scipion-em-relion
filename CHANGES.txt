@@ -13,6 +13,9 @@
     - Pass the RELION threads with getBinThreads() in every protocol
     - Require scipion-pyworkflow 3.11.0 or newer
     - Add tests for the optics group propagation and its warnings
+    - DynaMight: always show a batch size box and pass it with --batch-size,
+      the option RELION uses, instead of the one DynaMight ignores
+    - DynaMight: align the default number of Gaussians with RELION (10000)
 5.0.2:
     - add a test for DynaMight protocol
 5.0.1: bug fix for export coordinates from subparticles (close #428)
