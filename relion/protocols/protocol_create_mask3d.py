@@ -154,8 +154,8 @@ class ProtRelionCreateMask3D(ProtCreateMask3D):
         if self.doInvert:
             args += ' --invert'
 
-        if self.numberOfThreads > 1:
-            args += ' --j %d' % self.numberOfThreads
+        if self.getBinThreads() > 1:
+            args += ' --j %d' % self.getBinThreads()
 
         self.runJob("relion_mask_create", args)
 

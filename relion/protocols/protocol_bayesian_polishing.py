@@ -363,7 +363,7 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
         if self.saveFloat16:
             args += "--float16 "
 
-        args += "--j %d " % self.numberOfThreads
+        args += "--j %d " % self.getBinThreads()
 
         self.runJob(self._getProgram('relion_motion_refine'), args)
 

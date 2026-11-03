@@ -117,7 +117,7 @@ class ProtRelionCompressEstimateGain(ProtProcessMovies):
     def estimateGainStep(self):
         args = [
             f"--i {self._getFileName('input_star')}",
-            f"--j {self.numberOfThreads}",
+            f"--j {self.getBinThreads()}",
         ]
 
         if self.isFloat32:

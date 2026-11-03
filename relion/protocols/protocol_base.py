@@ -896,7 +896,7 @@ class ProtRelionBase(EMProtocol):
 
     def runRelionStep(self, params):
         """ Execute the relion steps with the give params. """
-        params += ' --j %d' % self.numberOfThreads
+        params += ' --j %d' % self.getBinThreads()
         self.runJob(self._getProgram(), params)
 
     def _getEnviron(self):

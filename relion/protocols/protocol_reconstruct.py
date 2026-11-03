@@ -129,7 +129,7 @@ class ProtRelionReconstruct(ProtReconstruct3D, ProtRelionBase):
                       help="Do not apply weighting during during Ewald "
                            "sphere correction.")
         
-        form.addParallelSection(threads=0, mpi=1)
+        form.addParallelSection(threads=1, mpi=1)
 
     # -------------------------- INSERT steps functions -----------------------
     def _insertAllSteps(self):
@@ -176,6 +176,8 @@ class ProtRelionReconstruct(ProtReconstruct3D, ProtRelionBase):
                 params += " --skip_weighting"
             if self.reverseCurvature:
                 params += " --reverse_curvature"
+
+        params += ' --j %d' % self.getBinThreads()
 
         self._insertFunctionStep(self.reconstructStep, params, needsGPU=False)
 
