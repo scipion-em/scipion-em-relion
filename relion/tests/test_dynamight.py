@@ -118,7 +118,7 @@ class TestWorkflowRelionDynamight(TestWorkflow):
     def runRelionReconstruct(self, particles):
         recProt1 = self.newProtocol(
             ProtRelionReconstruct,
-            numberOfMpis=4,
+            numberOfMpi=4,
             symmetryGroup='C1',
             doCTF=True,
             objLabel='Fourier reconstruction',
