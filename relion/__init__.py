@@ -36,7 +36,7 @@ from .constants import *
 __version__ = '5.1.0'
 _logo = "relion_logo.jpg"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016',
-               'Zivanov2018', 'Kimanius2021']
+               'Zivanov2018', 'Kimanius2021', 'Kimanius2024']
 
 
 class Plugin(pwem.Plugin):

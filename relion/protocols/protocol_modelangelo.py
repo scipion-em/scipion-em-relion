@@ -199,6 +199,9 @@ Below is an example of a config file:
         self._registerAtomStruct(self.OUTPUT_NAME, self._getExtraPath('extra.cif'))
 
     # --------------------------- INFO functions -----------------------------------
+    def _citations(self):
+        return ['Jamali2024']
+
     def _validate(self):
         errors = []
         gpus = self.getGpuList()

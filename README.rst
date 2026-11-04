@@ -112,8 +112,18 @@ Protocols
 References
 ----------
 
-1. Scheres et al., JMB, 2012 
-2. Scheres et al., JSB, 2012 
-3. Kimanius et al., eLife, 2016 
-4. Zivanov et al., eLife, 2018
-5. Kimanius et al., Biochemical Journal, 2021
+1. Scheres, JMB, 2012 - A Bayesian view on cryo-EM structure determination
+2. Scheres, JSB, 2012 - RELION: implementation of a Bayesian approach to cryo-EM structure determination
+3. Chen & Scheres, Nat. Meth., 2012 - Prevention of overfitting in cryo-EM structure determination
+4. Chen et al., Ultramicroscopy, 2013 - High-resolution noise substitution to measure overfitting and validate resolution
+5. Amunts et al., Science, 2014 - Structure of the yeast mitochondrial large ribosomal subunit (gold-standard FSC)
+6. Scheres, JSB, 2015 - Semi-automated selection of cryo-EM particles in RELION-1.3 (reference-based auto-picking)
+7. Kimanius et al., eLife, 2016 - RELION-2: accelerated structure determination with GPUs
+8. Nakane et al., eLife, 2018 - Characterisation of molecular motions by multi-body refinement
+9. Zivanov et al., eLife, 2018 - RELION-3: new tools for automated high-resolution structure determination
+10. Zivanov et al., IUCrJ, 2019 - A Bayesian approach to beam-induced motion correction (motion correction, polishing)
+11. Zivanov et al., IUCrJ, 2020 - RELION-3.1: estimation of high-order aberrations and anisotropic magnification (CTF refinement)
+12. Kimanius et al., Biochemical Journal, 2021 - RELION-4.0: new tools for automated single-particle analysis
+13. Jamali et al., Nature, 2024 - ModelAngelo: automated model building and protein identification
+14. Kimanius et al., Nat. Meth., 2024 - Data-driven regularization lowers the size barrier of structure determination (Blush)
+15. Schwab et al., Nat. Meth., 2024 - DynaMight: estimating molecular motions with improved reconstruction

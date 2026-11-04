@@ -84,7 +84,7 @@ author = "Chen, Shaoxia and Scheres, Sjors H.W.",
 
 @article{Chen2013,
 title = "High-resolution noise substitution to measure overfitting and validate resolution in 3D structure determination by single particle electron cryomicroscopy.",
-journal = "JSB",
+journal = "Ultramicroscopy",
 volume = "135",
 number = "3",
 pages = "24-35",
@@ -156,6 +156,38 @@ doi = {https://dx.doi.org/10.1126/science.1249410}
   author = {Schwab,  Johannes and Kimanius,  Dari and Burt,  Alister and Dendooven,  Tom and Scheres,  Sjors H. W.},
   year = {2024},
   month = aug
+}
+
+@article{Zivanov2020,
+author = "Zivanov, Jasenko and Nakane, Takanori and Scheres, Sjors H. W.",
+title = "Estimation of high-order aberrations and anisotropic magnification from cryo-EM data sets in RELION-3.1",
+journal = "IUCrJ",
+volume = "7",
+number = "2",
+pages = "253-267",
+year = "2020",
+doi = "https://dx.doi.org/10.1107/S2052252520000081",
+}
+
+@article{Jamali2024,
+author = "Jamali, Kiarash and Käll, Lukas and Zhang, Rui and Brown, Alan and Kimanius, Dari and Scheres, Sjors H. W.",
+title = "Automated model building and protein identification in cryo-EM maps",
+journal = "Nature",
+volume = "628",
+number = "8007",
+pages = "450-457",
+year = "2024",
+doi = "https://dx.doi.org/10.1038/s41586-024-07215-4",
+}
+
+@article{Kimanius2024,
+author = "Kimanius, Dari and Jamali, Kiarash and Wilkinson, Max E. and Lövestam, Sofia and Velazhahan, Vaithish and Nakane, Takanori and Scheres, Sjors H. W.",
+title = "Data-driven regularization lowers the size barrier of cryo-EM structure determination",
+journal = "Nature Methods",
+volume = "21",
+pages = "1216-1221",
+year = "2024",
+doi = "https://dx.doi.org/10.1038/s41592-024-02304-8",
 }
 
 

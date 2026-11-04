@@ -294,6 +294,9 @@ class ProtRelionCtfRefinement(ProtParticles, ProtRelionBase):
         #                         particle.getAcquisition())
 
     # --------------------------- INFO functions ------------------------------
+    def _citations(self):
+        return ['Zivanov2020']
+
     def _summary(self):
         summary = []
         if self.estimateAnisoMag:
