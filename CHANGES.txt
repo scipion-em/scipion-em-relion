@@ -7,6 +7,9 @@
     - Keep the optics group of every particle when reading a STAR file, so
       that an import and an export both respect it
     - Extract particles: report any coordinate that does not come back
+    - Extract particles: new option to discard the particles whose box does
+      not fit inside the micrograph, which RELION extracts anyway with the
+      edge pixels smeared over the part that sticks out
 5.1.0:
     - Fix MPI validations on some protocols
     - Fix particle subtraction
