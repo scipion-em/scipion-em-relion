@@ -16,6 +16,9 @@
     - DynaMight: always show a batch size box and pass it with --batch-size,
       the option RELION uses, instead of the one DynaMight ignores
     - DynaMight: align the default number of Gaussians with RELION (10000)
+    - 2D class ranker: match the classes by location instead of by the
+      index@stack string, which RELION widened from 6 to 8 digits in 5.0.1
+      and left every class filtered out of the output
 5.0.2:
     - add a test for DynaMight protocol
 5.0.1: bug fix for export coordinates from subparticles (close #428)

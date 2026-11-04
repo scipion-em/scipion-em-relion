@@ -35,7 +35,7 @@ from pwem.objects import SetOfClasses2D, SetOfParticles
 
 from relion import Plugin
 from .protocol_base import ProtRelionBase
-from relion.convert import locationToRelion
+from relion.convert import relionToLocation
 
 
 class outputs(Enum):
@@ -111,7 +111,12 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
 
         if selected:
             classesStar = self._getExtraPath('class_averages.star')
-            clsDict = {row.rlnReferenceImage: row
+            # Index by the (index, filename) location and not by the
+            # 'index@stack' string relion_class_ranker wrote: RELION widened
+            # its index from 6 to 8 digits in 5.0.1 (FILENAMENUMBERLENGTH),
+            # so composing the string ourselves stopped matching and every
+            # class was silently filtered out of the output.
+            clsDict = {relionToLocation(row.rlnReferenceImage): row
                        for row in Table.iterRows(classesStar)}
 
             inputClasses = self.inputProtocol.get().outputClasses
@@ -122,8 +127,8 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
             outputParticles.copyInfo(inputParticles)
 
             def _getClassRow(cls2d):
-                idx, fn = cls2d.getRepresentative().getLocation()
-                row = clsDict.get(locationToRelion(idx, fn), None)
+                location = cls2d.getRepresentative().getLocation()
+                row = clsDict.get(location, None)
                 if row and row.rlnEstimatedResolution < self.minResolution:
                     return row
 
