@@ -25,7 +25,7 @@
 # ******************************************************************************
 
 import numpy as np
-from random import sample
+from random import SystemRandom
 from enum import Enum
 
 import pyworkflow.protocol.params as params
@@ -133,7 +133,7 @@ class ProtRelionRemovePrefViews(ProtParticles):
         else:
             self.info("Randomly removing %d particles within "
                       "specified limits..." % ptclToRemove)
-            matched = sample(matched, ptclToRemove)
+            matched = SystemRandom().sample(matched, ptclToRemove)
 
         self._writeRemovedIds(matched)
 
