@@ -434,18 +434,20 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                     outputParts.append(p)
                     posSet.add(pos)
 
-            # The output is built from the STAR file relion wrote, so the
-            # coordinates it dropped are simply absent from it. That is the
-            # right answer, but it used to happen without a word: say how
-            # many went missing so a bad box size is not mistaken for a
-            # picking problem.
-            discarded = len(coordDict) - len(posSet)
-            if discarded:
-                self.info("%s: %d of %d coordinates were extracted, %d "
-                          "discarded by relion (most likely their box falls "
-                          "outside the micrograph)."
+            # The output is built from the STAR file relion wrote, so a row
+            # that is not there is a particle that is not in the output.
+            # relion does not drop particles at the edge: a box sticking out
+            # of the micrograph is filled with the nearest pixels inside
+            # (preprocessing.cpp, "this will create lines at the edges,
+            # rather than zeros"), and a coordinate fully outside aborts the
+            # job. So this should be zero, and saying so when it is not
+            # beats discovering it by comparing set sizes by hand.
+            missing = len(coordDict) - len(posSet)
+            if missing:
+                self.info("%s: %d of %d coordinates came back from relion, "
+                          "%d did not."
                           % (mic.getMicName(), len(posSet), len(coordDict),
-                             discarded))
+                             missing))
 
     def _updateOutputSet(self, outputName, outputSet,
                          state=Set.STREAM_OPEN):
