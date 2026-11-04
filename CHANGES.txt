@@ -28,6 +28,9 @@
     - Remove preferential views: report how many particles fall within the
       limits, and fix the summary
     - Add tests for the preferential views selection and its wizard
+    - Detect the RELION version from the binary instead of from the name of
+      the RELION_HOME folder, which silently disabled Blush, DynaMight and
+      ModelAngelo for installations not named relion-5.x
 5.0.2:
     - add a test for DynaMight protocol
 5.0.1: bug fix for export coordinates from subparticles (close #428)

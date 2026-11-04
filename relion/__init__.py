@@ -25,6 +25,8 @@
 # **************************************************************************
 
 import os
+import re
+import subprocess
 
 import pyworkflow.utils as pwutils
 from pyworkflow import Config, SPA, TOMO
@@ -43,6 +45,8 @@ class Plugin(pwem.Plugin):
     _homeVar = RELION_HOME
     _pathVars = [RELION_HOME]
     _supportedVersions = [V4_0, V5_0, V5_1]
+    # getActiveVersion() runs a binary, so the answer is kept
+    _activeVersion = None
     _url = "https://github.com/scipion-em/scipion-em-relion"
     _processingField = [SPA, TOMO]
 
@@ -102,6 +106,48 @@ class Plugin(pwem.Plugin):
             environ.set(TORCH_HOME_VAR, Plugin.getVar(TORCH_HOME_VAR))
 
         return environ
+
+    @classmethod
+    def getActiveVersion(cls, *args, **kwargs):
+        """ Version of the binaries that are currently active.
+
+        The inherited implementation reads it off the basename of
+        RELION_HOME, so a perfectly good installation in /opt/relion or in
+        relion-5.1-cuda12 reports no version at all. Everything behind
+        IS_GT50() then disappears without a word: Blush, DynaMight and
+        ModelAngelo. Ask the binary first and keep the folder name only as
+        a fallback for when it cannot be run.
+        """
+        if cls._activeVersion is None:
+            cls._activeVersion = (cls._getVersionFromBinary() or
+                                  super().getActiveVersion(*args, **kwargs))
+
+        return cls._activeVersion
+
+    @classmethod
+    def _getVersionFromBinary(cls):
+        """ Ask relion_refine, which prints a line like
+        'RELION version: 5.1.0-commit-cb2683'. Returns one of the supported
+        versions, or None if the binary is missing or says something else.
+        """
+        program = cls.getHome('bin', 'relion_refine')
+
+        if not os.path.exists(program):
+            return None
+
+        try:
+            out = subprocess.run([program, '--version'], timeout=60,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT).stdout.decode()
+        except Exception as e:
+            pwutils.yellowStr("Could not ask %s for its version: %s"
+                              % (program, e))
+            return None
+
+        match = re.search(r"RELION version:\s*(\d+\.\d+)", out)
+        version = match.group(1) if match else None
+
+        return version if version in cls._supportedVersions else None
 
     @classmethod
     def IS_GT50(cls):
