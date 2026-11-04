@@ -12,6 +12,9 @@
       edge pixels smeared over the part that sticks out
     - Crop/resize volumes: new option to mirror the volumes along one axis,
       which inverts their handedness
+    - RELION_PREPEND and RELION_PREPEND_CPU are plugin variables now, and
+      are applied by the plugin environment, so they also reach the
+      protocols that do not inherit from ProtRelionBase
 5.1.0:
     - Fix MPI validations on some protocols
     - Fix particle subtraction

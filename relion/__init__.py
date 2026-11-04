@@ -59,10 +59,22 @@ class Plugin(pwem.Plugin):
         cls._defineVar(RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE,
                        os.getenv(RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE, None))
         cls._defineEmVar(TORCH_HOME_VAR, 'modelangelomodels-1.0')
+        cls._defineVar(RELION_PREPEND, '',
+                       description="Prepended to every RELION command of a "
+                                   "job that uses the GPU, for loading "
+                                   "modules and the like")
+        cls._defineVar(RELION_PREPEND_CPU, '',
+                       description="Prepended to every RELION command of a "
+                                   "job that does not use the GPU")
 
     @classmethod
-    def getEnviron(cls):
-        """ Setup the environment variables needed to launch Relion. """
+    def getEnviron(cls, useGpu=False):
+        """ Setup the environment variables needed to launch Relion.
+
+        The prepend is set here and not in ProtRelionBase so that it also
+        reaches the protocols that do not inherit from it: Protocol
+        ._getEnviron() falls back to this method for all of them.
+        """
         environ = pwutils.Environ(os.environ)
         binPath = os.pathsep.join([cls.getHome('bin'),
                                    pwem.Config.MPI_BINDIR])
@@ -104,6 +116,9 @@ class Plugin(pwem.Plugin):
 
         if TORCH_HOME_VAR not in environ:
             environ.set(TORCH_HOME_VAR, Plugin.getVar(TORCH_HOME_VAR))
+
+        environ.setPrepend(cls.getVar(RELION_PREPEND if useGpu
+                                      else RELION_PREPEND_CPU) or '')
 
         return environ
 
