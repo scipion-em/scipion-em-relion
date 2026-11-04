@@ -19,6 +19,7 @@
     - 2D class ranker: match the classes by location instead of by the
       index@stack string, which RELION widened from 6 to 8 digits in 5.0.1
       and left every class filtered out of the output
+    - Add tests for the 2D class ranker class matching
 5.0.2:
     - add a test for DynaMight protocol
 5.0.1: bug fix for export coordinates from subparticles (close #428)
