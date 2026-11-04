@@ -33,6 +33,7 @@
       ModelAngelo for installations not named relion-5.x
     - Write items without an optics group into the single group the set
       declares, whatever its number, instead of always group 1
+    - Extract particles: report how many coordinates RELION discarded
 5.0.2:
     - add a test for DynaMight protocol
 5.0.1: bug fix for export coordinates from subparticles (close #428)

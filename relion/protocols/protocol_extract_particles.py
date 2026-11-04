@@ -434,6 +434,19 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                     outputParts.append(p)
                     posSet.add(pos)
 
+            # The output is built from the STAR file relion wrote, so the
+            # coordinates it dropped are simply absent from it. That is the
+            # right answer, but it used to happen without a word: say how
+            # many went missing so a bad box size is not mistaken for a
+            # picking problem.
+            discarded = len(coordDict) - len(posSet)
+            if discarded:
+                self.info("%s: %d of %d coordinates were extracted, %d "
+                          "discarded by relion (most likely their box falls "
+                          "outside the micrograph)."
+                          % (mic.getMicName(), len(posSet), len(coordDict),
+                             discarded))
+
     def _updateOutputSet(self, outputName, outputSet,
                          state=Set.STREAM_OPEN):
         """ Redefine this method to update optics info. """
