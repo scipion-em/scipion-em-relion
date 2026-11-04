@@ -41,7 +41,7 @@ from pwem.objects import (Movie, Micrograph, SetOfMicrographs,
                           SetOfCoordinates, SetOfParticles, Particle,
                           Acquisition)
 
-from ..convert import createWriter
+from ..convert import createWriter, readSetOfParticles
 
 from ..constants import SAME_AS_PICKING, OTHER
 from ..convert.convert31 import OpticsGroups
@@ -288,3 +288,57 @@ class TestRelionWriterOpticsGroup(BaseTest):
         rows = self._writeParticles(3, [None] * 3)
 
         self.assertEqual([1, 1, 1], [row.rlnOpticsGroup for row in rows])
+
+
+class TestRelionOpticsGroupRoundTrip(BaseTest):
+    """ The optics group of each particle has to survive the trip: read it
+    from a STAR file, keep it on the item, and write the same value back.
+    Until rlnOpticsGroup was added to PARTICLE_EXTRA_LABELS it was read and
+    dropped, so an imported set could only ever be written into one group.
+    """
+    @classmethod
+    def setUpClass(cls):
+        setupTestOutput(cls)
+
+    def _particlesStar(self, groups):
+        """ A particles STAR file with a per-item rlnOpticsGroup column. """
+        fn = self.getOutputPath('%s_in.star' % self._testMethodName)
+        rows = "\n".join("particles.mrcs  %d  %d" % (i + 1, og)
+                          for i, og in enumerate(groups))
+        with open(fn, 'w') as f:
+            f.write(opticsStar(max(groups)))
+            f.write("""
+data_particles
+
+loop_
+_rlnImageName #1
+_rlnImageId #2
+_rlnOpticsGroup #3
+""" + rows + "\n")
+
+        return fn
+
+    def _read(self, groups):
+        starFile = self._particlesStar(groups)
+        fn = self.getOutputPath('%s.sqlite' % self._testMethodName)
+        cleanPath(fn)
+        parts = SetOfParticles(filename=fn)
+        readSetOfParticles(starFile, parts)
+        parts.write()
+
+        return parts
+
+    def test_readKeepsTheGroupOfEveryParticle(self):
+        parts = self._read([3, 1, 2])
+
+        self.assertEqual([3, 1, 2], [p.getAttributeValue('_rlnOpticsGroup')
+                                     for p in parts.iterItems()])
+
+    def test_writeGivesBackTheSameGroups(self):
+        parts = self._read([3, 1, 2])
+        starFile = self.getOutputPath('%s_out.star' % self._testMethodName)
+        createWriter().writeSetOfParticles(parts, starFile)
+
+        rows = list(Table.iterRows('particles@' + starFile))
+
+        self.assertEqual([3, 1, 2], [row.rlnOpticsGroup for row in rows])

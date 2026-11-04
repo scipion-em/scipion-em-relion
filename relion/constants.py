@@ -189,7 +189,10 @@ PARTICLE_EXTRA_LABELS = [
     'rlnPhaseShift',
     'rlnGroupName',
     'rlnGroupNumber',
-    'rlnRandomSubset'
+    'rlnRandomSubset',
+    # Without this the per-particle optics group is read and thrown away,
+    # and an imported set can only ever be written back into one group
+    'rlnOpticsGroup'
 ]
 
 # Labels from relion-4.0/src/metadata_label.h as of 20-Feb-2022
