@@ -20,6 +20,14 @@
       index@stack string, which RELION widened from 6 to 8 digits in 5.0.1
       and left every class filtered out of the output
     - Add tests for the 2D class ranker class matching
+    - Remove preferential views: new wizard to look at the angular
+      distribution of the input before setting the limits
+    - Remove preferential views: compute the angles in a single step and
+      write the selection to a file, so a continued run does not silently
+      copy the whole input to the output
+    - Remove preferential views: report how many particles fall within the
+      limits, and fix the summary
+    - Add tests for the preferential views selection and its wizard
 5.0.2:
     - add a test for DynaMight protocol
 5.0.1: bug fix for export coordinates from subparticles (close #428)
