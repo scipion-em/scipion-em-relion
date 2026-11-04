@@ -10,6 +10,8 @@
     - Extract particles: new option to discard the particles whose box does
       not fit inside the micrograph, which RELION extracts anyway with the
       edge pixels smeared over the part that sticks out
+    - Crop/resize volumes: new option to mirror the volumes along one axis,
+      which inverts their handedness
 5.1.0:
     - Fix MPI validations on some protocols
     - Fix particle subtraction
