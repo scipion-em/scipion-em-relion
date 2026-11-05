@@ -35,7 +35,6 @@ import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
 from pyworkflow.constants import PROD
 from pwem.protocols import ProtParticles
-import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ
 from pwem.objects import SetOfParticles
 
@@ -403,12 +402,8 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
         outImgSet.setSamplingRate(pixSize)
         self._setOutputOptics(outImgSet)
 
-        outImgsFn = md.MetaData('particles@' + self._getFileName('shiny'))
-        rowIterator = md.SetMdIterator(outImgsFn, sortByLabel=md.RLN_IMAGE_ID,
-                                       keyLabel=md.RLN_IMAGE_ID,
-                                       updateItemCallback=self._updatePtcl)
-        outImgSet.copyItems(imgSet,
-                            updateItemCallback=rowIterator.updateItem)
+        self._newLocations = self._readNewLocations()
+        outImgSet.copyItems(imgSet, updateItemCallback=self._updatePtcl)
 
         self._defineOutputs(**{outputs.outputParticles.name: outImgSet})
         self._defineTransformRelation(self.inputParticles, outImgSet)
@@ -509,9 +504,23 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
         return self._getInputPath(pwutils.replaceBaseExt(movie.getMicName(),
                                                          'star'))
 
+    def _readNewLocations(self):
+        """ Where each polished particle ended up, by particle id. """
+        return {row.rlnImageId: convert.relionToLocation(row.rlnImageName)
+                for row in Table.iterRows(
+                    'particles@' + self._getFileName('shiny'))}
+
     def _updatePtcl(self, particle, row):
-        newLoc = convert.relionToLocation(row.getValue('rlnImageName'))
-        particle.setLocation(newLoc)
+        """ Point the particle at its polished image, and leave out the
+        ones RELION did not write: shiny.star can hold fewer particles
+        than the input, when a movie or its motion model is missing.
+        """
+        newLoc = self._newLocations.get(particle.getObjId(), None)
+
+        if newLoc is None:
+            particle._appendItem = False
+        else:
+            particle.setLocation(newLoc)
 
     def _updateMic(self, mic, row):
         row['rlnMicrographName'] = os.path.basename(mic.getMicName())

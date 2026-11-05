@@ -37,7 +37,7 @@ import os
 
 import pyworkflow.utils as pwutils
 from pyworkflow.tests import BaseTest, setupTestOutput
-from pwem.objects import SetOfParticles, Acquisition
+from pwem.objects import SetOfParticles, Acquisition, Particle
 
 from ..convert.convert31 import OpticsGroups
 from ..protocols import ProtRelionBayesianPolishing
@@ -223,3 +223,118 @@ class TestRelionPolishingOutputOptics(BaseTest):
             parts.getAcquisition().opticsGroupInfo.get())
 
         self.assertFalse(stored.hasColumn('rlnCtfDataAreCtfPremultiplied'))
+
+
+SHINY_PARTICLES = """
+data_optics
+
+loop_
+_rlnOpticsGroupName #1
+_rlnOpticsGroup #2
+_rlnVoltage #3
+_rlnSphericalAberration #4
+_rlnAmplitudeContrast #5
+_rlnImagePixelSize #6
+_rlnImageSize #7
+_rlnImageDimensionality #8
+opticsGroup1  1  300.0  2.7  0.1  1.35  256  2
+
+data_particles
+
+loop_
+_rlnImageId #1
+_rlnImageName #2
+%s
+"""
+
+
+class TestRelionPolishingOutputParticles(BaseTest):
+    """ Which particles come out of polishing and where they point.
+
+    shiny.star can hold fewer particles than the input: RELION leaves out
+    the ones whose movie, or whose motion model, it did not have. The
+    input items without a row have to be left out of the output.
+    """
+    @classmethod
+    def setUpClass(cls):
+        setupTestOutput(cls)
+
+    def _protocol(self, rows):
+        workingDir = self.getOutputPath(self._testMethodName)
+        pwutils.makePath(os.path.join(workingDir, 'extra'))
+
+        prot = ProtRelionBayesianPolishing()
+        prot.setWorkingDir(workingDir)
+        prot._createFilenameTemplates()
+        with open(prot._getFileName('shiny'), 'w') as f:
+            f.write(SHINY_PARTICLES % '\n'.join(
+                '%d 000%03d@shiny.mrcs' % (objId, i + 1)
+                for i, objId in enumerate(rows)))
+
+        return prot
+
+    def _inputSet(self, size=4):
+        fn = self.getOutputPath('%s_in.sqlite' % self._testMethodName)
+        pwutils.cleanPath(fn)
+        parts = SetOfParticles(filename=fn)
+        parts.setSamplingRate(1.35)
+        for i in range(size):
+            part = Particle()
+            part.setObjId(i + 1)
+            part.setLocation(i + 1, 'input.mrcs')
+            parts.append(part)
+        parts.write()
+
+        return parts
+
+    def _outputSet(self, rows, size=4):
+        prot = self._protocol(rows)
+        inputSet = self._inputSet(size)
+
+        fn = self.getOutputPath('%s_out.sqlite' % self._testMethodName)
+        pwutils.cleanPath(fn)
+        outSet = SetOfParticles(filename=fn)
+        outSet.copyInfo(inputSet)
+
+        prot._newLocations = prot._readNewLocations()
+        outSet.copyItems(inputSet, updateItemCallback=prot._updatePtcl)
+
+        return outSet
+
+    def test_everyParticlePointsAtItsPolishedImage(self):
+        outSet = self._outputSet([1, 2, 3, 4])
+
+        self.assertEqual(4, outSet.getSize())
+        self.assertEqual([(1, 'shiny.mrcs'), (2, 'shiny.mrcs'),
+                          (3, 'shiny.mrcs'), (4, 'shiny.mrcs')],
+                         [p.getLocation() for p in outSet])
+
+    def test_theParticlesWithoutARowAreLeftOut(self):
+        outSet = self._outputSet([2, 4])
+
+        self.assertEqual(2, outSet.getSize())
+        self.assertEqual([2, 4], [p.getObjId() for p in outSet])
+
+    def test_theRowsDoNotHaveToBeSorted(self):
+        """ The xmipp iterator this replaced walked both sides in id order,
+        which meant sorting the whole table in memory first. """
+        outSet = self._outputSet([4, 1, 3, 2])
+
+        self.assertEqual(4, outSet.getSize())
+        self.assertEqual([1, 2, 3, 4], [p.getObjId() for p in outSet])
+        # the second row of the file is the one with id 1
+        self.assertEqual((2, 'shiny.mrcs'),
+                         outSet.getFirstItem().getLocation())
+
+    def test_anIdThatIsNotInTheInputDoesNotShiftTheRest(self):
+        outSet = self._outputSet([1, 2, 99, 3])
+
+        self.assertEqual([1, 2, 3], [p.getObjId() for p in outSet])
+        self.assertEqual([(1, 'shiny.mrcs'), (2, 'shiny.mrcs'),
+                          (4, 'shiny.mrcs')],
+                         [p.getLocation() for p in outSet])
+
+    def test_anEmptyShinyLeavesAnEmptyOutput(self):
+        outSet = self._outputSet([])
+
+        self.assertEqual(0, outSet.getSize())
