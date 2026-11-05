@@ -123,6 +123,25 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
                       label="Re-scaled size (px)",
                       help="The re-scaled value needs to be an even number.")
 
+        form.addParam('doCtfMultiply', params.BooleanParam, default=False,
+                      label="Pre-multiply by CTF?",
+                      help="If set to Yes, the polished particles are "
+                           "multiplied by their CTF, and the output is "
+                           "marked as such with rlnCtfDataAreCtfPremultiplied "
+                           "so that RELION does not apply the CTF a second "
+                           "time.\n"
+                           "Note other software reading these particles has "
+                           "no reason to look at that label, and will treat "
+                           "them as if the CTF had not been applied.")
+
+        form.addParam('cropSize', params.IntParam, default=-1,
+                      condition='doCtfMultiply',
+                      label="Crop to size after pre-multiplying (px)",
+                      help="Crop the particles to this size once they have "
+                           "been multiplied by the CTF, which is done at the "
+                           "re-scaled size. Leave at -1 not to crop. The "
+                           "value needs to be an even number.")
+
         form.addParam('saveFloat16', params.BooleanParam, default=True,
                       label="Write output in float16?",
                       help="Relion can write output images in float16 "
@@ -333,6 +352,10 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
                                     fillMagnification=True)
 
     def trainOrPolishStep(self, operation):
+        self.runJob(self._getProgram('relion_motion_refine'),
+                    self._getPolishArgs())
+
+    def _getPolishArgs(self):
         postProt = self.inputPostprocess.get()
         args = "--i %s " % self._getFileName('input_particles')
         args += "--o %s " % self._getExtraPath()
@@ -360,12 +383,17 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
             args += "--bfac_maxfreq %0.3f " % self.maxResBfactor
             args += "--combine_frames "
 
+            if self.doCtfMultiply:
+                args += "--ctf_multiply "
+                if self.cropSize.get() != -1:
+                    args += "--crop %d " % self.cropSize.get()
+
         if self.saveFloat16:
             args += "--float16 "
 
         args += "--j %d " % self.getBinThreads()
 
-        self.runJob(self._getProgram('relion_motion_refine'), args)
+        return args
 
     def createOutputStep(self, id=1):
         imgSet = self.inputParticles.get()
@@ -373,6 +401,7 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
         outImgSet.copyInfo(imgSet)
         pixSize = self._getOutputPixSize()
         outImgSet.setSamplingRate(pixSize)
+        self._setOutputOptics(outImgSet)
 
         outImgsFn = md.MetaData('particles@' + self._getFileName('shiny'))
         rowIterator = md.SetMdIterator(outImgsFn, sortByLabel=md.RLN_IMAGE_ID,
@@ -430,6 +459,14 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
                 errors.append("ERROR: The downsampled box size cannot be "
                               "larger than the extraction size")
 
+        crop = self.cropSize.get()
+        if self.doCtfMultiply and crop != -1:
+            if crop % 2 != 0:
+                errors.append("ERROR: The crop size must be an even number")
+            if scale != -1 and crop > scale:
+                errors.append("ERROR: The crop size cannot be larger than "
+                              "the downsampled box size")
+
         if self.operation == self.OP_TRAIN and self.numberOfMpi > 1:
             errors.append("MPI is not supported for parameters estimation.")
 
@@ -444,9 +481,27 @@ class ProtRelionBayesianPolishing(ProtParticles, ProtRelionBase):
                     'gain during motion correction.\n\nOutput movies then can be '
                     'used in this polishing protocol.']
 
+        if self.doCtfMultiply:
+            warnings.append('The output particles will be multiplied by '
+                            'their CTF. RELION knows not to apply it again '
+                            'because of the rlnCtfDataAreCtfPremultiplied '
+                            'label, but other software has no reason to look '
+                            'at it and will treat them as raw particles.')
+
         return warnings
 
     # -------------------------- UTILS functions ------------------------------
+    def _setOutputOptics(self, outImgSet):
+        """ Put the optics table relion wrote on the output set.
+
+        copyInfo() brings the one of the input particles, which is not what
+        came out of polishing: with --ctf_multiply relion marks its output
+        with rlnCtfDataAreCtfPremultiplied, and keeping the input table
+        would hide that and have the CTF applied a second time downstream.
+        """
+        convert.OpticsGroups.fromStar(
+            self._getFileName('shiny')).toImages(outImgSet)
+
     def _getInputPath(self, *paths):
         return self._getPath('input', *paths)
 
