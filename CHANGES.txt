@@ -18,6 +18,9 @@
     - Bayesian polishing: new option to pre-multiply the polished particles
       by their CTF, and the output now carries the optics table RELION
       wrote, so rlnCtfDataAreCtfPremultiplied is not lost
+    - Read STAR files written before RELION 3.1 without the xmipp bindings,
+      keeping their group name, group number and random subset, honouring
+      the "Copy files?" option and really dropping the disabled rows
 5.1.0:
     - Fix MPI validations on some protocols
     - Fix particle subtraction

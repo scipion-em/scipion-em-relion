@@ -591,15 +591,6 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
     def _getOutputImgMd(self):
         return self._getPath('images.xmd')
 
-    def createParticles(self, item, row):
-        particle = relion.convert.rowToParticle(row, readCtf=self._useCTF())
-        coord = particle.getCoordinate()
-        item.setY(coord.getY())
-        item.setX(coord.getX())
-        particle.setCoordinate(item)
-
-        item._appendItem = False
-
     def __getMicFile(self, mic, ext, folder=None):
         """ Return a filename based on the micrograph.
         The filename will be located in the extra folder and with
