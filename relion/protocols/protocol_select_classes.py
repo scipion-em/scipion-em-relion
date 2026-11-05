@@ -35,7 +35,7 @@ from pwem.objects import SetOfClasses2D, SetOfParticles
 
 from relion import Plugin
 from .protocol_base import ProtRelionBase
-from relion.convert import locationToRelion
+from relion.convert import relionToLocation
 
 
 class outputs(Enum):
@@ -110,9 +110,7 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
         selected = len([s for s in table.getColumnValues('rlnSelected') if s])
 
         if selected:
-            classesStar = self._getExtraPath('class_averages.star')
-            clsDict = {row.rlnReferenceImage: row
-                       for row in Table.iterRows(classesStar)}
+            clsDict = self._loadClassRows()
 
             inputClasses = self.inputProtocol.get().outputClasses
             outputClasses = SetOfClasses2D.create(self._getExtraPath())
@@ -121,21 +119,16 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
             outputParticles = SetOfParticles.create(self._getExtraPath())
             outputParticles.copyInfo(inputParticles)
 
-            def _getClassRow(cls2d):
-                idx, fn = cls2d.getRepresentative().getLocation()
-                row = clsDict.get(locationToRelion(idx, fn), None)
-                if row and row.rlnEstimatedResolution < self.minResolution:
-                    return row
-
-                return None
+            def _filterClass(cls2d):
+                return self._getClassRow(clsDict, cls2d)
 
             def _updateClass(cls2d):
-                row = _getClassRow(cls2d)
+                row = self._getClassRow(clsDict, cls2d)
                 cls2d._rlnPredictedClassScore = Float(row.rlnPredictedClassScore)
                 cls2d._rlnEstimatedResolution = Float(row.rlnEstimatedResolution)
 
             outputClasses.appendFromClasses(inputClasses,
-                                            filterClassFunc=_getClassRow,
+                                            filterClassFunc=_filterClass,
                                             updateClassCallback=_updateClass)
 
             self.summaryVar.set(f"Selected *{selected}* best classes.\n"
@@ -148,6 +141,31 @@ class ProtRelionSelectClasses2D(ProtProcessParticles, ProtRelionBase):
         else:
             self.summaryVar.set("No classes were selected.\n"
                                 "Try with a lower threshold.")
+
+    # --------------------------- UTILS functions -----------------------------
+    def _loadClassRows(self):
+        """ Rows of the class_averages.star written by relion_class_ranker,
+        indexed by the (index, filename) location of each class average.
+
+        The key is the location and not the 'index@stack' string of the
+        file because RELION widened its index from 6 to 8 digits in 5.0.1
+        (FILENAMENUMBERLENGTH): composing that string ourselves matched
+        nothing from then on, and since the lookup also filters the output,
+        every class was silently left out of it.
+        """
+        classesStar = self._getExtraPath('class_averages.star')
+
+        return {relionToLocation(row.rlnReferenceImage): row
+                for row in Table.iterRows(classesStar)}
+
+    def _getClassRow(self, clsDict, cls2d):
+        """ Row of a given class, or None if it was not ranked or did not
+        reach the requested resolution. """
+        row = clsDict.get(cls2d.getRepresentative().getLocation(), None)
+        if row and row.rlnEstimatedResolution < self.minResolution:
+            return row
+
+        return None
 
     # --------------------------- INFO functions ------------------------------
     def _summary(self):

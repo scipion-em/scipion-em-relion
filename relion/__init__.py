@@ -25,6 +25,8 @@
 # **************************************************************************
 
 import os
+import re
+import subprocess
 
 import pyworkflow.utils as pwutils
 from pyworkflow import Config, SPA, TOMO
@@ -33,32 +35,46 @@ import pwem
 from .constants import *
 
 
-__version__ = '5.0.2'
+__version__ = '5.1.1'
 _logo = "relion_logo.jpg"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016',
-               'Zivanov2018', 'Kimanius2021']
+               'Zivanov2018', 'Kimanius2021', 'Kimanius2024']
 
 
 class Plugin(pwem.Plugin):
     _homeVar = RELION_HOME
     _pathVars = [RELION_HOME]
-    _supportedVersions = [V4_0, V5_0]
+    _supportedVersions = [V4_0, V5_0, V5_1]
+    # getActiveVersion() runs a binary, so the answer is kept
+    _activeVersion = None
     _url = "https://github.com/scipion-em/scipion-em-relion"
     _processingField = [SPA, TOMO]
 
     @classmethod
     def _defineVariables(cls):
-        cls._defineEmVar(RELION_HOME, f'relion-{V5_0}')
+        cls._defineEmVar(RELION_HOME, f'relion-{V5_1}')
         cls._defineVar(RELION_CUDA_LIB, pwem.Config.CUDA_LIB)
         cls._defineVar(RELION_CUDA_BIN, pwem.Config.CUDA_BIN)
-        cls._defineVar(RELION_ENV_ACTIVATION, DEFAULT_ACTIVATION_CMD % V5_0)
+        cls._defineVar(RELION_ENV_ACTIVATION, DEFAULT_ACTIVATION_CMD % V5_1)
         cls._defineVar(RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE,
                        os.getenv(RELION_EXTERNAL_RECONSTRUCT_EXECUTABLE, None))
         cls._defineEmVar(TORCH_HOME_VAR, 'modelangelomodels-1.0')
+        cls._defineVar(RELION_PREPEND, '',
+                       description="Prepended to every RELION command of a "
+                                   "job that uses the GPU, for loading "
+                                   "modules and the like")
+        cls._defineVar(RELION_PREPEND_CPU, '',
+                       description="Prepended to every RELION command of a "
+                                   "job that does not use the GPU")
 
     @classmethod
-    def getEnviron(cls):
-        """ Setup the environment variables needed to launch Relion. """
+    def getEnviron(cls, useGpu=False):
+        """ Setup the environment variables needed to launch Relion.
+
+        The prepend is set here and not in ProtRelionBase so that it also
+        reaches the protocols that do not inherit from it: Protocol
+        ._getEnviron() falls back to this method for all of them.
+        """
         environ = pwutils.Environ(os.environ)
         binPath = os.pathsep.join([cls.getHome('bin'),
                                    pwem.Config.MPI_BINDIR])
@@ -101,7 +117,52 @@ class Plugin(pwem.Plugin):
         if TORCH_HOME_VAR not in environ:
             environ.set(TORCH_HOME_VAR, Plugin.getVar(TORCH_HOME_VAR))
 
+        environ.setPrepend(cls.getVar(RELION_PREPEND if useGpu
+                                      else RELION_PREPEND_CPU) or '')
+
         return environ
+
+    @classmethod
+    def getActiveVersion(cls, *args, **kwargs):
+        """ Version of the binaries that are currently active.
+
+        The inherited implementation reads it off the basename of
+        RELION_HOME, so a perfectly good installation in /opt/relion or in
+        relion-5.1-cuda12 reports no version at all. Everything behind
+        IS_GT50() then disappears without a word: Blush, DynaMight and
+        ModelAngelo. Ask the binary first and keep the folder name only as
+        a fallback for when it cannot be run.
+        """
+        if cls._activeVersion is None:
+            cls._activeVersion = (cls._getVersionFromBinary() or
+                                  super().getActiveVersion(*args, **kwargs))
+
+        return cls._activeVersion
+
+    @classmethod
+    def _getVersionFromBinary(cls):
+        """ Ask relion_refine, which prints a line like
+        'RELION version: 5.1.0-commit-cb2683'. Returns one of the supported
+        versions, or None if the binary is missing or says something else.
+        """
+        program = cls.getHome('bin', 'relion_refine')
+
+        if not os.path.exists(program):
+            return None
+
+        try:
+            out = subprocess.run([program, '--version'], timeout=60,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT).stdout.decode()
+        except Exception as e:
+            pwutils.yellowStr("Could not ask %s for its version: %s"
+                              % (program, e))
+            return None
+
+        match = re.search(r"RELION version:\s*(\d+\.\d+)", out)
+        version = match.group(1) if match else None
+
+        return version if version in cls._supportedVersions else None
 
     @classmethod
     def IS_GT50(cls):
@@ -162,4 +223,4 @@ class Plugin(pwem.Plugin):
                            commands=installCmds,
                            neededProgs=cls.getDependencies(),
                            updateCuda=True,
-                           default=ver == V5_0)
+                           default=ver == V5_1)

@@ -26,8 +26,6 @@
 
 from collections import OrderedDict
 
-import pwem.emlib.metadata as md
-
 # ----------------- Constants values ------------------------------------------
 
 RELION_HOME = 'RELION_HOME'
@@ -35,6 +33,8 @@ RELION_CUDA_LIB = 'RELION_CUDA_LIB'
 RELION_CUDA_BIN = 'RELION_CUDA_BIN'
 RELION_ENV_ACTIVATION = 'RELION_ENV_ACTIVATION'
 DEFAULT_ACTIVATION_CMD = 'conda activate relion-%s'
+RELION_PREPEND = 'RELION_PREPEND'
+RELION_PREPEND_CPU = 'RELION_PREPEND_CPU'
 
 SIDESPLITTER = 'SIDESPLITTER'
 SIDESPLITTER_HOME = 'SIDESPLITTER_HOME'
@@ -45,6 +45,7 @@ TORCH_HOME_VAR = 'TORCH_HOME'
 V3_1 = '3.1'
 V4_0 = '4.0'
 V5_0 = '5.0'
+V5_1 = '5.1'
 
 MASK_FILL_ZERO = 0
 MASK_FILL_NOISE = 1
@@ -129,66 +130,16 @@ FSC_TYPE_WORK_FREE = 2
 
 DYNAMIGHT = "Dynamight"
 
-# This dictionary will be used to map
-# between CTFModel properties and Xmipp labels
-
-ACQUISITION_DICT = OrderedDict([
-    ("_amplitudeContrast", md.RLN_CTF_Q0),
-    ("_sphericalAberration", md.RLN_CTF_CS),
-    ("_voltage", md.RLN_CTF_VOLTAGE),
-    ("_magnification", md.RLN_CTF_MAGNIFICATION)
-])
-
-COOR_DICT = OrderedDict([
-    ("_x", md.RLN_IMAGE_COORD_X),
-    ("_y", md.RLN_IMAGE_COORD_Y)
-])
-
-COOR_EXTRA_LABELS = [
-    # Additional autopicking-related metadata
-    md.RLN_PARTICLE_AUTOPICK_FOM,
-    md.RLN_PARTICLE_CLASS,
-    md.RLN_ORIENT_PSI
-]
-
-CTF_DICT = OrderedDict([
-    ("_defocusU", md.RLN_CTF_DEFOCUSU),
-    ("_defocusV", md.RLN_CTF_DEFOCUSV),
-    ("_defocusAngle", md.RLN_CTF_DEFOCUS_ANGLE)
-])
-
-CTF_PSD_DICT = OrderedDict([
-    ("_psdFile", md.RLN_CTF_IMAGE)
-])
-
-CTF_EXTRA_LABELS = [
-    md.RLN_CTF_FOM,
-    md.RLN_CTF_PHASESHIFT
-]
-
-# Some extra labels
-IMAGE_EXTRA_LABELS = [
-    md.RLN_SELECT_PARTICLES_ZSCORE,
-    md.RLN_IMAGE_FRAME_NR
-]
-
-ALIGNMENT_DICT = OrderedDict([
-    ("_rlnOriginX", md.RLN_ORIENT_ORIGIN_X),
-    ("_rlnOriginY", md.RLN_ORIENT_ORIGIN_Y),
-    ("_rlnOriginZ", md.RLN_ORIENT_ORIGIN_Z),
-    ("_rlnAngleRot", md.RLN_ORIENT_ROT),
-    ("_rlnAngleTilt", md.RLN_ORIENT_TILT),
-    ("_rlnAnglePsi", md.RLN_ORIENT_PSI)
-])
-
-
 PARTICLE_EXTRA_LABELS = [
     'rlnCtfBfactor',
     'rlnCtfScalefactor',
     'rlnPhaseShift',
     'rlnGroupName',
     'rlnGroupNumber',
-    'rlnRandomSubset'
+    'rlnRandomSubset',
+    # Without this the per-particle optics group is read and thrown away,
+    # and an imported set can only ever be written back into one group
+    'rlnOpticsGroup'
 ]
 
 # Labels from relion-4.0/src/metadata_label.h as of 20-Feb-2022

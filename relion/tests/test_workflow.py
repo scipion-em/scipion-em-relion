@@ -33,6 +33,7 @@ from pwem.tests.workflows import TestWorkflow
 from pwem.protocols import ProtImportMovies
 
 from ..protocols import *
+from ..constants import SAME_AS_PICKING
 
 
 CPUS = os.environ.get('SCIPION_TEST_CPUS', 4)
@@ -88,7 +89,8 @@ class TestWorkflowRelionBetagal(TestWorkflow):
             ProtRelionMotioncor,
             objLabel='relion - motioncor',
             patchX=1, patchY=1,
-            numberOfThreads=CPUS)
+            # CPUS-1 movies at a time, one RELION thread each
+            numberOfThreads=CPUS, binThreads=1)
 
         protRelionMc.inputMovies.set(protImport.outputMovies)
         protRelionMc = self.launchProtocol(protRelionMc)
@@ -140,7 +142,7 @@ class TestWorkflowRelionBetagal(TestWorkflow):
             backDiameter=200,
             numberOfMpi=CPUS,
             streamingBatchSize=0,
-            downsamplingType=0  # Micrographs same as picking
+            downsampleType=SAME_AS_PICKING
         )
 
         protRelionExtract.ctfRelations.set(protCtf.outputCTF)

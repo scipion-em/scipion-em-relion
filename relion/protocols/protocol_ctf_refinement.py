@@ -252,7 +252,7 @@ class ProtRelionCtfRefinement(ProtParticles, ProtRelionBase):
             if self.doEstimate4thOrder:
                 args += '--fit_aberr '
 
-        args += "--j %d " % self.numberOfThreads
+        args += "--j %d " % self.getBinThreads()
 
         if self.extraParams.hasValue():
             args += ' ' + self.extraParams.get()
@@ -294,6 +294,9 @@ class ProtRelionCtfRefinement(ProtParticles, ProtRelionBase):
         #                         particle.getAcquisition())
 
     # --------------------------- INFO functions ------------------------------
+    def _citations(self):
+        return ['Zivanov2020']
+
     def _summary(self):
         summary = []
         if self.estimateAnisoMag:

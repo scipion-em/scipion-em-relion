@@ -122,7 +122,10 @@ class ProtRelionPreprocessParticles(ProtProcessParticles, ProtRelionBase):
                       label='Window size (px)',
                       help='New particles windows size (in pixels).')
 
-        form.addParallelSection(threads=4, mpi=1)
+        # relion_preprocess has no threads option, and each step runs
+        # --operate_on over a single stack, so MPI has nothing to split:
+        # the parallelism here is running several stacks at the same time
+        form.addParallelSection(threads=4, mpi=0)
     
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):

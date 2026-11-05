@@ -199,6 +199,9 @@ Below is an example of a config file:
         self._registerAtomStruct(self.OUTPUT_NAME, self._getExtraPath('extra.cif'))
 
     # --------------------------- INFO functions -----------------------------------
+    def _citations(self):
+        return ['Jamali2024']
+
     def _validate(self):
         errors = []
         gpus = self.getGpuList()
@@ -285,7 +288,7 @@ Below is an example of a config file:
                     " ".join(params))
 
     def _getEnviron(self):
-        env = Plugin.getEnviron()
+        env = Plugin.getEnviron(useGpu=self.usesGpu())
         if 'LD_LIBRARY_PATH' in env:
             # this is required to avoid conflict btw DynaMight Qt5 libs
             # and system Qt libs

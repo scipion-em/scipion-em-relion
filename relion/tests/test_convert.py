@@ -35,9 +35,8 @@ from pyworkflow.tests import BaseTest, setupTestOutput, DataSet
 from pyworkflow.utils import cleanPath, magentaStr, createLink, replaceExt
 from pwem.objects import (SetOfParticles, CTFModel, Acquisition,
                           SetOfMicrographs, Coordinate, Particle,
-                          SetOfVolumes, Transform)
+                          Transform)
 from pwem.emlib.image import ImageHandler
-import pwem.emlib.metadata as md
 from pwem.constants import ALIGN_PROJ, ALIGN_2D, ALIGN_3D
 
 from relion import Plugin
@@ -105,6 +104,52 @@ def runRelionProgram(cmd):
     return p.wait()
 
 
+class _StarRow(dict):
+    """ A star row the Writer can write into and the Reader can read back.
+
+    The Writer sets row['rlnLabel'] and the Reader asks for
+    getattr(row, 'rlnLabel'), which is what emtable rows give it.
+    """
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(name)
+
+    def hasColumn(self, label):
+        return label in self
+
+    def hasAnyColumn(self, labels):
+        return any(label in self for label in labels)
+
+
+ALIGNMENT_LABELS = ['rlnAngleRot', 'rlnAngleTilt', 'rlnAnglePsi',
+                    'rlnOriginXAngst', 'rlnOriginYAngst', 'rlnOriginZAngst']
+
+
+def alignmentToRow(alignment, alignType, pixelSize=1.0):
+    """ Write an alignment the way the particles writer does. """
+    writer = convert.createWriter()
+    writer._pixelSize = pixelSize
+    row = _StarRow()
+
+    if alignType == ALIGN_2D:
+        writer._align2DToRow(alignment, row)
+    else:
+        writer._alignProjToRow(alignment, row)
+
+    return row
+
+
+def rowToAlignment(row, alignType, pixelSize=1.0):
+    """ Read an alignment back the way the particles reader does. """
+    reader = convert.createReader(alignType=alignType, pixelSize=pixelSize)
+    particle = Particle()
+    reader.setParticleTransform(particle, row)
+
+    return particle.getTransform()
+
+
 class TestConvertAnglesBase(BaseTest):
     """ Base class to launch both Alignment and Reconstruction tests."""
     IS_ALIGNMENT = None
@@ -158,10 +203,7 @@ class TestConvertAnglesBase(BaseTest):
             print("OUTPUT:      ", outputFn)
             print("GOLD:        ", goldFn)
 
-        if alignType == ALIGN_2D or alignType == ALIGN_PROJ:
-            partSet = SetOfParticles(filename=partFn1)
-        else:
-            partSet = SetOfVolumes(filename=partFn1)
+        partSet = SetOfParticles(filename=partFn1)
         partSet.setAlignment(alignType)
 
         acq = Acquisition(voltage=300,
@@ -186,26 +228,14 @@ class TestConvertAnglesBase(BaseTest):
         print("Partset", partFn1)
         partSet.printAll()
         partSet.write()
-        # Convert to a Xmipp metadata and also check that the images are
-        # aligned correctly
-        if alignType == ALIGN_2D or alignType == ALIGN_PROJ:
-            starWriter = convert.createWriter()
-            starWriter.writeSetOfParticles(partSet, mdFn, alignType=alignType)
-            partSet2 = SetOfParticles(filename=partFn2)
-        else:
-            convert.writeSetOfVolumes(partSet, mdFn, alignType=alignType)
-            partSet2 = SetOfVolumes(filename=partFn2)
-        # Let's create now another SetOfImages reading back the written
-        # Xmipp metadata and check one more time.
-        partSet2.copyInfo(partSet)
-        if alignType == ALIGN_2D or alignType == ALIGN_PROJ:
-            convert.readSetOfParticles(mdFn, partSet2,
-                                       alignType=alignType)
-        else:
-            convert.readSetOfParticles(mdFn, partSet2,
-                                       rowToFunc=convert.rowToVolume,
-                                       alignType=alignType)
+        # Write out the star file and read it back, to check one more time
+        # that the images are aligned correctly
+        starWriter = convert.createWriter()
+        starWriter.writeSetOfParticles(partSet, mdFn, alignType=alignType)
 
+        partSet2 = SetOfParticles(filename=partFn2)
+        partSet2.copyInfo(partSet)
+        convert.readSetOfParticles(mdFn, partSet2, alignType=alignType)
         partSet2.write()
 
         if PRINT_MATRIX:
@@ -214,9 +244,8 @@ class TestConvertAnglesBase(BaseTest):
                 m2 = img.getTransform().getMatrix()
                 print("-" * 5)
                 print(img.getFileName(), img.getIndex())
-                print('m1:\n', m1, convert.geometryFromMatrix(m1, False))
-
-                print('m2:\n', m2, convert.geometryFromMatrix(m2, False))
+                print('m1:\n', m1)
+                print('m2:\n', m2)
                 self.assertTrue(np.allclose(m1, m2, rtol=1e-2))
 
         # Launch apply transformation and check result images
@@ -242,49 +271,41 @@ class TestAlignment(TestConvertAnglesBase):
         """Consistency between forwards and backwards geometrical
         transformations"""
         def _testInv(matrix):
-            matrix = np.array(matrix)
-            a = Transform(matrix)
+            a = Transform(np.array(matrix))
 
-            row1 = md.Row()
-            convert.alignmentToRow(a, row1, alignType=ALIGN_2D)
+            return (alignmentToRow(a, ALIGN_2D),
+                    alignmentToRow(a, ALIGN_PROJ))
 
-            row2 = None
-            
-            row3 = md.Row()
-            convert.alignmentToRow(a, row3, alignType=ALIGN_PROJ)
+        row1, row3 = _testInv([[1.0, 0.0, 0.0, 20.0],
+                               [0.0, 1.0, 0.0, 0.0],
+                               [0.0, 0.0, 1.0, 0.0],
+                               [0.0, 0.0, 0.0, 1.0]])
 
-            return row1, row2, row3
+        self.assertAlmostEqual(row1.rlnOriginXAngst, 20., 4)
+        self.assertAlmostEqual(row1.rlnOriginYAngst, 0., 4)
+        self.assertAlmostEqual(row1.rlnAnglePsi, 0., 4)
 
-        row1, row2, row3 = _testInv([[1.0, 0.0, 0.0, 20.0],
-                                    [0.0, 1.0, 0.0, 0.0],
-                                    [0.0, 0.0, 1.0, 0.0],
-                                    [0.0, 0.0, 0.0, 1.0]])
+        self.assertAlmostEqual(row3.rlnOriginXAngst, 20., 4)
+        self.assertAlmostEqual(row3.rlnOriginYAngst, 0., 4)
+        self.assertAlmostEqual(row3.rlnOriginZAngst, 0., 4)
+        self.assertAlmostEqual(row3.rlnAngleRot, 0., 4)
+        self.assertAlmostEqual(row3.rlnAngleTilt, 0., 4)
+        self.assertAlmostEqual(row3.rlnAnglePsi, 0., 4)
 
-        self.assertAlmostEqual(row1.getValue(md.RLN_ORIENT_ORIGIN_X), 20., 4)
-        self.assertAlmostEqual(row1.getValue(md.RLN_ORIENT_ORIGIN_Y), 0., 4)
-        self.assertAlmostEqual(row1.getValue(md.RLN_ORIENT_PSI), 0., 4)
+        row1, row3 = _testInv([[0.93969, 0.34202, 0.0, -6.8404],
+                               [-0.34202, 0.93969, 0.0, 18.7939],
+                               [0.0, 0.0, 1.0, 0.0],
+                               [0.0, 0.0, 0.0, 1.0]])
+        self.assertAlmostEqual(row1.rlnOriginXAngst, -6.8404, 4)
+        self.assertAlmostEqual(row1.rlnOriginYAngst, 18.7939, 4)
+        self.assertAlmostEqual(row1.rlnAnglePsi, -20., 4)
 
-        self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_ORIGIN_X), 20., 4)
-        self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_ORIGIN_Y), 0., 4)
-        self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_ORIGIN_Z), 0., 4)
-        self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_ROT), 0., 4)
-        self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_TILT), 0., 4)
-        self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_PSI), 0., 4)
-
-        row1, row2, row3 = _testInv([[0.93969, 0.34202, 0.0, -6.8404],
-                                    [-0.34202, 0.93969, 0.0, 18.7939],
-                                    [0.0, 0.0, 1.0, 0.0],
-                                    [0.0, 0.0, 0.0, 1.0]])
-        self.assertAlmostEqual(row1.getValue(md.RLN_ORIENT_ORIGIN_X), -6.8404, 4)
-        self.assertAlmostEqual(row1.getValue(md.RLN_ORIENT_ORIGIN_Y), 18.7939, 4)
-        self.assertAlmostEqual(row1.getValue(md.RLN_ORIENT_PSI), -20., 4)
-
-        self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_ORIGIN_X), -12.8558097352, 4)
-        self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_ORIGIN_Y), 15.3209632479, 4)
-        self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_ORIGIN_Z), 0., 4)
-        self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_ROT), -20., 4)
-        self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_TILT), 0., 4)
-        self.assertAlmostEqual(row3.getValue(md.RLN_ORIENT_PSI), 0., 4)
+        self.assertAlmostEqual(row3.rlnOriginXAngst, -12.8558097352, 4)
+        self.assertAlmostEqual(row3.rlnOriginYAngst, 15.3209632479, 4)
+        self.assertAlmostEqual(row3.rlnOriginZAngst, 0., 4)
+        self.assertAlmostEqual(row3.rlnAngleRot, -20., 4)
+        self.assertAlmostEqual(row3.rlnAngleTilt, 0., 4)
+        self.assertAlmostEqual(row3.rlnAnglePsi, 0., 4)
 
     def test_alignShiftRotExp(self):
         """ Check that for a given alignment object,
@@ -508,36 +529,24 @@ class TestReconstruct(TestConvertAnglesBase):
                  ]
 
         aList = [np.array(m) for m in mList]
-        rowa = md.Row()
-        rowb = md.Row()
-        labelList = [md.RLN_ORIENT_ROT,
-                     md.RLN_ORIENT_TILT,
-                     md.RLN_ORIENT_PSI,
-                     md.RLN_ORIENT_ORIGIN_X,
-                     md.RLN_ORIENT_ORIGIN_Y,
-                     md.RLN_ORIENT_ORIGIN_Z]
 
         for i, a in enumerate(aList):
             a = Transform(aList[i])
-            convert.alignmentToRow(a, rowa, ALIGN_PROJ)
-            b = convert.rowToAlignment(rowa, ALIGN_PROJ)
-            convert.alignmentToRow(b, rowb, ALIGN_PROJ)
+            rowa = alignmentToRow(a, ALIGN_PROJ)
+            b = rowToAlignment(rowa, ALIGN_PROJ)
+            rowb = alignmentToRow(b, ALIGN_PROJ)
             # same two matrices
             self.assertTrue(np.allclose(a.getMatrix(), b.getMatrix(),
                                         rtol=1e-2))
-            for label in labelList:
-                auxBtilt = rowb.getValue(label)
-                auxAtilt = rowa.getValue(label)
+            for label in ALIGNMENT_LABELS:
                 # same two rows
-                self.assertAlmostEqual(auxBtilt, auxAtilt, places=3)
+                self.assertAlmostEqual(rowb[label], rowa[label], places=3)
 
-            b = convert.rowToAlignment(rowa, ALIGN_PROJ)
-            convert.alignmentToRow(b, rowb, ALIGN_PROJ)
+            b = rowToAlignment(rowa, ALIGN_PROJ)
             aMatrix = a.getMatrix()
-            # aMatrix[0,:] *= -1; aMatrix[2,:] *= -1;
             # same two matrices with flip
             print("\naMatrix: \n", aMatrix, "\nbMatrix: \n", b.getMatrix())
-            
+
             self.assertTrue(np.allclose(aMatrix, b.getMatrix(), rtol=1e-2))
 
     def test_reconstRotOnly(self):

@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 from pwem.constants import UNIT_PIXEL, UNIT_ANGSTROM, FILTER_LOW_PASS_NO_DECAY
 from pwem.viewers import EmPlotter
+from pwem.viewers.plotter import PLOT_EULER_ANGLES
 from pwem.wizards.wizard import (ParticleMaskRadiusWizard, FilterVolumesWizard,
                                  EmWizard, ColorScaleWizardBase,
                                  BandPassFilterDialog, dialog)
@@ -209,3 +210,31 @@ class RelionWizCtfGroupsDisplay(EmWizard):
                    align='edge')
 
         plotter.show()
+
+
+class RelionWizAngDistDisplay(EmWizard):
+    """ Angular distribution of the input particles, to locate the
+    preferential views before setting the limits to remove them.
+    """
+    _targets = [(ProtRelionRemovePrefViews, ['inputParticles'])]
+
+    def show(self, form, *args):
+        prot = form.protocol
+        imgSet = prot.inputParticles.get()
+
+        if imgSet is None:
+            logger.info("Select the input particles first.")
+            return
+
+        self.getPlotter(imgSet).show()
+
+    @staticmethod
+    def getPlotter(imgSet):
+        """ Everything but the show(), which needs a display. """
+        plotter = EmPlotter(windowTitle='Angular distribution', figsize=(8, 6))
+        # PLOT_EULER_ANGLES is the rot vs tilt map, the one that can be read
+        # off in the same angles as the limits of the protocol
+        plotter.plotAngularDistributionFromSet(imgSet, "Angular distribution",
+                                               type=PLOT_EULER_ANGLES)
+
+        return plotter

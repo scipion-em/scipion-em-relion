@@ -295,6 +295,20 @@ class Writer(WriterBase):
             f.write("# version 30001\n")
             micsTable.writeStar(f, tableName=tableName)
 
+    def _defaultOpticsGroup(self):
+        """ Group for the items that do not carry one of their own.
+
+        Not simply 1: a single optics group can be numbered anything, and
+        deposited STAR files often have one numbered 2 or higher, with no
+        per-item rlnOpticsGroup column at all. Writing 1 for those points
+        every item at a group that is not in the optics table, and RELION
+        refuses the file.
+        """
+        if self._optics is not None and len(self._optics) == 1:
+            return self._optics.first().rlnOpticsGroup
+
+        return 1
+
     def _objToRow(self, obj, row, attributes):
         """ Set some attributes from the object to the row.
         For performance reasons, it is not validated that each attribute
@@ -312,7 +326,8 @@ class Writer(WriterBase):
 
         # Set additional labels if present
         self._objToRow(mic, row, self._extraLabels)
-        row['rlnOpticsGroup'] = mic.getAttributeValue('_rlnOpticsGroup', 1)
+        row['rlnOpticsGroup'] = mic.getAttributeValue('_rlnOpticsGroup',
+                                                      self._defaultOpticsGroup())
 
     def _align2DToRow(self, alignment, row):
         matrix = alignment.getMatrix()
@@ -372,7 +387,8 @@ class Writer(WriterBase):
         self._objToRow(part, row, self._extraLabels)
 
         # Add now the new Optics Group stuff
-        row['rlnOpticsGroup'] = part.getAttributeValue('_rlnOpticsGroup', 1)
+        row['rlnOpticsGroup'] = part.getAttributeValue('_rlnOpticsGroup',
+                                                       self._defaultOpticsGroup())
 
         self._counter += 1
 

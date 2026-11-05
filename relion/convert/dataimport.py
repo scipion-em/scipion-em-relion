@@ -106,20 +106,13 @@ class RelionImport:
         # but fixing the filenames with new ones (linked or copy to extraDir)
 
         from relion.convert import readSetOfParticles
-        if self.version30:
-            readSetOfParticles(
-                self._starFile, partSet,
-                preprocessImageRow=self._preprocessImageRow30,
-                postprocessImageRow=self._postprocessImageRow30,
-                readAcquisition=False, alignType=self.alignType,
-                pixelSize=self._pixelSize, format="30")
-        else:
-            readSetOfParticles(
-                self._starFile, partSet,
-                preprocessImageRow=None,
-                postprocessImageRow=self._postprocessImageRow,
-                readAcquisition=False, alignType=self.alignType,
-                pixelSize=self._pixelSize)
+        readSetOfParticles(
+            self._starFile, partSet,
+            postprocessImageRow=(self._postprocessImageRow30 if self.version30
+                                 else self._postprocessImageRow),
+            readAcquisition=False, alignType=self.alignType,
+            pixelSize=self._pixelSize,
+            format="30" if self.version30 else "31")
 
         if self._micIdOrName:
             self.protocol._defineOutputs(outputMicrographs=self.micSet)
@@ -284,22 +277,40 @@ class RelionImport:
 
         return row, modelRow, acqRow
 
-    def _preprocessImageRow30(self, img, imgRow):
-        from .convert_deprecated import setupCTF, copyOrLinkFileName
+    def _linkOrCopyStack(self, img):
+        """ Bring the particle stack next to the project and point the
+        particle at it.
+
+        The 3.1 path symlinks the whole folder instead (see FileTransform),
+        which cannot be done here: a 3.0 rlnImageName may be relative to a
+        parent folder (../input_particles.mrcs in the tutorial data), and
+        prefixing a symlinked folder to that does not survive a normpath.
+        """
+        index, imgPath = img.getLocation()
+        newName = self.protocol._getExtraPath(os.path.basename(imgPath))
+
+        if not os.path.exists(newName):
+            srcName = os.path.join(self._imgPath, imgPath)
+            if self.protocol.copyFiles:
+                pwutils.copyFile(srcName, newName)
+            else:
+                pwutils.createLink(srcName, newName)
+
+        img.setLocation(index, newName)
+
+    def _postprocessImageRow30(self, img, imgRow):
+        if self.ignoreIds:
+            img.setObjId(None)  # Force to generate a new id in Set
+
         if self._imgPath is not None:
-            copyOrLinkFileName(imgRow, self._imgPath, self.protocol._getExtraPath())
-        setupCTF(imgRow, self.protocol.samplingRate.get())
+            self._linkOrCopyStack(img)
 
         if self._micIdOrName:
             micId = imgRow.get('rlnMicrographId', None)
             micName = imgRow.get('rlnMicrographName', None)
 
             # Check which is the key to identify micrographs (id or name)
-            if micId is not None:
-                micKey = micId
-            else:
-                micKey = micName
-
+            micKey = micId if micId is not None else micName
             mic = self.micDict.get(micKey, None)
 
             # First time I found this micrograph (either by id or name)
@@ -307,26 +318,19 @@ class RelionImport:
                 mic = Micrograph()
                 mic.setObjId(micId)
                 if micName is None:
-                    micName = self.protocol._getExtraPath('fake_micrograph%6d' % micId)
+                    micName = self.protocol._getExtraPath('fake_micrograph%6d'
+                                                          % micId)
                 mic.setFileName(micName)
                 mic.setMicName(os.path.basename(micName))
                 self.micSet.append(mic)
                 # Update dict with new Micrograph
                 self.micDict[micKey] = mic
 
-            # Update the row to set a MDL_MICROGRAPH_ID
-            imgRow['rlnMicrographId'] = int(mic.getObjId())
+            img.setMicId(mic.getObjId())
 
-    def _postprocessImageRow30(self, img, imgRow):
-        if self.ignoreIds:
-            img.setObjId(None)  # Force to generate a new id in Set
-
-        if self._micIdOrName:
-            micId = imgRow.get('rlnMicrographId', None)
-            micName = imgRow.get('rlnMicrographName', None)
             if img.hasCoordinate():
                 coord = img.getCoordinate()
-                coord.setMicId(micId)
+                coord.setMicId(mic.getObjId())
                 coord.setMicName(os.path.basename(micName))
 
     def _postprocessImageRow(self, img, imgRow):

@@ -25,7 +25,7 @@
 # ******************************************************************************
 
 import numpy as np
-from random import sample
+from random import SystemRandom
 from enum import Enum
 
 import pyworkflow.protocol.params as params
@@ -90,54 +90,56 @@ class ProtRelionRemovePrefViews(ProtParticles):
 
     # -------------------------- STEPS functions ------------------------------
     def _insertAllSteps(self):
-        self._insertFunctionStep(self.convertInputStep, needsGPU=False)
         self._insertFunctionStep(self.processAnglesStep, needsGPU=False)
         self._insertFunctionStep(self.createOutputStep, needsGPU=False)
 
-    def convertInputStep(self):
-        inputParts = self.inputParticles.get()
-        self.rotDict, self.tiltDict, self.psiDict = {}, {}, {}
-        for part in inputParts:
-            alignment = part.getTransform()
-            matrix = np.linalg.inv(alignment.getMatrix())
-            angles = -np.rad2deg(tfs.euler_from_matrix(matrix, axes='szyz'))
-            self.rotDict[part.getObjId()] = angles[0]
-            self.tiltDict[part.getObjId()] = angles[1]
-            self.psiDict[part.getObjId()] = angles[2]
-
     def processAnglesStep(self):
-        self.removedList = []
+        """ Write down the ids of the particles to leave out of the output. """
         ptclToRemove = self.numToRemove.get()
         rmin, rmax = self.rotMin.get(), self.rotMax.get()
         tmin, tmax = self.tiltMin.get(), self.tiltMax.get()
         pmin, pmax = self.psiMin.get(), self.psiMax.get()
 
-        for (k, r), (k2, t), (k3, p) in zip(self.rotDict.items(),
-                                            self.tiltDict.items(),
-                                            self.psiDict.items()):
-            if not self.removePsi:
-                # check only rot & tilt
-                if (self.withinLimits(r, rmin, rmax) and
-                        self.withinLimits(t, tmin, tmax)):
-                    self.removedList.append(k)
+        # The angles are computed right here, and the ids are written to a
+        # file, because nothing kept in self survives a continue: with the
+        # angles in a step of their own, continuing a run skipped it and
+        # left this one matching nothing, quietly copying the whole input
+        # to the output.
+        matched = []
+        for part in self.inputParticles.get().iterItems():
+            matrix = np.linalg.inv(part.getTransform().getMatrix())
+            rot, tilt, psi = -np.rad2deg(tfs.euler_from_matrix(matrix,
+                                                               axes='szyz'))
+            if self.removePsi:
+                within = (self.withinLimits(rot, rmin, rmax) and
+                          self.withinLimits(tilt, tmin, tmax) and
+                          self.withinLimits(psi, pmin, pmax))
             else:
-                if (self.withinLimits(r, rmin, rmax) and
-                        self.withinLimits(t, tmin, tmax) and
-                        self.withinLimits(p, pmin, pmax)):
-                    self.removedList.append(k)
+                # check only rot & tilt
+                within = (self.withinLimits(rot, rmin, rmax) and
+                          self.withinLimits(tilt, tmin, tmax))
 
-        if ptclToRemove > len(self.removedList):
+            if within:
+                matched.append(part.getObjId())
+
+        self.info("Found %d particles within the specified limits."
+                  % len(matched))
+
+        if ptclToRemove > len(matched):
             self.info("Number to remove (%d) is more than maximum available (%d). "
                       "Removing %d particles..." % (ptclToRemove,
-                                                    len(self.removedList),
-                                                    len(self.removedList)))
+                                                    len(matched),
+                                                    len(matched)))
         else:
             self.info("Randomly removing %d particles within "
                       "specified limits..." % ptclToRemove)
-            self.removedList = sample(self.removedList, ptclToRemove)
+            matched = SystemRandom().sample(matched, ptclToRemove)
+
+        self._writeRemovedIds(matched)
 
     def createOutputStep(self):
         imgSet = self.inputParticles.get()
+        self.removedIds = self._readRemovedIds()
         outImgSet = self._createSetOfParticles()
         outImgSet.copyInfo(imgSet)
         imgSet.setAlignmentProj()
@@ -146,7 +148,7 @@ class ProtRelionRemovePrefViews(ProtParticles):
         self._defineTransformRelation(self.inputParticles, outImgSet)
 
     def _removeViews(self, item, row):
-        if item.getObjId() in self.removedList:
+        if item.getObjId() in self.removedIds:
             setattr(item, "_appendItem", False)
 
     # --------------------------- INFO functions ------------------------------
@@ -155,7 +157,9 @@ class ProtRelionRemovePrefViews(ProtParticles):
 
         if hasattr(self, "outputParticles"):
             summary.append("Input particles: %d" % self.inputParticles.get().getSize())
-            summary.append("Output particles: %d" % self.outputParticles.get().getSize())
+            # inputParticles is a Pointer and needs the get(), outputParticles
+            # is the output Set itself and chokes on it
+            summary.append("Output particles: %d" % self.outputParticles.getSize())
 
         return summary
 
@@ -177,3 +181,16 @@ class ProtRelionRemovePrefViews(ProtParticles):
     # -------------------------- UTILS functions ------------------------------
     def withinLimits(self, value, min, max):
         return min < float(value) < max
+
+    def _getRemovedIdsFile(self):
+        return self._getExtraPath("removed_ids.txt")
+
+    def _writeRemovedIds(self, ids):
+        with open(self._getRemovedIdsFile(), "w") as f:
+            f.write("".join("%d\n" % objId for objId in ids))
+
+    def _readRemovedIds(self):
+        """ Ids of the particles to leave out, as a set, since the output
+        step asks for every single input particle. """
+        with open(self._getRemovedIdsFile()) as f:
+            return {int(line) for line in f if line.strip()}

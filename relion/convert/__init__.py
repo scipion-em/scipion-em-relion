@@ -26,10 +26,15 @@
 
 import math
 
+from emtable import Table
+from pyworkflow.object import Float
+from pwem.constants import ALIGN_PROJ
+
+from relion.constants import LABELS_DICT, PARTICLE_EXTRA_LABELS
 from .convert_utils import *
-from .convert_deprecated import *
 from .convert_coordinates import *
 from .dataimport import *
+from .convert31 import OpticsGroups
 
 
 # Writing of star files will be handle by the Writer class

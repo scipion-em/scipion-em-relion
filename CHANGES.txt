@@ -1,3 +1,60 @@
+5.1.1:
+    - Detect the RELION version from the binary instead of from the name of
+      the RELION_HOME folder, which silently disabled Blush, DynaMight and
+      ModelAngelo for installations not named relion-5.x
+    - Write items without an optics group into the single group the set
+      declares, whatever its number, instead of always group 1
+    - Keep the optics group of every particle when reading a STAR file, so
+      that an import and an export both respect it
+    - Extract particles: report any coordinate that does not come back
+    - Extract particles: new option to discard the particles whose box does
+      not fit inside the micrograph, which RELION extracts anyway with the
+      edge pixels smeared over the part that sticks out
+    - Crop/resize volumes: new option to mirror the volumes along one axis,
+      which inverts their handedness
+    - RELION_PREPEND and RELION_PREPEND_CPU are plugin variables now, and
+      are applied by the plugin environment, so they also reach the
+      protocols that do not inherit from ProtRelionBase
+    - Bayesian polishing: new option to pre-multiply the polished particles
+      by their CTF, and the output now carries the optics table RELION
+      wrote, so rlnCtfDataAreCtfPremultiplied is not lost
+    - Read STAR files written before RELION 3.1 without the xmipp bindings,
+      keeping their group name, group number and random subset, honouring
+      the "Copy files?" option and really dropping the disabled rows
+    - Remove convert_deprecated and the xmipp label dictionaries it needed
+    - Bayesian polishing: build its output without the xmipp bindings, which
+      the plugin no longer needs anywhere (#168)
+    - Read the coordinates written by autopicking without the xmipp bindings
+5.1.0:
+    - Fix MPI validations on some protocols
+    - Fix particle subtraction
+    - Fix optics group assignment
+    - RLN mcorr now passes down existing optics groups
+    - Modelangelo now part of the plugin
+    - Add RELION 5.1
+    - Warn when the input images do not match the optics groups STAR file
+    - Warn when extracting from micrographs with different optics groups
+    - Preprocess particles: remove the MPI option, relion_preprocess has no
+      threads option and each step operates on a single stack
+    - Reconstruct: expose the RELION threads option (--j)
+    - Pass the RELION threads with getBinThreads() in every protocol
+    - Require scipion-pyworkflow 3.11.0 or newer
+    - Add tests for the optics group propagation and its warnings
+    - DynaMight: always show a batch size box and pass it with --batch-size,
+      the option RELION uses, instead of the one DynaMight ignores
+    - DynaMight: align the default number of Gaussians with RELION (10000)
+    - 2D class ranker: match the classes by location instead of by the
+      index@stack string, which RELION widened from 6 to 8 digits in 5.0.1
+      and left every class filtered out of the output
+    - Add tests for the 2D class ranker class matching
+    - Remove preferential views: new wizard to look at the angular
+      distribution of the input before setting the limits
+    - Remove preferential views: compute the angles in a single step and
+      write the selection to a file, so a continued run does not silently
+      copy the whole input to the output
+    - Remove preferential views: report how many particles fall within the
+      limits, and fix the summary
+    - Add tests for the preferential views selection and its wizard
 5.0.2:
     - add a test for DynaMight protocol
 5.0.1: bug fix for export coordinates from subparticles (close #428)

@@ -896,20 +896,11 @@ class ProtRelionBase(EMProtocol):
 
     def runRelionStep(self, params):
         """ Execute the relion steps with the give params. """
-        params += ' --j %d' % self.numberOfThreads
+        params += ' --j %d' % self.getBinThreads()
         self.runJob(self._getProgram(), params)
 
     def _getEnviron(self):
-        env = Plugin.getEnviron()
-
-        if self.usesGpu():
-            prepend = env.get('RELION_PREPEND', '')
-        else:
-            prepend = env.get('RELION_PREPEND_CPU', '')
-
-        env.setPrepend(prepend)
-
-        return env
+        return Plugin.getEnviron(useGpu=self.usesGpu())
 
     def createOutputStep(self):
         pass  # should be implemented in subclasses

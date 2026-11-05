@@ -36,7 +36,59 @@ import logging
 logger = logging.getLogger(__name__)
 
 import pyworkflow.utils as pwutils
+from pyworkflow.object import ObjectWrap
 from pwem.constants import NO_INDEX
+from pwem.objects import Coordinate
+
+
+# What relion_autopick writes next to the coordinates themselves, and what
+# the old xmipp-based reader picked up through COOR_EXTRA_LABELS
+COORD_EXTRA_LABELS = [
+    'rlnAutopickFigureOfMerit',
+    'rlnClassNumber',
+    'rlnAnglePsi'
+]
+
+
+def readCoordinates(mic, fileName, coordsSet):
+    """ Read the coordinates of one micrograph from a STAR file and add
+    them to the set, as picking writes one file per micrograph.
+    """
+    for row in Table.iterRows(fileName):
+        coord = Coordinate()
+        coord.setPosition(row.rlnCoordinateX, row.rlnCoordinateY)
+        coord.setMicrograph(mic)
+
+        for label in COORD_EXTRA_LABELS:
+            if row.hasColumn(label):
+                setattr(coord, '_%s' % label, ObjectWrap(getattr(row, label)))
+
+        coordsSet.append(coord)
+
+
+def readSetOfCoordinates(coordSet, coordFiles, micList=None):
+    """ Read a set of coordinates from the given coordinate files,
+    associated to some SetOfMicrographs.
+
+    Params:
+        coordSet: empty SetOfCoordinates to be populated.
+        coordFiles: one file per micrograph, same length and order as micList.
+        micList: the micrographs, or the ones of coordSet if not given.
+    """
+    if micList is None:
+        micList = coordSet.getMicrographs()
+
+    for mic, coordFn in zip(micList, coordFiles):
+        if not os.path.exists(coordFn):
+            logger.warning("WARNING: Missing coordinates star file: %s"
+                           % coordFn)
+            continue
+
+        try:
+            readCoordinates(mic, coordFn, coordSet)
+        except Exception as e:
+            logger.warning("WARNING: Error reading coordinates star file "
+                           "%s: %s" % (coordFn, e))
 
 
 def openStar(fn, extraLabels=False):
