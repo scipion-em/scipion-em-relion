@@ -24,6 +24,7 @@
     - Remove convert_deprecated and the xmipp label dictionaries it needed
     - Bayesian polishing: build its output without the xmipp bindings, which
       the plugin no longer needs anywhere (#168)
+    - Read the coordinates written by autopicking without the xmipp bindings
 5.1.0:
     - Fix MPI validations on some protocols
     - Fix particle subtraction
