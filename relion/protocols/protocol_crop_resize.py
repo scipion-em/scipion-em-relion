@@ -33,8 +33,13 @@ from pwem.objects import Volume
 from pwem.convert import Ccp4Header
 
 
+FLIP_NO = 0
+FLIP_AXIS = ['no', 'X', 'Y', 'Z']
+
+
 class ProtRelionResizeVolume(ProtPreprocessVolumes):
-    """ This protocol rescales/resizes 3D volumes using relion_image_handler. """
+    """ This protocol rescales, resizes and mirrors 3D volumes using
+    relion_image_handler. """
 
     _label = 'crop/resize volumes'
     _devStatus = PROD
@@ -72,6 +77,18 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
                       label='New box size (px)',
                       help='Provide even box size.')
 
+        form.addParam('flipAxis', params.EnumParam, default=FLIP_NO,
+                      choices=FLIP_AXIS, display=params.EnumParam.DISPLAY_HLIST,
+                      label='Mirror along axis (invert handedness)?',
+                      help='Mirroring a map along a single axis inverts its '
+                           'handedness, which is the way out when a '
+                           'reconstruction comes out as the mirror image of '
+                           'the real structure. Any one axis will do: the '
+                           'results differ only by a rotation. Note the '
+                           'orientations of the particles are not valid for '
+                           'the mirrored map, so it has to be refined '
+                           'again.')
+
         form.addParallelSection(threads=0, mpi=0)
 
     # --------------------------- INSERT steps functions ----------------------
@@ -96,13 +113,7 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
 
     def resizeVolumesStep(self):
         inputData = self.inputVolumes.get()
-        argDict = {' --angpix': inputData.getSamplingRate()}
-
-        if self.doRescale:
-            argDict[' --rescale_angpix'] = self.rescaleSamplingRate.get()
-
-        if self.doResize:
-            argDict[' --new_box'] = self.resizeSize.get()
+        argDict = self._getArgDict()
 
         if isinstance(inputData, Volume):
             self.runResizeCmd(self.convertedVols, argDict)
@@ -117,6 +128,23 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
                 self.runResizeCmd(self.convertedVols, argDict, keyVol='output_half2')
         else:
             self.runResizeCmd(self.convertedVols, argDict)
+
+    def _getArgDict(self):
+        """ Arguments for relion_image_handler, the same for every volume
+        of the input. """
+        argDict = {' --angpix': self.inputVolumes.get().getSamplingRate()}
+
+        if self.doRescale:
+            argDict[' --rescale_angpix'] = self.rescaleSamplingRate.get()
+
+        if self.doResize:
+            argDict[' --new_box'] = self.resizeSize.get()
+
+        if self.flipAxis.get() != FLIP_NO:
+            # a flag with no value: --flipX, --flipY or --flipZ
+            argDict[' --flip%s' % FLIP_AXIS[self.flipAxis.get()]] = ''
+
+        return argDict
 
     def runResizeCmd(self, convertedVols, argDict, keyVol='output_vol'):
         for i, fn in enumerate(convertedVols):
@@ -156,7 +184,8 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
     def _validate(self):
         errors = []
 
-        if not self.doRescale and not self.doResize:
+        if (not self.doRescale and not self.doResize
+                and self.flipAxis.get() == FLIP_NO):
             errors.append("You have to select at least one option!")
 
         if self.doResize and not (self.resizeSize.get() % 2 == 0):
@@ -171,6 +200,10 @@ class ProtRelionResizeVolume(ProtPreprocessVolumes):
             if self.doResize:
                 messages.append(f"Resized volumes to box size of "
                                 f"*{self.resizeSize.get()}* px")
+            if self.flipAxis.get() != FLIP_NO:
+                messages.append(f"Mirrored the volumes along "
+                                f"*{FLIP_AXIS[self.flipAxis.get()]}*, so "
+                                f"their handedness is inverted")
             if self.doRescale:
                 messages.append(f"The output pixel size might be different than the "
                                 f"requested {self.rescaleSamplingRate.get()}A "

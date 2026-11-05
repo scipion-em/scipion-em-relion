@@ -32,11 +32,16 @@ silently lost or silently changed. They need neither RELION binaries nor a
 GPU, since they exercise the protocol helpers directly.
 """
 
+from emtable import Table
+
 from pyworkflow.object import Integer
 from pyworkflow.tests import BaseTest, setupTestOutput
 from pyworkflow.utils import cleanPath
 from pwem.objects import (Movie, Micrograph, SetOfMicrographs,
-                          SetOfCoordinates, Acquisition)
+                          SetOfCoordinates, SetOfParticles, Particle,
+                          Acquisition)
+
+from ..convert import createWriter, readSetOfParticles
 
 from ..constants import SAME_AS_PICKING, OTHER
 from ..convert.convert31 import OpticsGroups
@@ -44,10 +49,11 @@ from ..protocols import (ProtRelionMotioncor, ProtRelionAssignOpticsGroup,
                          ProtRelionExtractParticles)
 
 
-def opticsStar(nGroups):
-    """ An optics table with the given number of groups. """
+def opticsStar(nGroups, first=1):
+    """ An optics table with the given number of groups, numbered from
+    'first' on: a single group does not have to be group 1. """
     rows = "\n".join("afis_group_%d  %d  200.0  1.4  0.1  0.885  3710  2"
-                     % (i, i) for i in range(1, nGroups + 1))
+                     % (i, i) for i in range(first, first + nGroups))
     return """
 data_optics
 
@@ -219,3 +225,120 @@ class TestRelionExtractOpticsWarnings(BaseTest):
         self.assertEqual(2, len(messages))
         self.assertIn("3 out of 3 micrographs", messages[0])
         self.assertIn("will take the optics groups", messages[1])
+
+
+class TestRelionWriterOpticsGroup(BaseTest):
+    """ Items without an optics group of their own have to be written into
+    a group that the optics table actually declares. A single group can be
+    numbered anything, so the old hardcoded 1 pointed deposited sets at a
+    group that was not there and RELION refused the file.
+    """
+    @classmethod
+    def setUpClass(cls):
+        setupTestOutput(cls)
+
+    def _writeParticles(self, nOpticsGroups, groups, first=1):
+        """ Write a set with the given optics table and the given per-item
+        assignment, and give back the rows of the output STAR file. """
+        fn = self.getOutputPath('%s.sqlite' % self._testMethodName)
+        cleanPath(fn)
+        parts = SetOfParticles(filename=fn)
+        parts.setSamplingRate(0.885)
+        parts.setAcquisition(Acquisition(voltage=200, sphericalAberration=1.4,
+                                         amplitudeContrast=0.1,
+                                         magnification=50000))
+
+        for i, ogNumber in enumerate(groups):
+            part = Particle()
+            part.setObjId(i + 1)
+            part.setLocation(i + 1, 'particles.mrcs')
+            part.setSamplingRate(0.885)
+            if ogNumber is not None:
+                part._rlnOpticsGroup = Integer(ogNumber)
+            parts.append(part)
+
+        OpticsGroups.fromString(opticsStar(nOpticsGroups,
+                                           first=first)).toImages(parts)
+        parts.write()
+
+        starFile = self.getOutputPath('%s.star' % self._testMethodName)
+        createWriter().writeSetOfParticles(parts, starFile)
+
+        return list(Table.iterRows('particles@' + starFile))
+
+    def test_theOnlyGroupIsUsedWhateverItsNumber(self):
+        """ One group, numbered 2, and no per-item column: every particle
+        has to end up in group 2. """
+        rows = self._writeParticles(1, [None] * 3, first=2)
+
+        self.assertEqual([2, 2, 2], [row.rlnOpticsGroup for row in rows])
+
+    def test_thePerItemGroupStillWins(self):
+        rows = self._writeParticles(3, [1, 3, 2])
+
+        self.assertEqual([1, 3, 2], [row.rlnOpticsGroup for row in rows])
+
+    def test_withSeveralGroupsUngroupedItemsFallBackToOne(self):
+        """ Nothing better to go on, so keep the old answer.
+
+        Note a set cannot mix the two cases: the sqlite layout is taken
+        from the first item, so an item carrying _rlnOpticsGroup after one
+        that does not would lose it.
+        """
+        rows = self._writeParticles(3, [None] * 3)
+
+        self.assertEqual([1, 1, 1], [row.rlnOpticsGroup for row in rows])
+
+
+class TestRelionOpticsGroupRoundTrip(BaseTest):
+    """ The optics group of each particle has to survive the trip: read it
+    from a STAR file, keep it on the item, and write the same value back.
+    Until rlnOpticsGroup was added to PARTICLE_EXTRA_LABELS it was read and
+    dropped, so an imported set could only ever be written into one group.
+    """
+    @classmethod
+    def setUpClass(cls):
+        setupTestOutput(cls)
+
+    def _particlesStar(self, groups):
+        """ A particles STAR file with a per-item rlnOpticsGroup column. """
+        fn = self.getOutputPath('%s_in.star' % self._testMethodName)
+        rows = "\n".join("particles.mrcs  %d  %d" % (i + 1, og)
+                          for i, og in enumerate(groups))
+        with open(fn, 'w') as f:
+            f.write(opticsStar(max(groups)))
+            f.write("""
+data_particles
+
+loop_
+_rlnImageName #1
+_rlnImageId #2
+_rlnOpticsGroup #3
+""" + rows + "\n")
+
+        return fn
+
+    def _read(self, groups):
+        starFile = self._particlesStar(groups)
+        fn = self.getOutputPath('%s.sqlite' % self._testMethodName)
+        cleanPath(fn)
+        parts = SetOfParticles(filename=fn)
+        readSetOfParticles(starFile, parts)
+        parts.write()
+
+        return parts
+
+    def test_readKeepsTheGroupOfEveryParticle(self):
+        parts = self._read([3, 1, 2])
+
+        self.assertEqual([3, 1, 2], [p.getAttributeValue('_rlnOpticsGroup')
+                                     for p in parts.iterItems()])
+
+    def test_writeGivesBackTheSameGroups(self):
+        parts = self._read([3, 1, 2])
+        starFile = self.getOutputPath('%s_out.star' % self._testMethodName)
+        createWriter().writeSetOfParticles(parts, starFile)
+
+        rows = list(Table.iterRows('particles@' + starFile))
+
+        self.assertEqual([3, 1, 2], [row.rlnOpticsGroup for row in rows])

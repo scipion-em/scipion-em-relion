@@ -487,7 +487,7 @@ class ProtRelionDynaMight(ProtAnalysis3D, ProtRelionBase, ProtFlexBase):
                     " ".join(params))
 
     def _getEnviron(self):
-        env = Plugin.getEnviron()
+        env = Plugin.getEnviron(useGpu=self.usesGpu())
         if 'LD_LIBRARY_PATH' in env:
             # this is required to avoid conflict btw DynaMight Qt5 libs
             # and system Qt libs

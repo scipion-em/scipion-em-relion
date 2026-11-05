@@ -59,6 +59,19 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                       allowsPointers=True,
                       help='This is size of the boxed particles (in pixels).')
 
+        form.addParam('doDiscardEdge', params.BooleanParam, default=False,
+                      label='Discard particles at the edge?',
+                      help='If set to Yes, the coordinates whose box does '
+                           'not fit entirely inside the micrograph are left '
+                           'out, and the output has fewer particles than '
+                           'there were coordinates.\n'
+                           'RELION has no option for this: it extracts them '
+                           'anyway and fills the part of the box that sticks '
+                           'out with the nearest pixels inside the '
+                           'micrograph, which smears lines along that edge '
+                           'of the particle. This is done on the Scipion '
+                           'side, before the coordinates are handed over.')
+
         form.addParam('doRescale', params.BooleanParam, default=False,
                       label='Rescale particles?',
                       help='If set to Yes, particles will be re-scaled. '
@@ -185,8 +198,14 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         partsStar = self._getMicParticlesStar(micList)
 
         for mic in micList:
-            self._convertCoordinates(mic, self.coordDict[mic.getObjId()])
-            self._micCoordStarDict[mic.getObjId()] = partsStar
+            micId = mic.getObjId()
+            if self.doDiscardEdge:
+                # Replace the list, not just what is written: the output is
+                # matched back against it later on
+                self.coordDict[micId] = self._discardEdgeCoords(
+                    mic, self.coordDict[micId])
+            self._convertCoordinates(mic, self.coordDict[micId])
+            self._micCoordStarDict[micId] = partsStar
 
         args = ' --i %s --part_star %s %s' % (micsStar, partsStar, params)
 
@@ -202,6 +221,15 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         if self.doNormalize and self.backDiameter > self.boxSize:
             errors.append("Background diameter for normalization should "
                           "be equal or less than the box size.")
+
+        if self.doDiscardEdge:
+            micDim = self.getInputMicrographs().getDim()
+            if micDim is not None and int(self.boxSize) > min(micDim[:2]):
+                errors.append("The box (%d px) is larger than the "
+                              "micrographs (%d x %d px), so discarding the "
+                              "particles at the edge would discard every "
+                              "single one." % (int(self.boxSize),
+                                               micDim[0], micDim[1]))
 
         if self.doRescale and self.rescaledSize.get() % 2 == 1:
             errors.append("Only re-scaling to even-sized images is allowed "
@@ -337,6 +365,35 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
         # Store the function to be used for scaling coordinates
         self._getPos = getPos
 
+    def _discardEdgeCoords(self, mic, coordList):
+        """ Drop the coordinates whose box does not fit entirely inside the
+        micrograph.
+
+        relion keeps those and fills the part of the box that falls outside
+        with the nearest pixels inside it, so the particle comes out with
+        lines smeared along that edge, and there is no option to ask it not
+        to. _getPos already carries the coordinates to the pixels of the
+        micrographs being extracted from, which is the scale the box size is
+        given in.
+        """
+        xDim, yDim, _ = mic.getDim()
+        half = int(self.boxSize) / 2.
+
+        def fits(coord):
+            x, y = self._getPos(coord)
+            return half <= x <= xDim - half and half <= y <= yDim - half
+
+        kept = [coord for coord in coordList if fits(coord)]
+        discarded = len(coordList) - len(kept)
+
+        if discarded:
+            self.info("%s: %d of %d coordinates are closer than %d px to the "
+                      "edge, discarded."
+                      % (mic.getMicName(), discarded, len(coordList),
+                         int(half)))
+
+        return kept
+
     def _getExtractArgs(self):
         # The following parameters are executing 'relion_preprocess' to
         # extract the particles of a given micrographs
@@ -434,6 +491,21 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
                     outputParts.append(p)
                     posSet.add(pos)
 
+            # The output is built from the STAR file relion wrote, so a row
+            # that is not there is a particle that is not in the output.
+            # relion does not drop particles at the edge: a box sticking out
+            # of the micrograph is filled with the nearest pixels inside
+            # (preprocessing.cpp, "this will create lines at the edges,
+            # rather than zeros"), and a coordinate fully outside aborts the
+            # job. So this should be zero, and saying so when it is not
+            # beats discovering it by comparing set sizes by hand.
+            missing = len(coordDict) - len(posSet)
+            if missing:
+                self.info("%s: %d of %d coordinates came back from relion, "
+                          "%d did not."
+                          % (mic.getMicName(), len(posSet), len(coordDict),
+                             missing))
+
     def _updateOutputSet(self, outputName, outputSet,
                          state=Set.STREAM_OPEN):
         """ Redefine this method to update optics info. """
@@ -518,15 +590,6 @@ class ProtRelionExtractParticles(ProtExtractParticles, ProtRelionBase):
 
     def _getOutputImgMd(self):
         return self._getPath('images.xmd')
-
-    def createParticles(self, item, row):
-        particle = relion.convert.rowToParticle(row, readCtf=self._useCTF())
-        coord = particle.getCoordinate()
-        item.setY(coord.getY())
-        item.setX(coord.getX())
-        particle.setCoordinate(item)
-
-        item._appendItem = False
 
     def __getMicFile(self, mic, ext, folder=None):
         """ Return a filename based on the micrograph.
