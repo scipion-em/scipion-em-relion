@@ -228,9 +228,36 @@ class ProtRelionCalculateFSC(ProtAnalysis3D, ProtRelionBase):
                                         doRaise=True)
         from pyworkflow.utils.process import runJob
 
+        # EMAN2's e2pdb2mrc.py only understands the legacy fixed-width PDB
+        # format. mmCIF files (e.g. the ones produced by ProtImportPdb, which
+        # converts PDBs to mmCIF through ChimeraX) must be converted back to
+        # PDB first, otherwise the legacy PDB parser fails.
+        if pwutils.getExt(model).lower() == '.cif':
+            model = self._cif2pdb(model)
+
         args = "%s %s --box %d --apix %0.3f" % (model, map, box, apix)
         runJob(self._log, eman2.Plugin.getProgram('e2pdb2mrc.py'), args,
                env=eman2.Plugin.getEnviron())
+
+    def _cif2pdb(self, cif):
+        """ Convert a mmCIF model to legacy PDB format using ChimeraX. """
+        try:
+            from chimera import Plugin as chimeraPlugin
+        except ImportError:
+            raise Exception("ChimeraX is required to convert the mmCIF model "
+                            "to PDB before e2pdb2mrc.py can parse it: %s" % cif)
+
+        pdb = self._getTmpPath('input_model.pdb')
+        cmdPath = os.path.abspath(self._getExtraPath("model_cif2pdb.cxc"))
+        with open(cmdPath, "w") as f:
+            f.write("open %s\n" % os.path.abspath(cif))
+            f.write("save %s\n" % pdb)
+            f.write("exit\n")
+        chimeraPlugin.runChimeraProgram(chimeraPlugin.getProgram(),
+                                        '--nogui --script %s' % cmdPath)
+        if not os.path.exists(pdb):
+            raise Exception("ChimeraX did not produce the PDB file: %s" % pdb)
+        return pdb
 
     def _getFSC(self, fn, label):
         fsc = FSC(objLabel=label)

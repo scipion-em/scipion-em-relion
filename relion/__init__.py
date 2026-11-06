@@ -42,7 +42,7 @@ _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016',
 class Plugin(pwem.Plugin):
     _homeVar = RELION_HOME
     _pathVars = [RELION_HOME]
-    _supportedVersions = [V4_0, V5_0]
+    _supportedVersions = [V4_0, V5_0, V5_1]
     _url = "https://github.com/scipion-em/scipion-em-relion"
     _processingField = [SPA, TOMO]
 
@@ -104,6 +104,23 @@ class Plugin(pwem.Plugin):
         return environ
 
     @classmethod
+    def getActiveVersion(cls, home=None, versions=None):
+        """ The Relion binaries are usually installed in a folder named
+        'relion-X.Y' (sometimes with 'build' as the last component, e.g.
+        .../relion-5.1/build). The default implementation only checks the
+        basename of the RELION_HOME, so we check the parent directory too. """
+        home = home or cls.getHome()
+        versions = versions or cls.getSupportedVersions()
+
+        for d in (os.path.basename(home.rstrip(os.sep)),
+                  os.path.basename(os.path.dirname(home.rstrip(os.sep)))):
+            for v in versions:
+                if v in d:
+                    return v
+
+        return ''
+
+    @classmethod
     def IS_GT50(cls):
         return cls.getActiveVersion().startswith('5')
 
@@ -123,6 +140,12 @@ class Plugin(pwem.Plugin):
         """ Remove the scipion home and activate the conda environment. """
         activation = cls.getVar(RELION_ENV_ACTIVATION)
         scipionHome = Config.SCIPION_HOME + os.path.sep
+
+        # The config value may be wrapped in quotes
+        # (e.g. RELION_ENV_ACTIVATION="conda activate relion-5.1"). ConfigParser
+        # keeps those quotes as part of the value, which would make the shell
+        # treat the whole thing as a single program name.
+        activation = activation.strip().strip('"').strip("'")
 
         return activation.replace(scipionHome, "", 1)
 
