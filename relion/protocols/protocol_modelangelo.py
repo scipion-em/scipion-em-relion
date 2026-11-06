@@ -183,12 +183,20 @@ Below is an example of a config file:
         except Exception:
             # Modelangelo does not show error in the stdout, nor stderr we
             # should go and read the error information from a log file
-            with open(self._getExtraPath("model_angelo.log")) as log:
-                for line in log.read().splitlines():
-                    self.error(line)
-            self.info("ERROR: %s." % line)
-            raise ChildProcessError("Model angelo has failed: %s. See error log "
-                                    "for more details." % line) from None
+            logFile = self._getExtraPath("model_angelo.log")
+            if os.path.exists(logFile):
+                with open(logFile) as log:
+                    lastLine = ''
+                    for line in log.read().splitlines():
+                        self.error(line)
+                        lastLine = line
+                self.info("ERROR: %s." % lastLine)
+                raise ChildProcessError("Model angelo has failed: %s. See error log "
+                                        "for more details." % lastLine) from None
+            # If there is no log file, the process died before model-angelo
+            # started (e.g. a wrong activation command). Propagate the
+            # original error instead of failing on the missing log file.
+            raise
 
     def createOutputStep(self):
         """Register atomic models, raw and pruned"""
