@@ -251,12 +251,12 @@ class TestRelionExportCtf(TestRelionBase):
 
     def runImportScipion(self):
         print(magentaStr("\n==> Importing data - ctfs (from scipion):"))
-        ctfSqlite = self.dsGrigorieff.getFile('ctffind3/ctfs.sqlite')
+        ctfSetFn = self.dsGrigorieff.getFile('ctffind3/ctfs.sqlite')
 
         protCTF = self.newProtocol(ProtImportCTF,
                                    objLabel='import from scipion',
                                    importFrom=ProtImportCTF.IMPORT_FROM_SCIPION,
-                                   filesPath=ctfSqlite)
+                                   filesPath=ctfSetFn)
 
         protCTF.inputMicrographs.set(self.protImport.outputMicrographs)
         self.launchProtocol(protCTF)
@@ -348,7 +348,10 @@ class TestRelionExportParticles(TestRelionBase):
 
 class TestRelionExtractParticles(TestRelionBase):
     @classmethod
-    def runDownsamplingMicrographs(cls, mics, downFactorValue, threads=1):
+    def runDownsamplingMicrographs(cls, mics, downFactorValue, threads=3):
+        # Xmipp's preprocessing runs as a streaming generator, which holds
+        # one thread for the whole run besides the executor's own: it needs
+        # at least 3.
         # test downsampling a set of micrographs
         XmippProtPreprocessMicrographs = Domain.importFromPlugin(
             'xmipp3.protocols', 'XmippProtPreprocessMicrographs')

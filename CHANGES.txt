@@ -1,3 +1,9 @@
+5.1.0:
+    - Streaming (motioncor, compress movies, autopick, extraction) is reliable: Continue/Resume picks up where the run stopped: it reruns the steps an interrupted run left unfinished, without hanging, losing or repeating items
+    - Failed micrographs and movies are retried on Continue, every output stays in step, and the run fails only if every item failed
+    - One unreadable micrograph no longer fails picking or extraction; a failed LoG autopicking is no longer reported as a success
+    - Extraction keeps batch remainders, waits for the coordinates, never scales twice and publishes each micrograph whole
+    - RELION builds with a CUDA host compiler nvcc accepts, and without the GUI when its libraries are missing
 5.0.2:
     - add a test for DynaMight protocol
 5.0.1: bug fix for export coordinates from subparticles (close #428)

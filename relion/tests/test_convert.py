@@ -182,7 +182,7 @@ class TestConvertAnglesBase(BaseTest):
             p.setLocation(i + 1, stackFn)
             p.setTransform(Transform(a))
             partSet.append(p)
-        # Write out the .sqlite file and check that are correctly aligned
+        # Write out the Set file and check that they are correctly aligned
         print("Partset", partFn1)
         partSet.printAll()
         partSet.write()
@@ -699,10 +699,10 @@ class TestRelionWriter(BaseTest):
 
     def _createSetOfParts(self, nMics=10, nOptics=2, partsPerMic=10):
         micSet = self._createSetOfMics(nMics, nOptics)
-        outputSqlite = self.getOutputPath('particles.sqlite')
-        cleanPath(outputSqlite)
-        print(">>> Writing to particles db: %s" % outputSqlite)
-        outputParts = SetOfParticles(filename=outputSqlite)
+        outputSetFn = self.getOutputPath('particles.sqlite')
+        cleanPath(outputSetFn)
+        print(">>> Writing to particles db: %s" % outputSetFn)
+        outputParts = SetOfParticles(filename=outputSetFn)
         outputParts.setSamplingRate(1.234)
         outputParts.setAcquisition(micSet.getAcquisition())
 
@@ -741,8 +741,8 @@ class TestRelionWriter(BaseTest):
         starWriter.writeSetOfParticles(outputParts, outputStar)
 
     def test_particlesImportToStar(self):
-        sqliteFn = self.ds.getFile("import/case2/particles.sqlite")
-        partsSet = SetOfParticles(filename=sqliteFn)
+        partsSetFn = self.ds.getFile("import/case2/particles.sqlite")
+        partsSet = SetOfParticles(filename=partsSetFn)
         partsSet.loadAllProperties()
         outputStar = self.getOutputPath("particles.star")
         print(">>> Writing to particles star: %s" % outputStar)
@@ -758,12 +758,12 @@ class TestRelionReader(BaseTest):
         cls.ds2 = DataSet.getDataSet('relion_tutorial')
         cls.starOldFormat = cls.ds2.getFile('import/refine3d_case2/relion_data.star')
 
-    def __readParticles(self, partsStar, outputSqlite=None, **kwargs):
-        outputSqlite = outputSqlite or self.getOutputPath('particles.sqlite')
+    def __readParticles(self, partsStar, outputSetFn=None, **kwargs):
+        outputSetFn = outputSetFn or self.getOutputPath('particles.sqlite')
         print("<<< Reading star file: \n   %s\n" % partsStar)
-        cleanPath(outputSqlite)
-        print(">>> Writing to particles db: \n   %s\n" % outputSqlite)
-        partsSet = SetOfParticles(filename=outputSqlite)
+        cleanPath(outputSetFn)
+        print(">>> Writing to particles db: \n   %s\n" % outputSetFn)
+        partsSet = SetOfParticles(filename=outputSetFn)
         convert.readSetOfParticles(partsStar, partsSet, **kwargs)
         return partsSet
 

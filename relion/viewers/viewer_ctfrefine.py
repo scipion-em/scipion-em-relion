@@ -251,7 +251,7 @@ class ProtCtfRefineViewer(ProtocolViewer):
     def _loadAnalyzeInfo(self):
         # Only load once
         if self._micInfoList is None:
-            ctfInfoFn = self.protocol._getFileName("ctf_sqlite")
+            ctfInfoFn = self.protocol._getFileName("ctf_info")
             if not os.path.exists(ctfInfoFn):
                 ctfInfo = self.protocol.createGlobalInfo(ctfInfoFn)
             else:

@@ -58,7 +58,7 @@ class ProtRelionCtfRefinement(ProtParticles, ProtRelionBase):
         """ Centralize how files are called. """
         myDict = {
             'output_star': self._getExtraPath("particles_ctf_refine.star"),
-            'ctf_sqlite': self._getExtraPath("ctf_analyze.sqlite"),
+            'ctf_info': self._getExtraPath("ctf_analyze.sqlite"),
             'mag_obs_x': self._getExtraPath("mag_disp_x_optics-group_%(og)d.mrc"),
             'mag_obs_y': self._getExtraPath("mag_disp_y_optics-group_%(og)d.mrc"),
             'mag_fit_x': self._getExtraPath("mag_disp_x_fit_optics-group_%(og)d.mrc"),
@@ -286,7 +286,7 @@ class ProtRelionCtfRefinement(ProtParticles, ProtRelionBase):
         return ctfInfo
 
     def createGlobalInfoStep(self):
-        self.createGlobalInfo(self._getFileName("ctf_sqlite"))
+        self.createGlobalInfo(self._getFileName("ctf_info"))
 
     def _updateItem(self, particle, row):
         Reader.rowToCtf(row, particle.getCTF())
