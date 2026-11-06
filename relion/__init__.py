@@ -34,7 +34,7 @@ from .constants import *
 from .build_toolchain import GUI_FLAG_SHELL, cmakeToolchainFlags
 
 
-__version__ = '5.0.2'
+__version__ = '5.1.0'
 _logo = "relion_logo.jpg"
 _references = ['Scheres2012a', 'Scheres2012b', 'Kimanius2016',
                'Zivanov2018', 'Kimanius2021']
